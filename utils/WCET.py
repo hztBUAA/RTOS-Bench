@@ -145,14 +145,14 @@ def worst_case_exec_test(
         except Exception as e:
             print("Error opening worst case execution test report file", e)
         reader = csv.DictReader(test_file, delimiter=",")
+        worst_time = 0
         for row in reader:
             elapsed_secs = float(row["job_elapsed(seconds)"])
             elapsed_clocks = float(row["job_elapsed(clock_cycles)"])
             deadline = int(row["deadline_status(1=met)"])
             if deadline == 0:
                 fails_count += 1
-            if fails_count == 0:
-                runtimes.append(elapsed_secs)
+            runtimes.append(elapsed_secs)
             if elapsed_secs > worst_time:
                 worst_time = elapsed_secs
                 worst = elapsed_clocks
