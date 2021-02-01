@@ -1,3 +1,8 @@
+rt-bench
+--------
+
+This is real-time version of the coretex benchmarks, the original version can found [here](https://bitbucket.org/taylor-bsg/cortexsuite/src/devel/).
+
 CortexSuite
 -----------
 
@@ -19,7 +24,7 @@ Compile the non-computer vision benchmarks with the command:
 _make compile-cortex_
 
 This will compile the benchmarks for the small,medium,and large benchmarks
-where applicable. 
+where applicable.
 
 To run a specific set of benchmarks use the commands
 

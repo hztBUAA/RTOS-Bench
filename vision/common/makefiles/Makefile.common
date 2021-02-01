@@ -1,5 +1,5 @@
 #################################
-# Author: Sravanthi Kota Venkata
+# Original Author: Sravanthi Kota Venkata
 #################################
 
 # Define MATLAB-PATH with the path to the MATLAB package
@@ -53,13 +53,13 @@ COMMON_SRC := $(wildcard $(COMMON_DIR)/*.c)
 
 EXE =
 INCLUDES = -I$(COMMON_DIR) -I$(C_DIR)
-COMPILE_C = $(CC) $(CFLAGS) -lm -O2 $(INCLUDES)
+COMPILE_C = $(CC) $(CFLAGS) -lrt -lm -O2 $(INCLUDES)
 #COMPILE_C = $(CC) $(CFLAGS) -DGENERATE_OUTPUT -lm -O2 $(INCLUDES)
-COMPILE_G = $(CC) $(CFLAGS) -g -lm $(INCLUDES)
+COMPILE_G = $(CC) $(CFLAGS) -g -lrt -lm $(INCLUDES)
 COMPILE_PG = $(COMPILE_G) -pg
 
 c-run: compile
-	@echo -e "Data set\t\t- $(INPUT)" 
+	@echo -e "Data set\t\t- $(INPUT)"
 	@./$(BMARK)$(EXE) $(DATA_DIR) $(C_RESULT) | tee $(TIMING_DIR)/C_$(INPUT).txt
 
 debug:
@@ -69,31 +69,31 @@ debug:
 	#@gdb ./$(BMARK)$(EXE) $(DATA_DIR) $(C_RESULT)
 
 profile: compile-prof
-	@echo -e "Data set\t\t- $(INPUT)" 
+	@echo -e "Data set\t\t- $(INPUT)"
 	@./$(BMARK)$(EXE) $(DATA_DIR) $(C_RESULT)
 	@gprof $(BMARK)$(EXE)
-	
+
 
 compile: $(C_SRC)
-	@echo 
+	@echo
 	@echo -e "Benchmark\t\t- $(BMARK)"
 	@$(COMPILE_C) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
 
 compile-prof: $(C_SRC)
-	@echo 
+	@echo
 	@echo -e "Benchmark\t\t- $(BMARK)"
 	@$(COMPILE_PG) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
 
 matlab-run:
-	@echo 
+	@echo
 	@echo -e "Benchmark\t\t- $(BMARK)"
-	@echo -e "Data set\t\t- $(INPUT)" 
+	@echo -e "Data set\t\t- $(INPUT)"
 	@cd $(M_DIR); $(MATLAB_PATH) -glnx86 -nosplash -nodisplay -r "script_run_profile('$(M_DATA)', '$(M_RESULT)', '$(INPUT)', '$(M_COMMON)', '$(M_TOOLBOX)'); quit" | tee $(MTIMING_DIR)/Matlab_$(INPUT).txt
 
 mcc-run:
 	@echo Generating a C standalone application
 	cd $(M_DIR); $(MATLAB_PATH) -nosplash -nodesktop -r "mcc -m -v script_run_profile -d $(M_RESULT); quit"
-	
+
 all: c-run matlab-run mcc-run
 
 clean:
