@@ -53,9 +53,9 @@ COMMON_SRC := $(wildcard $(COMMON_DIR)/*.c)
 
 EXE =
 INCLUDES = -I$(COMMON_DIR) -I$(C_DIR)
-COMPILE_C = $(CC) $(CFLAGS) -lrt -lm -O2 $(INCLUDES)
+COMPILE_C = $(CC) $(CFLAGS) -lrt -lm -pthread -O2 $(INCLUDES)
 #COMPILE_C = $(CC) $(CFLAGS) -DGENERATE_OUTPUT -lm -O2 $(INCLUDES)
-COMPILE_G = $(CC) $(CFLAGS) -g -lrt -lm $(INCLUDES)
+COMPILE_G = $(CC) $(CFLAGS) -g -lrt -lm -pthread $(INCLUDES)
 COMPILE_PG = $(COMPILE_G) -pg
 
 c-run: compile

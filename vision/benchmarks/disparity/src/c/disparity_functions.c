@@ -11,19 +11,16 @@
 #include <signal.h>
 #include <errno.h>
 
-///The variables below are initialized by the init function and only read by the signal handler, they contain the images used in ::disparity_execution.
-static I2D *imleft, *imright;
-///The output path, to write the task result in a file, it is only read by ::disparity_execution.
-static char *output;
-
-
-/// Will load the images that will be used by the benchmark.
+/** Will load the images that will be used by the benchmark.
+ * The parameters array will have the following structure after this function has terminated correctly:
+ * parameters[0]: image folder path
+ * parameters[1]: left image (as an I2D*)
+ * parameters[2]: right image (as an I2D*)
+ */
 int disparity_init(int parameters_num,void** parameters){
 	char im1[100], im2[100];
 
-	if(parameters_num==1){
-		output=(char*)parameters[0];
-	}else{
+	if(parameters_num<3){
 		printf("wrong parameters list supplied!\n");
 		errno=EINVAL;
 		return -1;
@@ -31,16 +28,23 @@ int disparity_init(int parameters_num,void** parameters){
 
 	//load images
 
-	sprintf(im1, "%s/1.bmp", output);
-	sprintf(im2, "%s/2.bmp", output);
+	sprintf(im1, "%s/1.bmp", parameters[0]);
+	sprintf(im2, "%s/2.bmp", parameters[0]);
 
-	imleft = readImage(im1);
-	imright = readImage(im2);
+	parameters[1] = readImage(im1);
+	parameters[2] = readImage(im2);
 	return 0;
 }
 
 ///This handler contains the core part of the benchmark, where the disparity between the two images is computed.
-void disparity_execution(int signo, siginfo_t* info,void* context){
+void disparity_execution(int parameters_num, void** parameters){
+	if(parameters_num<3){
+		printf("wrong parameters list supplied!\n");
+		errno=EINVAL;
+		return;
+	}
+	char* output=parameters[0];
+	I2D *imleft=parameters[1], *imright=parameters[2];
 	unsigned int *start, *endC, *elapsed;
 	int WIN_SZ=8, SHIFT=64;
 	I2D *retDisparity;
@@ -86,8 +90,13 @@ void disparity_execution(int signo, siginfo_t* info,void* context){
 	free(elapsed);
 }
 
-///It will deallocate the images structure reated by ::disparity_init.
+///It will deallocate the images structure created by ::disparity_init.
 void disparity_teardown(int parameters_num,void** parameters){
-	iFreeHandle(imleft);
-	iFreeHandle(imright);
+	if(parameters_num<3){
+		printf("wrong parameters list supplied!\n");
+		errno=EINVAL;
+		return;
+	}
+	iFreeHandle(parameters[1]);
+	iFreeHandle(parameters[2]);
 }

@@ -11,7 +11,7 @@ typedef struct _execution_data{
 	int parameters_num; ///< The number of parameters passed to the init and teardown functions.
 	void** parameters; ///< The parameters array that will be passed to the the init and teardown functions.
 	int (*init)(int parameters_num,void** parameters); ///< The init function, called before the tmer creation.
-	void(*execution)(int signo, siginfo_t* info,void* context); ///< The execution function, which will be used as the SIGRTMIN handler.
+	void(*execution)(int parameters_num, void** parameters); ///< The execution function, which will be used as the SIGRTMIN handler.
 	void (*teardown)(int parameters_num,void** parameters); ///< The teardown function, which will be called after the timer has been destroyed.
 } execution_data;
 
@@ -21,4 +21,4 @@ typedef struct _execution_data{
  * \param[in] deadline_nsec The timer deadline in nanoseconds.
  * \return 0 in case of success and an error code otherwise.
  */
-int start_benchmark_timer(execution_data* edata, long deadline_sec,long deadline_nsec);
+int start_benchmark(execution_data* edata, long deadline_sec,long deadline_nsec);

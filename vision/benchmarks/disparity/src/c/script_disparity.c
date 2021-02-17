@@ -4,6 +4,13 @@
 #include <stdlib.h>
 #include <errno.h>
 
+/**
+ * 1 - Output path
+ * 2 - Left image
+ * 3 - Right image
+ */
+#define NUM_PARAMETERS 3
+
 /** \brief A small main function which will initialize the disparity benchmark to be run periodically, according to the given parameters.
  * \param[in] argc Number of given parameters, should be 2 or 3.
  * \param[in] argv given parameters array.
@@ -16,11 +23,13 @@ int main(int argc, char** argv){
 	execution_data edata;
 	long deadline_sec=0,deadline_nsec=0;
 	int res;
+	//we use a static array to avoid having a free in the exit handler.
+	void* parameters_arr[NUM_PARAMETERS];
 
 	//Parsing of data directory path
 	if(argc >= 3){
-		edata.parameters=malloc(sizeof(void*));
-		edata.parameters_num=1;
+		edata.parameters=parameters_arr;
+		edata.parameters_num=NUM_PARAMETERS;
 		edata.parameters[0]=(void*)argv[1];
 	} else {
 		printf("Missing data directory or deadline in seconds.\nArguments supported: [data path] [deadline in seconds] [deadline in nanoseconds, optional]\n");
@@ -49,12 +58,8 @@ int main(int argc, char** argv){
 	edata.teardown=disparity_teardown;
 
 	//timer initialization
-	res=start_benchmark_timer(&edata, deadline_sec,deadline_nsec);
+	res=start_benchmark(&edata, deadline_sec,deadline_nsec);
 	if(res<0){
 		return EXIT_FAILURE;
 	}
-
-	//cleanup of the execution parameters struct
-	free(edata.parameters);
-	return 0;
 }
