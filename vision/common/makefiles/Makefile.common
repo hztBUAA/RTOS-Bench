@@ -65,7 +65,7 @@ c-run: compile
 debug:
 	@echo Running Debug C Version of the benchmark
 	@$(COMPILE_G) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
-	@valgrind --leak-check=full ./$(BMARK)$(EXE) $(DATA_DIR) $(C_RESULT)
+	#@valgrind --leak-check=full ./$(BMARK)$(EXE) $(DATA_DIR) $(C_RESULT)
 	#@gdb ./$(BMARK)$(EXE) $(DATA_DIR) $(C_RESULT)
 
 profile: compile-prof
