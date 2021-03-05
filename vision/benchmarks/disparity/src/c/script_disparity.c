@@ -45,7 +45,6 @@ void benchmark_execution(int parameters_num, void **parameters)
 		return;
 	}
 	char *output = parameters[0];
-	unsigned int *start, *endC, *elapsed;
 	int WIN_SZ = 8, SHIFT = 64;
 	I2D *retDisparity;
 #ifdef test
@@ -60,9 +59,7 @@ void benchmark_execution(int parameters_num, void **parameters)
 	WIN_SZ = 4;
 	SHIFT = 8;
 #endif
-	start = photonStartTiming();
 	retDisparity = getDisparity(imleft, imright, WIN_SZ, SHIFT);
-	endC = photonEndTiming();
 
 	printf("Input size\t\t- (%dx%d)\n", imleft->height, imleft->width);
 #ifdef CHECK
@@ -81,18 +78,17 @@ void benchmark_execution(int parameters_num, void **parameters)
 /** Self checking done **/
 #endif
 
-	elapsed = photonReportTiming(start, endC);
-	photonPrintTiming(elapsed);
 	//We free the resources allocated.
 	iFreeHandle(retDisparity);
-	free(start);
-	free(endC);
-	free(elapsed);
 }
 
 ///It will deallocate the images structure created by ::disparity_init.
 void benchmark_teardown(int parameters_num, void **parameters)
 {
-	iFreeHandle(imleft);
-	iFreeHandle(imright);
+	if (imleft != NULL) {
+		iFreeHandle(imleft);
+	}
+	if (imright != NULL) {
+		iFreeHandle(imright);
+	}
 }

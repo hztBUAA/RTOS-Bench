@@ -62,6 +62,10 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 			argp_error(
 				state,
 				"Deadline in seconds and deadline in nanoseconds cannot be both 0");
+		// if an output path is not specified we will use the input folder path (specified in the first argument)
+		if(parsed_args->output_path==NULL){
+			parsed_args->output_path=parsed_args->args[0];
+		}
 		break;
 	default:
 		res = ARGP_ERR_UNKNOWN;
