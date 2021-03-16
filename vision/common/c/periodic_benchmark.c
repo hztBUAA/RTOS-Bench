@@ -16,15 +16,6 @@
 ///Name of the output file with timing information
 #define OUTPUT_FNAME "timing.csv"
 
-///The benchmark init function, which will be defined by the benchmark itself
-extern int benchmark_init(int parameters_num, void **parameters);
-
-///The benchmark execution function, which will be defined by the benchmark itself
-extern void benchmark_execution(int parameters_num, void **parameters);
-
-///The benchmark teardown function, which will be defined by the benchmark itself
-extern void benchmark_teardown(int parameters_num, void **parameters);
-
 ///Number of parameters passed to the benchmark
 static int benchmark_param_num = 0;
 

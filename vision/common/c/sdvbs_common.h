@@ -9,6 +9,8 @@ Author: Sravanthi Kota Venkata
 #include <stdlib.h>
 #include <math.h>
 
+#include "periodic_benchmark.h"
+
 typedef struct
 {
     int width;

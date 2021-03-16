@@ -53,7 +53,8 @@ COMMON_SRC := $(wildcard $(COMMON_DIR)/*.c)
 
 EXE =
 INCLUDES = -I$(COMMON_DIR) -I$(C_DIR)
-COMPILE_C = $(CC) $(CFLAGS) -lrt -lm -pthread -O2 $(INCLUDES)
+COMPILE_C = $(CC) $(CFLAGS) -O2 $(INCLUDES)
+C_LIBS = -lrt -lm -pthread
 #COMPILE_C = $(CC) $(CFLAGS) -DGENERATE_OUTPUT -lm -O2 $(INCLUDES)
 COMPILE_G = $(CC) $(CFLAGS) -g -lrt -lm -pthread $(INCLUDES)
 COMPILE_PG = $(COMPILE_G) -pg
@@ -77,7 +78,7 @@ profile: compile-prof
 compile: $(C_SRC)
 	@echo
 	@echo -e "Benchmark\t\t- $(BMARK)"
-	@$(COMPILE_C) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
+	@$(COMPILE_C) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE) $(C_LIBS)
 
 compile-prof: $(C_SRC)
 	@echo

@@ -22,4 +22,13 @@ struct execution_options {
  */
 int periodic_benchmark(struct execution_options *exec_opts);
 
+///The benchmark init function, which will be defined by the benchmark itself
+extern int benchmark_init(int parameters_num, void **parameters);
+
+///The benchmark execution function, which will be defined by the benchmark itself
+extern void benchmark_execution(int parameters_num, void **parameters);
+
+///The benchmark teardown function, which will be defined by the benchmark itself
+extern void benchmark_teardown(int parameters_num, void **parameters);
+
 #endif
