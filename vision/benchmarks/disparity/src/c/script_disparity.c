@@ -1,7 +1,13 @@
 /**
- * Functions used to run the disparity benchmark periodically.
- * Author of the original version: Sravanthi Kota Venkata.
- * Include -lrt to the compilation options.
+ * @file script_disparity.c
+ * @brief Functions used to run the disparity benchmark periodically.
+ * @details
+ * The original script has been broken down in three components:
+ * - init: benchamrk_init();
+ * - execution: benchmark_execution();
+ * - teardown: benchmark_teardown();
+ * This allows the benchmark to be run periodically, by re-running only the execution portion.
+ * @author Sravanthi Kota Venkata, for the original version.
  */
 
 #include <stdio.h>
@@ -9,12 +15,19 @@
 #include "disparity.h"
 #include <errno.h>
 
-/// Variables that will hold the benchmark's input data.
-static I2D *imleft = NULL, *imright = NULL;
+/// Left image, used for disparity computation.
+static I2D *imleft = NULL;
+/// Right image, used for disparity computation.
+static I2D *imright = NULL;
 
-/** Will load the images that will be used by the benchmark.
+/**
+ * @brief Will load the images that will be used by the benchmark.
+ * @param[in] parameters_num Number of parameters passed, should be 1.
+ * @param[in] parameters The list of passed parameters.
+ * @details
  * The required parameters array has the following structure:
- * parameters[0]: image folder path
+ * - parameters[0]: image folder path;
+ * First image will be loaded into ::imleft and second image into ::imright.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {
@@ -36,7 +49,14 @@ int benchmark_init(int parameters_num, void **parameters)
 	return 0;
 }
 
-///This handler contains the core part of the benchmark, where the disparity between the two images is computed.
+/**
+ * @brief This handler c where the disparity between the two images is computed.
+ * @param[in] parameters_num Number of passed parameters, should be 0 or 1.
+ * @param[in] parameters The list of passed parameters.
+ * @details
+ * The list of passed parameters should provide the output folder path (which is generally the same os the input folder path) as only element of the parameters array.
+ * If no output is necessary, then parameters_num should be 0 and parameters should be NULL.
+ */
 void benchmark_execution(int parameters_num, void **parameters)
 {
 	if (parameters_num < 1) {
@@ -44,7 +64,9 @@ void benchmark_execution(int parameters_num, void **parameters)
 		errno = EINVAL;
 		return;
 	}
+#ifdef GENERATE_OUTPUT
 	char *output = parameters[0];
+#endif
 	int WIN_SZ = 8, SHIFT = 64;
 	I2D *retDisparity;
 #ifdef test
@@ -63,7 +85,7 @@ void benchmark_execution(int parameters_num, void **parameters)
 
 	printf("Input size\t\t- (%dx%d)\n", imleft->height, imleft->width);
 #ifdef CHECK
-	/** Self checking - use expected.txt from data directory  **/
+	/* Self checking - use expected.txt from data directory  **/
 	{
 		int tol, ret = 0;
 		tol = 2;
@@ -75,14 +97,19 @@ void benchmark_execution(int parameters_num, void **parameters)
 		if (ret == -1)
 			printf("Error in Disparity Map\n");
 	}
-/** Self checking done **/
+/* Self checking done **/
 #endif
 
 	//We free the resources allocated.
 	iFreeHandle(retDisparity);
 }
 
-///It will deallocate the images structure created by ::disparity_init.
+/**
+ * @brief Will revert what banchmark_init() has done to initialize the benchmark.
+ * @param[in] parameters_num Ignored.
+ * @param[in] parameters Ignored.
+ * @details It will deallocate images in ::imleft and ::imright.
+ */
 void benchmark_teardown(int parameters_num, void **parameters)
 {
 	if (imleft != NULL) {

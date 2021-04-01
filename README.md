@@ -1,7 +1,9 @@
 rt-bench
---------
+========
 
 This is real-time version of the coretex benchmarks, the original version can found [here](https://bitbucket.org/taylor-bsg/cortexsuite/src/devel/).
+
+Documentation can be built and consulted by following [these](docs/source/1-Building_documentation.md) instructions.
 
 CortexSuite
 -----------

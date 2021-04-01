@@ -1,0 +1,6 @@
+.*
+!.gitattributes
+!.gitignore
+docs/*pdf
+docs/*html
+docs/conf/doxygen-awesome

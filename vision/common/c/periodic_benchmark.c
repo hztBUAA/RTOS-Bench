@@ -1,3 +1,8 @@
+/** @file periodic_benchmark.c
+ * @brief Implementation of a general periodic benchmark using a real time timer.
+ * @details Timer expiration triggers a `SIGRTMIN` and `SIGINT` is used to stop and destroy the timer.
+ */
+
 #include <signal.h>
 #include <time.h>
 #include <stdio.h>
@@ -37,9 +42,11 @@ static unsigned long long start_timestamp = 0;
 ///Timestamp of when the last job execution has completed, 0 is the job has not finished or is not running.
 static unsigned long long end_timestamp = 0;
 
-/** Teardown function registered to be called when exit is called.
+/**
+ * @brief Teardown function registered to be called when exit is called.
  * @param[in] status the exit status.
  * @param[in] arg Ignored.
+ * @details Will ensure that all the requested resourced are freed and the ouput file is flushed and closed.
  */
 static void stop_benchmark(int status, void *arg)
 {
@@ -71,18 +78,29 @@ static void stop_benchmark(int status, void *arg)
 	benchmark_teardown(benchmark_param_num, benchmark_params);
 }
 
-/// \brief SIGINT handler, causes the program to terminate in a clean way.
+/**
+ * @brief SIGINT handler, causes the program to terminate in a clean way.
+ * @param signo Ignored.
+ * @param info Ignored.
+ * @param context Ignored.
+ * @details Will call the exit function, it's invoked when a `SIGINT` is received
+ */
 static void quit_handler(int signo, siginfo_t *info, void *context)
 {
 	exit(0);
 }
 
-/** The signal handler that will determine what has to be done when the timer expires.
- * If the benchmark is not completed within the dealdine ( start or end timestamp does not have a non-zero value) a deadline miss is reported.
+/**
+ * @brief The signal handler that will determine what has to be done when the timer expires.
+ * @param signo Ignored.
+ * @param info Ignored.
+ * @param context Ignored.
+ * @details
+ * If the benchmark is not completed within the deadline ( start or end timestamp does not have a non-zero value) a deadline miss is reported.
  * If the benchmark has completed (start and end timestamps have both a non-zero value) the job timing is reported.
- * Regardless of the job status the semaphore (::job_sem) value is incremented if it is 0, to allow the next job to start as soon as possible.
+ * Regardless of the job status, the semaphore (::job_sem) value is incremented if it is 0, to allow the next job to start as soon as possible.
  *
- * The semaphore incrementation does not create race conditions between a job that ha missed the deadline and the next one, since jobs are executed sequentially. 
+ * The semaphore incrementation does not create race conditions between a job that ha missed the deadline and the next one, since jobs are executed sequentially.
 */
 static void timer_handler(int signo, siginfo_t *info, void *context)
 {
@@ -135,13 +153,12 @@ static void timer_handler(int signo, siginfo_t *info, void *context)
 	}
 }
 
-/**
- * This function will prepare the environment for executing the job, initialize the timer and periodically report any missed deadlines. 
+/** @details
+ * This function will prepare the environment for executing the job, initialize the timer and periodically report any missed deadlines.
  * When the environment for the periodic benchmark is initialized, the benchmark will be periodically executed.
  * When a SIGINT is received, the timer will be destroyed and the environment for the job execution will be cleaned.
  *
- * The environment for the job execution is handled by calling the ::benchmark_init and ::benchmark_teardown functions.
- *
+ * The environment for the job execution is handled by calling the benchmark_init() and benchmark_teardown() functions.
  */
 int periodic_benchmark(struct execution_options *exec_opts)
 {
