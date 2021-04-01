@@ -9,6 +9,7 @@ The documentation is available in pdf and html, and it is generated in the `docs
 - Dot tool, part of the graphviz package
 - git
 - sed
+- pdflatex (only to generate documentation in pdf format.)
 
 ## Build targets
 
