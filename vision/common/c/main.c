@@ -1,4 +1,5 @@
 #include "periodic_benchmark.h"
+#include "logging.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -18,7 +19,7 @@
  */
 static int parse_opt(int key, char *arg, struct argp_state *state)
 {
-	int res = 0;
+	int res = 0, log_level = LOG_LEVEL_INFO;
 	struct execution_options *parsed_args = state->input;
 	switch (key) {
 		//default values for arguments and options
@@ -59,6 +60,15 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case 'o':
 		parsed_args->output_path = arg;
+		break;
+	case 'l':
+		log_level = atoi(arg);
+		if (log_level >= LOG_LEVEL_ERR &&
+		    log_level <= LOG_LEVEL_TRACE) {
+			benchmark_verbosity = log_level;
+		} else {
+			argp_error(state, "Wrong log level supplied.");
+		}
 		break;
 	case ARGP_KEY_END:
 		if (parsed_args->args_num < 1)
@@ -107,6 +117,8 @@ int main(int argc, char **argv)
 		{ "deadline-nsec", 'n', "nsec", 0,
 		  "An optional deadline specification in nanoseconds, which can be used in conjunction with the deadline in seconds. If not specified it is assumed to be 0." },
 		{ 0, 0, 0, 0, "Reporting options:", 3 },
+		{ "log-level", 'l', "log-lvl", 0,
+		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats only to output file.\n3 - Print benchmark stats also on stdout.\n4 - Print also informative messages.\nDefault is 3." },
 		{ "output", 'o', "output_path", 0,
 		  "Where the info on the benchmark execution will be written. If not supplied, the input folder path will be used." },
 		{ 0, 0, 0, 0, "Informational options:", -1 },

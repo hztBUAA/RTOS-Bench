@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include "disparity.h"
 #include <errno.h>
+#include "logging.h"
 
 /// Left image, used for disparity computation.
 static I2D *imleft = NULL;
@@ -35,7 +36,7 @@ int benchmark_init(int parameters_num, void **parameters)
 	char im1[100], im2[100];
 
 	if (parameters_num < 1) {
-		printf("wrong parameters list supplied!\n");
+		elogf(LOG_LEVEL_ERR, "wrong parameters list supplied!\n");
 		errno = EINVAL;
 		return -1;
 	}
@@ -60,7 +61,7 @@ int benchmark_init(int parameters_num, void **parameters)
 void benchmark_execution(int parameters_num, void **parameters)
 {
 	if (parameters_num < 1) {
-		printf("wrong parameters list supplied!\n");
+		elogf(LOG_LEVEL_ERR, "wrong parameters list supplied!\n");
 		errno = EINVAL;
 		return;
 	}
@@ -81,7 +82,8 @@ void benchmark_execution(int parameters_num, void **parameters)
 #endif
 	retDisparity = getDisparity(imleft, imright, WIN_SZ, SHIFT);
 
-	printf("Input size\t\t- (%dx%d)\n", imleft->height, imleft->width);
+	elogf(LOG_LEVEL_TRACE, "Input size\t\t- (%dx%d)\n", imleft->height,
+	      imleft->width);
 #ifdef CHECK
 	/* Self checking - use expected.txt from data directory  **/
 	{
@@ -90,10 +92,10 @@ void benchmark_execution(int parameters_num, void **parameters)
 #ifdef GENERATE_OUTPUT
 		writeMatrix(retDisparity, output);
 #endif
-		printf("output: %s\n", output);
+		elogf(LOG_LEVEL_TRACE, "output: %s\n", output);
 		ret = selfCheck(retDisparity, output, tol);
 		if (ret == -1)
-			printf("Error in Disparity Map\n");
+			elogf(LOG_LEVEL_ERR, "Error in Disparity Map\n");
 	}
 /* Self checking done **/
 #endif

@@ -12,6 +12,7 @@
 #include <semaphore.h>
 #include "periodic_benchmark.h"
 #include "get_cpu_timestamp.h"
+#include "logging.h"
 
 /// Deadline missed status
 #define DEADLINE_MISSED 0
@@ -52,19 +53,19 @@ static void stop_benchmark(int status, void *arg)
 {
 	int res;
 	if (filep != NULL) {
-		printf("Flushing output file buffer\n");
+		elogf(LOG_LEVEL_TRACE, "Flushing output file buffer\n");
 		res = fflush(filep);
 		if (res == EOF) {
 			perror("Cannot flush file buffer");
 		}
-		printf("Closing output file\n");
+		elogf(LOG_LEVEL_TRACE, "Closing output file\n");
 		res = fclose(filep);
 		if (res == EOF) {
 			perror("Error during output file close");
 		}
 	}
 	if (timer != NULL) {
-		printf("Deleting timer\n");
+		elogf(LOG_LEVEL_TRACE, "Deleting timer\n");
 		res = timer_delete(timer);
 		if (res < 0) {
 			perror("Error during timer deletion");
@@ -74,7 +75,7 @@ static void stop_benchmark(int status, void *arg)
 	if (res < 0) {
 		perror("Error during semaphore destruction");
 	}
-	printf("Cleaning up job environment\n");
+	elogf(LOG_LEVEL_TRACE, "Cleaning up job environment\n");
 	benchmark_teardown(benchmark_param_num, benchmark_params);
 }
 
@@ -109,32 +110,32 @@ static void timer_handler(int signo, siginfo_t *info, void *context)
 	unsigned long long elapsed_timestamp = 0;
 	unsigned long long deadline_timestamp = get_cpu_timestamp();
 	//we have met a deadline if the job has been completed.
-	printf("\n\n\tDeadline reached at:%llu\n", deadline_timestamp);
+	elogf(LOG_LEVEL_TRACE, "\n\n\tDeadline reached at:%llu\n",
+	      deadline_timestamp);
 	if (start_timestamp > 0 && end_timestamp > 0) {
 		//We print the timing information of the last completed job.
 		elapsed_timestamp = end_timestamp - start_timestamp;
-		printf("Deadline MET\nstart_timestamp: %llu\nend_timestamp: %llu\nelapsed: %llu\n",
-		       start_timestamp, end_timestamp, elapsed_timestamp);
-		res = fprintf(filep, "%llu,%llu,%llu,%llu,%d\n",
-			      start_timestamp, end_timestamp, elapsed_timestamp,
-			      deadline_timestamp, DEADLINE_MET);
-		if (res < 0) {
-			perror("cannot write on output file");
-			exit(-1);
-		}
+		elogf(LOG_LEVEL_TRACE,
+		      "Deadline MET\nstart_timestamp: %llu\nend_timestamp: %llu\nelapsed: %llu\n",
+		      start_timestamp, end_timestamp, elapsed_timestamp);
+		flogf(LOG_LEVEL_FILE, filep, "%llu,%llu,%llu,%llu,%d\n",
+		      start_timestamp, end_timestamp, elapsed_timestamp,
+		      deadline_timestamp, DEADLINE_MET);
+		logf(LOG_LEVEL_INFO, "%llu,%llu,%llu,%llu,%d\n",
+		     start_timestamp, end_timestamp, elapsed_timestamp,
+		     deadline_timestamp, DEADLINE_MET);
 		//we reset the timestamps to avoid reporting the same job status more than once
 		end_timestamp = 0;
 		start_timestamp = 0;
 	} else {
 		//we notify that the deadline has been missed
-		printf("Deadline MISSED\nstart_timestamp: %llu\n",
-		       start_timestamp);
-		res = fprintf(filep, "0,0,0,%llu,%d\n", deadline_timestamp,
-			      DEADLINE_MISSED);
-		if (res < 0) {
-			perror("cannot write on output file");
-			exit(-1);
-		}
+		elogf(LOG_LEVEL_TRACE,
+		      "Deadline MISSED\nstart_timestamp: %llu\n",
+		      start_timestamp);
+		flogf(LOG_LEVEL_FILE, filep, "0,0,0,%llu,%d\n",
+		      deadline_timestamp, DEADLINE_MISSED);
+		logf(LOG_LEVEL_INFO, "0,0,0,%llu,%d\n", deadline_timestamp,
+		     DEADLINE_MISSED);
 	}
 	res = sem_getvalue(&job_sem, &sem_val);
 	if (res < 0) {
@@ -168,7 +169,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	char *fname;
 	int fname_len;
 
-	printf("Starting setup of execution environment\n");
+	elogf(LOG_LEVEL_TRACE, "Starting setup of execution environment\n");
 	//we setup the variables that are used in the execution pattern
 	//We initialize the semaphore to allow only the execution of one job at a time and to share it only between threads of the same process
 	res = sem_init(&job_sem, 1, 1);
@@ -178,55 +179,52 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	}
 	res = on_exit(stop_benchmark, NULL);
 	if (res != 0) {
-		printf("Error during on_exit function registration");
+		elogf(LOG_LEVEL_ERR,
+		      "Error during on_exit function registration");
 		return -1;
 	}
 	benchmark_param_num = exec_opts->args_num;
 	benchmark_params = (void **)exec_opts->args;
-	printf("Execution environment setup complete\n");
+	elogf(LOG_LEVEL_TRACE, "Execution environment setup complete\n");
+	if (benchmark_verbosity >= LOG_LEVEL_FILE) {
+		elogf(LOG_LEVEL_TRACE, "Starting output file setup\n");
+		//we construct the file path
+		fname_len = strlen(exec_opts->output_path) +
+			    strlen(OUTPUT_FNAME) + strlen("/") + 1;
+		fname = malloc(sizeof(char) * fname_len);
+		memset(fname, 0, fname_len);
+		res = snprintf(fname, fname_len, "%s/%s",
+			       exec_opts->output_path, OUTPUT_FNAME);
 
-	printf("Starting output file setup\n");
-	//we construct the file path
-	fname_len = strlen(exec_opts->output_path) + strlen(OUTPUT_FNAME) +
-		    strlen("/") + 1;
-	fname = malloc(sizeof(char) * fname_len);
-	memset(fname, 0, fname_len);
-	res = snprintf(fname, fname_len, "%s/%s", exec_opts->output_path,
-		       OUTPUT_FNAME);
-
-	//we exclude the terminator char from the check
-	if (res < fname_len - 1) {
-		perror("Cannot generate output file path");
+		//we exclude the terminator char from the check
+		if (res < fname_len - 1) {
+			perror("Cannot generate output file path");
+			free(fname);
+			return -1;
+		}
+		//we open the file where we will write
+		filep = fopen(fname, "w+");
 		free(fname);
-		return -1;
-	}
-	//we open the file where we will write
-	filep = fopen(fname, "w+");
-	free(fname);
-	if (filep == NULL) {
-		perror("Cannot open output file");
-		return -1;
+		if (filep == NULL) {
+			perror("Cannot open output file");
+			return -1;
+		}
 	}
 	//we write the csv header
-	res = fprintf(
-		filep,
-		"start_timestamp(0=benchmark not started),end_timestamp(0=benchmark not completed yet),elapsed,deadline_timestamp,status(%d=deadline met %d=deadline missed)\n",
-		DEADLINE_MET, DEADLINE_MISSED);
-	if (res < 0) {
-		perror("cannot write on output file");
-		return -1;
-	}
-	printf("Output file setup complete\n");
+	flogf(LOG_LEVEL_FILE, filep,
+	      "start_timestamp(0=benchmark not started),end_timestamp(0=benchmark not completed yet),elapsed,deadline_timestamp,status(%d=deadline met %d=deadline missed)\n",
+	      DEADLINE_MET, DEADLINE_MISSED);
+	elogf(LOG_LEVEL_TRACE, "Output file setup complete\n");
 
-	printf("Initializing job environment\n");
+	elogf(LOG_LEVEL_TRACE, "Initializing job environment\n");
 	res = benchmark_init(benchmark_param_num, benchmark_params);
 	if (res == -1) {
 		perror("Error during job environment initialization");
 		return res;
 	}
-	printf("Job environment initialization complete\n");
+	elogf(LOG_LEVEL_TRACE, "Job environment initialization complete\n");
 
-	printf("Starting timer setup\n");
+	elogf(LOG_LEVEL_TRACE, "Starting timer setup\n");
 	// we prepare the mask for the SIGRTMIN handling
 	res = sigemptyset(&sa.sa_mask);
 	if (res == -1) {
@@ -271,7 +269,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		perror("Error during sigint handler installation");
 		return res;
 	}
-	printf("Signal handlers installed\n");
+	elogf(LOG_LEVEL_TRACE, "Signal handlers installed\n");
 
 	memset(&ev, 0, sizeof(ev));
 	//the timer will call the signal handler
@@ -284,7 +282,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		perror("Error during HR timer creation");
 		return res;
 	}
-	printf("Timer created\n");
+	elogf(LOG_LEVEL_TRACE, "Timer created\n");
 
 	//setting when the timer must be fired, using the provided deadline parameters
 	timer_spec.it_interval.tv_sec = exec_opts->deadline_sec;
@@ -298,7 +296,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		return res;
 	}
 
-	printf("Timer setup complete\n");
+	elogf(LOG_LEVEL_TRACE, "Timer setup complete\n");
 	//since timer will start shortly there are no previous jobs that are executing
 	while (1) {
 		//we wait on the semaphore, to be sure to be the only job in execution, we need to consider that the signal handler will interrupt the sem_wait, so if it gets interrupted we need to retry it.
