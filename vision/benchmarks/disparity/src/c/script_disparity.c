@@ -3,9 +3,10 @@
  * @brief Functions used to run the disparity benchmark periodically.
  * @details
  * The original script has been broken down in three components:
- * - init: benchamrk_init();
+ * - init: benchmark_init();
  * - execution: benchmark_execution();
  * - teardown: benchmark_teardown();
+ *
  * This allows the benchmark to be run periodically, by re-running only the execution portion.
  * @author Sravanthi Kota Venkata, for the original version.
  */
@@ -54,8 +55,7 @@ int benchmark_init(int parameters_num, void **parameters)
  * @param[in] parameters_num Number of passed parameters, should be 0 or 1.
  * @param[in] parameters The list of passed parameters.
  * @details
- * The list of passed parameters should provide the output folder path (which is generally the same os the input folder path) as only element of the parameters array.
- * If no output is necessary, then parameters_num should be 0 and parameters should be NULL.
+ * The list of passed parameters must provide the output folder path (which is generally the same os the input folder path) as only element of the parameters array.
  */
 void benchmark_execution(int parameters_num, void **parameters)
 {
@@ -64,9 +64,7 @@ void benchmark_execution(int parameters_num, void **parameters)
 		errno = EINVAL;
 		return;
 	}
-#ifdef GENERATE_OUTPUT
 	char *output = parameters[0];
-#endif
 	int WIN_SZ = 8, SHIFT = 64;
 	I2D *retDisparity;
 #ifdef test

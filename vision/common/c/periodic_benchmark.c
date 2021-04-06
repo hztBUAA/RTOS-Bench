@@ -100,7 +100,7 @@ static void quit_handler(int signo, siginfo_t *info, void *context)
  * If the benchmark has completed (start and end timestamps have both a non-zero value) the job timing is reported.
  * Regardless of the job status, the semaphore (::job_sem) value is incremented if it is 0, to allow the next job to start as soon as possible.
  *
- * The semaphore incrementation does not create race conditions between a job that ha missed the deadline and the next one, since jobs are executed sequentially.
+ * The semaphore increment does not create race conditions between a job that ha missed the deadline and the next one, since jobs are executed sequentially.
 */
 static void timer_handler(int signo, siginfo_t *info, void *context)
 {
@@ -122,29 +122,28 @@ static void timer_handler(int signo, siginfo_t *info, void *context)
 			perror("cannot write on output file");
 			exit(-1);
 		}
+		//we reset the timestamps to avoid reporting the same job status more than once
+		end_timestamp = 0;
+		start_timestamp = 0;
 	} else {
 		//we notify that the deadline has been missed
 		printf("Deadline MISSED\nstart_timestamp: %llu\n",
 		       start_timestamp);
-		res = fprintf(filep, "%llu,%llu,%llu,%llu,%d\n",
-			      start_timestamp, end_timestamp, elapsed_timestamp,
-			      deadline_timestamp, DEADLINE_MISSED);
+		res = fprintf(filep, "0,0,0,%llu,%d\n", deadline_timestamp,
+			      DEADLINE_MISSED);
 		if (res < 0) {
 			perror("cannot write on output file");
 			exit(-1);
 		}
 	}
-	//we reset the timestamps to avoid reporting the same job status more than once
-	start_timestamp = 0;
-	end_timestamp = 0;
 	res = sem_getvalue(&job_sem, &sem_val);
 	if (res < 0) {
 		perror("Cannot read semaphore value");
 		exit(-1);
 	}
-	//we unlock the job execution for the next deadline, if is not already unlocked.
+	//we unlock the job execution for the next task, if is not already unlocked.
+	//The semaphore will be unlocked even if the previous task has not completed, but this does not pose an issue since the only one task is run at a time.
 	if (sem_val == 0) {
-		//we reset both start_timestamp and end_timestamp to 0, to avoid issues between different deadlines.
 		res = sem_post(&job_sem);
 		if (res < 0) {
 			perror("Error during semaphore post");

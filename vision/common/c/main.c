@@ -4,11 +4,17 @@
 #include <errno.h>
 #include <argp.h>
 
-/** parse_opt - parse cli options and arguments via argp.
- * @param[in] key The parsed key.
+/** @file main.c
+ * @brief Benchmark entry point. 
+ * @details Will handle the benchmark startup and its parameters. 
+ */
+
+/** @brief Parse cli options and arguments via argp.
+ * @param[in] key The parsed key (e.g. s if the parameters is -s 100) . 
  * @param[in] arg The value associated with the parsed key.
- * @param[in/out] The argp parser state when this function it's called.
- * @returns An error code.
+ * @param[in,out] state The argp parser state when this function it's called.
+ * @returns 0 or an error code.
+ * @details This function is invoked every time argp encounters a parameter, and it will identify the parsed parameter and store it accordingly.
  */
 static int parse_opt(int key, char *arg, struct argp_state *state)
 {
@@ -63,8 +69,8 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 				state,
 				"Deadline in seconds and deadline in nanoseconds cannot be both 0");
 		// if an output path is not specified we will use the input folder path (specified in the first argument)
-		if(parsed_args->output_path==NULL){
-			parsed_args->output_path=parsed_args->args[0];
+		if (parsed_args->output_path == NULL) {
+			parsed_args->output_path = parsed_args->args[0];
 		}
 		break;
 	default:
@@ -73,9 +79,10 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	return res;
 }
 
-/** main - A small main function which will initialize the benchmark run it periodically, according to the given parameters.
+/** @brief The program entry point, which will parse the given parameters and start the benchmark.
  * @param[in] argc Number of given parameters.
  * @param[in] argv given parameters array.
+ * @details Parameter passing is done by configuring and using argp, then the parsed parameters are used to initialize the periodic benchmark.
  */
 int main(int argc, char **argv)
 {
