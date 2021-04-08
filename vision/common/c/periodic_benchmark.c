@@ -38,10 +38,19 @@ static FILE *filep = NULL;
 static sem_t job_sem;
 
 ///Timestamp of when the last job has started its execution, it is 0 if no job is running.
-static unsigned long long start_timestamp = 0;
+static unsigned long long job_start_timestamp = 0;
 
 ///Timestamp of when the last job execution has completed, 0 is the job has not finished or is not running.
-static unsigned long long end_timestamp = 0;
+static unsigned long long job_end_timestamp = 0;
+
+///If the current job has either met or missed the deadline.
+static int job_deadline_status = DEADLINE_MET;
+
+/** @brief The timestamp of the job deadline. 
+ * The job deadline is the first deadline that occurs after the job has started. 
+ * 0 is used to indicate that the deadline did not occur yet.
+ */
+static unsigned long long job_deadline_timestamp = 0;
 
 /**
  * @brief Teardown function registered to be called when exit is called.
@@ -92,63 +101,79 @@ static void quit_handler(int signo, siginfo_t *info, void *context)
 }
 
 /**
- * @brief The signal handler that will determine what has to be done when the timer expires.
+ * @brief The signal handler that will report what happens when the timer expires (and thus a deadline is met).
  * @param signo Ignored.
  * @param info Ignored.
  * @param context Ignored.
  * @details
- * If the benchmark is not completed within the deadline ( start or end timestamp does not have a non-zero value) a deadline miss is reported.
- * If the benchmark has completed (start and end timestamps have both a non-zero value) the job timing is reported.
- * Regardless of the job status, the semaphore (::job_sem) value is incremented if it is 0, to allow the next job to start as soon as possible.
+ * When a job completes, we report its timing information, we reset the timing variables to their default value and the
+ * semaphore (`::job_sem`) value is incremented, to allow the next job to start.
  *
- * The semaphore increment does not create race conditions between a job that ha missed the deadline and the next one, since jobs are executed sequentially.
+ * The job timing is composed by the following elements:
+ * 1. job start timestamp (`::job_start_timestamp`);
+ * 2. job end timestamp (`::job_end_timestamp`);
+ * 3. job elapsed timestamp (computed as `::job_end_timestamp - ::job_start_timestamp`);
+ * 4. timestamp of the first deadline since job start, called "job deadline" (`::job_deadline_timestamp`);
+ * 5. job deadline status: 
+ *   - `1` if the job deadline was met.
+ *   - `0` if the job deadline was missed.
+ *
+ * Job timing is reported in a single line where these information are separated by commas: `29191750731621,29191750836938,105317,29191750746215,0`.
+ *
+ * If the deadline arrives before the job has completed, a deadline miss will be reported once the job completes.
+ * Since jobs that miss a deadline are not killed, more than a deadline can occur during a job execution.
+ * We report any deadline that occur during the job execution, after the first missed deadline, in the following way:\n
+ *
+ * All the timing information is set to `0`, except for the deadline timestamp: `0,0,0,29191750951240,0`.
 */
 static void timer_handler(int signo, siginfo_t *info, void *context)
 {
 	int res;
-	int sem_val = 0;
 	unsigned long long elapsed_timestamp = 0;
 	unsigned long long deadline_timestamp = get_cpu_timestamp();
-	//we have met a deadline if the job has been completed.
+	//we need to remember the first deadline since the job has started.
+	if (job_deadline_timestamp == 0) {
+		job_deadline_timestamp = deadline_timestamp;
+	}
 	elogf(LOG_LEVEL_TRACE, "\n\n\tDeadline reached at:%llu\n",
 	      deadline_timestamp);
-	if (start_timestamp > 0 && end_timestamp > 0) {
-		//We print the timing information of the last completed job.
-		elapsed_timestamp = end_timestamp - start_timestamp;
+	if (job_start_timestamp > 0 && job_end_timestamp > 0) {
+		// report timing for completed job
+		elapsed_timestamp = job_end_timestamp - job_start_timestamp;
 		elogf(LOG_LEVEL_TRACE,
-		      "Deadline MET\nstart_timestamp: %llu\nend_timestamp: %llu\nelapsed: %llu\n",
-		      start_timestamp, end_timestamp, elapsed_timestamp);
+		      "Job completed\nstart_timestamp: %llu\nend_timestamp: %llu\nelapsed: %llu\ndeadline status (1=met):%d\n",
+		      job_start_timestamp, job_end_timestamp, elapsed_timestamp,
+		      job_deadline_status);
 		flogf(LOG_LEVEL_FILE, filep, "%llu,%llu,%llu,%llu,%d\n",
-		      start_timestamp, end_timestamp, elapsed_timestamp,
-		      deadline_timestamp, DEADLINE_MET);
+		      job_start_timestamp, job_end_timestamp, elapsed_timestamp,
+		      job_deadline_timestamp, job_deadline_status);
 		logf(LOG_LEVEL_INFO, "%llu,%llu,%llu,%llu,%d\n",
-		     start_timestamp, end_timestamp, elapsed_timestamp,
-		     deadline_timestamp, DEADLINE_MET);
-		//we reset the timestamps to avoid reporting the same job status more than once
-		end_timestamp = 0;
-		start_timestamp = 0;
-	} else {
-		//we notify that the deadline has been missed
-		elogf(LOG_LEVEL_TRACE,
-		      "Deadline MISSED\nstart_timestamp: %llu\n",
-		      start_timestamp);
-		flogf(LOG_LEVEL_FILE, filep, "0,0,0,%llu,%d\n",
-		      deadline_timestamp, DEADLINE_MISSED);
-		logf(LOG_LEVEL_INFO, "0,0,0,%llu,%d\n", deadline_timestamp,
-		     DEADLINE_MISSED);
-	}
-	res = sem_getvalue(&job_sem, &sem_val);
-	if (res < 0) {
-		perror("Cannot read semaphore value");
-		exit(-1);
-	}
-	//we unlock the job execution for the next task, if is not already unlocked.
-	//The semaphore will be unlocked even if the previous task has not completed, but this does not pose an issue since the only one task is run at a time.
-	if (sem_val == 0) {
+		     job_start_timestamp, job_end_timestamp, elapsed_timestamp,
+		     job_deadline_timestamp, job_deadline_status);
+		// reset timing information
+		job_deadline_status = DEADLINE_MET;
+		job_deadline_timestamp = 0;
+		job_end_timestamp = 0;
+		job_start_timestamp = 0;
+		// unlock next job
 		res = sem_post(&job_sem);
 		if (res < 0) {
 			perror("Error during semaphore post");
 			exit(-1);
+		}
+	}
+	// job has not terminated when deadline is reached
+	else {
+		job_deadline_status = DEADLINE_MISSED;
+		// report skipped deadlines after the first missed
+		if (job_deadline_timestamp != deadline_timestamp) {
+			elogf(LOG_LEVEL_TRACE,
+			      "Deadline MISSED\nstart_timestamp: %llu\n",
+			      job_start_timestamp);
+			flogf(LOG_LEVEL_FILE, filep, "0,0,0,%llu,%d\n",
+			      deadline_timestamp, DEADLINE_MISSED);
+			logf(LOG_LEVEL_INFO, "0,0,0,%llu,%d\n",
+			     deadline_timestamp, DEADLINE_MISSED);
 		}
 	}
 }
@@ -309,9 +334,9 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			perror("Error during semaphore wait");
 			return res;
 		}
-		//we execute the job
-		start_timestamp = get_cpu_timestamp();
+		//we start executing the job
+		job_start_timestamp = get_cpu_timestamp();
 		benchmark_execution(benchmark_param_num, benchmark_params);
-		end_timestamp = get_cpu_timestamp();
+		job_end_timestamp = get_cpu_timestamp();
 	}
 }
