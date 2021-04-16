@@ -14,8 +14,12 @@
 struct execution_options {
 	int args_num; ///< The length of the args array.
 	char **args; ///< The given arguments.
+	double parsed_deadline; ///< The deadline specification as parsed.
+	double parsed_period; ///< The period specification as parsed.
 	long deadline_sec; ///< The deadline in seconds.
 	long deadline_nsec; ///< The deadline in nanoseconds.
+	long period_sec; ///< The period in seconds.
+	long period_nsec; ///<  The period in nanoseconds.
 	char *output_path; ///< Path where the execution info will be written.
 };
 

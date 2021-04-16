@@ -1,9 +1,11 @@
-#include "periodic_benchmark.h"
-#include "logging.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <argp.h>
+#include <math.h>
+#include <fenv.h>
+#include "periodic_benchmark.h"
+#include "logging.h"
 
 /** @file main.c
  * @brief Benchmark entry point. 
@@ -20,7 +22,11 @@
 static int parse_opt(int key, char *arg, struct argp_state *state)
 {
 	int res = 0, log_level = LOG_LEVEL_INFO;
+	double time_spec;
+	long seconds, nanoseconds;
 	struct execution_options *parsed_args = state->input;
+	errno = 0;
+	feclearexcept(FE_ALL_EXCEPT);
 	switch (key) {
 		//default values for arguments and options
 	case ARGP_KEY_INIT:
@@ -43,19 +49,41 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 			argp_error(state, "Error parsing arguments");
 		}
 		break;
-	case 's':
-		parsed_args->deadline_sec = strtol(arg, NULL, 10);
+	case 'd':
+	case 'p':
+		//common operations to convert the deadline or period from a decimal number to itimerspec values
+		time_spec = strtod(arg, NULL);
 		if (errno != 0) {
 			argp_failure(state, EXIT_FAILURE, errno,
-				     "Error during deadline (seconds) parsing");
+				     "Error during period or deadline parsing");
 		}
-		break;
-	case 'n':
-		parsed_args->deadline_nsec = strtol(arg, NULL, 10);
-		if (errno != 0) {
-			argp_failure(
-				state, EXIT_FAILURE, errno,
-				"Error during deadline (nanoseconds) parsing");
+
+		seconds = lround(trunc(time_spec));
+		res = fetestexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW |
+				   FE_UNDERFLOW);
+		if (res != 0) {
+			argp_error(state, "Error during conversion in seconds");
+		}
+		nanoseconds =
+			lround((time_spec - trunc(time_spec)) * 1000000000);
+		res = fetestexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW |
+				   FE_UNDERFLOW);
+		if (res != 0) {
+			argp_error(state,
+				   "Error during conversion in nanoseconds");
+		}
+		//assignment of the parsed values depends on the key
+		switch (key) {
+		case 'd':
+			parsed_args->parsed_deadline = time_spec;
+			parsed_args->deadline_sec = seconds;
+			parsed_args->deadline_nsec = nanoseconds;
+			break;
+		case 'p':
+			parsed_args->parsed_period = time_spec;
+			parsed_args->period_sec = seconds;
+			parsed_args->period_nsec = nanoseconds;
+			break;
 		}
 		break;
 	case 'o':
@@ -75,9 +103,15 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 			argp_error(state, "Not enough arguments");
 		if (parsed_args->deadline_nsec == 0 &&
 		    parsed_args->deadline_sec == 0)
+			argp_error(state, "Missing required deadline value.");
+		if (parsed_args->period_sec == 0 &&
+		    parsed_args->period_nsec == 0)
+			argp_error(state, "Missing required period value.");
+		if (parsed_args->parsed_deadline > parsed_args->parsed_period) {
 			argp_error(
 				state,
-				"Deadline in seconds and deadline in nanoseconds cannot be both 0");
+				"Deadlines longer than period are not supported.");
+		}
 		// if an output path is not specified we will use the input folder path (specified in the first argument)
 		if (parsed_args->output_path == NULL) {
 			parsed_args->output_path = parsed_args->args[0];
@@ -112,10 +146,10 @@ int main(int argc, char **argv)
 		  "Additional arguments relayed directly to the benchmark." },
 		{ 0, 0, 0, 0,
 		  "Deadline options (at least one is required):", 2 },
-		{ "deadline-sec", 's', "sec", 0,
-		  "The deadline in seconds, when not specified it is assumed to be 0." },
-		{ "deadline-nsec", 'n', "nsec", 0,
-		  "An optional deadline specification in nanoseconds, which can be used in conjunction with the deadline in seconds. If not specified it is assumed to be 0." },
+		{ "deadline", 'd', "", 0,
+		  "The benchmark deadline, in seconds, can be an integer, float or in scientific notation. Required. Must be less or equal than the benchmark period." },
+		{ "period", 'p', "", 0,
+		  "The benchmark period, in seconds, can be an integer, float or in scientific notation. Required." },
 		{ 0, 0, 0, 0, "Reporting options:", 3 },
 		{ "log-level", 'l', "log-lvl", 0,
 		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats only to output file.\n3 - Print benchmark stats also on stdout.\n4 - Print also informative messages.\nDefault is 3." },

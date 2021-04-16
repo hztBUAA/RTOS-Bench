@@ -3,6 +3,8 @@
  * @details Timer expiration triggers a `SIGRTMIN` and `SIGINT` is used to stop and destroy the timer.
  */
 
+#include <bits/types/siginfo_t.h>
+#include <bits/types/struct_itimerspec.h>
 #include <signal.h>
 #include <time.h>
 #include <stdio.h>
@@ -14,43 +16,57 @@
 #include "get_cpu_timestamp.h"
 #include "logging.h"
 
-/// Deadline missed status
-#define DEADLINE_MISSED 0
-/// Deadline met status
-#define DEADLINE_MET 1
+///This value in `::deadline_timer_status` determines that the deadline timer must be used
+#define DEADLINE_TIMER_IN_USE 1
 
-///Name of the output file with timing information
+///The real-time signal that identifies the deadline occurrence.
+#define SIGNAL_DEADLINE SIGRTMIN
+
+/// The real-time signal that identifies the end of the period.
+#define SIGNAL_END_PERIOD SIGRTMIN + 1
+
+///Name of the output file with timing information.
 #define OUTPUT_FNAME "timing.csv"
 
-///Number of parameters passed to the benchmark
+///Number of parameters passed to the benchmark.
 static int benchmark_param_num = 0;
 
-///Benchmark parameters array
+///Benchmark parameters array.
 static void **benchmark_params = NULL;
 
-///Real time timer, used to notify when the deadline is reached.
-static timer_t timer = NULL;
+/// Real time timer, used to notify when the deadline is reached.
+static timer_t deadline_timer = NULL;
 
-///The file pointer to the output file
+/** @brief If the deadline timer status mus be used.
+ * @details Possible values should be only `::DEADLINE_TIMER_IN_USE` or `!::DEADLINE_TIMER_IN_USE`.
+ */
+static int deadline_timer_status;
+
+///Real time timer, used to notify when the period end is reached.
+static timer_t period_timer;
+
+/// The timing interval of a deadline
+static struct itimerspec deadline_timing;
+
+///The file pointer to the output file.
 static FILE *filep = NULL;
 
-/// This semaphore is used to determine if a job can be executed when the timer expires.
-static sem_t job_sem;
+/// Semaphore used to determine if the current period has ended.
+static sem_t period_sem;
 
-///Timestamp of when the last job has started its execution, it is 0 if no job is running.
-static unsigned long long job_start_timestamp = 0;
-
-///Timestamp of when the last job execution has completed, 0 is the job has not finished or is not running.
+/// Timestamp of when the last job ended, it can be 0 if the job has not finished yet.
 static unsigned long long job_end_timestamp = 0;
 
-///If the current job has either met or missed the deadline.
-static int job_deadline_status = DEADLINE_MET;
+/// Timestamp of when the last deadline since the job start occurred.
+static unsigned long long last_deadline_timestamp = 0;
 
-/** @brief The timestamp of the job deadline. 
- * The job deadline is the first deadline that occurs after the job has started. 
- * 0 is used to indicate that the deadline did not occur yet.
- */
+/// Timestamp of when the first deadline since the job start occurred.
 static unsigned long long job_deadline_timestamp = 0;
+
+/// Timestamp of the first period end since the job start occurred.
+static unsigned long long job_period_end_timestamp = 0;
+/// Timestamp of when the last period started.
+static unsigned long long job_period_start_timestamp = 0;
 
 /**
  * @brief Teardown function registered to be called when exit is called.
@@ -73,16 +89,21 @@ static void stop_benchmark(int status, void *arg)
 			perror("Error during output file close");
 		}
 	}
-	if (timer != NULL) {
-		elogf(LOG_LEVEL_TRACE, "Deleting timer\n");
-		res = timer_delete(timer);
+	if (deadline_timer != NULL) {
+		elogf(LOG_LEVEL_TRACE, "Deleting deadline timer\n");
+		res = timer_delete(deadline_timer);
 		if (res < 0) {
-			perror("Error during timer deletion");
+			perror("Error during deadline timer deletion");
 		}
 	}
-	res = sem_destroy(&job_sem);
+	elogf(LOG_LEVEL_TRACE, "Deleting period timer\n");
+	res = timer_delete(period_timer);
 	if (res < 0) {
-		perror("Error during semaphore destruction");
+		perror("Error during period timer deletion");
+	}
+	res = sem_destroy(&period_sem);
+	if (res < 0) {
+		perror("Error during period semaphore destruction");
 	}
 	elogf(LOG_LEVEL_TRACE, "Cleaning up job environment\n");
 	benchmark_teardown(benchmark_param_num, benchmark_params);
@@ -107,99 +128,174 @@ static void quit_handler(int signo, siginfo_t *info, void *context)
  * @param context Ignored.
  * @details
  * When a job completes, we report its timing information, we reset the timing variables to their default value and the
- * semaphore (`::job_sem`) value is incremented, to allow the next job to start.
- *
- * The job timing is composed by the following elements:
- * 1. job start timestamp (`::job_start_timestamp`);
- * 2. job end timestamp (`::job_end_timestamp`);
- * 3. job elapsed timestamp (computed as `::job_end_timestamp - ::job_start_timestamp`);
- * 4. timestamp of the first deadline since job start, called "job deadline" (`::job_deadline_timestamp`);
- * 5. job deadline status: 
- *   - `1` if the job deadline was met.
- *   - `0` if the job deadline was missed.
- *
- * Job timing is reported in a single line where these information are separated by commas: `29191750731621,29191750836938,105317,29191750746215,0`.
- *
+ * semaphore (`::job_sem`) value is incremented, to allow the next job to start.\n
  * If the deadline arrives before the job has completed, a deadline miss will be reported once the job completes.
  * Since jobs that miss a deadline are not killed, more than a deadline can occur during a job execution.
- * We report any deadline that occur during the job execution, after the first missed deadline, in the following way:\n
- *
- * All the timing information is set to `0`, except for the deadline timestamp: `0,0,0,29191750951240,0`.
+ * We report any deadline that occur during the job execution, after the first missed deadline.\n
+ * Reporting is done using print_benchmark_timing().
 */
-static void timer_handler(int signo, siginfo_t *info, void *context)
+static void deadline_handler(int signo, siginfo_t *info, void *context)
+{
+	//we save the current deadline
+	last_deadline_timestamp = get_cpu_timestamp();
+	//the current deadline could be the job deadline
+	if (job_deadline_timestamp == 0) {
+		job_deadline_timestamp = last_deadline_timestamp;
+	}
+}
+
+static void period_handler(int signo, siginfo_t *info, void *context)
 {
 	int res;
-	unsigned long long elapsed_timestamp = 0;
-	unsigned long long deadline_timestamp = get_cpu_timestamp();
-	//we need to remember the first deadline since the job has started.
-	if (job_deadline_timestamp == 0) {
-		job_deadline_timestamp = deadline_timestamp;
+	unsigned long long period_end_timestamp = get_cpu_timestamp();
+	//
+	if (job_period_end_timestamp == 0) {
+		job_period_end_timestamp = period_end_timestamp;
 	}
-	elogf(LOG_LEVEL_TRACE, "\n\n\tDeadline reached at:%llu\n",
-	      deadline_timestamp);
-	if (job_start_timestamp > 0 && job_end_timestamp > 0) {
-		// report timing for completed job
-		elapsed_timestamp = job_end_timestamp - job_start_timestamp;
-		elogf(LOG_LEVEL_TRACE,
-		      "Job completed\nstart_timestamp: %llu\nend_timestamp: %llu\nelapsed: %llu\ndeadline status (1=met):%d\n",
-		      job_start_timestamp, job_end_timestamp, elapsed_timestamp,
-		      job_deadline_status);
-		flogf(LOG_LEVEL_FILE, filep, "%llu,%llu,%llu,%llu,%d\n",
-		      job_start_timestamp, job_end_timestamp, elapsed_timestamp,
-		      job_deadline_timestamp, job_deadline_status);
-		logf(LOG_LEVEL_INFO, "%llu,%llu,%llu,%llu,%d\n",
-		     job_start_timestamp, job_end_timestamp, elapsed_timestamp,
-		     job_deadline_timestamp, job_deadline_status);
-		// reset timing information
-		job_deadline_status = DEADLINE_MET;
-		job_deadline_timestamp = 0;
-		job_end_timestamp = 0;
-		job_start_timestamp = 0;
-		// unlock next job
-		res = sem_post(&job_sem);
+	//if the deadline occurs before the end of the period it has a dedicated timer and handler
+	if (deadline_timer_status == DEADLINE_TIMER_IN_USE) {
+		//we rearm the deadline timer
+		res = timer_settime(deadline_timer, 0, &deadline_timing, NULL);
 		if (res < 0) {
-			perror("Error during semaphore post");
-			exit(-1);
+			perror("Cannot rearm the deadline timer");
+			exit(res);
 		}
-	}
-	// job has not terminated when deadline is reached
+	} // otherwise the period handler covers also the deadline occurrence management.
 	else {
-		job_deadline_status = DEADLINE_MISSED;
-		// report skipped deadlines after the first missed
-		if (job_deadline_timestamp != deadline_timestamp) {
-			elogf(LOG_LEVEL_TRACE,
-			      "Deadline MISSED\nstart_timestamp: %llu\n",
-			      job_start_timestamp);
-			flogf(LOG_LEVEL_FILE, filep, "0,0,0,%llu,%d\n",
-			      deadline_timestamp, DEADLINE_MISSED);
-			logf(LOG_LEVEL_INFO, "0,0,0,%llu,%d\n",
-			     deadline_timestamp, DEADLINE_MISSED);
+		if (job_deadline_timestamp == 0) {
+			job_deadline_timestamp = period_end_timestamp;
+		}
+		last_deadline_timestamp = period_end_timestamp;
+	}
+	//we report only at the beginning of a legitimate period.
+	if (job_period_start_timestamp > 0) {
+		// we report a job completion
+		if (job_end_timestamp > 0) {
+			print_benchmark_timing(filep,
+					       job_period_start_timestamp,
+					       job_period_end_timestamp,
+					       job_end_timestamp,
+					       job_deadline_timestamp);
+
+		}
+
+		// or the skipped deadline
+		else {
+			print_benchmark_timing(filep, 0, 0, 0,
+					       last_deadline_timestamp);
 		}
 	}
+	//If a job has ended or we are starting for the first time we need to reset the reporting variables and unlock the semaphore.
+	if (job_end_timestamp > 0 || job_period_start_timestamp == 0) {
+		//we reset the reporting variables
+		// the start of the new period is the end of the previous period
+		job_period_start_timestamp = period_end_timestamp;
+		job_period_end_timestamp = 0;
+		job_end_timestamp = 0;
+		job_deadline_timestamp = 0;
+		//we unlock the semaphore to allow the next job to start
+		res = sem_post(&period_sem);
+		if (res < 0) {
+			perror("Cannot post on period semaphore");
+			exit(res);
+		}
+	}
+}
+
+static int setup_signal(int handled_signal,
+			void (*handler)(int, siginfo_t *, void *),
+			int *masked_signals, int masked_signals_num)
+{
+	struct sigaction sa;
+	int res = 0, i;
+	// we set the signals to ignore while handling the specified signal
+	res = sigemptyset(&sa.sa_mask);
+	if (res == -1) {
+		perror("Error during sigemptyset for signal handler");
+		return res;
+	}
+	//we mask the requested signals
+	for (i = 0; i < masked_signals_num; i++) {
+		res = sigaddset(&sa.sa_mask, masked_signals[i]);
+		if (res == -1) {
+			perror("Error during sigaddset for signal handler");
+			return res;
+		}
+	}
+	//install the signal handler.
+	sa.sa_flags = SA_SIGINFO;
+	sa.sa_sigaction = handler;
+	res = sigaction(handled_signal, &sa, NULL);
+	if (res == -1) {
+		perror("Error during signal handler installation");
+		return res;
+	}
+	return 0;
+}
+
+static int setup_timer(timer_t *timer, int signal_generated, long interval_sec,
+		       long interval_nsec)
+{
+	struct sigevent event;
+	struct itimerspec timer_spec;
+	int res = 0;
+	memset(&event, 0, sizeof(event));
+	//the timer will generate a signal
+	event.sigev_notify = SIGEV_SIGNAL;
+	//the signal generated by the timer
+	event.sigev_signo = signal_generated;
+	//creation of the timer
+	res = timer_create(CLOCK_REALTIME, &event, timer);
+	if (res != 0) {
+		perror("Error during HR timer creation");
+		return res;
+	}
+	//setting when the timer must be fired, using the provided deadline parameters
+	timer_spec.it_interval.tv_sec = interval_sec;
+	timer_spec.it_interval.tv_nsec = interval_nsec;
+	//the timer will start according to the setup deadline
+	timer_spec.it_value.tv_sec = interval_sec;
+	timer_spec.it_value.tv_nsec = interval_nsec;
+	res = timer_settime(*timer, 0, &timer_spec, NULL);
+	if (res < 0) {
+		perror("Error during timer setup");
+		return res;
+	}
+	return 0;
 }
 
 /** @details
  * This function will prepare the environment for executing the job, initialize the timer and periodically report any missed deadlines.
  * When the environment for the periodic benchmark is initialized, the benchmark will be periodically executed.
+ *
+ * To execute the benchmark periodically we use two timers that fire different real time signals:
+ * - `::SIGNAL_DEADLINE` which will be fired when the deadline occurs.
+ * - `::SIGNAL_END_PERIOD` which will be fired when the period when the benchamrk has been launched ends.
+ *
  * When a SIGINT is received, the timer will be destroyed and the environment for the job execution will be cleaned.
  *
  * The environment for the job execution is handled by calling the benchmark_init() and benchmark_teardown() functions.
  */
 int periodic_benchmark(struct execution_options *exec_opts)
 {
-	struct sigaction sa, sa_quit;
-	struct sigevent ev;
-	struct itimerspec timer_spec;
-	int res;
+	// variables used to handle signals
+	int job_masked_signals_num = 2;
+	int job_masked_signals[] = { SIGNAL_DEADLINE, SIGNAL_END_PERIOD };
+	int quit_masked_signals_num = 3;
+	int quit_masked_signals[] = { SIGNAL_DEADLINE, SIGNAL_END_PERIOD,
+				      SIGINT };
+	//variables to handle timers
+	// variables used to handle the output file
 	char *fname;
 	int fname_len;
+	//status variables
+	int res;
 
 	elogf(LOG_LEVEL_TRACE, "Starting setup of execution environment\n");
-	//we setup the variables that are used in the execution pattern
-	//We initialize the semaphore to allow only the execution of one job at a time and to share it only between threads of the same process
-	res = sem_init(&job_sem, 1, 1);
+	// we initialize the period semaphore to 0, to wait for the period end.
+	res = sem_init(&period_sem, 1, 0);
 	if (res < 0) {
-		perror("Error during job semaphore initialization");
+		perror("Error during deadline semaphore initialization");
 		return res;
 	}
 	res = on_exit(stop_benchmark, NULL);
@@ -211,7 +307,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	benchmark_param_num = exec_opts->args_num;
 	benchmark_params = (void **)exec_opts->args;
 	elogf(LOG_LEVEL_TRACE, "Execution environment setup complete\n");
-	if (benchmark_verbosity >= LOG_LEVEL_FILE) {
+	if (benchmark_verbosity == LOG_LEVEL_FILE) {
 		elogf(LOG_LEVEL_TRACE, "Starting output file setup\n");
 		//we construct the file path
 		fname_len = strlen(exec_opts->output_path) +
@@ -234,12 +330,8 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			perror("Cannot open output file");
 			return -1;
 		}
+		elogf(LOG_LEVEL_TRACE, "Output file setup complete\n");
 	}
-	//we write the csv header
-	flogf(LOG_LEVEL_FILE, filep,
-	      "start_timestamp(0=benchmark not started),end_timestamp(0=benchmark not completed yet),elapsed,deadline_timestamp,status(%d=deadline met %d=deadline missed)\n",
-	      DEADLINE_MET, DEADLINE_MISSED);
-	elogf(LOG_LEVEL_TRACE, "Output file setup complete\n");
 
 	elogf(LOG_LEVEL_TRACE, "Initializing job environment\n");
 	res = benchmark_init(benchmark_param_num, benchmark_params);
@@ -249,93 +341,68 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	}
 	elogf(LOG_LEVEL_TRACE, "Job environment initialization complete\n");
 
-	elogf(LOG_LEVEL_TRACE, "Starting timer setup\n");
-	// we prepare the mask for the SIGRTMIN handling
-	res = sigemptyset(&sa.sa_mask);
-	if (res == -1) {
-		perror("Error during sigemptyset for SIGRTMIN handler");
+	elogf(LOG_LEVEL_TRACE, "Starting signal handlers setup...\n");
+	res = setup_signal(SIGNAL_DEADLINE, deadline_handler,
+			   job_masked_signals, job_masked_signals_num);
+	if (res < 0) {
 		return res;
 	}
-	//we don't want to be interrupted if we miss the deadline
-	res = sigaddset(&sa.sa_mask, SIGRTMIN);
-	if (res == -1) {
-		perror("Error during first sigaddset for SIGRTMIN handler");
+	elogf(LOG_LEVEL_TRACE, "Deadline handler setup completed.\n");
+	res = setup_signal(SIGNAL_END_PERIOD, period_handler,
+			   job_masked_signals, job_masked_signals_num);
+	if (res < 0) {
 		return res;
 	}
-	sa.sa_flags = SA_SIGINFO;
-	sa.sa_sigaction = timer_handler;
-	//installing the signal handler for SIGRTMIN.
-	res = sigaction(SIGRTMIN, &sa, NULL);
-	if (res == -1) {
-		perror("Error during signal handler installation");
+	elogf(LOG_LEVEL_TRACE, "Period handler setup completed.\n");
+	res = setup_signal(SIGINT, quit_handler, quit_masked_signals,
+			   quit_masked_signals_num);
+	if (res < 0) {
 		return res;
 	}
-
-	//we also need to intercept SIGINT, to allow a clean termination
-	res = sigemptyset(&sa_quit.sa_mask);
-	if (res == -1) {
-		perror("Error during sigemptyset for SIGRTMIN handler");
-		return res;
-	}
-	res = sigaddset(&sa_quit.sa_mask, SIGINT);
-	if (res == -1) {
-		perror("Error during first sigaddset for SIGINT handler");
-		return res;
-	}
-	res = sigaddset(&sa_quit.sa_mask, SIGRTMIN);
-	if (res == -1) {
-		perror("Error during first sigaddset for SIGINT handler");
-		return res;
-	}
-	sa_quit.sa_flags = SA_SIGINFO;
-	sa_quit.sa_sigaction = quit_handler;
-	res = sigaction(SIGINT, &sa_quit, NULL);
-	if (res == -1) {
-		perror("Error during sigint handler installation");
-		return res;
-	}
+	elogf(LOG_LEVEL_TRACE, "Quit handler setup completed.\n");
 	elogf(LOG_LEVEL_TRACE, "Signal handlers installed\n");
 
-	memset(&ev, 0, sizeof(ev));
-	//the timer will call the signal handler
-	ev.sigev_notify = SIGEV_SIGNAL;
-	//the signal used is SIGRTMIN, has specified by the installed handler
-	ev.sigev_signo = SIGRTMIN;
-	//creation of the timer
-	res = timer_create(CLOCK_REALTIME, &ev, &timer);
-	if (res != 0) {
-		perror("Error during HR timer creation");
-		return res;
+	elogf(LOG_LEVEL_TRACE, "Configuring timers...\n");
+	//the deadline timer is created only if deadline and period differ
+	if (exec_opts->parsed_deadline != exec_opts->parsed_period) {
+		deadline_timer_status = DEADLINE_TIMER_IN_USE;
+		//the deadline timer is setup with 0 interval since it will be armed once a period starts
+		res = setup_timer(&deadline_timer, SIGNAL_DEADLINE, 0, 0);
+		if (res < 0) {
+			return res;
+		}
+		//we setup the itimerspec struct to be used by the period handler
+		deadline_timing.it_value.tv_nsec = exec_opts->deadline_nsec;
+		deadline_timing.it_value.tv_sec = exec_opts->deadline_sec;
+		deadline_timing.it_interval.tv_sec = 0;
+		deadline_timing.it_interval.tv_nsec = 0;
+		elogf(LOG_LEVEL_TRACE, "Deadline timer setup complete\n");
+	} else {
+		deadline_timer_status = !DEADLINE_TIMER_IN_USE;
 	}
-	elogf(LOG_LEVEL_TRACE, "Timer created\n");
 
-	//setting when the timer must be fired, using the provided deadline parameters
-	timer_spec.it_interval.tv_sec = exec_opts->deadline_sec;
-	timer_spec.it_interval.tv_nsec = exec_opts->deadline_nsec;
-	//the timer will start according to the setup deadline
-	timer_spec.it_value.tv_sec = exec_opts->deadline_sec;
-	timer_spec.it_value.tv_nsec = exec_opts->deadline_nsec;
-	res = timer_settime(timer, 0, &timer_spec, NULL);
+	res = setup_timer(&period_timer, SIGNAL_END_PERIOD,
+			  exec_opts->period_sec, exec_opts->period_nsec);
 	if (res < 0) {
-		perror("Error during timer setup");
 		return res;
 	}
+	elogf(LOG_LEVEL_TRACE, "Period timer setup complete\n");
 
-	elogf(LOG_LEVEL_TRACE, "Timer setup complete\n");
+	elogf(LOG_LEVEL_TRACE, "Timers setup complete\n");
 	//since timer will start shortly there are no previous jobs that are executing
+	//we get the timestamp of the first period
 	while (1) {
-		//we wait on the semaphore, to be sure to be the only job in execution, we need to consider that the signal handler will interrupt the sem_wait, so if it gets interrupted we need to retry it.
+		// we wait for the period to finish
 		do {
-			res = sem_wait(&job_sem);
+			res = sem_wait(&period_sem);
 
 		} while (res < 0 && errno == EINTR);
 
 		if (res < 0 && errno != EINTR) {
-			perror("Error during semaphore wait");
+			perror("Error during period semaphore wait");
 			return res;
 		}
 		//we start executing the job
-		job_start_timestamp = get_cpu_timestamp();
 		benchmark_execution(benchmark_param_num, benchmark_params);
 		job_end_timestamp = get_cpu_timestamp();
 	}
