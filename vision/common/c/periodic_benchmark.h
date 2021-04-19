@@ -1,7 +1,6 @@
 /**
  * @file periodic_benchmark.h
  * @brief A general periodic benchmark using a real time timer.
- * @details Timer expiration triggers a `SIGRTMIN` and `SIGINT` is used to stop and destroy the timer.
 */
 #ifndef PERIODIC_BENCHMARK_H
 #define PERIODIC_BENCHMARK_H
@@ -9,7 +8,7 @@
 /** @brief Struct used to hold the parsed arguments and options.
  * @details
  * Will determine the how periodic_benchmark() behaves by influencing the passed
- * parameters and the timer deadline.
+ * parameters to the benchmark and the timers expiration.
  */
 struct execution_options {
 	int args_num; ///< The length of the args array.

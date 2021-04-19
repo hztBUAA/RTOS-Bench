@@ -1,6 +1,6 @@
 /** @file periodic_benchmark.c
- * @brief Implementation of a general periodic benchmark using a real time timer.
- * @details Timer expiration triggers a `SIGRTMIN` and `SIGINT` is used to stop and destroy the timer.
+ * @brief Implementation of a general periodic benchmark using real time timers.
+ * @details Timer expiration triggers a real time POSIX signal and `SIGINT` is used to stop the benchamrk and terminate the program.
  */
 
 #include <bits/types/siginfo_t.h>
@@ -37,42 +37,43 @@ static void **benchmark_params = NULL;
 /// Real time timer, used to notify when the deadline is reached.
 static timer_t deadline_timer = NULL;
 
-/** @brief If the deadline timer status mus be used.
- * @details Possible values should be only `::DEADLINE_TIMER_IN_USE` or `!::DEADLINE_TIMER_IN_USE`.
+/** @brief If the deadline timer must be used.
+ * @details Possible values should be only `::DEADLINE_TIMER_IN_USE` when a separate deadline timer is used or `!::DEADLINE_TIMER_IN_USE` when only the period timer is used.
  */
 static int deadline_timer_status;
 
 ///Real time timer, used to notify when the period end is reached.
 static timer_t period_timer;
 
-/// The timing interval of a deadline
+/// The timing interval of a deadline, used to rearm the deadline timer.
 static struct itimerspec deadline_timing;
 
 ///The file pointer to the output file.
 static FILE *filep = NULL;
 
-/// Semaphore used to determine if the current period has ended.
+/// Semaphore used to determine if a new job can be started.
 static sem_t period_sem;
 
 /// Timestamp of when the last job ended, it can be 0 if the job has not finished yet.
 static unsigned long long job_end_timestamp = 0;
 
-/// Timestamp of when the last deadline since the job start occurred.
+/// Timestamp of when the last deadline since the job start has occurred.
 static unsigned long long last_deadline_timestamp = 0;
 
-/// Timestamp of when the first deadline since the job start occurred.
+/// Timestamp of when the first deadline since the job start has occurred.
 static unsigned long long job_deadline_timestamp = 0;
 
-/// Timestamp of the first period end since the job start occurred.
+/// Timestamp of the period end.
 static unsigned long long job_period_end_timestamp = 0;
-/// Timestamp of when the last period started.
+
+/// Timestamp of the period start.
 static unsigned long long job_period_start_timestamp = 0;
 
 /**
  * @brief Teardown function registered to be called when exit is called.
- * @param[in] status the exit status.
+ * @param[in] status The exit status.
  * @param[in] arg Ignored.
- * @details Will ensure that all the requested resourced are freed and the ouput file is flushed and closed.
+ * @details Will ensure that all the requested resourced are freed and the output file is flushed and closed.
  */
 static void stop_benchmark(int status, void *arg)
 {
@@ -114,7 +115,7 @@ static void stop_benchmark(int status, void *arg)
  * @param signo Ignored.
  * @param info Ignored.
  * @param context Ignored.
- * @details Will call the exit function, it's invoked when a `SIGINT` is received
+ * @details Will call the exit function, it's invoked when a `SIGINT` is received.
  */
 static void quit_handler(int signo, siginfo_t *info, void *context)
 {
@@ -122,17 +123,13 @@ static void quit_handler(int signo, siginfo_t *info, void *context)
 }
 
 /**
- * @brief The signal handler that will report what happens when the timer expires (and thus a deadline is met).
+ * @brief The signal handler that is executed when the deadline timer expires.
  * @param signo Ignored.
  * @param info Ignored.
  * @param context Ignored.
  * @details
- * When a job completes, we report its timing information, we reset the timing variables to their default value and the
- * semaphore (`::job_sem`) value is incremented, to allow the next job to start.\n
- * If the deadline arrives before the job has completed, a deadline miss will be reported once the job completes.
- * Since jobs that miss a deadline are not killed, more than a deadline can occur during a job execution.
- * We report any deadline that occur during the job execution, after the first missed deadline.\n
- * Reporting is done using print_benchmark_timing().
+ * When the deadline timer expires, the current timestamp is saved in `::last_deadline_timestamp`, 
+ * If this if the first deadline expiration since the period start, the the timestamp values is also copied in `::job_deadline_timestamp`.
 */
 static void deadline_handler(int signo, siginfo_t *info, void *context)
 {
@@ -144,6 +141,25 @@ static void deadline_handler(int signo, siginfo_t *info, void *context)
 	}
 }
 
+/**
+ * @brief The signal handler that is executed when the period timer expires.
+ * @param signo Ignored.
+ * @param info Ignored.
+ * @param context Ignored.
+ * @details
+ * When the period expires and the job has terminated its execution, the deadline timer is rearmed, the job's stats are reported,
+ * the semaphore is unlocked and the reporting variables are reset.
+ * The start of the next period matches with the end of the previous period.
+ * The next job starts as soon as the semaphore is unlocked, and this creates a slight overhead, 
+ * since before unlocking the semaphore the previous job stats must be reported.
+ * When the period ends but no start timestamp was recorded (`::job_period_start_timestamp` is `0`), no reporting will be done.
+ *
+ * If the job has not terminated when the period ends, a deadline skip is reported if the deadline that has been missed is not the first since the job start.
+ *
+ * Finally, if the deadline matches the period, the period handler will also perform the same operations as `deadline_handler()`, but will use the timestamp of the period end.
+ *
+ * Reporting is done using `print_benchmark_timing()`.
+ */
 static void period_handler(int signo, siginfo_t *info, void *context)
 {
 	int res;
@@ -181,8 +197,10 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 
 		// or the skipped deadline
 		else {
-			print_benchmark_timing(filep, 0, 0, 0,
-					       last_deadline_timestamp);
+			if (last_deadline_timestamp != job_deadline_timestamp) {
+				print_benchmark_timing(filep, 0, 0, 0,
+						       last_deadline_timestamp);
+			}
 		}
 	}
 	//If a job has ended or we are starting for the first time we need to reset the reporting variables and unlock the semaphore.
@@ -202,6 +220,13 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 	}
 }
 
+/**
+ * @brief A simple function that is used to install a signal handler.
+ * @param[in] handled_signal The signal that is to be associated to the handler.
+ * @param[in] handler The handler that is to be associated to the signal.
+ * @param[in] masked_signals An array, containing the signals that must be masked during the handler execution.
+ * @param[in] masked_signals_num The number of element of `masked_signals`.
+ */
 static int setup_signal(int handled_signal,
 			void (*handler)(int, siginfo_t *, void *),
 			int *masked_signals, int masked_signals_num)
@@ -233,6 +258,15 @@ static int setup_signal(int handled_signal,
 	return 0;
 }
 
+/** @brief A function that creates and arms a real-time timer.
+ * @param[out] timer The pointer that will contain the created timer.
+ * @param[in] signal_generated The signal that the timer must generated when it expires.
+ * @param[in] interval_sec The seconds after which the timer will expire.
+ * @param[in] interval_nsec The nanoseconds after which the timer will expire.
+ * @details
+ * The function will create and arm the timer for a periodic execution, with the specified timing. The timer will be armed immediately after creation.\n
+ * `interval_sec` and `interval_nsec` can be used in conjunction to specify when the timer must expire and if they are both set to `0` the timer will not be armed.
+ */
 static int setup_timer(timer_t *timer, int signal_generated, long interval_sec,
 		       long interval_nsec)
 {
@@ -269,10 +303,12 @@ static int setup_timer(timer_t *timer, int signal_generated, long interval_sec,
  * When the environment for the periodic benchmark is initialized, the benchmark will be periodically executed.
  *
  * To execute the benchmark periodically we use two timers that fire different real time signals:
- * - `::SIGNAL_DEADLINE` which will be fired when the deadline occurs.
- * - `::SIGNAL_END_PERIOD` which will be fired when the period when the benchamrk has been launched ends.
+ * - `::SIGNAL_DEADLINE` which will be fired when the deadline occurs, if the deadline is less than the period.
+ * - `::SIGNAL_END_PERIOD` which will be fired when the period ends.
  *
- * When a SIGINT is received, the timer will be destroyed and the environment for the job execution will be cleaned.
+ * After the setup, the periodic benchmark will start after a `::SIGNAL_END_PERIOD` is received, to allow a start with reduced delay. 
+ *
+ * When a `SIGINT` is received, the timer will be destroyed and the environment for the job execution will be cleaned.
  *
  * The environment for the job execution is handled by calling the benchmark_init() and benchmark_teardown() functions.
  */
