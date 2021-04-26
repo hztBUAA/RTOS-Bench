@@ -15,6 +15,7 @@
 #include "periodic_benchmark.h"
 #include "get_cpu_timestamp.h"
 #include "logging.h"
+#include "memory_watcher.h"
 
 ///This value in `::deadline_timer_status` determines that the deadline timer must be used
 #define DEADLINE_TIMER_IN_USE 1
@@ -73,17 +74,14 @@ static unsigned long long job_period_start_timestamp = 0;
  * @brief Teardown function registered to be called when exit is called.
  * @param[in] status The exit status.
  * @param[in] arg Ignored.
- * @details Will ensure that all the requested resourced are freed and the output file is flushed and closed.
+ * @details Will ensure that all the requested resourced are freed, the memory watcher is stopped, and the output file is flushed and closed.
  */
 static void stop_benchmark(int status, void *arg)
 {
 	int res;
+	//we stop the memory watcher
+	stop_memory_watcher();
 	if (filep != NULL) {
-		elogf(LOG_LEVEL_TRACE, "Flushing output file buffer\n");
-		res = fflush(filep);
-		if (res == EOF) {
-			perror("Cannot flush file buffer");
-		}
 		elogf(LOG_LEVEL_TRACE, "Closing output file\n");
 		res = fclose(filep);
 		if (res == EOF) {
@@ -299,7 +297,8 @@ static int setup_timer(timer_t *timer, int signal_generated, long interval_sec,
 }
 
 /** @details
- * This function will prepare the environment for executing the job, initialize the timer and periodically report any missed deadlines.
+ * This function will prepare the environment for executing the job, initialize the timers and signal handlers.
+ * If `bytes_to_preallocate` in `::execution_options` is not `0` (which is set in the command line via the `-m` option) the memory watcher is also initialized.
  * When the environment for the periodic benchmark is initialized, the benchmark will be periodically executed.
  *
  * To execute the benchmark periodically we use two timers that fire different real time signals:
@@ -310,7 +309,7 @@ static int setup_timer(timer_t *timer, int signal_generated, long interval_sec,
  *
  * When a `SIGINT` is received, the timer will be destroyed and the environment for the job execution will be cleaned.
  *
- * The environment for the job execution is handled by calling the benchmark_init() and benchmark_teardown() functions.
+ * The environment for the job execution is handled by calling the `benchmark_init()` and `benchmark_teardown()` functions.
  */
 int periodic_benchmark(struct execution_options *exec_opts)
 {
@@ -396,7 +395,11 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		return res;
 	}
 	elogf(LOG_LEVEL_TRACE, "Quit handler setup completed.\n");
-	elogf(LOG_LEVEL_TRACE, "Signal handlers installed\n");
+	elogf(LOG_LEVEL_TRACE, "Signal handlers installed.\n");
+
+	if (exec_opts->bytes_to_preallocate > 0) {
+		start_memory_watcher(exec_opts->bytes_to_preallocate);
+	}
 
 	elogf(LOG_LEVEL_TRACE, "Configuring timers...\n");
 	//the deadline timer is created only if deadline and period differ
@@ -423,7 +426,6 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		return res;
 	}
 	elogf(LOG_LEVEL_TRACE, "Period timer setup complete\n");
-
 	elogf(LOG_LEVEL_TRACE, "Timers setup complete\n");
 	//since timer will start shortly there are no previous jobs that are executing
 	//we get the timestamp of the first period

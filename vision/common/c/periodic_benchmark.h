@@ -5,6 +5,8 @@
 #ifndef PERIODIC_BENCHMARK_H
 #define PERIODIC_BENCHMARK_H
 
+#include <stdlib.h>
+
 /** @brief Struct used to hold the parsed arguments and options.
  * @details
  * Will determine the how periodic_benchmark() behaves by influencing the passed
@@ -20,6 +22,7 @@ struct execution_options {
 	long period_sec; ///< The period in seconds.
 	long period_nsec; ///<  The period in nanoseconds.
 	char *output_path; ///< Path where the execution info will be written.
+	size_t bytes_to_preallocate; ///< The heap memory that will be preallocated and will act as a limit for dynamic memory requested during the benchmark execution.
 };
 
 /**

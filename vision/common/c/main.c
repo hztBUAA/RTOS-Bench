@@ -6,6 +6,7 @@
 #include <fenv.h>
 #include "periodic_benchmark.h"
 #include "logging.h"
+#include <string.h>
 
 /** @file main.c
  * @brief Benchmark entry point. 
@@ -25,16 +26,14 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	double time_spec;
 	long seconds, nanoseconds;
 	struct execution_options *parsed_args = state->input;
+	size_t preallocation = 0;
+	char preallocation_magnitude = '\0';
 	errno = 0;
 	feclearexcept(FE_ALL_EXCEPT);
 	switch (key) {
 		//default values for arguments and options
 	case ARGP_KEY_INIT:
-		parsed_args->deadline_nsec = 0;
-		parsed_args->deadline_sec = 0;
-		parsed_args->args_num = 0;
-		parsed_args->args = NULL;
-		parsed_args->output_path = NULL;
+		memset(parsed_args, 0, sizeof(struct execution_options));
 		break;
 	case ARGP_KEY_ARG:
 		//we want to directly grab the argument list, after the options have been parsed
@@ -47,6 +46,37 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 			state->next = state->argc;
 		} else {
 			argp_error(state, "Error parsing arguments");
+		}
+		break;
+	case 'm':
+		/* the argument should contain the number of bytes to preallocate and an order of magnitude
+		 * K for kilobytes, M for megabytes and G for gigabytes
+		 * e.g 1G = 1 gigabyte preallocated.*/
+		res = sscanf(arg, "%zu%1c", &preallocation,
+			     &preallocation_magnitude);
+		if (res < 1 || res == EOF) {
+			argp_failure(
+				state, EXIT_FAILURE, errno,
+				"Error during preallocation argument parsing");
+		}
+		res = 0;
+		/*we convert the parsed value in bytes save it as an execution option.
+		 * breaks are omitted to obtain a proper conversion in bytes. */
+		switch (preallocation_magnitude) {
+		case 'g':
+		case 'G':
+			preallocation *= 1024;
+		case 'm':
+		case 'M':
+			preallocation *= 1024;
+		case 'k':
+		case 'K':
+			preallocation *= 1024;
+		case '\0':
+			parsed_args->bytes_to_preallocate = preallocation;
+			break;
+		default:
+			argp_error(state, "Preallocation magnitude invalid");
 		}
 		break;
 	case 'd':
@@ -144,18 +174,20 @@ int main(int argc, char **argv)
 		  "Path to the folder where benchmark input data is located." },
 		{ "additional_arguments", 0, 0, OPTION_NO_USAGE | OPTION_DOC,
 		  "Additional arguments relayed directly to the benchmark." },
-		{ 0, 0, 0, 0,
-		  "Deadline options (at least one is required):", 2 },
-		{ "deadline", 'd', "", 0,
-		  "The benchmark deadline, in seconds, can be an integer, float or in scientific notation. Required. Must be less or equal than the benchmark period." },
-		{ "period", 'p', "", 0,
-		  "The benchmark period, in seconds, can be an integer, float or in scientific notation. Required." },
-		{ 0, 0, 0, 0, "Reporting options:", 3 },
+		{ 0, 0, 0, 0, "Period and deadline options:", 2 },
+		{ "deadline", 'd', "secs", 0,
+		  "The benchmark deadline in seconds. Can be an integer, float or in scientific notation. Required. Must be less or equal than the benchmark period." },
+		{ "period", 'p', "secs", 0,
+		  "The benchmark period, in seconds. Can be an integer, float or in scientific notation. Required." },
+		{ 0, 0, 0, 0, "Execution options:", 3 },
+		{ "mem-limit", 'm', "bytes[GMK]", 0,
+		  "The maximum amount of dynamic memory allocated during the periodic execution. If exceeded, the benchmark will crash. Specified as an integer plus an optional magnitude modifier: K=kilobytes, M=megabytes, G=gigabytes. Without a magnitude specified the value is assumed to be in bytes. 0 Means no limit, and it is the default setting." },
+		{ 0, 0, 0, 0, "Reporting options:", 4 },
 		{ "log-level", 'l', "log-lvl", 0,
 		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats only to output file.\n3 - Print benchmark stats also on stdout.\n4 - Print also informative messages.\nDefault is 3." },
 		{ "output", 'o', "output_path", 0,
 		  "Where the info on the benchmark execution will be written. If not supplied, the input folder path will be used." },
-		{ 0, 0, 0, 0, "Informational options:", -1 },
+		{ 0, 0, 0, 0, "Informational options:\n", -1 },
 		{ 0, 0, 0, 0, 0, 0 }
 	};
 	//initializing argp struct
