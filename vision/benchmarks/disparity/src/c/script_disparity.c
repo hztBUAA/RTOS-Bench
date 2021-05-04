@@ -52,11 +52,11 @@ int benchmark_init(int parameters_num, void **parameters)
 }
 
 /**
- * @brief This handler c where the disparity between the two images is computed.
+ * @brief This handler is where the disparity between the two images is computed.
  * @param[in] parameters_num Number of passed parameters, should be 0 or 1.
  * @param[in] parameters The list of passed parameters.
  * @details
- * The list of passed parameters must provide the output folder path (which is generally the same os the input folder path) as only element of the parameters array.
+ * The list of passed parameters must provide the output folder path (which is generally the same as the input folder path) as only element of the parameters array.
  */
 void benchmark_execution(int parameters_num, void **parameters)
 {
@@ -105,7 +105,7 @@ void benchmark_execution(int parameters_num, void **parameters)
 }
 
 /**
- * @brief Will revert what banchmark_init() has done to initialize the benchmark.
+ * @brief Will revert what benchmark_init() has done to initialize the benchmark.
  * @param[in] parameters_num Ignored.
  * @param[in] parameters Ignored.
  * @details It will deallocate images in ::imleft and ::imright.

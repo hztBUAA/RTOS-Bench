@@ -55,24 +55,35 @@ EXE =
 INCLUDES = -I$(COMMON_DIR) -I$(C_DIR)
 COMPILE_C = $(CC) $(CFLAGS) -O2 $(INCLUDES) -Wl,--wrap=malloc -Wl,--wrap=mmap
 C_LIBS = -lrt -lm -pthread
-#COMPILE_C = $(CC) $(CFLAGS) -DGENERATE_OUTPUT -lm -O2 $(INCLUDES)
+#COMPILE_C = $(CC) $(CFLAGS) -DGENERATE_OUTPUT -lm -O2 $(INCLUDES) -Wl,--wrap=malloc -Wl,--wrap=mmap
 COMPILE_G = $(CC) $(CFLAGS) -g -lrt -lm -pthread $(INCLUDES) -Wl,--wrap=malloc -Wl,--wrap=mmap
-COMPILE_PG = $(COMPILE_G) -pg -Wl,--wrap=malloc -Wl,--wrap=mmap
+COMPILE_PG = $(COMPILE_G) -pg
 
 
 c-run: compile
 	@echo -e "Data set\t\t- $(INPUT)"
-	@./$(BMARK)$(EXE) $(DATA_DIR) $(C_RESULT) | tee $(TIMING_DIR)/C_$(INPUT).txt
+	@mkdir -p $(TIMING_DIR)
+	@./$(BMARK)$(EXE) $(DATA_DIR) $(BMARK_OPTIONS) -o $(C_RESULT) | tee -i $(TIMING_DIR)/C_$(INPUT).txt
 
 debug:
 	@echo Running Debug C Version of the benchmark
 	@$(COMPILE_G) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
-	#@valgrind --leak-check=full ./$(BMARK)$(EXE) $(DATA_DIR) $(C_RESULT)
-	#@gdb ./$(BMARK)$(EXE) $(DATA_DIR) $(C_RESULT)
+
+debug-valgrind: debug
+	@valgrind --leak-check=full ./$(BMARK)$(EXE) $(DATA_DIR) $(BMARK_OPTIONS) -o $(C_RESULT)
+
+debug-gdb: debug
+	@gdb ./$(BMARK)$(EXE) $(DATA_DIR) $(BMARK_OPTIONS) -o $(C_RESULT)
+
+debug-asan:
+	@echo Running Debug C Version of the benchmark
+	@$(COMPILE_G) -fsanitize=address $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
+	@./$(BMARK)$(EXE) $(DATA_DIR) $(BMARK_OPTIONS) -o $(C_RESULT)
+
 
 profile: compile-prof
 	@echo -e "Data set\t\t- $(INPUT)"
-	@./$(BMARK)$(EXE) $(DATA_DIR) $(C_RESULT)
+	@./$(BMARK)$(EXE) $(DATA_DIR) $(BMARK_OPTIONS) -o $(C_RESULT)
 	@gprof $(BMARK)$(EXE)
 
 

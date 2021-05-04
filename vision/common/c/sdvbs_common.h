@@ -8,8 +8,9 @@ Author: Sravanthi Kota Venkata
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
 #include "periodic_benchmark.h"
+#include "logging.h"
+
 
 typedef struct
 {
@@ -131,4 +132,3 @@ void photonPrintTiming(unsigned int * elapsed);
 
 
 #endif
-

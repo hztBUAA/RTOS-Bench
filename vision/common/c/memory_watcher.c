@@ -27,8 +27,8 @@ static const void *initial_program_break = NULL;
  * Memory preallocation is done via `mallopt()`, using `M_TOP_PAD`.
  * In addition, we need to avoid having `malloc()` use `mmap()`, so `mallopt()` is used to set `M_MMAP_MAX` to `0`.
  * Then, a dummy allocation (a `malloc()` and a `free()`) is performed, to have the requested memory preallocated.
- *  
- * To enable the memory watcher, `::memory_watcher_status` is set to `::MEMORY_WATCHER_ENABLED` and 
+ *
+ * To enable the memory watcher, `::memory_watcher_status` is set to `::MEMORY_WATCHER_ENABLED` and
  * the initial value of the program break is stored in `::initial_program_break` via `sbrk(0)`.
  * As a side effect from the memory watcher start, `mmap()` will be disabled.
  */
@@ -109,9 +109,8 @@ void stop_memory_watcher()
 			exit(-1);
 		}
 	} else {
-		elogf(LOG_LEVEL_ERR,
+		elogf(LOG_LEVEL_TRACE,
 		      "Attempt to disable the memory watcher when it is not enabled.\n");
-		exit(-1);
 	}
 }
 
@@ -120,7 +119,7 @@ extern void *__real_malloc(size_t size);
 
 /** @brief The wrapped `malloc()` function, where the memory watcher is implemented.
  * @details Every time `malloc()` is invoked, we let the original implementation allocate memory via `__real_malloc()`, then we check,
- * via `sbrk(0)`, if the current program break is different from the value in `::initial_program_break`. 
+ * via `sbrk(0)`, if the current program break is different from the value in `::initial_program_break`.
  * When these values differ we free the memory that was allocated, give the user an error message and call `exit(-1)`.
  */
 void *__wrap_malloc(size_t size)
@@ -151,7 +150,7 @@ extern void *__real_mmap(void *addr, size_t len, int prot, int flags,
 			 int fildes, off_t off);
 
 /** @brief Wrapper of `mmap()` which disables the function if the memory watcher is enabled.
- * @details If `mmap()` is called when the memory watcher is enabled, the program will crash using `exit(-1)`. 
+ * @details If `mmap()` is called when the memory watcher is enabled, the program will crash using `exit(-1)`.
  */
 void *__wrap_mmap(void *addr, size_t len, int prot, int flags, int fildes,
 		  off_t off)
