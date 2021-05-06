@@ -61,6 +61,7 @@ int benchmark_init(int parameters_num, void **parameters)
 		}
 	}
 	iFreeHandle(I);
+	return 0;
 }
 
 /**
