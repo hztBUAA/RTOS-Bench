@@ -57,7 +57,7 @@ void start_memory_watcher(size_t bytes_to_preallocate)
 				exit(-1);
 			}
 			// a dummy allocation to have malloc preallocate the requested amount of memory.
-			dummy_alloc = malloc(1);
+			dummy_alloc = malloc(bytes_to_preallocate);
 			if (dummy_alloc == NULL) {
 				elogf(LOG_LEVEL_ERR,
 				      "Cannot allocate dynamic memory, aborting.\n");
@@ -129,16 +129,15 @@ void *__wrap_malloc(size_t size)
 	if (memory_watcher_status == MEMORY_WATCHER_ENABLED) {
 		current_program_break = sbrk(0);
 		if (current_program_break == (void *)-1) {
-			perror("Cannot find the program break during memory watcher setup.");
+			perror("Cannot find the current program break.");
 			exit(-1);
 		}
-		/*elogf(LOG_LEVEL_TRACE,
-		      "allocated %zu bytes\n initial program break: %p\ncurrent program break:%p.\n",
-		      size, initial_program_break, current_program_break);*/
 		if (current_program_break != initial_program_break) {
 			free(pointer);
 			elogf(LOG_LEVEL_ERR,
-			      "Memory allocation has caused an heap extension, aborting.\n");
+			      "Memory allocation of %zu bytes has caused an heap extension.\ninitial program break: %p\ncurrent program break:%p.\nExecution will be aborted.",
+			      size, initial_program_break,
+			      current_program_break);
 			exit(-1);
 		}
 	}
