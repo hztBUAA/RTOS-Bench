@@ -29,7 +29,7 @@ static I2D *imright = NULL;
  * @details
  * The required parameters array has the following structure:
  * - parameters[0]: image folder path;
- * First image will be loaded into ::imleft and second image into ::imright.
+ * First image will be loaded into `::imleft` and second image into `::imright`.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {
@@ -105,10 +105,10 @@ void benchmark_execution(int parameters_num, void **parameters)
 }
 
 /**
- * @brief Will revert what benchmark_init() has done to initialize the benchmark.
+ * @brief Will revert what `benchmark_init()` has done to initialize the benchmark.
  * @param[in] parameters_num Ignored.
  * @param[in] parameters Ignored.
- * @details It will deallocate images in ::imleft and ::imright.
+ * @details It will deallocate images in `::imleft` and `::imright`.
  */
 void benchmark_teardown(int parameters_num, void **parameters)
 {
