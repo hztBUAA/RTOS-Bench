@@ -63,27 +63,27 @@ COMPILE_PG = $(COMPILE_G) -pg
 c-run: compile
 	@echo -e "Data set\t\t- $(INPUT)"
 	@mkdir -p $(TIMING_DIR)
-	@./$(BMARK)$(EXE) $(DATA_DIR) $(BMARK_OPTIONS) -o $(C_RESULT) | tee -i $(TIMING_DIR)/C_$(INPUT).txt
+	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -o $(C_RESULT) | tee -i $(TIMING_DIR)/C_$(INPUT).txt
 
 debug:
 	@echo Running Debug C Version of the benchmark
 	@$(COMPILE_G) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
 
 debug-valgrind: debug
-	@valgrind --leak-check=full ./$(BMARK)$(EXE) $(DATA_DIR) $(BMARK_OPTIONS) -o $(C_RESULT)
+	@valgrind --leak-check=full ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -o $(C_RESULT)
 
 debug-gdb: debug
-	@gdb ./$(BMARK)$(EXE) $(DATA_DIR) $(BMARK_OPTIONS) -o $(C_RESULT)
+	@gdb ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -o $(C_RESULT)
 
 debug-asan:
 	@echo Running Debug C Version of the benchmark
 	@$(COMPILE_G) -fsanitize=address $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
-	@./$(BMARK)$(EXE) $(DATA_DIR) $(BMARK_OPTIONS) -o $(C_RESULT)
+	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -o $(C_RESULT)
 
 
 profile: compile-prof
 	@echo -e "Data set\t\t- $(INPUT)"
-	@./$(BMARK)$(EXE) $(DATA_DIR) $(BMARK_OPTIONS) -o $(C_RESULT)
+	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -o $(C_RESULT)
 	@gprof $(BMARK)$(EXE)
 
 

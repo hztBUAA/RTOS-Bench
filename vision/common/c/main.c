@@ -160,7 +160,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
  */
 int main(int argc, char **argv)
 {
-	int res = 0;
+	int res = 0, i;
 	struct execution_options parsed_args;
 
 	//argp variables
@@ -202,6 +202,34 @@ int main(int argc, char **argv)
 	if (res != 0) {
 		perror("Error during argument parsing");
 		return EXIT_FAILURE;
+	}
+
+	if (benchmark_verbosity == LOG_LEVEL_TRACE) {
+		elogf(LOG_LEVEL_TRACE, "parsed arguments:\n");
+		elogf(LOG_LEVEL_TRACE, "\targument number:%d\n",
+		      parsed_args.args_num);
+		elogf(LOG_LEVEL_TRACE, "\targuments:\n");
+		for (i = 0; i < parsed_args.args_num; i++) {
+			elogf(LOG_LEVEL_TRACE, "\t  %d - %s\n", i,
+			      parsed_args.args[i]);
+		}
+		elogf(LOG_LEVEL_TRACE, "\tdeadline:%.3g\n",
+		      parsed_args.parsed_deadline);
+		elogf(LOG_LEVEL_TRACE, "\tdeadline in seconds:%ld\n",
+		      parsed_args.deadline_sec);
+		elogf(LOG_LEVEL_TRACE, "\tdeadline in nanoseconds:%ld\n",
+		      parsed_args.deadline_nsec);
+		elogf(LOG_LEVEL_TRACE, "\tperiod:%.3g\n",
+		      parsed_args.parsed_period);
+		elogf(LOG_LEVEL_TRACE, "\tperiod in seconds:%ld\n",
+		      parsed_args.period_sec);
+		elogf(LOG_LEVEL_TRACE, "\tperiod in nanoseconds:%ld\n",
+		      parsed_args.period_nsec);
+		elogf(LOG_LEVEL_TRACE, "\toutput path: %s\n",
+		      parsed_args.output_path);
+		elogf(LOG_LEVEL_TRACE,
+		      "\tmemory to preallocate (in bytes):%zu\n",
+		      parsed_args.bytes_to_preallocate);
 	}
 
 	//benchmark initialization
