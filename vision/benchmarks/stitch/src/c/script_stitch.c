@@ -1,76 +1,107 @@
-/********************************
-Author: Sravanthi Kota Venkata
-********************************/
+/**
+ * @file script_stitch.c
+ * @brief Functions used to run the stitch benchmark periodically.
+ * @details
+ * The original script has been broken down in three components:
+ * - init: benchmark_init();
+ * - execution: benchmark_execution();
+ * - teardown: benchmark_teardown();
+ *
+ * **NOTE:** This benchmark fails also in the original version at the moment.
+ *
+ * This allows the benchmark to be run periodically, by re-running only the execution portion.
+ * @author Sravanthi Kota Venkata, for the original version.
+ */
 
 #include "stitch.h"
 
-int main(int argc, char* argv[])
+///Image used by the benchmark.
+static I2D *Icur;
+
+/**
+ * @brief Will load the image that will be used by the benchmark.
+ * @param[in] parameters_num Number of parameters passed, should be 1.
+ * @param[in] parameters The list of passed parameters.
+ * @details
+ * The required parameters array has the following structure:
+ * - parameters[0]: image folder path;
+ * Image will be loaded into `::Icur`.
+ */
+int benchmark_init(int parameters_num, void **parameters)
 {
-    int rows, cols;
-    F2D *x, *y, *v, *interestPnts, *Fcur, *int1, *int2;
-    I2D *Icur;
-    int i, j;
-    unsigned int* start, *endC, *elapsed;
-    char im1[100], im2[100];
-    
-    if(argc < 2)
-    {
-        printf("We need input image path\n");
-        return -1;
-    }
+	char im1[100];
 
-    sprintf(im1, "%s/1.bmp", argv[1]);
-    sprintf(im2, "%s/2.bmp", argv[1]);
+	if (parameters_num < 1) {
+		elogf(LOG_LEVEL_ERR, "We need input image path\n");
+		return -1;
+	}
 
-    Icur = readImage(im1);
-    rows = Icur->height;
-    cols = Icur->width;
+	sprintf(im1, "%s/1.bmp", parameters[0]);
 
-    printf("Input size\t\t- (%dx%d)\n", rows, cols);
-    start = photonStartTiming();
+	Icur = readImage(im1);
 
-    v = harris(Icur);
-    interestPnts = getANMS(v, 24);
+	elogf(LOG_LEVEL_TRACE, "Input size\t\t- (%dx%d)\n", Icur->height,
+	      Icur->width);
+	return 0;
+}
 
-    int1 = fMallocHandle(interestPnts->height, 1);
-    int2 = fSetArray(interestPnts->height, 1, 0);
-    
-    for(i=0; i<int1->height; i++)
-    {
-        asubsref(int1,i) = subsref(interestPnts,i,0);
-        asubsref(int2,i) = subsref(interestPnts,i,1);
-    }
+/**
+ * @brief This handler is where the texture stitching is performed.
+ * @param[in] parameters_num Number of passed parameters, should be 0 or 1.
+ * @param[in] parameters The list of passed parameters.
+ * @details
+ * The list of passed parameters must provide the output folder path (which is generally the same as the input folder path) as only element of the parameters array if self checking is enabled.
+ */
+void benchmark_execution(int parameters_num, void **parameters)
+{
+	F2D *x, *y, *v, *interestPnts, *Fcur, *int1, *int2;
+	int i, j;
+	v = harris(Icur);
+	interestPnts = getANMS(v, 24);
 
-    Fcur = extractFeatures(Icur, int1, int2);  
-    
-    endC = photonEndTiming();
-    elapsed = photonReportTiming(start, endC);
+	int1 = fMallocHandle(interestPnts->height, 1);
+	int2 = fSetArray(interestPnts->height, 1, 0);
 
-#ifdef CHECK   
-    /** Self checking - use expected.txt from data directory  **/
-    {
-        int ret=0;
-        float tol = 0.02;
+	for (i = 0; i < int1->height; i++) {
+		asubsref(int1, i) = subsref(interestPnts, i, 0);
+		asubsref(int2, i) = subsref(interestPnts, i, 1);
+	}
+
+	Fcur = extractFeatures(Icur, int1, int2);
+
+#ifdef CHECK
+	/* Self checking - use expected.txt from data directory  */
+	{
+		if (parameters_num < 1) {
+			elogf(LOG_LEVEL_ERR, "Missing input image path");
+			exit(-1);
+		}
+		int ret = 0;
+		float tol = 0.02;
 #ifdef GENERATE_OUTPUT
-        fWriteMatrix(Fcur, argv[1]);
+		fWriteMatrix(Fcur, parameters[0]);
 #endif
-        ret = fSelfCheck(Fcur, argv[1], tol);
-        if (ret == -1)
-            printf("Error in Stitch\n");
-    }
-//    /** Self checking done **/
+		ret = fSelfCheck(Fcur, parameters[0], tol);
+		if (ret == -1)
+			printf("Error in Stitch\n");
+	}
+	/* Self checking done */
 #endif
 
-    iFreeHandle(Icur);
-    fFreeHandle(v);
-    fFreeHandle(interestPnts);
-    fFreeHandle(int1);
-    fFreeHandle(int2);
-    fFreeHandle(Fcur);
-    free(start);
-    free(endC);
+	fFreeHandle(v);
+	fFreeHandle(interestPnts);
+	fFreeHandle(int1);
+	fFreeHandle(int2);
+	fFreeHandle(Fcur);
+}
 
-    photonPrintTiming(elapsed);
-    free(elapsed);
-    return 0;
+/**
+ * @brief Will revert what `benchmark_init()` has done to initialize the benchmark.
+ * @param[in] parameters_num Ignored.
+ * @param[in] parameters Ignored.
+ * @details It will deallocate image in `::Icur`.
+ */
+void benchmark_teardown(int parameters_num, void **parameters)
+{
+	iFreeHandle(Icur);
 }
