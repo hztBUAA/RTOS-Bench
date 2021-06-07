@@ -19,6 +19,7 @@ endif
 CC=gcc
 override CFLAGS += -DGCC -DCHECK -D$(INPUT)
 
+BASE_DIR := $(TOP_DIR)/../base
 COMMON_DIR := $(TOP_DIR)/common/c
 M_COMMON := $(TOP_DIR)/common/matlab
 M_TOOLBOX=$(TOP_DIR)/common/toolbox
@@ -46,13 +47,14 @@ C_RESULT=$(M_RESULT)
 
 # Source files for C and Common folders
 
+BASE_SRC := $(wildcard $(BASE_DIR)/*.c)
 C_SRC := $(wildcard $(C_DIR)/*.c)
 COMMON_SRC := $(wildcard $(COMMON_DIR)/*.c)
 
 # RULES
 
 EXE =
-INCLUDES = -I$(COMMON_DIR) -I$(C_DIR)
+INCLUDES = -I$(COMMON_DIR) -I$(C_DIR) -I$(BASE_DIR)
 COMPILE_C = $(CC) $(CFLAGS) -O2 $(INCLUDES) -Wl,--wrap=malloc -Wl,--wrap=mmap
 C_LIBS = -lrt -lm -pthread
 #COMPILE_C = $(CC) $(CFLAGS) -DGENERATE_OUTPUT -lm -O2 $(INCLUDES) -Wl,--wrap=malloc -Wl,--wrap=mmap
@@ -67,7 +69,7 @@ c-run: compile
 
 debug:
 	@echo Running Debug C Version of the benchmark
-	@$(COMPILE_G) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
+	@$(COMPILE_G) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
 
 debug-valgrind: debug
 	@valgrind --leak-check=full ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -o $(C_RESULT)
@@ -77,7 +79,7 @@ debug-gdb: debug
 
 debug-asan:
 	@echo Running Debug C Version of the benchmark
-	@$(COMPILE_G) -fsanitize=address $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
+	@$(COMPILE_G) -fsanitize=address $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
 	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -o $(C_RESULT)
 
 
@@ -90,12 +92,12 @@ profile: compile-prof
 compile: $(C_SRC)
 	@echo
 	@echo -e "Benchmark\t\t- $(BMARK)"
-	@$(COMPILE_C) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE) $(C_LIBS)
+	@$(COMPILE_C) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE) $(C_LIBS)
 
 compile-prof: $(C_SRC)
 	@echo
 	@echo -e "Benchmark\t\t- $(BMARK)"
-	@$(COMPILE_PG) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
+	@$(COMPILE_PG) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
 
 matlab-run:
 	@echo
