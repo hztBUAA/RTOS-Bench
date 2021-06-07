@@ -1,5 +1,6 @@
 /**
  * @file script_mser.c
+ * @ingroup mser
  * @brief Functions used to run the mser benchmark periodically.
  * @details
  * The original script has been broken down in three components:
@@ -70,7 +71,7 @@ int benchmark_init(int parameters_num, void **parameters)
  * @param[in] parameters The list of passed parameters.
  * @details
  * The list of passed parameters must provide the output folder path as only element of the parameters array if the `CHECK` macro is defined.
- * 
+ *
  * The benchmark will compute a set of maximally stable regions, which result in the image segmentation.
  */
 void benchmark_execution(int parameters_num, void **parameters)

@@ -1,4 +1,5 @@
 /** @file logging.h
+ * @ingroup base
  * @brief Logging utilities.
  * @details Logging interfaces, to support different verbosity levels.
  * These interfaces are implemented as function-like macros, since they will mainly rely on the fprintf() function.

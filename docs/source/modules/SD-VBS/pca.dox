@@ -1,0 +1,7 @@
+/**
+* @defgroup PCA
+* @ingroup SD-VBS
+* @brief PCA benchmark.
+*
+* Modified files for the PCA benchmark, located in `vision/benchmarks/pca`.
+*/

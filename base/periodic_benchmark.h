@@ -1,5 +1,6 @@
 /**
  * @file periodic_benchmark.h
+ * @ingroup base
  * @brief A general periodic benchmark using a real time timer.
 */
 #ifndef PERIODIC_BENCHMARK_H

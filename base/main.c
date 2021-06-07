@@ -9,12 +9,13 @@
 #include <string.h>
 
 /** @file main.c
- * @brief Benchmark entry point. 
- * @details Will handle the benchmark startup and its parameters. 
+ * @ingroup base
+ * @brief Benchmark entry point.
+ * @details Will handle the benchmark startup and its parameters.
  */
 
 /** @brief Parse cli options and arguments via argp.
- * @param[in] key The parsed key (e.g. s if the parameters is -s 100) . 
+ * @param[in] key The parsed key (e.g. s if the parameters is -s 100) .
  * @param[in] arg The value associated with the parsed key.
  * @param[in,out] state The argp parser state when this function it's called.
  * @returns 0 or an error code.

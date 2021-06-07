@@ -1,4 +1,5 @@
 /** @file memory_watcher.c
+ * @ingroup base
  * @brief Implementation of a memory watcher, which will crash the program if it detects and heap extension.
  */
 #include <malloc.h>

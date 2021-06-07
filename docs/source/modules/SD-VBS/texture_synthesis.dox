@@ -1,0 +1,7 @@
+/**
+* @defgroup texture_synthesis
+* @ingroup SD-VBS
+* @brief texture_synthesis benchmark.
+*
+* Modified files for the texture_synthesis benchmark, located in `vision/benchmarks/texture_synthesis`.
+*/

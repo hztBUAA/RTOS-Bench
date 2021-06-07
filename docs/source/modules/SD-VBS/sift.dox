@@ -1,0 +1,7 @@
+/**
+* @defgroup SIFT
+* @ingroup SD-VBS
+* @brief SIFT benchmark.
+*
+* Modified files for the SIFT benchmark, located in `vision/benchmarks/sift`.
+*/

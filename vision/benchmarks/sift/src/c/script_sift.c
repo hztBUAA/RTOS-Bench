@@ -1,5 +1,6 @@
 /** @file script_sift.c
- * @brief Functions used to run the disparity benchmark periodically.
+ * @ingroup SIFT
+ * @brief Functions used to run the sift benchmark periodically.
  * @details
  * The original script has been broken down in three components:
  * - init: benchmark_init();
@@ -70,11 +71,11 @@ int benchmark_init(int parameters_num, void **parameters)
 }
 
 /**
- * @brief This handler is where the image normalization and feature extraction will be performed. 
+ * @brief This handler is where the image normalization and feature extraction will be performed.
  * @param[in] parameters_num Number of passed parameters, should be 0 or 1.
  * @param[in] parameters The list of passed parameters.
  * @details
- * The list of passed parameters must provide the output folder path (which is generally the same as the input folder path) as only element of the parameters array.
+ * The list of passed parameters must provide the output folder path (which is generally the same as the input folder path) as only element of the parameters array when self checking is enabled.
  */
 void benchmark_execution(int parameters_num, void **parameters)
 {

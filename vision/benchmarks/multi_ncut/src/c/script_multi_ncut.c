@@ -1,5 +1,6 @@
 /**
  * @file script_multi_ncut.c
+ * @ingroup multi_ncut
  * @brief Functions used to run the multi_ncut  benchmark periodically.
  * @details
  * The original script has been broken down in three components:

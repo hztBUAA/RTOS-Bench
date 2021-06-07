@@ -1,0 +1,7 @@
+/**
+* @defgroup localization
+* @ingroup SD-VBS
+* @brief localization benchmark.
+*
+* Modified files for the localization benchmark, located in `vision/benchmarks/localization`.
+*/

@@ -1,0 +1,7 @@
+/**
+* @defgroup mser
+* @ingroup SD-VBS
+* @brief mser benchmark.
+*
+* Modified files for the mser benchmark, located in `vision/benchmarks/mser`.
+*/

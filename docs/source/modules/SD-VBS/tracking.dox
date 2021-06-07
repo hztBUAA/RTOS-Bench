@@ -1,0 +1,7 @@
+/**
+* @defgroup tracking
+* @ingroup SD-VBS
+* @brief tracking benchmark.
+*
+* Modified files for the tracking benchmark, located in `vision/benchmarks/tracking`.
+*/

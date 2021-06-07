@@ -1,5 +1,6 @@
 /**
  * @file pca.c
+ * @ingroup PCA
  * @brief Functions used to run the pca benchmark periodically.
  * @details
  * The original script has been broken down in three components:
@@ -680,7 +681,7 @@ void benchmark_execution(int parameters_num, void **parameters)
  * @brief Will revert what `benchmark_init()` has done to initialize the benchmark.
  * @param[in] parameters_num Ignored.
  * @param[in] parameters Ignored.
- * @details It will deallocate memoory allocated in `benchmark_init()`.
+ * @details It will deallocate memory allocated in `benchmark_init()`.
  */
 void benchmark_teardown(int parameters_num, void **parameters)
 {

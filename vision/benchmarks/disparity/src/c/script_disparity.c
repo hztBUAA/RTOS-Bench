@@ -1,5 +1,6 @@
 /**
  * @file script_disparity.c
+ * @ingroup disparity
  * @brief Functions used to run the disparity benchmark periodically.
  * @details
  * The original script has been broken down in three components:
@@ -8,7 +9,7 @@
  * - teardown: benchmark_teardown();
  *
  * This allows the benchmark to be run periodically, by re-running only the execution portion.
- * @author Sravanthi Kota Venkata, for the original version.
+ * @author Sravanthi Kota Venkata, for the original version
  */
 
 #include <stdio.h>
@@ -56,7 +57,7 @@ int benchmark_init(int parameters_num, void **parameters)
  * @param[in] parameters_num Number of passed parameters, should be 0 or 1.
  * @param[in] parameters The list of passed parameters.
  * @details
- * The list of passed parameters must provide the output folder path (which is generally the same as the input folder path) as only element of the parameters array.
+ * The list of passed parameters must provide the output folder path (which is generally the same as the input folder path) as only element of the parameters array if self checking is enabled.
  */
 void benchmark_execution(int parameters_num, void **parameters)
 {
@@ -108,7 +109,7 @@ void benchmark_execution(int parameters_num, void **parameters)
  * @brief Will revert what `benchmark_init()` has done to initialize the benchmark.
  * @param[in] parameters_num Ignored.
  * @param[in] parameters Ignored.
- * @details It will deallocate images in `::imleft` and `::imright`.
+ * @details It will free images in `::imleft` and `::imright`.
  */
 void benchmark_teardown(int parameters_num, void **parameters)
 {

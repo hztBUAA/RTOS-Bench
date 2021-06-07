@@ -1,5 +1,6 @@
 /**
  * @file script_stitch.c
+ * @ingroup stitch
  * @brief Functions used to run the stitch benchmark periodically.
  * @details
  * The original script has been broken down in three components:
@@ -7,7 +8,7 @@
  * - execution: benchmark_execution();
  * - teardown: benchmark_teardown();
  *
- * **NOTE:** This benchmark fails also in the original version at the moment.
+ * @bug This benchmark fails also in the original version at the moment.
  *
  * This allows the benchmark to be run periodically, by re-running only the execution portion.
  * @author Sravanthi Kota Venkata, for the original version.

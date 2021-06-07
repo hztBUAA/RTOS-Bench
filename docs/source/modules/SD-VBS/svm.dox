@@ -1,0 +1,7 @@
+/**
+* @defgroup SVM
+* @ingroup SD-VBS
+* @brief SVM benchmark.
+*
+* Modified files for the SVM benchmark, located in `vision/benchmarks/svm`.
+*/

@@ -2,6 +2,7 @@
 #define GET_TIMING_H
 
 /** @file get_cpu_timestamp.h
+ * @ingroup base
  * @brief API to get the CPU timestamp value.
  */
 

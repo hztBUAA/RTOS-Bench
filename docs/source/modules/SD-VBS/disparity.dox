@@ -1,0 +1,7 @@
+/**
+* @defgroup disparity
+* @ingroup SD-VBS
+* @brief disparity benchmark.
+*
+* Modified files for the disparity benchmark, located in `vision/benchmarks/disparity`.
+*/

@@ -1,6 +1,7 @@
 #include "timingUtils.h"
 
 /** @file get_cpu_timestamp.c
+ * @ingroup base
  * @brief Implementation of the API to get the CPU timestamp value.
  */
 

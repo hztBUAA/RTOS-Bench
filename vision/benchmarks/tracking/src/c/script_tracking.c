@@ -1,5 +1,6 @@
 /**
  * @file script_tracking.c
+ * @ingroup tracking
  * @brief Functions used to run the tracking benchmark periodically.
  * @details
  * The original script has been broken down in three components:

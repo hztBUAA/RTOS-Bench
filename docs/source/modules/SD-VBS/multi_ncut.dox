@@ -1,0 +1,7 @@
+/**
+* @defgroup multi_ncut
+* @ingroup SD-VBS
+* @brief multi_ncut benchmark.
+*
+* Modified files for the multi_ncut benchmark, located in `vision/benchmarks/multi_ncut`.
+*/

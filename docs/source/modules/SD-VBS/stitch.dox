@@ -1,0 +1,7 @@
+/**
+* @defgroup stitch
+* @ingroup SD-VBS
+* @brief stitch benchmark.
+*
+* Modified files for the stitch benchmark, located in `vision/benchmarks/stitch`.
+*/

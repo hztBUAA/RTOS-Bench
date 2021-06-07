@@ -1,4 +1,5 @@
 /** @file periodic_benchmark.c
+ * @ingroup base
  * @brief Implementation of a general periodic benchmark using real time timers.
  * @details Timer expiration triggers a real time POSIX signal and `SIGINT` is used to stop the benchamrk and terminate the program.
  */
@@ -126,7 +127,7 @@ static void quit_handler(int signo, siginfo_t *info, void *context)
  * @param info Ignored.
  * @param context Ignored.
  * @details
- * When the deadline timer expires, the current timestamp is saved in `::last_deadline_timestamp`, 
+ * When the deadline timer expires, the current timestamp is saved in `::last_deadline_timestamp`,
  * If this if the first deadline expiration since the period start, the the timestamp values is also copied in `::job_deadline_timestamp`.
 */
 static void deadline_handler(int signo, siginfo_t *info, void *context)
@@ -148,7 +149,7 @@ static void deadline_handler(int signo, siginfo_t *info, void *context)
  * When the period expires and the job has terminated its execution, the deadline timer is rearmed, the job's stats are reported,
  * the semaphore is unlocked and the reporting variables are reset.
  * The start of the next period matches with the end of the previous period.
- * The next job starts as soon as the semaphore is unlocked, and this creates a slight overhead, 
+ * The next job starts as soon as the semaphore is unlocked, and this creates a slight overhead,
  * since before unlocking the semaphore the previous job stats must be reported.
  * When the period ends but no start timestamp was recorded (`::job_period_start_timestamp` is `0`), no reporting will be done.
  *
@@ -305,7 +306,7 @@ static int setup_timer(timer_t *timer, int signal_generated, long interval_sec,
  * - `::SIGNAL_DEADLINE` which will be fired when the deadline occurs, if the deadline is less than the period.
  * - `::SIGNAL_END_PERIOD` which will be fired when the period ends.
  *
- * After the setup, the periodic benchmark will start after a `::SIGNAL_END_PERIOD` is received, to allow a start with reduced delay. 
+ * After the setup, the periodic benchmark will start after a `::SIGNAL_END_PERIOD` is received, to allow a start with reduced delay.
  *
  * When a `SIGINT` is received, the timer will be destroyed and the environment for the job execution will be cleaned.
  *
