@@ -18,6 +18,7 @@ print: setup
 
 html: setup
 	@cd conf && sed 's/GENERATE_HTML\s*=\s*NO/GENERATE_HTML=YES/' Doxyfile | doxygen -
+	@cd html && touch .nojekyll
 ifeq ("$(wildcard Documentation.html)","")
 	@ln -s html/index.html Documentation.html
 endif
@@ -26,6 +27,10 @@ setup:
 ifeq ("$(wildcard conf/doxygen-awesome)", "")
 	@echo installing dependencies
 	@git clone https://github.com/jothepro/doxygen-awesome-css.git conf/doxygen-awesome
+endif
+ifeq ("$(wildcard html)","")
+	@echo setting up folder for github pages
+	@git clone -b gh-pages --single-branch git@github.com:rntmancuso/rt-bench.git html
 endif
 
 clean:
