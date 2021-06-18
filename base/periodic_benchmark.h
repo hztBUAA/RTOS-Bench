@@ -5,7 +5,8 @@
 */
 #ifndef PERIODIC_BENCHMARK_H
 #define PERIODIC_BENCHMARK_H
-
+#define _GNU_SOURCE
+#include <sched.h>
 #include <stdlib.h>
 
 /** @brief Struct used to hold the parsed arguments and options.
@@ -24,6 +25,7 @@ struct execution_options {
 	long period_nsec; ///<  The period in nanoseconds.
 	char *output_path; ///< Path where the execution info will be written.
 	size_t bytes_to_preallocate; ///< The heap memory that will be preallocated and will act as a limit for dynamic memory requested during the benchmark execution.
+	cpu_set_t core_affinity; ///< The core mask which will be used during the benchmark to set the core affinity. This mask can represent at most 1024, if more are needed the mask should allocated dynamically via `CPU_ALLOC`.
 };
 
 /**

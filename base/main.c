@@ -1,10 +1,10 @@
+#include "periodic_benchmark.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <argp.h>
 #include <math.h>
 #include <fenv.h>
-#include "periodic_benchmark.h"
 #include "logging.h"
 #include <string.h>
 
@@ -29,12 +29,15 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	struct execution_options *parsed_args = state->input;
 	size_t preallocation = 0;
 	char preallocation_magnitude = '\0';
+	int affinity_core;
+	char *affinity_substr = NULL;
 	errno = 0;
 	feclearexcept(FE_ALL_EXCEPT);
 	switch (key) {
 		//default values for arguments and options
 	case ARGP_KEY_INIT:
 		memset(parsed_args, 0, sizeof(struct execution_options));
+		CPU_ZERO(&parsed_args->core_affinity);
 		break;
 	case ARGP_KEY_ARG:
 		//we want to directly grab the argument list, after the options have been parsed
@@ -118,7 +121,15 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		break;
 	case 'o':
-		parsed_args->output_path = arg;
+		parsed_args->output_path =
+			malloc(sizeof(char) * strlen(arg) + 1);
+		if (parsed_args->output_path == NULL) {
+			argp_failure(
+				state, EXIT_FAILURE, errno,
+				"Can't allocate memory for output filename.");
+		}
+		strncpy(parsed_args->output_path, arg,
+			sizeof(char) * strlen(arg) + 1);
 		break;
 	case 'l':
 		log_level = atoi(arg);
@@ -129,9 +140,35 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 			argp_error(state, "Wrong log level supplied.");
 		}
 		break;
+	case 'c':
+		// we create the mask based on what cores the user has specified.
+		affinity_substr = arg;
+		//we read one core id at a time and we insert it in the mask
+		while (affinity_substr != NULL) {
+			res = sscanf(affinity_substr, "%d%*s", &affinity_core);
+			if (res < 1 || res == EOF) {
+				argp_failure(
+					state, EXIT_FAILURE, errno,
+					"Error during preallocation argument parsing");
+			}
+			res = 0;
+			CPU_SET(affinity_core, &parsed_args->core_affinity);
+			//we search for other cores and prepare the sscanf input to read the next core id.
+			affinity_substr = strstr(affinity_substr, ",");
+			if (affinity_substr != NULL &&
+			    affinity_substr[0] == ',') {
+				affinity_substr++;
+			}
+		}
+		if (CPU_COUNT(&parsed_args->core_affinity) == 0) {
+			argp_failure(
+				state, EXIT_FAILURE, errno,
+				"Error during core affinity argument parsing, no core selected.");
+		}
+		break;
 	case ARGP_KEY_END:
 		if (parsed_args->args_num < 1)
-			argp_error(state, "Not enough arguments");
+			argp_error(state, "Not enough arguments.");
 		if (parsed_args->deadline_nsec == 0 &&
 		    parsed_args->deadline_sec == 0)
 			argp_error(state, "Missing required deadline value.");
@@ -142,10 +179,6 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 			argp_error(
 				state,
 				"Deadlines longer than period are not supported.");
-		}
-		// if an output path is not specified we will use the input folder path (specified in the first argument)
-		if (parsed_args->output_path == NULL) {
-			parsed_args->output_path = parsed_args->args[0];
 		}
 		break;
 	default:
@@ -180,14 +213,16 @@ int main(int argc, char **argv)
 		  "The benchmark deadline in seconds. Can be an integer, float or in scientific notation. Required. Must be less or equal than the benchmark period." },
 		{ "period", 'p', "secs", 0,
 		  "The benchmark period, in seconds. Can be an integer, float or in scientific notation. Required." },
+		{ "core-affinity", 'c', "core1,core2,...", 0,
+		  "The benchmark core affinity, expressed as a comma separated list. A single core id is also accepted." },
 		{ 0, 0, 0, 0, "Execution options:", 3 },
 		{ "mem-limit", 'm', "bytes[GMK]", 0,
 		  "The maximum amount of dynamic memory allocated during the periodic execution. If exceeded, the benchmark will crash. Specified as an integer plus an optional magnitude modifier: K=kilobytes, M=megabytes, G=gigabytes. Without a magnitude specified the value is assumed to be in bytes. 0 Means no limit, and it is the default setting." },
 		{ 0, 0, 0, 0, "Reporting options:", 4 },
 		{ "log-level", 'l', "log-lvl", 0,
-		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats only to output file.\n3 - Print benchmark stats also on stdout.\n4 - Print also informative messages.\nDefault is 3." },
+		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats to output file.\n3 - Print benchmark stats to stdout.\n4 - Print also informative messages on stderr.\nDefault is 3." },
 		{ "output", 'o', "output_path", 0,
-		  "Where the info on the benchmark execution will be written. If not supplied, the input folder path will be used." },
+		  "Where the info on the benchmark execution will be written. If not supplied, the input folder path will be used and a file called timing.csv will be created." },
 		{ 0, 0, 0, 0, "Informational options:\n", -1 },
 		{ 0, 0, 0, 0, 0, 0 }
 	};
