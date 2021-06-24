@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "sift.h"
 
 /// The input image.
@@ -61,13 +62,15 @@ int benchmark_init(int parameters_num, void **parameters)
 	char imSrc[100];
 
 	if (parameters_num < 1) {
-		elogf(LOG_LEVEL_ERR, "We need input image path\n");
+		elogf(LOG_LEVEL_ERR, "Missing input image path\n");
+		errno = EINVAL;
 		return -1;
 	}
 
 	sprintf(imSrc, "%s/1.bmp", parameters[0]);
 
 	im = readImage(imSrc);
+	return 0;
 }
 
 /**
@@ -84,7 +87,8 @@ void benchmark_execution(int parameters_num, void **parameters)
 #ifdef CHECK
 	if (parameters_num < 1) {
 		elogf(LOG_LEVEL_ERR, "Missing output folder path.");
-		exit(-1);
+		errno = EINVAL;
+		exit(EXIT_FAILURE);
 	}
 #endif
 	image = fiDeepCopy(im);
@@ -109,8 +113,10 @@ void benchmark_execution(int parameters_num, void **parameters)
 			elogf(LOG_LEVEL_ERR, "Error in SIFT\n");
 	}
 #endif
+	if(frames!=NULL){
 	fFreeHandle(frames);
-}
+	
+}}
 
 /**
  * @brief Will revert what `benchmark_init()` has done to initialize the benchmark.
@@ -120,5 +126,7 @@ void benchmark_execution(int parameters_num, void **parameters)
  */
 void benchmark_teardown(int parameters_num, void **parameters)
 {
-	iFreeHandle(im);
+	if (im != NULL) {
+		iFreeHandle(im);
+	}
 }

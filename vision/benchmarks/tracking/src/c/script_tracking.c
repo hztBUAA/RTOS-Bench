@@ -14,6 +14,7 @@
 
 #include "tracking.h"
 #include <stdlib.h>
+#include <errno.h>
 /// Number of features considered
 static int N_FEA;
 /// Size of an image portion.
@@ -45,7 +46,8 @@ int benchmark_init(int parameters_num, void **parameters)
 	int rows, cols;
 
 	if (parameters_num < 1) {
-		elogf(LOG_LEVEL_ERR, "We need input image path\n");
+		elogf(LOG_LEVEL_ERR, "Missing input image path\n");
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -118,7 +120,8 @@ int benchmark_init(int parameters_num, void **parameters)
 	rows = Ic_arr[0]->height;
 	cols = Ic_arr[0]->width;
 
-	printf("Input size\t\t- (%dx%d)\n", rows, cols);
+	elogf(LOG_LEVEL_TRACE, "Input size\t\t- (%dx%d)\n", rows, cols);
+	return 0;
 }
 
 /**
@@ -275,7 +278,8 @@ void benchmark_execution(int parameters_num, void **parameters)
 	{
 		if (parameters_num < 1) {
 			elogf(LOG_LEVEL_ERR, "Missing input folder path");
-			exit(-1);
+			errno = EINVAL;
+			exit(EXIT_FAILURE);
 		}
 		int ret = 0;
 		float tol = 2.0;
@@ -290,7 +294,6 @@ void benchmark_execution(int parameters_num, void **parameters)
 	fFreeHandle(blurred_level1);
 	fFreeHandle(blurred_level2);
 	fFreeHandle(features);
-	return 0;
 }
 
 /**
@@ -302,8 +305,12 @@ void benchmark_execution(int parameters_num, void **parameters)
 void benchmark_teardown(int parameters_num, void **parameters)
 {
 	int i;
-	for (i = 0; i < counter; i++) {
-		iFreeHandle(Ic_arr[i]);
+	if (Ic_arr != NULL) {
+		for (i = 0; i < counter; i++) {
+			if (Ic_arr[i] != NULL) {
+				iFreeHandle(Ic_arr[i]);
+			}
+		}
+		free(Ic_arr);
 	}
-	free(Ic_arr);
 }

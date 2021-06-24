@@ -102,10 +102,12 @@ static void stop_benchmark(int status, void *arg)
 			perror("Error during deadline timer deletion");
 		}
 	}
-	elogf(LOG_LEVEL_TRACE, "Deleting period timer\n");
-	res = timer_delete(period_timer);
-	if (res < 0) {
-		perror("Error during period timer deletion");
+	if (period_timer != NULL) {
+		elogf(LOG_LEVEL_TRACE, "Deleting period timer\n");
+		res = timer_delete(period_timer);
+		if (res < 0) {
+			perror("Error during period timer deletion");
+		}
 	}
 	res = sem_destroy(&period_sem);
 	if (res < 0) {
@@ -125,7 +127,7 @@ static void stop_benchmark(int status, void *arg)
  */
 static void quit_handler(int signo, siginfo_t *info, void *context)
 {
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 /**
@@ -189,7 +191,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 		res = timer_settime(deadline_timer, 0, &deadline_timing, NULL);
 		if (res < 0) {
 			perror("Cannot rearm the deadline timer");
-			exit(res);
+			exit(EXIT_FAILURE);
 		}
 	} // otherwise the period handler covers also the deadline occurrence
 	// management.
@@ -232,7 +234,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 		res = sem_post(&period_sem);
 		if (res < 0) {
 			perror("Cannot post on period semaphore");
-			exit(res);
+			exit(EXIT_FAILURE);
 		}
 	}
 }
@@ -405,7 +407,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 
 	elogf(LOG_LEVEL_TRACE, "Initializing job environment\n");
 	res = benchmark_init(benchmark_param_num, benchmark_params);
-	if (res == -1) {
+	if (res < 0) {
 		perror("Error during job environment initialization");
 		return res;
 	}

@@ -15,6 +15,7 @@
  */
 
 #include "stitch.h"
+#include <errno.h>
 
 ///Image used by the benchmark.
 static I2D *Icur;
@@ -33,7 +34,8 @@ int benchmark_init(int parameters_num, void **parameters)
 	char im1[100];
 
 	if (parameters_num < 1) {
-		elogf(LOG_LEVEL_ERR, "We need input image path\n");
+		elogf(LOG_LEVEL_ERR, "Missing input image path\n");
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -75,7 +77,8 @@ void benchmark_execution(int parameters_num, void **parameters)
 	{
 		if (parameters_num < 1) {
 			elogf(LOG_LEVEL_ERR, "Missing input image path");
-			exit(-1);
+			errno = EINVAL;
+			exit(EXIT_FAILURE);
 		}
 		int ret = 0;
 		float tol = 0.02;
@@ -89,11 +92,21 @@ void benchmark_execution(int parameters_num, void **parameters)
 	/* Self checking done */
 #endif
 
-	fFreeHandle(v);
-	fFreeHandle(interestPnts);
-	fFreeHandle(int1);
-	fFreeHandle(int2);
-	fFreeHandle(Fcur);
+	if (v != NULL) {
+		fFreeHandle(v);
+	}
+	if (interestPnts != NULL) {
+		fFreeHandle(interestPnts);
+	}
+	if (int1 != NULL) {
+		fFreeHandle(int1);
+	}
+	if (int2 != NULL) {
+		fFreeHandle(int2);
+	}
+	if (Fcur != NULL) {
+		fFreeHandle(Fcur);
+	}
 }
 
 /**
@@ -104,5 +117,7 @@ void benchmark_execution(int parameters_num, void **parameters)
  */
 void benchmark_teardown(int parameters_num, void **parameters)
 {
-	iFreeHandle(Icur);
+	if (Icur != NULL) {
+		iFreeHandle(Icur);
+	}
 }

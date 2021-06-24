@@ -1,5 +1,3 @@
-include ../../../common/makefiles/Makefile.include
+include ../../common/makefiles/Makefile.include
+include $(MAKEFILE_COMMON_DIR)/Makefile.recurse
 
-BMARK=pca
-INPUT=test
-include $(MAKEFILE_COMMON_DIR)/Makefile.common

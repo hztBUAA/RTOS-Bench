@@ -13,6 +13,7 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include "localization.h"
 #include "logging.h"
@@ -45,7 +46,8 @@ int benchmark_init(int parameters_num, void **parameters)
 	I2D *index, *isEOF;
 
 	if (parameters_num < 1) {
-		printf("We need input image path\n");
+		printf("Missing input image path\n");
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -153,7 +155,8 @@ void benchmark_execution(int parameters_num, void **parameters)
 	if (parameters_num < 1) {
 		elogf(LOG_LEVEL_ERR,
 		      "We need the path to the output dir, with the correct result file\n");
-		exit(-1);
+		errno = EINVAL;
+		exit(EXIT_FAILURE);
 	}
 #endif
 
@@ -608,10 +611,20 @@ void benchmark_teardown(int parameters_num, void **parameters)
 {
 	int i;
 	for (i = 0; i < cached_data_len; i++) {
-		iFreeHandle(sType_cached[i]);
-		fFreeHandle(sData_cached[i]);
+		if (sType_cached != NULL && sType_cached[i] != NULL) {
+			iFreeHandle(sType_cached[i]);
+		}
+		if (sData_cached != NULL && sData_cached[i] != NULL) {
+			fFreeHandle(sData_cached[i]);
+		}
 	}
-	free(sType_cached);
-	free(sData_cached);
-	fFreeHandle(fid);
+	if (sType_cached != NULL) {
+		free(sType_cached);
+	}
+	if (sData_cached != NULL) {
+		free(sData_cached);
+	}
+	if (fid != NULL) {
+		fFreeHandle(fid);
+	}
 }

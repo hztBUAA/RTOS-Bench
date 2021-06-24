@@ -13,6 +13,7 @@
  */
 
 #include "mser.h"
+#include <errno.h>
 
 #define min(a, b) (a < b) ? a : b
 #define max(a, b) (a > b) ? a : b
@@ -43,7 +44,8 @@ int benchmark_init(int parameters_num, void **parameters)
 	char im1[100];
 
 	if (parameters_num < 1) {
-		elogf(LOG_LEVEL_ERR, "We need input image path\n");
+		elogf(LOG_LEVEL_ERR, "Missing input image path\n");
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -81,7 +83,8 @@ void benchmark_execution(int parameters_num, void **parameters)
 #ifdef CHECK
 	if (parameters_num < 1) {
 		elogf(LOG_LEVEL_ERR, "Missing output path\n");
-		exit(-1);
+		errno = EINVAL;
+		exit(EXIT_FAILURE);
 	}
 #endif
 	elogf(LOG_LEVEL_TRACE, "Input size\t\t- (%dx%d)\n", rows, cols);
@@ -112,5 +115,7 @@ void benchmark_execution(int parameters_num, void **parameters)
  */
 void benchmark_teardown(int parameters_num, void **parameters)
 {
-	iFreeHandle(It);
+	if (It != NULL) {
+		iFreeHandle(It);
+	}
 }

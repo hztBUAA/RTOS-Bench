@@ -38,10 +38,12 @@ Internet:     murtagh@scivax.stsci.edu
 F. Murtagh, Munich, 6 June 1989                                   */
 /*********************************************************************/
 
+#include <asm-generic/errno-base.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "logging.h"
 
 #define SIGN(a, b) ((b) < 0 ? -fabs(a) : fabs(a))
@@ -460,26 +462,32 @@ int benchmark_init(int parameters_num, void **parameters)
    *********************************************************************/
 
 	if (parameters_num != 4) {
-		elogf(LOG_LEVEL_ERR,"Syntax help: PCA filename #rows #cols option\n\n");
-		elogf(LOG_LEVEL_ERR,"(filename -- give full path name,\n");
-		elogf(LOG_LEVEL_ERR," #rows                          \n");
-		elogf(LOG_LEVEL_ERR," #cols    -- integer values,\n");
-		elogf(LOG_LEVEL_ERR," option   -- R (recommended) for correlation analysis,\n");
-		elogf(LOG_LEVEL_ERR,"             V for variance/covariance analysis\n");
-		elogf(LOG_LEVEL_ERR,"             S for SSCP analysis.)\n");
-		exit(1);
+		elogf(LOG_LEVEL_ERR,
+		      "Syntax help: PCA filename #rows #cols option\n\n");
+		elogf(LOG_LEVEL_ERR, "(filename -- give full path name,\n");
+		elogf(LOG_LEVEL_ERR, " #rows                          \n");
+		elogf(LOG_LEVEL_ERR, " #cols    -- integer values,\n");
+		elogf(LOG_LEVEL_ERR,
+		      " option   -- R (recommended) for correlation analysis,\n");
+		elogf(LOG_LEVEL_ERR,
+		      "             V for variance/covariance analysis\n");
+		elogf(LOG_LEVEL_ERR, "             S for SSCP analysis.)\n");
+		errno = EINVAL;
+		exit(EXIT_FAILURE);
 	}
 
 	n = atoi(parameters[1]); /* # rows */
 	m = atoi(parameters[2]); /* # columns */
 	strncpy(&option, parameters[3], 1); /* Analysis option */
 
-	elogf(LOG_LEVEL_TRACE,"No. of rows: %d, no. of columns: %d.\n", n, m);
-	elogf(LOG_LEVEL_TRACE,"Input file: %s.\n", parameters[0]);
+	elogf(LOG_LEVEL_TRACE, "No. of rows: %d, no. of columns: %d.\n", n, m);
+	elogf(LOG_LEVEL_TRACE, "Input file: %s.\n", parameters[0]);
 
 	if ((stream = fopen(parameters[0], "r")) == NULL) {
-		elogf(LOG_LEVEL_ERR,"Program cannot open file %s\n", parameters[0]);
+		elogf(LOG_LEVEL_ERR, "Program cannot open file %s\n",
+		      parameters[0]);
 		elogf(LOG_LEVEL_ERR, "Exiting to system.");
+		errno = EAGAIN;
 		return -1;
 	}
 
@@ -505,7 +513,7 @@ int benchmark_init(int parameters_num, void **parameters)
 
 	/* Allocate storage for dummy and new vectors. */
 	evals = vector(m); /* Storage alloc. for vector of eigenvalues */
-	elogf(LOG_LEVEL_TRACE,"the vector storage size is %d\n", m);
+	elogf(LOG_LEVEL_TRACE, "the vector storage size is %d\n", m);
 	interm = vector(m); /* Storage alloc. for 'intermediate' vector */
 	symmat2 = matrix(m, m); /* Duplicate of correlation (etc.) matrix */
 
@@ -529,7 +537,7 @@ void benchmark_execution(int parameters_num, void **parameters)
 	switch (option) {
 	case 'R':
 	case 'r':
-		elogf(LOG_LEVEL_TRACE,"Analysis of correlations chosen.\n");
+		elogf(LOG_LEVEL_TRACE, "Analysis of correlations chosen.\n");
 		corcol(data, n, m, symmat, mean, stddev);
 
 		/* Output correlation matrix.
@@ -541,7 +549,8 @@ void benchmark_execution(int parameters_num, void **parameters)
 		break;
 	case 'V':
 	case 'v':
-		elogf(LOG_LEVEL_TRACE,"Analysis of variances-covariances chosen.\n");
+		elogf(LOG_LEVEL_TRACE,
+		      "Analysis of variances-covariances chosen.\n");
 		covcol(data, n, m, symmat, mean);
 
 		/* Output variance-covariance matrix.
@@ -553,8 +562,9 @@ void benchmark_execution(int parameters_num, void **parameters)
 		break;
 	case 'S':
 	case 's':
-		elogf(LOG_LEVEL_TRACE,"Analysis of sums-of-squares-cross-products");
-		elogf(LOG_LEVEL_TRACE," matrix chosen.\n");
+		elogf(LOG_LEVEL_TRACE,
+		      "Analysis of sums-of-squares-cross-products");
+		elogf(LOG_LEVEL_TRACE, " matrix chosen.\n");
 		scpcol(data, n, m, symmat);
 
 		/* Output SSCP matrix.
@@ -565,11 +575,11 @@ void benchmark_execution(int parameters_num, void **parameters)
          */
 		break;
 	default:
-		elogf(LOG_LEVEL_ERR,"Option: %c\n", option);
-		elogf(LOG_LEVEL_ERR,"For option, please type R, V, or S\n");
-		elogf(LOG_LEVEL_ERR,"(upper or lower case).\n");
-		elogf(LOG_LEVEL_ERR,"Exiting to system.\n");
-		exit(1);
+		elogf(LOG_LEVEL_ERR, "Option: %c\n", option);
+		elogf(LOG_LEVEL_ERR, "For option, please type R, V, or S\n");
+		elogf(LOG_LEVEL_ERR, "(upper or lower case).\n");
+		elogf(LOG_LEVEL_ERR, "Exiting to system.\n");
+		exit(EXIT_FAILURE);
 		break;
 	}
 

@@ -12,8 +12,10 @@
  * @author Sravanthi Kota Venkata, for the original version.
  */
 
+#include <asm-generic/errno-base.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "segment.h"
 
 ///The input image.
@@ -33,8 +35,8 @@ int benchmark_init(int parameters_num, void **parameters)
 	char im1[256];
 
 	if (parameters_num < 1) {
-		elogf(LOG_LEVEL_ERR,
-		      "We need input image path and output path\n");
+		elogf(LOG_LEVEL_ERR, "Missing input image path\n");
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -61,7 +63,8 @@ void benchmark_execution(int parameters_num, void **parameters)
 #ifdef CHECK
 	if (parameters_num < 1) {
 		elogf(LOG_LEVEL_ERR, "Missing output folder path\n");
-		exit(-1);
+		errno = EINVAL;
+		exit(EXIT_FAILURE);
 	}
 #endif
 	elogf(LOG_LEVEL_TRACE, "Input size\t\t- (%dx%d)\n", im->height,
@@ -95,5 +98,7 @@ void benchmark_execution(int parameters_num, void **parameters)
  */
 void benchmark_teardown(int parameters_num, void **parameters)
 {
-	iFreeHandle(im);
+	if (im != NULL) {
+		iFreeHandle(im);
+	}
 }

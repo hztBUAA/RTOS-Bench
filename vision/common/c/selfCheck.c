@@ -24,6 +24,7 @@ int selfCheck(I2D *in1, char *path, int tol)
 	sprintf(file, "%s/expected_C.txt", path);
 	fd = fopen(file, "r");
 	if (fd == NULL) {
+		free(buffer);
 		elogf(LOG_LEVEL_ERR, "Error: Expected file not opened \n");
 		return -1;
 	}
@@ -35,6 +36,8 @@ int selfCheck(I2D *in1, char *path, int tol)
 	count--;
 
 	if (count < (r1 * c1)) {
+		fclose(fd);
+		free(buffer);
 		elogf(LOG_LEVEL_ERR,
 		      "Checking error: dimensions mismatch. Expected = %d, Observed = %d \n",
 		      count, (r1 * c1));
@@ -50,6 +53,8 @@ int selfCheck(I2D *in1, char *path, int tol)
 			elogf(LOG_LEVEL_ERR,
 			      "Expected value = %d, observed = %d\n", buffer[i],
 			      data[i]);
+			free(buffer);
+			fclose(fd);
 			return -1;
 		}
 	}

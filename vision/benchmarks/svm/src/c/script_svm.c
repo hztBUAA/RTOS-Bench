@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "svm.h"
 
 /// First training image
@@ -42,7 +43,8 @@ int benchmark_init(int parameters_num, void **parameters)
 	char im1[256];
 
 	if (parameters_num < 1) {
-		elogf(LOG_LEVEL_ERR, "We need input image path\n");
+		elogf(LOG_LEVEL_ERR, "Missing input image path\n");
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -57,6 +59,7 @@ int benchmark_init(int parameters_num, void **parameters)
 
 	sprintf(im1, "%s/d16tst_2.txt", parameters[0]);
 	tst2 = readFile(im1);
+	return 0;
 }
 
 /**
@@ -124,6 +127,8 @@ void benchmark_execution(int parameters_num, void **parameters)
 #ifdef CHECK
 	if (parameters_num < 1) {
 		elogf(LOG_LEVEL_ERR, "Missing output folder path.");
+		errno = EINVAL;
+		exit(EXIT_FAILURE);
 	}
 #endif
 	elogf(LOG_LEVEL_TRACE, "Input size\t\t- (%dx%dx%d)\n", N, Ntst, iter);
@@ -191,14 +196,30 @@ void benchmark_execution(int parameters_num, void **parameters)
 	}
 	/* Self checking done **/
 #endif
-	fFreeHandle(Yoffset);
-	fFreeHandle(result);
-	fFreeHandle(alpha->a_result);
-	fFreeHandle(alpha->b_result);
-	fFreeHandle(alpha->X);
-	free(alpha);
-	fFreeHandle(Xtst);
-	fFreeHandle(Ytst);
+	if (Yoffset != NULL) {
+		fFreeHandle(Yoffset);
+	}
+	if (result != NULL) {
+		fFreeHandle(result);
+	}
+	if (alpha->a_result != NULL) {
+		fFreeHandle(alpha->a_result);
+	}
+	if (alpha->b_result != NULL) {
+		fFreeHandle(alpha->b_result);
+	}
+	if (alpha->X != NULL) {
+		fFreeHandle(alpha->X);
+	}
+	if (alpha != NULL) {
+		free(alpha);
+	}
+	if (Xtst != NULL) {
+		fFreeHandle(Xtst);
+	}
+	if (Ytst != NULL) {
+		fFreeHandle(Ytst);
+	}
 }
 
 /**
@@ -209,8 +230,16 @@ void benchmark_execution(int parameters_num, void **parameters)
  */
 void benchmark_teardown(int parameters_num, void **parameters)
 {
-	fFreeHandle(trn1);
-	fFreeHandle(tst1);
-	fFreeHandle(trn2);
-	fFreeHandle(tst2);
+	if (trn1 != NULL) {
+		fFreeHandle(trn1);
+	}
+	if (tst1 != NULL) {
+		fFreeHandle(tst1);
+	}
+	if (trn2 != NULL) {
+		fFreeHandle(trn2);
+	}
+	if (tst2 != NULL) {
+		fFreeHandle(tst2);
+	}
 }

@@ -39,17 +39,17 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		memset(parsed_args, 0, sizeof(struct execution_options));
 		CPU_ZERO(&parsed_args->core_affinity);
 		break;
-	case ARGP_KEY_ARG:
-		//we want to directly grab the argument list, after the options have been parsed
+	case 'b':
+		//we want to directly grab the argument list, after the -b flag
 		if (state->arg_num == 0) {
-			//so we use the index to the next argument to retrieve the position of the first argument in argv
-			parsed_args->args = state->argv + (state->next - 1);
-			//we compute the number of elements in argv from the first argument to the end of the array
-			parsed_args->args_num = state->argc - (state->next - 1);
+			//so we use the index to the next argument to retrieve the position of the next argument in argv after -b
+			parsed_args->args = state->argv + (state->next-1);
+			//we compute the number of elements in argv from the first argument after -b to the end of the array
+			parsed_args->args_num = state->argc - (state->next-1);
 			//and we modify the next argument to finish scanning argv
 			state->next = state->argc;
 		} else {
-			argp_error(state, "Error parsing arguments");
+			argp_error(state, "Error parsing benchmark arguments and options");
 		}
 		break;
 	case 'm':
@@ -166,9 +166,11 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 				"Error during core affinity argument parsing, no core selected.");
 		}
 		break;
+	case 'h':
+		argp_state_help(state,stdout,ARGP_HELP_USAGE|ARGP_HELP_LONG);
+		exit(EXIT_SUCCESS);
+		break;
 	case ARGP_KEY_END:
-		if (parsed_args->args_num < 1)
-			argp_error(state, "Not enough arguments.");
 		if (parsed_args->deadline_nsec == 0 &&
 		    parsed_args->deadline_sec == 0)
 			argp_error(state, "Missing required deadline value.");
@@ -200,30 +202,28 @@ int main(int argc, char **argv)
 	//argp variables
 	const char *argp_doc =
 		"Run a benchmark periodically, trying to meet the given deadline.";
-	const char *argp_args_doc =
-		"input_data_folder [additional arguments...]";
+	const char *argp_args_doc ="";
 	struct argp_option argp_options[] = {
-		{ 0, 0, 0, 0, "Arguments:", 1 },
-		{ "input_data_folder", 0, 0, OPTION_NO_USAGE | OPTION_DOC,
-		  "Path to the folder where benchmark input data is located." },
-		{ "additional_arguments", 0, 0, OPTION_NO_USAGE | OPTION_DOC,
-		  "Additional arguments relayed directly to the benchmark." },
-		{ 0, 0, 0, 0, "Period and deadline options:", 2 },
+		{ 0, 0, 0, 0, "Period and deadline options:", 1 },
 		{ "deadline", 'd', "secs", 0,
 		  "The benchmark deadline in seconds. Can be an integer, float or in scientific notation. Required. Must be less or equal than the benchmark period." },
 		{ "period", 'p', "secs", 0,
 		  "The benchmark period, in seconds. Can be an integer, float or in scientific notation. Required." },
+		{ 0, 0, 0, 0, "Execution options:", 2 },
 		{ "core-affinity", 'c', "core1,core2,...", 0,
-		  "The benchmark core affinity, expressed as a comma separated list. A single core id is also accepted." },
-		{ 0, 0, 0, 0, "Execution options:", 3 },
+			"The benchmark core affinity, expressed as a comma separated list. A single core id is also accepted." },
 		{ "mem-limit", 'm', "bytes[GMK]", 0,
 		  "The maximum amount of dynamic memory allocated during the periodic execution. If exceeded, the benchmark will crash. Specified as an integer plus an optional magnitude modifier: K=kilobytes, M=megabytes, G=gigabytes. Without a magnitude specified the value is assumed to be in bytes. 0 Means no limit, and it is the default setting." },
-		{ 0, 0, 0, 0, "Reporting options:", 4 },
+		{ 0, 0, 0, 0, "Reporting options:", 3 },
 		{ "log-level", 'l', "log-lvl", 0,
 		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats to output file.\n3 - Print benchmark stats to stdout.\n4 - Print also informative messages on stderr.\nDefault is 3." },
 		{ "output", 'o', "output_path", 0,
 		  "Where the info on the benchmark execution will be written. If not supplied, the input folder path will be used and a file called timing.csv will be created." },
+		{ 0, 0, 0, 0, "Benchmark arguments and options:", 4 },
+		{ "bmark-args", 'b', "arg opt ...", 0,
+		  "A space-separated list of arguments and options that must be relayed directly to the benchmark. It must be specified after every other option since everything after it will be passed directly to the benchmark routine." },
 		{ 0, 0, 0, 0, "Informational options:\n", -1 },
+		{ NULL, 'h', NULL, 0,NULL },
 		{ 0, 0, 0, 0, 0, 0 }
 	};
 	//initializing argp struct
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
 	argp.options = argp_options;
 
 	//parsing parameters
-	res = argp_parse(&argp, argc, argv, 0, 0, &parsed_args);
+	res = argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &parsed_args);
 	if (res != 0) {
 		perror("Error during argument parsing");
 		return EXIT_FAILURE;

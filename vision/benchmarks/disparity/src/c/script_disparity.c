@@ -37,7 +37,7 @@ int benchmark_init(int parameters_num, void **parameters)
 	char im1[100], im2[100];
 
 	if (parameters_num < 1) {
-		elogf(LOG_LEVEL_ERR, "wrong parameters list supplied!\n");
+		elogf(LOG_LEVEL_ERR, "Missing input path!\n");
 		errno = EINVAL;
 		return -1;
 	}
@@ -62,9 +62,9 @@ int benchmark_init(int parameters_num, void **parameters)
 void benchmark_execution(int parameters_num, void **parameters)
 {
 	if (parameters_num < 1) {
-		elogf(LOG_LEVEL_ERR, "wrong parameters list supplied!\n");
+		elogf(LOG_LEVEL_ERR, "Missing input path!\n");
 		errno = EINVAL;
-		return;
+		exit(EXIT_FAILURE);
 	}
 	char *output = parameters[0];
 	int WIN_SZ = 8, SHIFT = 64;
