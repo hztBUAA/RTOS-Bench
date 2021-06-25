@@ -36,6 +36,7 @@ static int cached_data_len = 0;
  * - parameters[0]: input folder path;
  *
  * The initialization will load the input file and store its content, row by row, in memory.
+ * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {

@@ -29,6 +29,7 @@ static I2D *im;
  * The required parameters array has the following structure:
  * - parameters[0]: image folder path;
  * Image will be loaded into `::im`.
+ * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {

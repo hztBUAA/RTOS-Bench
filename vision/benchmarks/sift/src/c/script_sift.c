@@ -56,6 +56,7 @@ void normalizeImage(F2D *image)
  * The required parameters array has the following structure:
  * - parameters[0]: image folder path;
  * First image will be loaded into `::image`.
+ * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {
@@ -115,7 +116,7 @@ void benchmark_execution(int parameters_num, void **parameters)
 #endif
 	if(frames!=NULL){
 	fFreeHandle(frames);
-	
+
 }}
 
 /**

@@ -35,6 +35,7 @@ static int cols = 98;
  * The required parameters array has the following structure:
  * - parameters[0]: image folder path;
  * Image data will be loaded into `::It`.
+ * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {

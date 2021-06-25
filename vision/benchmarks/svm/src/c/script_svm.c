@@ -37,6 +37,7 @@ F2D *tst2 = NULL;
  * The required parameters array has the following structure:
  * - parameters[0]: image folder path;
  * Input images for training SVM will be loaded into `::trn1` and `::trn2`, while test images will be loaded into `::tst1` and `::tst2`.
+ * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {

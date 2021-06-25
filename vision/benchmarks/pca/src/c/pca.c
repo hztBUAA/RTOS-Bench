@@ -445,6 +445,7 @@ void tqli(float d[], float e[], int n, float **z)
  *   - `S` for SSCP analysis;
  *
  * The function will read the input data and allocate memory for the chosen analysis option.
+ * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {
@@ -473,7 +474,7 @@ int benchmark_init(int parameters_num, void **parameters)
 		      "             V for variance/covariance analysis\n");
 		elogf(LOG_LEVEL_ERR, "             S for SSCP analysis.)\n");
 		errno = EINVAL;
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	n = atoi(parameters[1]); /* # rows */

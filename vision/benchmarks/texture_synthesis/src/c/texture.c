@@ -5,16 +5,7 @@ Author: Sravanthi Kota Venkata
 #include "texture.h"
 #include <math.h>
 
-int vrstartx, vrfinishx, vrstarty, vrfinishy;
-extern params data;
-int* candlistx, *candlisty;
-int *atlas;
-int anotherpass=0,maxcand = 40;
-F2D *target, *result;
-int *xloopout, *yloopout;
-int *xloopin, *yloopin;
-
-double compare_rest(F2D *image,int x, int y, F2D *tar,int x1, int y1, params* data);
+//int *xloopin, *yloopin;
 
 /*********************************
 This is the main texture synthesis function. Called just once
@@ -23,28 +14,29 @@ Synthesis parameters (image and neighborhood sizes) are in global
 'data-> structure.
 *********************************/
 
-//void create_texture(F2D *image, F2D *result, params *data)
-void create_texture(F2D *image, params *data)
+void create_texture(F2D *image, params *data,F2D* result,F2D* target,int* atlas,int* xloopout,int* yloopout)
 {
-    int i,j,k, ncand, bestx,besty;
-    double diff,curdiff;
-    int tsx,tsy;
+int anotherpass=0,maxcand = 40;
+int* candlistx=NULL, *candlisty=NULL;
+int vrstartx=0, vrfinishx=0, vrstarty=0, vrfinishy=0;
+    int i=0,j=0,k=0, ncand=0, bestx=0,besty=0;
+    double diff=0,curdiff=0;
+    int tsx=0,tsy=0;
 
     candlistx = (int*)malloc(sizeof(int)*(data->localx*(data->localy+1)+1));
     candlisty = (int*)malloc(sizeof(int)*(data->localx*(data->localy+1)+1));
 
 //    printf("total = %d\t%d\t%d\n", data->localx, data->localy, (data->localx*(data->localy+1)+1));
 
-//    if(!anotherpass) init(result, image,data);
-    if(!anotherpass) init(image,data);
-    
+    if(!anotherpass) init(image,data,atlas,target,result, &vrstartx, &vrstarty,&vrfinishx,&vrfinishy,anotherpass);
+
     for(i=0;i<data->heightout-data->localy/2;i++)
     {
         for(j=0;j<data->widthout;j++)
         {
             // First, create a list of candidates for particular pixel.
-            if(anotherpass) ncand = create_all_candidates(j,i, data);
-            else  ncand = create_candidates(j,i, data);
+		if(anotherpass) ncand = create_all_candidates(j,i, data,atlas,xloopout,yloopout,vrstartx,vrstarty,vrfinishx,vrfinishy,candlistx,candlisty);
+		else  ncand = create_candidates(j,i, data,atlas,xloopout,yloopout,vrstartx,vrstarty,vrfinishx,vrfinishy,candlistx,candlisty);
 
             // If there are multiple candidates, choose the best based on L_2 norm
 
@@ -53,8 +45,8 @@ void create_texture(F2D *image, params *data)
                 diff = 1e10;
                 for(k=0;k<ncand;k++)
                 {
-                    curdiff = compare_neighb(image, arrayref(candlistx,k),arrayref(candlisty,k),result,j,i, data);
-                    curdiff += compare_rest(image,arrayref(candlistx,k),arrayref(candlisty,k),target,j,i,data);
+                    curdiff = compare_neighb(image, arrayref(candlistx,k),arrayref(candlisty,k),result,j,i, data,xloopout,yloopout);
+                    curdiff += compare_rest(image,arrayref(candlistx,k),arrayref(candlisty,k),target,j,i,data,xloopout,yloopout);
                     if(curdiff < diff)
                     {
                         diff = curdiff;
@@ -79,7 +71,7 @@ void create_texture(F2D *image, params *data)
             arrayref(atlas,aa(j,i)+1) = besty;
         }
     }
-    
+
     // Use full neighborhoods for the last few rows. This is a small
     // fraction of total area - can be ignored for optimization purposes.
 
@@ -87,13 +79,13 @@ void create_texture(F2D *image, params *data)
     {
         for(j=0;j<data->widthout;j++)
         {
-            ncand = create_all_candidates(j,i,data);
+		ncand = create_all_candidates(j,i,data,atlas,xloopout,yloopout,vrstartx,vrstarty,vrfinishx,vrfinishy,candlistx,candlisty);
             if(ncand > 1)
             {
                 diff = 1e10;
                 for(k=0;k<ncand;k++)
                 {
-                    curdiff = compare_full_neighb(image, arrayref(candlistx,k),arrayref(candlisty,k),result,j,i, data);
+                    curdiff = compare_full_neighb(image, arrayref(candlistx,k),arrayref(candlisty,k),result,j,i, data,xloopout,yloopout);
                     if(curdiff < diff)
                     {
                         diff = curdiff;
@@ -107,7 +99,7 @@ void create_texture(F2D *image, params *data)
                 bestx = arrayref(candlistx,0);
                 besty = arrayref(candlisty,0);
             }
-   
+
             asubsref(result,a(j,i,data->widthout)+R) = asubsref(image,a(bestx,besty,data->widthin)+R);
 //            asubsref(result,a(j,i,data->widthout)+G) = asubsref(image,a(bestx,besty,data->widthin)+G);
 //            asubsref(result,a(j,i,data->widthout)+B) = asubsref(image,a(bestx,besty,data->widthin)+B);
@@ -124,13 +116,13 @@ void create_texture(F2D *image, params *data)
     {
         for(j=0;j<data->widthout;j++)
         {
-            ncand = create_all_candidates(j,i,data);
+		ncand = create_all_candidates(j,i,data,atlas,xloopout,yloopout,vrstartx,vrstarty,vrfinishx,vrfinishy,candlistx,candlisty);
             if(ncand > 1)
             {
                 diff = 1e10;
                 for(k=0;k<ncand;k++)
                 {
-                    curdiff = compare_full_neighb(image,arrayref(candlistx,k),arrayref(candlisty,k),result,j,i, data);
+                    curdiff = compare_full_neighb(image,arrayref(candlistx,k),arrayref(candlisty,k),result,j,i, data,xloopout,yloopout);
                     if(curdiff < diff)
                     {
                         diff = curdiff;
@@ -144,7 +136,7 @@ void create_texture(F2D *image, params *data)
                 bestx = arrayref(candlistx,0);
                 besty = arrayref(candlisty,0);
             }
-   
+
             asubsref(result,a(j,i,data->widthout)+R) = asubsref(image,a(bestx,besty,data->widthin)+R);
 //            asubsref(result,a(j,i,data->widthout)+G) = asubsref(image,a(bestx,besty,data->widthin)+G);
 //            asubsref(result,a(j,i,data->widthout)+B) = asubsref(image,a(bestx,besty,data->widthin)+B);
@@ -152,24 +144,26 @@ void create_texture(F2D *image, params *data)
             arrayref(atlas,aa(j,i)+1) = besty;
         }
     }
+    free(candlistx);
+    free(candlisty);
 }
 
 // Creates a list of valid candidates for given pixel using only L-shaped causal area
 
-int create_candidates(int x,int y, params* data)
+int create_candidates(int x,int y, params* data,int* atlas,int* xloopout,int* yloopout, int vrstartx,int vrstarty,int vrfinishx,int vrfinishy,int* candlistx, int* candlisty)
 {
-    int address,i,j,k,n = 0;
+    int address=0,i=0,j=0,k=0,n = 0;
     for(i=0;i<=data->localy/2;i++)
     {
         for(j=-data->localx/2;j<=data->localx/2;j++)
         {
-            if(i==0 && j>=0) 
+            if(i==0 && j>=0)
                 continue;
             address = aa( arrayref(xloopout,x+j), arrayref(yloopout,y-i) );
             arrayref(candlistx,n) = arrayref(atlas,address) - j;
             arrayref(candlisty,n) = arrayref(atlas,address+1) + i;
 
-            if( arrayref(candlistx,n) >= vrfinishx || arrayref(candlistx,n) < vrstartx) 
+            if( arrayref(candlistx,n) >= vrfinishx || arrayref(candlistx,n) < vrstartx)
             {
                 arrayref(candlistx,n) = vrstartx + (int)(drand48()*(vrfinishx-vrstartx));
                 arrayref(candlisty,n) = vrstarty + (int)(drand48()*(vrfinishy-vrstarty));
@@ -184,39 +178,39 @@ int create_candidates(int x,int y, params* data)
                 n++;
                 continue;
             }
-            
+
             for(k=0;k<n;k++)
             {
                 if( arrayref(candlistx,n) == arrayref(candlistx,k) && arrayref(candlisty,n) == arrayref(candlisty,k))
-                { 
-                    n--; 
+                {
+                    n--;
                     break;
                 }
             }
             n++;
         }
     }
-        
+
     return n;
 }
 
 // Created a list of candidates using the complete square around the pixel
 
-int create_all_candidates(int x,int y, params* data)
+int create_all_candidates(int x,int y, params* data,int* atlas,int* xloopout,int* yloopout, int vrstartx,int vrstarty,int vrfinishx,int vrfinishy,int* candlistx, int* candlisty)
 {
-    int address,i,j,k,n = 0;
+    int address=0,i=0,j=0,k=0,n = 0;
     for(i=-data->localy/2;i<=data->localy/2;i++)
     {
         for(j=-data->localx/2;j<=data->localx/2;j++)
         {
-            if(i==0 && j>=0) 
+            if(i==0 && j>=0)
                 continue;
 //            printf("Entering = (%d,%d)\n", i,j);
             address = aa( arrayref(xloopout,x+j), arrayref(yloopout,y-i) );
             arrayref(candlistx,n) = arrayref(atlas,address)-j;
             arrayref(candlisty,n) = arrayref(atlas,address+1)+i;
 
-            if( arrayref(candlistx,n) >= vrfinishx || arrayref(candlistx,n) < vrstartx) 
+            if( arrayref(candlistx,n) >= vrfinishx || arrayref(candlistx,n) < vrstartx)
             {
                 arrayref(candlistx,n) = vrstartx + (int)(drand48()*(vrfinishx-vrstartx));
                 arrayref(candlisty,n) = vrstarty + (int)(drand48()*(vrfinishy-vrstarty));
@@ -237,8 +231,8 @@ int create_all_candidates(int x,int y, params* data)
             for(k=0;k<n;k++)
             {
                 if( arrayref(candlistx,n) == arrayref(candlistx,k) && arrayref(candlisty,n) == arrayref(candlisty,k) )
-                { 
-                    n--; 
+                {
+                    n--;
 //                    printf("3: (%d,%d)\t%d\n", i,j,n);
                     break;
                 }
@@ -247,19 +241,18 @@ int create_all_candidates(int x,int y, params* data)
 //            printf("4: (%d,%d)\t%d\n", i,j,n);
         }
     }
-    
+
     return n;
 }
 
 // Initializes the output image and atlases to a random collection of pixels
 
-//void init(F2D *result, F2D *image, params* data)
-void init(F2D *image, params* data)
+void init(F2D *image, params* data,int* atlas,F2D* target,F2D* result, int* vrstartx,int* vrstarty,int* vrfinishx,int* vrfinishy,int anotherpass)
 {
-    int i,j,tmpx,tmpy;
-    vrstartx = data->localx/2; vrstarty = data->localy/2;
-    vrfinishx = data->widthin-data->localx/2;
-    vrfinishy = data->heightin-data->localy/2;
+    int i=0,j=0,tmpx=0,tmpy=0;
+    *vrstartx = data->localx/2; *vrstarty = data->localy/2;
+    *vrfinishx = data->widthin-data->localx/2;
+    *vrfinishy = data->heightin-data->localy/2;
     for(i=0;i<data->heightout;i++)
     {
         for(j=0;j<data->widthout;j++)
@@ -270,11 +263,11 @@ void init(F2D *image, params* data)
 //            && asubsref(target,a(j,i,data->widthout)+B) == 1.0
             )
             {
-                tmpx = vrstartx + (int)(drand48()*(vrfinishx-vrstartx));
-                tmpy = vrstarty + (int)(drand48()*(vrfinishy-vrstarty));
+                tmpx = *vrstartx + (int)(drand48()*((*vrfinishx)-(*vrstartx)));
+                tmpy = *vrstarty + (int)(drand48()*((*vrfinishy)-(*vrstarty)));
                 if(!anotherpass)
                 {
-                    arrayref(atlas,aa(j,i)) = tmpx; 
+                    arrayref(atlas,aa(j,i)) = tmpx;
                     arrayref(atlas,aa(j,i)+1) = tmpy;
                     asubsref(result,a(j,i,data->widthout)+R) = asubsref(image,a(tmpx,tmpy,data->widthin)+R);
 //                    asubsref(result,a(j,i,data->widthout)+G) = asubsref(image,a(tmpx,tmpy,data->widthin)+G);
@@ -283,17 +276,17 @@ void init(F2D *image, params* data)
             }
         }
     }
-    
+
     return;
 }
 
 
 // Compares two square neighborhoods, returns L_2 difference
 
-double compare_full_neighb(F2D *image,int x, int y, F2D *image1,int x1, int y1, params* data)
+double compare_full_neighb(F2D *image,int x, int y, F2D *image1,int x1, int y1, params* data,int* xloopout,int* yloopout)
 {
-    double tmp,res = 0;
-    int i,j,addr,addr1;
+    double tmp=0,res = 0;
+    int i=0,j=0,addr=0,addr1=0;
     for(i=-(data->localy/2);i<=data->localy/2;i++)
     {
         for(j=-(data->localx/2);j<=data->localx/2;j++)
@@ -318,10 +311,10 @@ double compare_full_neighb(F2D *image,int x, int y, F2D *image1,int x1, int y1, 
 
 // Compares two L-shaped neighborhoods, returns L_2 difference
 
-double compare_neighb(F2D *image,int x, int y, F2D *image1,int x1, int y1, params* data)
+double compare_neighb(F2D *image,int x, int y, F2D *image1,int x1, int y1, params* data,int* xloopout,int* yloopout)
 {
-    double tmp,res = 0;
-    int i,j,addr1,addr;
+    double tmp=0,res = 0;
+    int i=0,j=0,addr1=0,addr=0;
     for(i=-(data->localy/2);i<0;i++)
     {
         for(j=-(data->localx/2);j<=data->localx/2;j++)
@@ -337,7 +330,7 @@ double compare_neighb(F2D *image,int x, int y, F2D *image1,int x1, int y1, param
 //            res += tmp*tmp;
         }
     }
- 
+
     for(j=-(data->localx/2);j<0;j++)
     {
         addr = a(x+j,y,data->widthin);
@@ -354,10 +347,10 @@ double compare_neighb(F2D *image,int x, int y, F2D *image1,int x1, int y1, param
     return res;
 }
 
-double compare_rest(F2D *image,int x, int y, F2D *tar,int x1, int y1, params* data)
+double compare_rest(F2D *image,int x, int y, F2D *tar,int x1, int y1, params* data,int* xloopout,int* yloopout)
 {
-    double tmp,res = 0;
-    int i,j,addr,addr1;
+    double tmp=0,res = 0;
+    int i=0,j=0,addr=0,addr1=0;
 
     for(i=(data->localy/2);i>0;i--)
     {
@@ -377,7 +370,7 @@ double compare_rest(F2D *image,int x, int y, F2D *tar,int x1, int y1, params* da
             }
         }
     }
- 
+
     for(j=(data->localx/2);j>0;j--)
     {
         addr = a(x+j,y,data->widthin);

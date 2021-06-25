@@ -10,23 +10,18 @@
  *
  * This allows the benchmark to be run periodically, by re-running only the execution portion.
  *
- * @bug The `SIGNATURES` symbol is defined in multiple locations.
+ * @bug The verification of the benchamrk fails after the first execution.
  *
  * @author Sravanthi Kota Venkata, for the original version.
  */
 
 #include "texture.h"
+#include <errno.h>
 
-int WIDTHin, HEIGHTin;
-extern F2D *target, *result;
-int WIDTH, HEIGHT;
-int localx, localy, targetin;
-extern int *atlas;
-extern int *xloopin, *yloopin;
-extern int *xloopout, *yloopout;
-
-static params *data;
-static F2D *image;
+/// Synthesis parameters.
+static params* data=NULL;
+///Input image.
+static I2D* im=NULL;
 
 /**
  * @brief Will load the images that will be used by the benchmark.
@@ -35,18 +30,22 @@ static F2D *image;
  * @details
  * The required parameters array has the following structure:
  * - parameters[0]: image folder path;
- * To initialize the benchmark `parse_flags()` and `init_params()` will be called.
+ * To initialize the benchmark `parse_flags()` will be called.
+ * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {
-	I2D *im;
-	unsigned int *start, *end, *elapsed;
+
+	if(parameters_num<1){
+		errno=EINVAL;
+		elogf(LOG_LEVEL_ERR,"Missing input path\n");
+		return -1;
+	}
 
 	data = malloc(sizeof(params));
-	im = parse_flags(parameters_num, parameters);
-	image = fiDeepCopy(im);
-	init_params(data);
-	iFreeHandle(im);
+	im = parse_flags(parameters_num,(char**) parameters,data);
+	return 0;
+
 }
 /**
  * @brief This handler is where the texture synthesis is computed.
@@ -58,23 +57,139 @@ int benchmark_init(int parameters_num, void **parameters)
  */
 void benchmark_execution(int parameters_num, void **parameters)
 {
-	create_texture(image, data);
 
-#ifdef CHECK
-	{
-		if (parameters_num < 1) {
-			elogf(LOG_LEVEL_ERR, "Missing output folder path");
-			exit(-1);
-		}
-		int ret = 0;
-#ifdef GENERATE_OUTPUT
-		fWriteMatrix(result, parameters[0]);
-#endif
-		ret = fSelfCheck(result, parameters[0], 1.0);
-		if (ret < 0)
-			printf("Error in Texture Synthesis\n");
+	if(parameters_num<1){
+		errno=EINVAL;
+		elogf(LOG_LEVEL_ERR,"Missing input path\n");
+		exit(EXIT_FAILURE);
 	}
-#endif
+
+	F2D *target=NULL, *result=NULL;
+	int *atlas=NULL;
+	int *xloopin=NULL, *yloopin=NULL;
+	int *xloopout=NULL, *yloopout=NULL;
+	int *xloopin_base=NULL, *yloopin_base=NULL;
+	int *xloopout_base=NULL, *yloopout_base=NULL;
+	F2D* image=NULL;
+	int HEIGHT=data->heightout;
+	int WIDTH=data->widthout;
+	int i=0,j=0;
+	int targetin=0;
+
+	/*    xloopin_base = malloc(2*WIDTHin*sizeof(int));
+	    yloopin_base = malloc(2*HEIGHTin*sizeof(int));
+	    if(xloopin_base==NULL || yloopin_base==NULL){
+	          elogf(LOG_LEVEL_ERR,"Not enough memory\n");
+	          errno=ENOMEM;
+	          if(xloopin_base!=NULL){
+	               free(xloopin_base);
+	          }
+	          if(yloopin_base!=NULL){
+	               free(yloopin_base);
+	          }
+	          exit(EXIT_FAILURE);
+	    }
+	    xloopin=xloopin_base;
+	    yloopin=yloopin_base;
+
+	    for(i=-WIDTHin/2;i<WIDTHin+WIDTHin/2;i++)
+	    {
+	        arrayref(xloopin,i+WIDTHin/2) = (WIDTHin+i)%WIDTHin;
+	    }
+
+	    for(i=-HEIGHTin/2;i<HEIGHTin+HEIGHTin/2;i++)
+	    {
+	arrayref(yloopin,i+HEIGHTin/2) = (HEIGHTin+i)%HEIGHTin;
+	    }
+	    xloopin += WIDTHin/2; yloopin += HEIGHTin/2; */
+
+	result = fMallocHandle(1,HEIGHT*WIDTH);
+	target = fMallocHandle(1, WIDTH*HEIGHT);
+	atlas = malloc(2*WIDTH*HEIGHT*sizeof(int));
+	xloopout_base = malloc(2*WIDTH*sizeof(int));
+	yloopout_base = malloc(2*HEIGHT*sizeof(int));
+
+	    if(xloopout_base==NULL || yloopout_base==NULL || result==NULL || target==NULL || atlas == NULL){
+	          elogf(LOG_LEVEL_ERR,"Not enough memory\n");
+	          errno=ENOMEM;
+		  if(result!=NULL){
+			  free(result);
+		  }
+		  if(target!=NULL){
+			  free(target);
+		  }
+		  if(atlas!=NULL){
+			  free(atlas);
+		  }
+	          if(xloopout_base!=NULL){
+	               free(xloopout_base);
+	          }
+	          if(yloopout_base!=NULL){
+	               free(yloopout_base);
+	          }
+	          exit(EXIT_FAILURE);
+	    }
+	    xloopout=xloopout_base;
+	    yloopout=yloopout_base;
+
+	for(i=-WIDTH/2;i<WIDTH+WIDTH/2;i++)
+	{
+		arrayref(xloopout,i+WIDTH/2) = (WIDTH+i)%WIDTH;
+	}
+	for(i=-HEIGHT/2;i<HEIGHT+HEIGHT/2;i++)
+	{
+		arrayref(yloopout,i+HEIGHT/2) = (HEIGHT+i)%HEIGHT;
+	}
+	xloopout += WIDTH/2; yloopout += HEIGHT/2;
+
+	if(!targetin)
+	{
+		for(i=0;i<data->heightout;i++)
+		{
+			for(j=0;j<data->widthout;j++)
+			{
+				asubsref(target,a(j,i,data->widthout)+R) = 1.0;
+				//                asubsref(target,a(j,i,data->widthout)+G) = 1.0;
+				//                asubsref(target,a(j,i,data->widthout)+B) = 1.0;
+			}
+		}
+	}
+
+	for(i=0;i<data->heightout;i++)
+	{
+		for(j=0;j<data->widthout;j++)
+		{
+			asubsref(result,a(j,i,data->widthout)+R)  = 1.0;
+			//            asubsref(result,a(j,i,data->widthout)+G)  = 1.0;
+			//            asubsref(result,a(j,i,data->widthout)+B)  = 1.0;
+		}
+	}
+
+	image = fiDeepCopy(im);
+
+	create_texture(image, data,result,target,atlas,xloopout,yloopout);
+
+	#ifdef CHECK
+	{
+		int ret=0;
+		#ifdef GENERATE_OUTPUT
+		fWriteMatrix(result, parameters[0]);
+		#endif
+		ret = fSelfCheck(result, parameters[0], 1.0);
+		if(ret < 0)
+			elogf(LOG_LEVEL_ERR,"Error in Texture Synthesis\n");
+	}
+	#endif
+
+	fFreeHandle(result);
+	fFreeHandle(target);
+	free(atlas);
+	free(xloopout_base);
+	free(yloopout_base);
+	fFreeHandle(image);
+
+	//    free(xloopin_base);
+	//    free(yloopin_base);
 }
 
 /**
@@ -85,27 +200,30 @@ void benchmark_execution(int parameters_num, void **parameters)
  */
 void benchmark_teardown(int parameters_num, void **parameters)
 {
-	fFreeHandle(image);
-	free(data);
 
-	fFreeHandle(target);
-	fFreeHandle(result);
-	free(atlas);
-	//    free(xloopout);
-	//    free(yloopout);
+if(data!=NULL){
+	free(data);
+}
+if(im!=NULL){
+	iFreeHandle(im);
+}
 }
 
 /** @brief Will parse the input parameters and initialize data accordingly.
  * @param[in] argc The number of parameters passed (should be 1).
  * @param[in] argv The parameters list. Should contain only the path to the input folder.
  * @returns The read `::image` from the input folder.
- * @details The followin shared variables will also be initialized: `::atlas`, `::target`, `::result`, `::WIDTHin`, `::HEIGHTin`, `::localx`,
+ * @details The following shared variables will also be initialized: `::atlas`, `::target`, `::result`, `::WIDTHin`, `::HEIGHTin`, `::localx`,
  * `::localy`, `::WIDTH`, `::HEIGTH`, `::xloopout`, `::yloopout`.
  */
-I2D *parse_flags(int argc, char **argv)
+I2D *parse_flags(int argc, char **argv,params* data)
 {
-	int i, tsx, tsy;
-	I2D *image;
+
+int WIDTHin=0,HEIGHTin=0;
+int WIDTH=0,HEIGHT=0;
+int localx=0, localy=0;
+	int i=0, tsx=0,tsy=0;
+	I2D* image=NULL;
 	char fileNm[256];
 
 	sprintf(fileNm, "%s/1.bmp", argv[0]);
@@ -116,126 +234,70 @@ I2D *parse_flags(int argc, char **argv)
 	localx = 3;
 	localy = 3;
 
-#ifdef test
-	WIDTH = WIDTHin * 2;
-	HEIGHT = HEIGHTin * 2;
+	#ifdef test
+	WIDTH = WIDTHin*2;
+	HEIGHT = HEIGHTin*2;
 	localx = 2;
 	localy = 2;
-#endif
-#ifdef sim_fast
-	WIDTH = WIDTHin * 2;
-	HEIGHT = HEIGHTin * 2;
+	#endif
+	#ifdef sim_fast
+	WIDTH = WIDTHin*2;
+	HEIGHT = HEIGHTin*2;
 	localx = 3;
 	localy = 3;
-#endif
-#ifdef sim
-	WIDTH = WIDTHin * 3;
-	HEIGHT = HEIGHTin * 3;
+	#endif
+	#ifdef sim
+	WIDTH = WIDTHin*3;
+	HEIGHT = HEIGHTin*3;
 	localx = 2;
 	localy = 2;
-#endif
-#ifdef sqcif
-	WIDTH = WIDTHin * 6;
-	HEIGHT = HEIGHTin * 6;
+	#endif
+	#ifdef sqcif
+	WIDTH = WIDTHin*6;
+	HEIGHT = HEIGHTin*6;
 	localx = 2;
 	localy = 2;
-#endif
-#ifdef qcif
-	WIDTH = WIDTHin * 10;
-	HEIGHT = HEIGHTin * 10;
+	#endif
+	#ifdef qcif
+	WIDTH = WIDTHin*10;
+	HEIGHT = HEIGHTin*10;
 	localx = 2;
 	localy = 2;
-#endif
-#ifdef cif
-	WIDTH = WIDTHin * 10;
-	HEIGHT = HEIGHTin * 10;
+	#endif
+	#ifdef cif
+	WIDTH = WIDTHin*10;
+	HEIGHT = HEIGHTin*10;
 	localx = 3;
 	localy = 3;
-#endif
-#ifdef vga
-	WIDTH = WIDTHin * 20;
-	HEIGHT = HEIGHTin * 20;
+	#endif
+	#ifdef vga
+	WIDTH = WIDTHin*20;
+	HEIGHT = HEIGHTin*20;
 	localx = 3;
 	localy = 3;
-#endif
-#ifdef fullhd
-	WIDTH = WIDTHin * 20;
-	HEIGHT = HEIGHTin * 20;
+	#endif
+	#ifdef fullhd
+	WIDTH = WIDTHin*20;
+	HEIGHT = HEIGHTin*20;
 	localx = 15;
 	localy = 15;
-#endif
-#ifdef wuxga
-	WIDTH = WIDTHin * 20;
-	HEIGHT = HEIGHTin * 20;
+	#endif
+	#ifdef wuxga
+	WIDTH = WIDTHin*20;
+	HEIGHT = HEIGHTin*20;
 	localx = 5;
 	localy = 5;
-#endif
-	printf("Input size\t\t- (%dx%d)\n", HEIGHTin, WIDTHin);
+	#endif
+	elogf(LOG_LEVEL_TRACE,"Input size\t\t- (%dx%d)\n", HEIGHTin, WIDTHin);
 
-	//    xloopin = malloc(2*WIDTHin*sizeof(int));
-	//    yloopin = malloc(2*HEIGHTin*sizeof(int));
-	//
-	//    for(i=-WIDTHin/2;i<WIDTHin+WIDTHin/2;i++)
-	//    {
-	//        arrayref(xloopin,i+WIDTHin/2) = (WIDTHin+i)%WIDTHin;
-	//    }
-	//
-	//    for(i=-HEIGHTin/2;i<HEIGHTin+HEIGHTin/2;i++)
-	//    {
-	//        arrayref(yloopin,i+HEIGHTin/2) = (HEIGHTin+i)%HEIGHTin;
-	//    }
-	//    xloopin += WIDTHin/2; yloopin += HEIGHTin/2;
-
-	result = fMallocHandle(1, HEIGHT * WIDTH);
-	target = fMallocHandle(1, WIDTH * HEIGHT);
-
-	atlas = malloc(2 * WIDTH * HEIGHT * sizeof(int));
-	xloopout = malloc(2 * WIDTH * sizeof(int));
-	yloopout = malloc(2 * HEIGHT * sizeof(int));
-
-	for (i = -WIDTH / 2; i < WIDTH + WIDTH / 2; i++) {
-		arrayref(xloopout, i + WIDTH / 2) = (WIDTH + i) % WIDTH;
-	}
-	for (i = -HEIGHT / 2; i < HEIGHT + HEIGHT / 2; i++) {
-		arrayref(yloopout, i + HEIGHT / 2) = (HEIGHT + i) % HEIGHT;
-	}
-	xloopout += WIDTH / 2;
-	yloopout += HEIGHT / 2;
-
-	if (result == NULL) {
-		printf("Can't allocate %dx%d image. Exiting.\n", WIDTH, HEIGHT);
-		exit(1);
-	}
+	init_params(data,WIDTHin,HEIGHTin,WIDTH,HEIGHT,localx,localy);
 
 	return image;
 }
 
-void init_params(params *data)
+void init_params(params *data, int WIDTHin, int HEIGHTin, int WIDTH, int HEIGHT, int localx,int localy)
 {
-	int i, j;
-	data->localx = localx;
-	data->localy = localy;
-	data->widthin = WIDTHin;
-	data->widthout = WIDTH;
-	data->heightin = HEIGHTin;
-	data->heightout = HEIGHT;
-
-	if (!targetin) {
-		for (i = 0; i < data->heightout; i++) {
-			for (j = 0; j < data->widthout; j++) {
-				asubsref(target, a(j, i, data->widthout) + R) =
-					1.0;
-				//                asubsref(target,a(j,i,data->widthout)+G) = 1.0;
-				//                asubsref(target,a(j,i,data->widthout)+B) = 1.0;
-			}
-		}
-	}
-
-	for (i = 0; i < data->heightout; i++) {
-		for (j = 0; j < data->widthout; j++) {
-			asubsref(result, a(j, i, data->widthout) + R) = 1.0;
-			//            asubsref(result,a(j,i,data->widthout)+G)  = 1.0;
-			//            asubsref(result,a(j,i,data->widthout)+B)  = 1.0;
-		}
-	}
+	data->localx = localx; data->localy = localy;
+	data->widthin = WIDTHin; data->widthout = WIDTH;
+	data->heightin = HEIGHTin; data->heightout = HEIGHT;
 }

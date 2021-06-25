@@ -35,7 +35,8 @@ static I2D **Ic_arr;
  * @details
  * The required parameters array has the following structure:
  * - parameters[0]: image folder path;
- * Images will be loaded into `::Ic_arr`.
+ * Image will be loaded into `::Ic_arr`.
+ * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {

@@ -31,6 +31,7 @@ static I2D *imright = NULL;
  * The required parameters array has the following structure:
  * - parameters[0]: image folder path;
  * First image will be loaded into `::imleft` and second image into `::imright`.
+ * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {

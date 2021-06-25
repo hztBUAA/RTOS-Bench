@@ -28,6 +28,7 @@ static I2D *Icur;
  * The required parameters array has the following structure:
  * - parameters[0]: image folder path;
  * Image will be loaded into `::Icur`.
+ * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
 {
