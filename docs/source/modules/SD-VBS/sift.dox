@@ -4,4 +4,17 @@
 * @brief SIFT benchmark.
 *
 * Modified files for the SIFT benchmark, located in `vision/benchmarks/sift`.
+*
+* Description of the benchmark is available [here](../../vision/SD-VBS.doc) in section II.B under "SIFT".
+*
+* From sift.c, written by Sravanthi Kota Venkata:
+* SIFT- Scale Invariant Feature Transform. This algorithm is based on
+* David Lowe's implementation of sift. So, we will use the parameter
+* values from Lowe's implementation.
+* See: http://www.cs.ubc.ca/~lowe/keypoints/
+*
+* SIFT extracts from an image a collection of frames or keypoints. These
+* are oriented disks attacked to blob-like structures of the image. As
+* the image translates, rotates and scales, the frames track these blobs
+* and the deformation.
 */

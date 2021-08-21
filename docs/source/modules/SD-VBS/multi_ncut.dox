@@ -4,4 +4,6 @@
 * @brief multi_ncut benchmark.
 *
 * Modified files for the multi_ncut benchmark, located in `vision/benchmarks/multi_ncut`.
+*
+* Description of the benchmark is available [here](../../vision/SD-VBS.doc) in section II.B under "Image Segmentation".
 */

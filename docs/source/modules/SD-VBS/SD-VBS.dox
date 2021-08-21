@@ -6,15 +6,22 @@
 * The benchmarks are located in the `vision` folder and have been restructured to be executed periodically.
 * The documentation covers the changes for each benchmark, these changes are explained in each benchmark module.
 *
-* Parameters can be passed to each benchmark using the make scaffolding by defining the `BMARK_OPTIONS` variable
-* (e.g. `BMARK_OPTIONS="-d 1 -p 0.5" make c-run`).
 *
 * Accepted and required parameters can vary between benchmarks and are described in details for each benchmark.
 * Each benchmark also provides an help function (`-h` or `--help`) that documents common accepted parameters.
 *
 * Please refer to [SD-VBS.pdf](../../vision/SD-VBS.pdf), also available as [SD-VBS.doc](../../vision/SD-VBS.doc) for detailed information on how the `vision` folder is organized.
 *
-* Detailed information of what each benchmark does can be found [here](http://parallel.ucsd.edu/vision/SD-VBS-Final.pdf).
+* The compilation and execution options are slightly different from the one provided in [SD-VBS.pdf](../../vision/SD-VBS.pdf):
+* - Benchmark data directory and result file path are supplied in the makefile in this order as benchmarks parameters (after the -b option).
+* - Parameters can be passed to each benchmark using the make scaffolding by defining the `BMARK_OPTIONS` variable  (e.g. `BMARK_OPTIONS="-d 1 -p 0.5" make c-run`). Note that at least the deadline and period options *must* be supplied.
+* - The `debug` target will only compile the benchmark with debug symbols.
+* - Several debug targets have been added:
+*	- `debug-asan`: Runs the benchmark with [ASAN](https://github.com/google/sanitizers/wiki/AddressSanitizer).
+*	- `debug-valgrind`: Runs the benchmark with [Valgrind](https://valgrind.org/).
+*	- `debug-gdb`: Runs the benchmark with [GDB](https://www.gnu.org/software/gdb/).
+*
+* Detailed information of what each benchmark does can be found [here](../../pdf/SD-VBS-Final.pdf).
 *
 * The original version of these benchmarks can be found [here](https://bitbucket.org/taylor-bsg/cortexsuite/src/devel/).
 */

@@ -4,4 +4,6 @@
 * @brief stitch benchmark.
 *
 * Modified files for the stitch benchmark, located in `vision/benchmarks/stitch`.
+*
+* Description of the benchmark is available [here](../../vision/SD-VBS.doc) in section II.B under "Image Stitching".
 */

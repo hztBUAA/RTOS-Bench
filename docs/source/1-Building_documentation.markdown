@@ -1,4 +1,6 @@
-# Building the documentation locally
+Building the documentation locally
+==================================
+[TOC]
 
 The documentation is available in pdf and html, and it is generated in the `docs` folder.
 

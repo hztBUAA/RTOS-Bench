@@ -4,4 +4,17 @@
 * @brief mser benchmark.
 *
 * Modified files for the mser benchmark, located in `vision/benchmarks/mser`.
+*
+*   From mser.c, written by Sravanthi Kota Venkata:
+*
+*   MSER Maximally Stable Extremal Regions
+*   R=MSER(I,DELTA) computes the Maximally Stable Extremal Regions
+*   (MSER) of image I with stability threshold DELTA. I is any
+*   array of class UINT8, while DELTA is a scalar of the same class.
+*   R is an index set (of class UINT32) which enumerates the
+*   representative pixels of the detected regions.
+*
+*   A region R can be recovered from a representative pixel X as the
+*   connected component of the level set {Y:I(Y) <= I(X)} which
+*   contains X.
 */

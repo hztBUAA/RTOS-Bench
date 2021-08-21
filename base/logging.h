@@ -27,7 +27,7 @@ enum log_level{
 	LOG_LEVEL_ERR=1, ///< Only print error messages.
 	LOG_LEVEL_FILE, ///< Print benchmark stats to file.
 	LOG_LEVEL_INFO, ///< Print benchmark stats to stdout.
-	LOG_LEVEL_TRACE, ///< Print informative and debug messages.
+	LOG_LEVEL_TRACE, ///< Print informative messages on stdout and debug messages on stderr.
 };
 
 /// The benchmark verbosity.

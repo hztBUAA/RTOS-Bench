@@ -47,7 +47,7 @@ int benchmark_init(int parameters_num, void **parameters)
 }
 
 /**
- * @brief This handler is where the disparity between the two images is computed.
+ * @brief This handler is where the image segmentation is computed.
  * @param[in] parameters_num Number of passed parameters, should be 0 or 1.
  * @param[in] parameters The list of passed parameters.
  * @details
