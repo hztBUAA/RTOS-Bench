@@ -5,5 +5,5 @@
 *
 * Modified files for the texture_synthesis benchmark, located in `vision/benchmarks/texture_synthesis`.
 *
-* Description of the benchmark is available [here](../../vision/SD-VBS.doc) in section II.B under "Texture Synthesis".
+* Description of the benchmark is available in [SD-VBS.pdf](attachments/SD-VBS.pdf) section II.B under "Texture Synthesis".
 */

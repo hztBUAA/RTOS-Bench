@@ -5,6 +5,6 @@
 *
 * Modified files for the SVM benchmark, located in `vision/benchmarks/svm`.
 *
-* Description of the benchmark is available [here](../../vision/SD-VBS.doc) in section II.B under "SVM".
+* Description of the benchmark is available in [SD-VBS.pdf](attachments/SD-VBS.pdf) in section II.B under "SVM".
 *
 */

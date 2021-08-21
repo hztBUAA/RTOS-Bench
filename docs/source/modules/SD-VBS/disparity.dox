@@ -5,5 +5,5 @@
 *
 * Modified files for the disparity benchmark, located in `vision/benchmarks/disparity`.
 *
-* Description of the benchmark is available [here](../../vision/SD-VBS.doc) in section II.B under "Disparity Map".
+* Description of the benchmark is available in [SD-VBS.pdf](attachments/SD-VBS.pdf) section II.B under "Disparity Map".
 */

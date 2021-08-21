@@ -3,7 +3,7 @@ Adding benchmarks and benchmark sets
 
 [TOC]
 
-### Adding and documenting a new benchmark set
+## Adding and documenting a new benchmark set
 To add a new benchmark set in the repo and integrate it with the other sets the following steps are needed:
 
 (As an example, we will describe what to do if a new benchmark set, called `new set` is to be added to this repo)
@@ -32,7 +32,7 @@ The available benchmarks are:
 To integrate the benchmarks in the added set follow the next section.
 
 Refer to the [SD-VBS](@ref #SD-VBS) module for a working example.
-### Adding and documenting a new benchmark in an existing set
+## Adding and documenting a new benchmark in an existing set
 
 When adding and integrating new benchmark in an existing benchmark set the following steps are needed:
 

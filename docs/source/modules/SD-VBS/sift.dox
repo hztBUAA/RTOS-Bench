@@ -5,7 +5,7 @@
 *
 * Modified files for the SIFT benchmark, located in `vision/benchmarks/sift`.
 *
-* Description of the benchmark is available [here](../../vision/SD-VBS.doc) in section II.B under "SIFT".
+* Description of the benchmark is available in [SD-VBS.pdf](attachments/SD-VBS.pdf) section II.B under "SIFT".
 *
 * From sift.c, written by Sravanthi Kota Venkata:
 * SIFT- Scale Invariant Feature Transform. This algorithm is based on
