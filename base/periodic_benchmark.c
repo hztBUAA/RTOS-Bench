@@ -76,6 +76,9 @@ static unsigned long long job_period_end_timestamp = 0;
 /// Timestamp of the period start.
 static unsigned long long job_period_start_timestamp = 0;
 
+/// Number of tasks launched.
+static unsigned long long tasks_launched = 0;
+
 /**
  * @brief Teardown function registered to be called when exit is called.
  * @param[in] status The exit status.
@@ -467,7 +470,9 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	elogf(LOG_LEVEL_TRACE, "Timers setup complete\n");
 	// since timer will start shortly there are no previous jobs that are
 	// executing we get the timestamp of the first period
-	while (1) {
+	// This cycle will proceed infinitely if the user has not set a specific number of benchmarks to run or it will just terminate after having launched the specified amount of benchmarks.
+	while (tasks_launched < exec_opts->tasks_to_launch ||
+	       exec_opts->tasks_to_launch == 0) {
 		// we wait for the period to finish
 		do {
 			res = sem_wait(&period_sem);
@@ -481,5 +486,13 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		// we start executing the job
 		benchmark_execution(benchmark_param_num, benchmark_params);
 		job_end_timestamp = get_cpu_timestamp();
+		// we update the number of launched benchmarks
+		tasks_launched++;
 	}
+	// we wait for the last period to finish before exiting.
+	do {
+		res = sem_wait(&period_sem);
+
+	} while (res < 0 && errno == EINTR);
+	exit(EXIT_SUCCESS);
 }

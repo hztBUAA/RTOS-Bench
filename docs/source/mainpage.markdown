@@ -32,15 +32,18 @@ These arguments and options are described below and in the benchmark help messag
 	- `G`=gigabytes
 
 	Without a magnitude modifier specified the value is assumed to be in bytes. 0 means no memory limit, and it is the default setting.
+- ``-t``, ``--tasks-number=integer>=0``   The number of tasks to be executed. 0 means until the program receives a SIGINT. Default is 0.
 
 ### Reporting options:
 - `-l`, `--log-level=log-lvl`: Log level, can be one of the following:
 	- `1`: Print only errors.
-	- `2`: Print benchmark stats to output file.
-	- `3`: Print benchmark stats to stdout.
-	- `4`: Print informative messages on stdout and debug messages on stderr.
+	- `2`: Print benchmark stats to output file in csv format.
+	- `3`: Print benchmark stats to ``stdout`` in csv format.
+	- `4`: Print informative messages on ``stdout`` and debug messages on ``stderr``.
 
 	Default is 3.
+
+	See `print_benchmark_timing()` for an explanation on the format used in log levels 2 and 3.
 
 - `-o`, `--output=output_path`: Where the info on the benchmark execution will be written. If not supplied, `./timing.csv` will be used.
 
