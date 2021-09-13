@@ -36,8 +36,8 @@ enum log_level benchmark_verbosity = LOG_LEVEL_INFO;
  * 11. job deadline status:
  *   - `::DEADLINE_MET` if the job deadline was met.
  *   - `::DEADLINE_MISSED` if the job deadline was missed.
- * 12. job utilization (elapsed (clock cycles) / (period end (clock cycles) - period start (clock cycles) ));
- * 13. job density (elapsed (clock cycles) / (job deadline (clock cycles) - period start (clock cycles) ));
+ * 12. job utilization (elapsed / (period end  - period start ));
+ * 13. job density (elapsed / (job deadline - period start ));
  *
  * Example for a completed job with missed deadline: `84208125098780,84208125153008,84208125296876,84208125153008,198096,32451.516650,32451.516671,32451.516726,32451.516671,0.000076,0,3.66,3.66`
  *

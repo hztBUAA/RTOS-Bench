@@ -64,7 +64,7 @@ extern enum log_level benchmark_verbosity;
 #define elogf(mesg_log_level,format,...) \
 	flogf(mesg_log_level,stderr,format,##__VA_ARGS__)
 
-/** @brief DEPRECATED: Use `print_timing()`A function-like macro that reports the benchmark timing depending on the chosen logging level.
+/** @brief Reports the benchmark timing depending on the chosen logging level.
  * @param[in] file The file where the timing will be printed if the logging level is set to `::LOG_LEVEL_FILE`.
  * @param[in] period_start The timestamp when the period started.
  * @param[in] period_end The timestamp when the period completed.
