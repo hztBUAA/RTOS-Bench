@@ -72,10 +72,10 @@ debug:
 	@$(COMPILE_G) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
 
 debug-valgrind: debug
-	@valgrind --leak-check=full ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) $(C_RESULT)  -b $(DATA_DIR)
+	@valgrind --leak-check=full -s ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) $(C_RESULT)  -b $(DATA_DIR)
 
 debug-gdb: debug
-	@gdb ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) $(C_RESULT)  -b $(DATA_DIR)
+	@gdb --args ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) $(C_RESULT)  -b $(DATA_DIR)
 
 debug-asan:
 	@echo Running Debug C Version of the benchmark

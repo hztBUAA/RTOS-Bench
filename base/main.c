@@ -10,6 +10,7 @@
 
 /** @file main.c
  * @ingroup base
+ * @author Mattia Nicolella
  * @brief Benchmark entry point.
  * @details Will handle the benchmark startup and its parameters.
  */

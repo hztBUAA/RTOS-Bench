@@ -2,7 +2,8 @@
  * @ingroup base
  * @brief Implementation of a general periodic benchmark using real time timers.
  * @details Timer expiration triggers a real time POSIX signal and `SIGINT` is
- * used to stop the benchamrk and terminate the program.
+ * used to stop the benchmark and terminate the program.
+ * @author Mattia Nicolella
  */
 
 #include "periodic_benchmark.h"
@@ -60,21 +61,37 @@ static FILE *filep = NULL;
 /// Semaphore used to determine if a new job can be started.
 static sem_t period_sem;
 
-/// Timestamp of when the last job ended, it can be 0 if the job has not
+/// Timestamp in clock cycles of when the last job ended, it can be 0 if the job has not
 /// finished yet.
-static unsigned long long job_end_timestamp = 0;
+static unsigned long long job_end_timestamp_clocks = 0;
 
-/// Timestamp of when the last deadline since the job start has occurred.
-static unsigned long long last_deadline_timestamp = 0;
+/// Timestamp in clock cycles of when the last deadline since the job start has occurred.
+static unsigned long long last_deadline_timestamp_clocks = 0;
 
-/// Timestamp of when the first deadline since the job start has occurred.
-static unsigned long long job_deadline_timestamp = 0;
+/// Timestamp in clock cycles of when the first deadline since the job start has occurred.
+static unsigned long long job_deadline_timestamp_clocks = 0;
 
-/// Timestamp of the period end.
-static unsigned long long job_period_end_timestamp = 0;
+/// Timestamp in clock cycles of the period end.
+static unsigned long long job_period_end_timestamp_clocks = 0;
 
-/// Timestamp of the period start.
-static unsigned long long job_period_start_timestamp = 0;
+/// Timestamp in clock cycles  of the period start.
+static unsigned long long job_period_start_timestamp_clocks = 0;
+
+/// Timestamp in seconds of when the last job ended, it can be 0 if the job has not
+/// finished yet.
+static long double job_end_timestamp = 0;
+
+/// Timestamp in seconds of when the last deadline since the job start has occurred.
+static long double last_deadline_timestamp = 0;
+
+/// Timestamp in seconds clock cycles of when the first deadline since the job start has occurred.
+static long double job_deadline_timestamp = 0;
+
+/// Timestamp in seconds of the period end.
+static long double job_period_end_timestamp = 0;
+
+/// Timestamp in seconds of the period start.
+static long double job_period_start_timestamp = 0;
 
 /// Number of tasks launched.
 static unsigned long long tasks_launched = 0;
@@ -143,12 +160,17 @@ static void quit_handler(int signo, siginfo_t *info, void *context)
  * `::last_deadline_timestamp`, If this if the first deadline expiration since
  * the period start, the the timestamp values is also copied in
  * `::job_deadline_timestamp`.
+ * Both `get_rdtsc()` and `get_timestamp()` are used, to be safe in case only one of these methods is working.
  */
 static void deadline_handler(int signo, siginfo_t *info, void *context)
 {
 	// we save the current deadline
-	last_deadline_timestamp = get_cpu_timestamp();
+	last_deadline_timestamp_clocks = get_rdtsc();
+	last_deadline_timestamp = get_timestamp();
 	// the current deadline could be the job deadline
+	if (job_deadline_timestamp_clocks == 0) {
+		job_deadline_timestamp_clocks = last_deadline_timestamp_clocks;
+	}
 	if (job_deadline_timestamp == 0) {
 		job_deadline_timestamp = last_deadline_timestamp;
 	}
@@ -177,13 +199,19 @@ static void deadline_handler(int signo, siginfo_t *info, void *context)
  * perform the same operations as `deadline_handler()`, but will use the
  * timestamp of the period end.
  *
+ * Both `get_rdtsc()` and `get_timestamp()` are used, to be safe in case only one of these methods is working.
+ *
  * Reporting is done using `print_benchmark_timing()`.
  */
 static void period_handler(int signo, siginfo_t *info, void *context)
 {
 	int res;
-	unsigned long long period_end_timestamp = get_cpu_timestamp();
+	unsigned long long period_end_timestamp_clocks = get_rdtsc();
+	long double period_end_timestamp = get_timestamp();
 	//
+	if (job_period_end_timestamp_clocks == 0) {
+		job_period_end_timestamp_clocks = period_end_timestamp_clocks;
+	}
 	if (job_period_end_timestamp == 0) {
 		job_period_end_timestamp = period_end_timestamp;
 	}
@@ -199,36 +227,54 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 	} // otherwise the period handler covers also the deadline occurrence
 	// management.
 	else {
+		if (job_deadline_timestamp_clocks == 0) {
+			job_deadline_timestamp_clocks =
+				period_end_timestamp_clocks;
+		}
+		last_deadline_timestamp_clocks = period_end_timestamp_clocks;
 		if (job_deadline_timestamp == 0) {
 			job_deadline_timestamp = period_end_timestamp;
 		}
 		last_deadline_timestamp = period_end_timestamp;
 	}
 	// we report only at the beginning of a legitimate period.
-	if (job_period_start_timestamp > 0) {
+	if (job_period_start_timestamp_clocks > 0 ||
+	    job_period_start_timestamp > 0) {
 		// we report a job completion
-		if (job_end_timestamp > 0) {
-			print_benchmark_timing(filep,
-					       job_period_start_timestamp,
-					       job_period_end_timestamp,
-					       job_end_timestamp,
-					       job_deadline_timestamp);
+		if (job_end_timestamp_clocks > 0 || job_end_timestamp > 0) {
+			print_timing(filep, job_period_start_timestamp_clocks,
+				     job_period_end_timestamp_clocks,
+				     job_end_timestamp_clocks,
+				     job_deadline_timestamp_clocks,
+				     job_period_start_timestamp,
+				     job_period_end_timestamp,
+				     job_end_timestamp, job_deadline_timestamp);
 
 		}
 
 		// or the skipped deadline
 		else {
-			if (last_deadline_timestamp != job_deadline_timestamp) {
-				print_benchmark_timing(filep, 0, 0, 0,
-						       last_deadline_timestamp);
+			if (last_deadline_timestamp_clocks !=
+				    job_deadline_timestamp_clocks ||
+			    last_deadline_timestamp != job_deadline_timestamp) {
+				print_timing(filep, 0, 0, 0,
+					     last_deadline_timestamp_clocks,
+					     0.0, 0.0, 0.0,
+					     last_deadline_timestamp);
 			}
 		}
 	}
 	// If a job has ended or we are starting for the first time we need to reset
 	// the reporting variables and unlock the semaphore.
-	if (job_end_timestamp > 0 || job_period_start_timestamp == 0) {
+	if (job_end_timestamp_clocks > 0 ||
+	    job_period_start_timestamp_clocks == 0 || job_end_timestamp > 0 ||
+	    job_period_start_timestamp == 0) {
 		// we reset the reporting variables
 		// the start of the new period is the end of the previous period
+		job_period_start_timestamp_clocks = period_end_timestamp_clocks;
+		job_period_end_timestamp_clocks = 0;
+		job_end_timestamp_clocks = 0;
+		job_deadline_timestamp_clocks = 0;
 		job_period_start_timestamp = period_end_timestamp;
 		job_period_end_timestamp = 0;
 		job_end_timestamp = 0;
@@ -348,6 +394,8 @@ static int setup_timer(timer_t *timer, int signal_generated, long interval_sec,
  *
  * The environment for the job execution is handled by calling the
  * `benchmark_init()` and `benchmark_teardown()` functions.
+ *
+ * Both `get_rdtsc()` and `get_timestamp()` are used, to be safe in case only one of these methods is working.
  */
 int periodic_benchmark(struct execution_options *exec_opts)
 {
@@ -397,8 +445,9 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			fname = exec_opts->output_path;
 		}
 		filep = fopen(fname, "w+");
+		fprintf(filep,
+			"period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density\n");
 		if (exec_opts->output_path != NULL) {
-			printf("%s\n", exec_opts->output_path);
 			free(exec_opts->output_path);
 		}
 		if (filep == NULL) {
@@ -485,14 +534,15 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		}
 		// we start executing the job
 		benchmark_execution(benchmark_param_num, benchmark_params);
-		job_end_timestamp = get_cpu_timestamp();
+		job_end_timestamp_clocks = get_rdtsc();
+		job_end_timestamp = get_timestamp();
+		elogf(LOG_LEVEL_TRACE, "Done task %llu\n", tasks_launched);
 		// we update the number of launched benchmarks
 		tasks_launched++;
 	}
 	// we wait for the last period to finish before exiting.
 	do {
 		res = sem_wait(&period_sem);
-
 	} while (res < 0 && errno == EINTR);
 	exit(EXIT_SUCCESS);
 }
