@@ -37,6 +37,7 @@ def sched_test(bmark,bmark_args,worst_case,util_inc,tasks_num,output,prefix,post
     @param[in] output Output folder of for the data files.
     @param[in] prefix Prefix to prepend to all generated files.
     @param[in] postfix Postfix to append to all generated files.
+    @param[in] last_core The core where the target benchmark will be executed, should be the last physical core.
     @details
     The test starts with a deadline equal to the worst case execution time, the this deadline will progressively decrease by a percentage (given by the user) until it reaches 0.
     For each of these steps the task execution will be aggregated in a mean and the number of tasks that did complete without missing the deadline are recorded, along with the number
@@ -102,28 +103,28 @@ def execute(params):
         print("ERROR: Missing argument dictionary to execute the schedulability test!")
         params.update({"res":-1})
         return params
+    cores=params.get("cores")
+    if cores==None:
+        print("ERROR: Missing corelist to execute the schedulability test!")
+        params.update({"res":-1})
+        return params
     # if the user requested it, we start the interfering benchmarks
-    int_processes=None
-    if args.interfering != []:
-        int_processes=start_interfering(min(worst_runtimes),args.interfering[0],args.interfering[1],cores[0])
-        if int_processes==[] and params.get("int_processes")==None:
-            print("ERROR: cannot start interfering processes, aborting")
-            params.update({"res":-1})
-            return params
-    params.update({"int_processes":int_processes})
-    # we start the schedulability test for each benchmark
     params=WCET.execute(params)
     worst_runtimes=params.get("worst_runtimes")
     if worst_runtimes==None:
         print("ERROR: Missing WCETs to execute the schedulability test!")
         params.update({"res":-1})
         return params
-    last_core=params.get("cores")
-    if last_core==None:
-        print("ERROR: Missing corelist to execute the schedulability test!")
-        params.update({"res":-1})
-        return params
-    last_core=last_core[0]-1
+    int_processes=None
+    if args.interfering != []:
+        int_processes=base.start_interfering(min(worst_runtimes),args.interfering,cores[0])
+        if int_processes==[] and params.get("int_processes")==None:
+            print("ERROR: cannot start interfering processes, aborting")
+            params.update({"res":-1})
+            return params
+    params.update({"int_processes":int_processes})
+    # we start the schedulability test for each benchmark
+    last_core=cores[0]-1
     for i in range(0,len(args.benchmarks)):
        res=sched_test(args.benchmarks[i][0],args.benchmarks[i][1],worst_runtimes[i],args.util_inc,args.tasks_num,args.output[i],args.prefix,args.postfix,last_core)
        if res <0:

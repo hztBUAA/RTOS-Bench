@@ -53,36 +53,45 @@ void print_timing(FILE *file, unsigned long long period_start_clocks,
 		  long double period_end, long double job_end,
 		  long double deadline)
 {
-	int deadline_status =
-		((job_end > 0 && job_end <= deadline) ||
-		 (job_end_clocks > 0 && job_end_clocks <= deadline_clocks)) ?
-			      DEADLINE_MET :
-			      DEADLINE_MISSED;
-	long double elapsed =
-		(job_end > period_start) ? job_end - period_start : 0;
-	unsigned long long elapsed_clocks =
-		(job_end_clocks > period_start_clocks) ?
-			      job_end_clocks - period_start_clocks :
-			      0;
-	double utilization =
-		(period_end > period_start) ?
-			      (elapsed + 0.0) / (period_end - period_start) :
-			      0;
-	double utilization_clocks =
-		(period_end_clocks > period_start_clocks) ?
-			      (elapsed_clocks + 0.0) /
-				(period_end_clocks - period_start_clocks) :
-			      0;
-	double density = (deadline > period_start) ?
-				       (elapsed + 0.0) / (deadline - period_start) :
-				       0;
-	double density_clocks =
-		(deadline_clocks > period_start_clocks) ?
-			      (elapsed_clocks + 0.0) /
-				(deadline_clocks - period_start_clocks) :
-			      0;
-	double d = (density > 0) ? density : density_clocks;
-	double u = (utilization > 0) ? utilization : utilization_clocks;
+	int deadline_status = DEADLINE_MISSED;
+	if ((job_end > 0 && job_end <= deadline) &&
+	    (job_end_clocks > 0 && job_end_clocks <= deadline_clocks)) {
+		deadline_status = DEADLINE_MET;
+	}
+	long double elapsed = 0;
+	if (job_end > period_start) {
+		elapsed = job_end - period_start;
+	}
+	unsigned long long elapsed_clocks = 0;
+	if (job_end_clocks > period_start_clocks) {
+		elapsed_clocks = job_end_clocks - period_start_clocks;
+	}
+	double utilization = 0;
+	if (period_end > period_start) {
+		utilization = elapsed / (period_end - period_start);
+	}
+	double utilization_clocks = 0;
+	if (period_end_clocks > period_start_clocks) {
+		utilization_clocks = (elapsed_clocks + 0.0) /
+				     (period_end_clocks - period_start_clocks);
+	}
+	double density = 0;
+	if (deadline > period_start) {
+		density = elapsed / (deadline - period_start);
+	}
+	double density_clocks = 0;
+	if (deadline_clocks > period_start_clocks) {
+		(elapsed_clocks + 0.0) /
+			(deadline_clocks - period_start_clocks);
+	}
+	double d = density;
+	if (density <= 0) {
+		d = density_clocks;
+	}
+	double u = utilization;
+	if (utilization <= 0) {
+		utilization = utilization_clocks;
+	}
 	switch (benchmark_verbosity) {
 	case LOG_LEVEL_TRACE:
 		if (job_end != 0) {

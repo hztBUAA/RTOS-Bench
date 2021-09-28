@@ -31,9 +31,10 @@ Dependencies:
 import argparse
 import subprocess
 import os
+import signal
 import csv
 
-def start_interfering(deadline,bmarks,bmarks_args,num_cpus):
+def start_interfering(deadline,bmarks,num_cpus):
     """!
     @brief Launches interfering benchmarks
     @param[in] deadline The deadline (and period) to give to the interfering benchmarks.
@@ -45,17 +46,19 @@ def start_interfering(deadline,bmarks,bmarks_args,num_cpus):
     The benchmarks will continue to be executed until they receive a `SIGINT`.
     @returns The list of process id associated to the spawned benchmarks or `None` on error.
     """
-    cpu_range="1"
-    for i in range(2,num_cpus):
+    print("Starting interfering benchmarks")
+    cpu_range="0"
+    for i in range(1,num_cpus-1):
         cpu_range+=","+str(i)
     bmark_processes=[]
     for i in range(0,len(bmarks)):
         try:
-            bmark_processes.append(subprocess.Popen([bmarks[i],"-d",str(deadline),"-p",str(deadline),"-l","1","-c",cpu_range]+bmarks_args[i]))
+            bmark_processes.append(subprocess.Popen([bmarks[i][0],"-d",str(deadline),"-p",str(deadline),"-l","1","-c",cpu_range,"-b"]+bmarks[i][1]))
         except Exception as e:
-            print("Error while starting interfering benchmarks")
+            print("Error while starting interfering benchmarks",e)
             stop_interfering(bmark_processes)
             return None
+    print("done")
     return bmark_processes
 
 def stop_interfering(processes):
@@ -65,8 +68,10 @@ def stop_interfering(processes):
     @details
     The interfering benchmarks are stopped with a `SIGINT`.
     """
+    print("Stopping interfering benchmarks")
     for process in processes:
         process.send_signal(signal.SIGINT)
+    print("done")
 
 def detect_cores():
     """!

@@ -24,7 +24,7 @@ import csv
 
 
 
-def worst_case_exec_test(bmark,bmark_args,worst_case_tests,output,prefix,postfix):
+def worst_case_exec_test(bmark,bmark_args,worst_case_tests,output,prefix,postfix,last_core):
     """!
     @brief Finds the worst case execution time using only the first core.
     @param[in] bmark The target benchmark.
@@ -32,7 +32,8 @@ def worst_case_exec_test(bmark,bmark_args,worst_case_tests,output,prefix,postfix
     @param[in] worst_case_test The number of tests to execute for detecting the worst case scenario-
     @param[in] output The output folder for the generated files.
     @param[in] prefix The prefix to prepend to the generated files.
-    @param[in] postfix The postfix to prepend to the generated files.
+    @param[in] postfix The postfix to append to the generated files.
+    @param[in] last_core The core on which the benchmarks will be executed, usually the last physical core.
     @details
     The worst case execution time will be the longest time a single task has run without missing the deadline.
     To do so a number of tasks (`worst_case_tests`) is run and if at least one misses the deadline then the deadline be increased and the test restarted.
@@ -43,7 +44,7 @@ def worst_case_exec_test(bmark,bmark_args,worst_case_tests,output,prefix,postfix
     All the taken test will be exported into a file called `worst_case_exec_test.csv`.
 
     If previous test files are found then the test if performed and the new WCET will be computed including also the previous WCET.
-    However, only the tests taken in the curren executions can be found in `worst_case_exec_test.csv`.
+    However, only the tests taken in the current executions can be found in `worst_case_exec_test.csv`.
     @returns The found worst case execution time in seconds or -1 in case of error.
     """
     deadline=0.001
@@ -66,9 +67,9 @@ def worst_case_exec_test(bmark,bmark_args,worst_case_tests,output,prefix,postfix
     writer.writerow(["worst_in_clock","worst_in_seconds"])
     print(f"\nstarting worst case execution test for {bmark}")
     while fails_count>0 :
-        print(f"deadline value: {deadline}")
+        print(f"deadline value: {deadline}, current WCET: {worst_time}, executing {worst_case_tests} tasks")
         fails_count=0
-        subprocess.run([bmark,"-d",str(deadline),"-p",str(deadline),"-l","2","-c","0","-t",str(worst_case_tests),"-o",os.path.join(output,prefix+"worst_case_exec_test"+postfix+".csv"),"-b"]+bmark_args)
+        subprocess.run([bmark,"-d",str(deadline),"-p",str(deadline),"-l","2","-c",str(last_core),"-t",str(worst_case_tests),"-o",os.path.join(output,prefix+"worst_case_exec_test"+postfix+".csv"),"-b"]+bmark_args)
         try:
             test_file=open(os.path.join(output,prefix+"worst_case_exec_test"+postfix+".csv"),"r")
         except Exception as e:
@@ -78,7 +79,7 @@ def worst_case_exec_test(bmark,bmark_args,worst_case_tests,output,prefix,postfix
         #skip the header
         next(reader)
         for row in reader:
-            if int(row[10])==0:
+            if int(row[10])==0 and float(row[9])!=0:
                 fails_count+=1
             if float(row[9]) > worst_time:
                 worst_time=float(row[9])
@@ -105,13 +106,19 @@ def execute(params):
     """
     args=params.get("args")
     if args==None:
-        print("ERROR: Missing argument dictionary to execute the schedulability test!")
+        print("ERROR: Missing argument dictionary to execute the WCET test!")
         params.update({"res":-1})
         return params
+    cores=params.get("cores")
+    if cores==None:
+        print("ERROR: Missing corelist to execute the WCET test!")
+        params.update({"res":-1})
+        return params
+    last_core=cores[0]-1
     #get the list of worst case runtimes
     worst_runtimes=[]
     for i in range(0,len(args.benchmarks)):
-        WCET=worst_case_exec_test(args.benchmarks[i][0],args.benchmarks[i][1],args.worst_case_tests,args.output[i],args.prefix,args.postfix)
+        WCET=worst_case_exec_test(args.benchmarks[i][0],args.benchmarks[i][1],args.worst_case_tests,args.output[i],args.prefix,args.postfix,last_core)
         if WCET < 0:
             params.update({"res:":WCET})
             return params
