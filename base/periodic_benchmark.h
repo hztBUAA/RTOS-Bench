@@ -9,6 +9,7 @@
 #define _GNU_SOURCE
 #include <sched.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 /** @brief Struct used to hold the parsed arguments and options.
  * @details
@@ -28,6 +29,12 @@ struct execution_options {
 	size_t bytes_to_preallocate; ///< The heap memory that will be preallocated and will act as a limit for dynamic memory requested during the benchmark execution.
 	cpu_set_t core_affinity; ///< The core mask which will be used during the benchmark to set the core affinity. This mask can represent at most 1024, if more are needed the mask should allocated dynamically via `CPU_ALLOC`.
 	unsigned long long tasks_to_launch; ///< Number of tasks to launch before exiting, if 0 the program will run until `SIGINT` is received.
+	/** Sched FIFO period */
+	uint32_t prio;
+	/** Sched Deadline parameters */
+	uint64_t runtime;
+	uint64_t period;
+	uint64_t deadline;
 };
 
 /**

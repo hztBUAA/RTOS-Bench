@@ -8,12 +8,129 @@
 #include "logging.h"
 #include <string.h>
 
+#include <inttypes.h>
+#include <sched.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+
+/* Use our own sched_attr structure instead of the one in sched.h to
+ * allow later setting further parameters at the end (e.g., criticality).
+ */
+struct my_sched_attr {
+	uint32_t size;
+
+	uint32_t sched_policy;
+	uint64_t sched_flags;
+
+	/* SCHED_NORMAL, SCHED_BATCH */
+	int32_t sched_nice;
+
+	/* SCHED_FIFO, SCHED_RR */
+	uint32_t sched_priority;
+
+	/* SCHED_DEADLINE */
+	uint64_t sched_runtime;
+	uint64_t sched_deadline;
+	uint64_t sched_period;
+
+	/* Utilization hints */
+	uint32_t sched_util_min;
+	uint32_t sched_util_max;
+};
+
 /** @file main.c
  * @ingroup base
  * @author Mattia Nicolella
  * @brief Benchmark entry point.
  * @details Will handle the benchmark startup and its parameters.
  */
+
+/**
+ * @brief Set sched_deadline policy for current thread.
+ *
+ * @returns
+ *   0 on success
+ *   < 0 on failure
+ */
+/*
+ * NOTE: when using the sched_deadline policy, the task/thread is descheduled
+ * as soon as the deadline is reached (hard reservation). This might impact
+ * the performance/possibly correctness of the computation. For example,
+ * consider disparity with a scheduling policy FIFO at rt-prio 50. Disparity
+ * will run to completion (within the "soft reservation" enforced by the -d 1,
+ * -p 1 seconds of rt-bench).
+ *
+ * # ./disparity -d 1 -p 1 -f 50 -b . .
+ * 5211492644212,5213189418717,5211566941556,5213189418717,74297344,
+ * 3050.207200004,3051.207129868,3050.250938539,3051.207129868,0.043738535,
+ * 1,0.0437,0.0437
+ *
+ * When giving a combination of parameters period = 500us, deadline = 400 us,
+ * expected runtime 300us, the results might be considerably different.
+ *
+ * # ./disparity -d 1 -p 1 -P 500000 -D 400000 -T 300000 -b . .
+ * 5108693043772,5110389822935,5109043819868,5110389822935,350776096,
+ * 2989.623136457,2990.623058494,2989.829806155,2990.623058494,0.206669698,
+ * 1,0.207,0.207
+ *
+*/
+static int set_sched_deadline(
+	/** IN: period (see chrt or include/linux/sched/types.h */
+	uint64_t period,
+	/** IN: deadline (see chrt or include/linux/sched/types.h */
+	uint64_t deadline,
+	/** IN: runtime (see chrt or include/linux/sched/types.h */
+	uint64_t runtime)
+{
+	struct my_sched_attr attr = { 0 };
+
+	/* Keep compatibility with chrt, at least the period must be != 0 */
+	if (period == 0) {
+		return -1;
+	}
+
+	if (deadline == 0) {
+		deadline = period;
+	}
+
+	if (runtime == 0) {
+		runtime = deadline;
+	}
+
+	attr.size = sizeof(struct my_sched_attr);
+	attr.sched_policy = SCHED_DEADLINE;
+	attr.sched_runtime = runtime;
+	attr.sched_deadline = deadline;
+	attr.sched_period = period;
+
+	/* NOTE: sched_setattr() is not provided as wrapper in most glibc */
+	return syscall(SYS_sched_setattr, 0, &attr, 0);
+}
+
+/**
+ * @brief Set sched_fifo with prio "prio"
+ *
+ * @returns
+ *   0 on success
+ *   < 0 on failure
+ */
+static int set_sched_fifo_prio(
+	/** IN: prio (see chrt or include/linux/sched/types.h */
+	unsigned int prio)
+{
+	struct my_sched_attr attr = { 0 };
+
+	/* cap prio to max */
+	if (prio > sched_get_priority_max(SCHED_FIFO)) {
+		prio = sched_get_priority_max(SCHED_FIFO);
+	}
+
+	attr.sched_policy = SCHED_FIFO;
+	attr.sched_priority = prio;
+
+	/* NOTE: sched_setattr() is not provided as wrapper in most glibc */
+	return syscall(SYS_sched_setattr, 0, &attr, 0);
+}
 
 /** @brief Parse cli options and arguments via argp.
  * @param[in] key The parsed key (e.g. s if the parameters is -s 100) .
@@ -40,6 +157,10 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	case ARGP_KEY_INIT:
 		memset(parsed_args, 0, sizeof(struct execution_options));
 		CPU_ZERO(&parsed_args->core_affinity);
+		parsed_args->prio = 100;
+		parsed_args->runtime = 0;
+		parsed_args->period = 0;
+		parsed_args->deadline = 0;
 		break;
 	case 'b':
 		//we want to directly grab the argument list, after the -b flag
@@ -185,6 +306,18 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 				ARGP_HELP_USAGE | ARGP_HELP_LONG);
 		exit(EXIT_SUCCESS);
 		break;
+	case 'f':
+		parsed_args->prio = strtoul(arg, NULL, 0);
+		break;
+	case 'T':
+		parsed_args->runtime = strtoull(arg, NULL, 0);
+		break;
+	case 'D':
+		parsed_args->deadline = strtoull(arg, NULL, 0);
+		break;
+	case 'P':
+		parsed_args->period = strtoull(arg, NULL, 0);
+		break;
 	case ARGP_KEY_END:
 		if (parsed_args->deadline_nsec == 0 &&
 		    parsed_args->deadline_sec == 0)
@@ -197,10 +330,41 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 				state,
 				"Deadlines longer than period are not supported.");
 		}
+		if ((parsed_args->prio != 100) &&
+				((parsed_args->period > 0) ||
+				 (parsed_args->deadline > 0) ||
+				 (parsed_args->runtime > 0))) {
+			argp_error(state, "Incompatible FIFO and DEADINE policies.");
+		}
+
+		if ((((parsed_args->deadline > 0) ||
+		      (parsed_args->runtime > 0))) &&
+				(parsed_args->period == 0)) {
+			argp_error(state, "--sched-period must be provided for SCHED_DEADLINE policy.");
+		}
+
+		/* setup scheduling policies */
+		if (parsed_args->prio != 100) {
+			res = set_sched_fifo_prio(parsed_args->prio);
+			if (res < 0) {
+				argp_error(state, "Error setting sched-fifo prio (are you root?)");
+			}
+		}
+
+		if (parsed_args->period > 0) {
+			res = set_sched_deadline(parsed_args->period,
+						 parsed_args->deadline,
+						 parsed_args->runtime);
+			if (res < 0) {
+				argp_error(state, "Error setting sched-deadline params (are you root?)");
+			}
+		}
 		break;
 	default:
 		res = ARGP_ERR_UNKNOWN;
 	}
+
+
 	return res;
 }
 
@@ -231,6 +395,14 @@ int main(int argc, char **argv)
 		  "The maximum amount of dynamic memory allocated during the periodic execution. If exceeded, the benchmark will crash. Specified as an integer plus an optional magnitude modifier: K=kilobytes, M=megabytes, G=gigabytes. Without a magnitude modifier specified the value is assumed to be in bytes. 0 Means no limit, and it is the default setting." },
 		{ "tasks-number", 't', "integer>=0", 0,
 		  "The number of tasks to be executed. 0 means until the program receives a SIGINT. Default is 0." },
+		{ "fifo", 'f', "0<=prio<=99", 0,
+		  "Set SCHED_FIFO priority with specified priority. Need root." },
+		{ "sched-runtime", 'T', "ns", 0,
+		  "Set SCHED_DEADLINE runtime. Alternative to --fifo. Need root." },
+		{ "sched-deadline", 'D', "ns", 0,
+		  "Set SCHED_DEADLINE deadline. Alternative to --fifo. Need root." },
+		{ "sched-period", 'P', "ns", 0,
+		  "Set SCHED_DEADLINE period. Alternative to --fifo. Need root. At least --sched-period has to be specified to set sched_deadline params. If deadline is not specified, deadline is set to period. If runtime is not specified, runtime is set to deadline. NOTE: These parameters are different from --period and --deadline used to control the repetitive execution of the thread. To generate valid execution that are not truncated under hard server reservation, period < sched-period and deadline < sched-deadline." },
 		{ 0, 0, 0, 0, "Reporting options:", 3 },
 		{ "log-level", 'l', "log-lvl", 0,
 		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats to output file.\n3 - Print benchmark stats to stdout.\n4 - Print also informative messages on stderr.\nDefault is 3." },
