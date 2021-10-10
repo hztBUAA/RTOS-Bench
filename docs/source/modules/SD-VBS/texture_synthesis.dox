@@ -1,5 +1,5 @@
 /**
-* @defgroup texture_synthesis
+* @defgroup texture_synthesis Texture Synthesis
 * @ingroup SD-VBS
 * @brief texture_synthesis benchmark.
 *

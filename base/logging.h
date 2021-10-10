@@ -66,10 +66,14 @@ extern enum log_level benchmark_verbosity;
 
 /** @brief Reports the benchmark timing depending on the chosen logging level.
  * @param[in] file The file where the timing will be printed if the logging level is set to `::LOG_LEVEL_FILE`.
- * @param[in] period_start The timestamp when the period started.
- * @param[in] period_end The timestamp when the period completed.
- * @param[in] job_end The timestamp  when the job ended.
- * @param[in] deadline The timestamp of the first deadline since the job started, or the timestamp of the skipped deadline.
+ * @param[in] period_start_clocks The timestamp, in clock cycles, when the period started.
+ * @param[in] period_end_clocks The timestamp, in clock cycles, when the period completed.
+ * @param[in] job_end_clocks The timestamp, in clock cycles,  when the job ended.
+ * @param[in] deadline_clocks The timestamp, in clock cycles, of the first deadline since the job started, or the timestamp of the skipped deadline.
+ * @param[in] period_start The timestamp, in seconds, when the period started.
+ * @param[in] period_end The timestamp, in seconds, when the period completed.
+ * @param[in] job_end The timestamp, in seconds,  when the job ended.
+ * @param[in] deadline The timestamp, in seconds, of the first deadline since the job started, or the timestamp of the skipped deadline.
 */
 void print_timing(FILE *file, unsigned long long period_start_clocks,
 		  unsigned long long period_end_clocks,

@@ -55,7 +55,7 @@ void normalizeImage(F2D *image)
  * @details
  * The required parameters array has the following structure:
  * - parameters[0]: image folder path;
- * First image will be loaded into `::image`.
+ * First image will be loaded into `::im`.
  * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters)
@@ -114,10 +114,10 @@ void benchmark_execution(int parameters_num, void **parameters)
 			elogf(LOG_LEVEL_ERR, "Error in SIFT\n");
 	}
 #endif
-	if(frames!=NULL){
-	fFreeHandle(frames);
-
-}}
+	if (frames != NULL) {
+		fFreeHandle(frames);
+	}
+}
 
 /**
  * @brief Will revert what `benchmark_init()` has done to initialize the benchmark.

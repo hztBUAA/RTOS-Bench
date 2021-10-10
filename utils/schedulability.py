@@ -20,13 +20,25 @@ Dependencies:
 """
 
 
-import base
-import WCET
 import os
 import subprocess
 import csv
+import base
+import WCET
 
-def sched_test(bmark,bmark_args,worst_case,util_inc,tasks_num,output,prefix,postfix,last_core):
+
+def sched_test(
+    bmark,
+    bmark_args,
+    worst_case,
+    util_inc,
+    tasks_num,
+    output,
+    prefix,
+    postfix,
+    last_core,
+    sched_params,
+):
     """!
     @brief schedulability test for a single benchmark.
     @param[in] bmark The benchmark executable.
@@ -38,6 +50,7 @@ def sched_test(bmark,bmark_args,worst_case,util_inc,tasks_num,output,prefix,post
     @param[in] prefix Prefix to prepend to all generated files.
     @param[in] postfix Postfix to append to all generated files.
     @param[in] last_core The core where the target benchmark will be executed, should be the last physical core.
+    @param[in] sched_params Parameters that tune the benchmark scheduling attributes (a list with CLI options and it's attributes).
     @details
     The test starts with a deadline equal to the worst case execution time, the this deadline will progressively decrease by a percentage (given by the user) until it reaches 0.
     For each of these steps the task execution will be aggregated in a mean and the number of tasks that did complete without missing the deadline are recorded, along with the number
@@ -48,92 +61,150 @@ def sched_test(bmark,bmark_args,worst_case,util_inc,tasks_num,output,prefix,post
     The benchmark is instructed to log data in a set of files called: `sched_test_x.csv` where `x` is the expected utilization percentage, while the number of scheduled processes at each step will be recorded in `sched_test_res.csv`.
     @returns `0` on success, `-1` on error.
     """
-    deadline=worst_case
-    utilization=1-(deadline/worst_case)
+    deadline = worst_case
+    utilization = 1 - (deadline / worst_case)
     try:
-        res_file=open(os.path.join(output,prefix+"sched_test_res"+postfix+".csv"),"w")
+        res_file = open(
+            os.path.join(output, prefix + "sched_test_res" + postfix + ".csv"), "w"
+        )
     except Exception as e:
-        print("Cannot open file for storing schedulability test results ",e)
+        print("Cannot open file for storing schedulability test results ", e)
         return -1
-    writer=csv.writer(res_file)
-    writer.writerow(["utilization","mean_utilization","successfully_scheduled","total_started"])
+    writer = csv.writer(res_file)
+    writer.writerow(
+        ["utilization", "mean_utilization", "successfully_scheduled", "total_started"]
+    )
     print(f"\n\nStarting schedulability test for {bmark}")
     while deadline >= 1e-9:
-        sum_utilization=0
-        print(f"\ntest  with {utilization*100}% utilization, deadline: {deadline} seconds")
-        log_fname=os.path.join(output,f"{prefix}sched_test_{utilization}{postfix}.csv")
+        sum_utilization = 0
+        print(
+            f"\ntest  with {utilization*100}% utilization, deadline: {deadline} seconds"
+        )
+        log_fname = os.path.join(
+            output, f"{prefix}sched_test_{utilization}{postfix}.csv"
+        )
         try:
-            subprocess.run([bmark,"-d",str(deadline),"-p",str(deadline),"-l","2","-c",str(last_core),"-t",str(tasks_num),"-o",log_fname,"-b"]+bmark_args)
+            subprocess.run(
+                [
+                    bmark,
+                    "-d",
+                    str(deadline),
+                    "-p",
+                    str(deadline),
+                    "-l",
+                    "2",
+                    "-c",
+                    str(last_core),
+                    "-t",
+                    str(tasks_num),
+                    "-o",
+                    log_fname,
+                ]
+                + sched_params
+                + ["-b"]
+                + bmark_args
+            )
         except Exception as e:
-            print("Error during schedulability test ",e)
+            print("Error during schedulability test ", e)
             return -1
-        scheduled=0
-        started=0
+        scheduled = 0
+        started = 0
         try:
-            log_file=open(log_fname)
+            log_file = open(log_fname)
         except Exception as e:
             print("Cannot open benchmark result file ", e)
             return -1
-        reader=csv.reader(log_file)
+        reader = csv.reader(log_file)
         next(reader)
         for row in reader:
-            started+=1
+            started += 1
             if int(row[10]) == 1:
-                scheduled+=1
-            sum_utilization+=float(row[11])
+                scheduled += 1
+            sum_utilization += float(row[11])
         log_file.close()
-        print(f"successfully scheduled {scheduled} over {started} tasks ({scheduled/started*100}%), mean utilization: {sum_utilization/started}")
-        writer.writerow([str(utilization),str(sum_utilization/started),str(scheduled),str(started)])
-        deadline=deadline-(util_inc*worst_case)
-        utilization=1-(deadline/worst_case)
+        print(
+            f"successfully scheduled {scheduled} over {started} tasks ({scheduled/started*100}%), mean utilization: {sum_utilization/started}"
+        )
+        writer.writerow(
+            [
+                str(utilization),
+                str(sum_utilization / started),
+                str(scheduled),
+                str(started),
+            ]
+        )
+        deadline = deadline - (util_inc * worst_case)
+        utilization = 1 - (deadline / worst_case)
     res_file.close()
     return 0
+
 
 def execute(params):
     """!
     @brief Execute the schedulability test on the given benchmarks
-    @param[in-out] params The paramter dictionary provieded by `base.test_init()` plus the array of WCETs provided by `WCET.execute()`.
+    @param[in,out] params The paramter dictionary provieded by `base.test_init()` plus the array of WCETs provided by `WCET.execute()`.
     @details
     If the user requested interfering benchmarks, then the `params` dictionary will be updated with the key `int_processes`, which will contain the list
     of interfering processes.
     @returns The updated `params` dictionary with {"res":0} on success, or {"res":-1} on failure.
     """
-    args=params.get("args")
-    if args==None:
+    args = params.get("args")
+    if args is None:
         print("ERROR: Missing argument dictionary to execute the schedulability test!")
-        params.update({"res":-1})
+        params.update({"res": -1})
         return params
-    cores=params.get("cores")
-    if cores==None:
+    cores = params.get("cores")
+    if cores is None:
         print("ERROR: Missing corelist to execute the schedulability test!")
-        params.update({"res":-1})
+        params.update({"res": -1})
+        return params
+    sched_params = params.get("sched_params")
+    if sched_params is None:
+        print(
+            "ERROR: Missing scheduling parameters to execute the schedulability test!"
+        )
+        params.update({"res": -1})
         return params
     # if the user requested it, we start the interfering benchmarks
-    params=WCET.execute(params)
-    worst_runtimes=params.get("worst_runtimes")
-    if worst_runtimes==None:
+    params = WCET.execute(params)
+    worst_runtimes = params.get("worst_runtimes")
+    if worst_runtimes is None:
         print("ERROR: Missing WCETs to execute the schedulability test!")
-        params.update({"res":-1})
+        params.update({"res": -1})
         return params
-    int_processes=None
+    int_processes = None
     if args.interfering != []:
-        int_processes=base.start_interfering(min(worst_runtimes),args.interfering,cores[0])
-        if int_processes==[] and params.get("int_processes")==None:
+        int_processes = base.start_interfering(
+            min(worst_runtimes), args.interfering, cores[0]
+        )
+        if int_processes == [] and params.get("int_processes") is None:
             print("ERROR: cannot start interfering processes, aborting")
-            params.update({"res":-1})
+            params.update({"res": -1})
             return params
-    params.update({"int_processes":int_processes})
+    params.update({"int_processes": int_processes})
     # we start the schedulability test for each benchmark
-    last_core=cores[0]-1
-    for i in range(0,len(args.benchmarks)):
-       res=sched_test(args.benchmarks[i][0],args.benchmarks[i][1],worst_runtimes[i],args.util_inc,args.tasks_num,args.output[i],args.prefix,args.postfix,last_core)
-       if res <0:
-           break;
-    params.update({"res":res})
+    last_core = cores[0] - 1
+    for i in range(0, len(args.benchmarks)):
+        res = sched_test(
+            args.benchmarks[i][0],
+            args.benchmarks[i][1],
+            worst_runtimes[i],
+            args.util_inc,
+            args.tasks_num,
+            args.output[i],
+            args.prefix,
+            args.postfix,
+            last_core,
+            sched_params,
+        )
+        if res < 0:
+            break
+    params.update({"res": res})
     return params
 
+
 if __name__ == "__main__":
-    parser=base.parser_init()
-    params=base.test_init(parser)
+    parser = base.parser_init()
+    params = base.test_init(parser)
     execute(params)
     base.test_teardown(params)

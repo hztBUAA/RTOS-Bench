@@ -1,5 +1,5 @@
 /**
-* @defgroup utils
+* @defgroup utils Utils
 * @brief A collection of useful scripts.
 * @details
 * The utils module is composed by scripts that provide useful features, for example to automate data collection or processing.

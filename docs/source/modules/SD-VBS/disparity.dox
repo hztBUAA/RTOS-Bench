@@ -1,5 +1,5 @@
 /**
-* @defgroup disparity
+* @defgroup disparity Disparity
 * @ingroup SD-VBS
 * @brief disparity benchmark.
 *
