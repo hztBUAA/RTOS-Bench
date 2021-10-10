@@ -113,8 +113,8 @@ int benchmark_init(int parameters_num, void **parameters)
 #endif
 
 	/* Read input images **/
-	Ic_arr = malloc(sizeof(I2D *) * (counter + 1));
-	for (i = 0; i <= counter; i++) {
+	Ic_arr = malloc(sizeof(I2D *) * counter);
+	for (i = 0; i < counter; i++) {
 		sprintf(im1, "%s/%d.bmp", parameters[0], i + 1);
 		Ic_arr[i] = readImage(im1);
 	}
@@ -154,7 +154,7 @@ void benchmark_execution(int parameters_num, void **parameters)
 	SUPPRESION_RADIUS = 10.0;
 
 	/* IMAGE PRE-PROCESSING **/
-	Ic = Ic_arr[0];
+	Ic = iDeepCopy(Ic_arr[0]);
 
 	/* Blur the image to remove noise - weighted average filter **/
 	blurredImage = imageBlur(Ic);
@@ -200,10 +200,11 @@ void benchmark_execution(int parameters_num, void **parameters)
 	fFreeHandle(interestPnt);
 	fFreeHandle(lambda);
 	fFreeHandle(lambdaTemp);
+	iFreeHandle(Ic);
 
 	/* Until now, we processed base frame. The following for loop processes other frames **/
-	for (count = 1; count <= counter; count++) {
-		Ic = Ic_arr[count];
+	for (count = 0; count < counter; count++) {
+		Ic = iDeepCopy(Ic_arr[count]);
 		rows = Ic->height;
 		cols = Ic->width;
 
@@ -267,6 +268,7 @@ void benchmark_execution(int parameters_num, void **parameters)
 		}
 
 		iFreeHandle(status);
+		iFreeHandle(Ic);
 		fFreeHandle(np_temp);
 		fFreeHandle(features);
 		/* Populate newpoints into features **/
@@ -289,7 +291,7 @@ void benchmark_execution(int parameters_num, void **parameters)
 #endif
 		ret = fSelfCheck(features, parameters[0], tol);
 		if (ret == -1)
-			printf("Error in Tracking Map\n");
+			elogf(LOG_LEVEL_ERR, "Error in Tracking Map\n");
 	}
 #endif
 	fFreeHandle(blurred_level1);
