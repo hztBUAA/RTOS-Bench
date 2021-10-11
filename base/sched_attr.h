@@ -11,7 +11,7 @@
 /* Use our own sched_attr structure instead of the one in sched.h to
  * allow later setting further parameters at the end (e.g., criticality).
  */
-struct my_sched_attr {
+struct rtbench_sched_attr {
 	uint32_t size;
 
 	uint32_t sched_policy;
@@ -33,12 +33,12 @@ struct my_sched_attr {
 	uint32_t sched_util_max;
 };
 
-static inline int sched_setattr(pid_t pid, const struct my_sched_attr *attr, unsigned int flags)
+static inline int sched_setattr(pid_t pid, const struct rtbench_sched_attr *attr, unsigned int flags)
 {
 	return syscall(SYS_sched_setattr, pid, attr, flags);
 }
 
-static inline int sched_getattr(pid_t pid, struct my_sched_attr *attr, unsigned int size, unsigned int flags)
+static inline int sched_getattr(pid_t pid, struct rtbench_sched_attr *attr, unsigned int size, unsigned int flags)
 {
 	return syscall(SYS_sched_getattr, pid, attr, size, flags);
 }

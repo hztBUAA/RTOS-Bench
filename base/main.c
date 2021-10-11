@@ -57,7 +57,7 @@ static int set_sched_deadline(
 	uint64_t runtime)
 {
 	int ret;
-	struct my_sched_attr attr = { 0 };
+	struct rtbench_sched_attr attr = { 0 };
 
 	/* Keep compatibility with chrt, at least the period must be != 0 */
 	if (period == 0) {
@@ -72,7 +72,7 @@ static int set_sched_deadline(
 		runtime = deadline;
 	}
 
-	attr.size = sizeof(struct my_sched_attr);
+	attr.size = sizeof(struct rtbench_sched_attr);
 	attr.sched_policy = SCHED_DEADLINE;
 	attr.sched_runtime = runtime;
 	attr.sched_deadline = deadline;
@@ -117,7 +117,7 @@ static int set_sched_fifo_prio(
 	/** IN: prio (see chrt or include/linux/sched/types.h */
 	unsigned int prio)
 {
-	struct my_sched_attr attr = { 0 };
+	struct rtbench_sched_attr attr = { 0 };
 
 	/* cap prio to max */
 	if (prio > sched_get_priority_max(SCHED_FIFO)) {
