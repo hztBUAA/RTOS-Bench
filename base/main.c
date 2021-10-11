@@ -7,36 +7,10 @@
 #include <fenv.h>
 #include "logging.h"
 #include <string.h>
+#include "sched_attr.h"
 
 #include <inttypes.h>
 #include <sched.h>
-#include <unistd.h>
-#include <sys/syscall.h>
-
-/* Use our own sched_attr structure instead of the one in sched.h to
- * allow later setting further parameters at the end (e.g., criticality).
- */
-struct my_sched_attr {
-	uint32_t size;
-
-	uint32_t sched_policy;
-	uint64_t sched_flags;
-
-	/* SCHED_NORMAL, SCHED_BATCH */
-	int32_t sched_nice;
-
-	/* SCHED_FIFO, SCHED_RR */
-	uint32_t sched_priority;
-
-	/* SCHED_DEADLINE */
-	uint64_t sched_runtime;
-	uint64_t sched_deadline;
-	uint64_t sched_period;
-
-	/* Utilization hints */
-	uint32_t sched_util_min;
-	uint32_t sched_util_max;
-};
 
 /** @file main.c
  * @ingroup base
@@ -82,6 +56,7 @@ static int set_sched_deadline(
 	/** IN: runtime (see chrt or include/linux/sched/types.h */
 	uint64_t runtime)
 {
+	int ret;
 	struct my_sched_attr attr = { 0 };
 
 	/* Keep compatibility with chrt, at least the period must be != 0 */
@@ -104,7 +79,31 @@ static int set_sched_deadline(
 	attr.sched_period = period;
 
 	/* NOTE: sched_setattr() is not provided as wrapper in most glibc */
-	return syscall(SYS_sched_setattr, 0, &attr, 0);
+	ret = sched_setattr(0, &attr, 0);
+	if (ret != 0) {
+		return ret;
+	}
+
+	/* Try to read the info back */
+	attr.size = sizeof(attr);
+	attr.sched_policy = 0;
+	attr.sched_runtime = 0;
+	attr.sched_deadline = 0;
+	attr.sched_period = 0;
+
+	ret = sched_getattr(0, &attr, sizeof(attr), 0);
+	if (ret != 0) {
+		return ret;
+	}
+
+	elogf(LOG_LEVEL_INFO,
+			"\nsize: %u, policy: %u, flags: %lu, prio: %u"
+			"\nT: %lu, D: %lu, P: %lu\n",
+			attr.size, attr.sched_policy, attr.sched_flags,
+			attr.sched_priority,
+			attr.sched_runtime, attr.sched_deadline, attr.sched_period);
+
+	return ret;
 }
 
 /**
