@@ -77,6 +77,7 @@ static int set_sched_deadline(
 	attr.sched_runtime = runtime;
 	attr.sched_deadline = deadline;
 	attr.sched_period = period;
+	attr.sched_criticality = 42;
 
 	/* NOTE: sched_setattr() is not provided as wrapper in most glibc */
 	ret = sched_setattr(0, &attr, 0);
@@ -90,6 +91,7 @@ static int set_sched_deadline(
 	attr.sched_runtime = 0;
 	attr.sched_deadline = 0;
 	attr.sched_period = 0;
+	attr.sched_criticality = 0;
 
 	ret = sched_getattr(0, &attr, sizeof(attr), 0);
 	if (ret != 0) {
@@ -98,10 +100,11 @@ static int set_sched_deadline(
 
 	elogf(LOG_LEVEL_INFO,
 			"\nsize: %u, policy: %u, flags: %lu, prio: %u"
-			"\nT: %lu, D: %lu, P: %lu\n",
+			"\nT: %lu, D: %lu, P: %lu, CRIT: %u\n",
 			attr.size, attr.sched_policy, attr.sched_flags,
 			attr.sched_priority,
-			attr.sched_runtime, attr.sched_deadline, attr.sched_period);
+			attr.sched_runtime, attr.sched_deadline, attr.sched_period,
+			attr.sched_criticality);
 
 	return ret;
 }

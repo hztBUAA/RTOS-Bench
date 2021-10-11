@@ -31,6 +31,10 @@ struct rtbench_sched_attr {
 	/* Utilization hints */
 	uint32_t sched_util_min;
 	uint32_t sched_util_max;
+
+	/* Criticality */
+	uint32_t sched_criticality;
+	uint32_t padding;
 };
 
 static inline int sched_setattr(pid_t pid, const struct rtbench_sched_attr *attr, unsigned int flags)
