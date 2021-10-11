@@ -7,11 +7,10 @@
 #include <fenv.h>
 #include "logging.h"
 #include <string.h>
+#include "sched_attr.h"
 
 #include <inttypes.h>
 #include <sched.h>
-#include <unistd.h>
-#include <sys/syscall.h>
 
 /** @file main.c
  * @ingroup base
@@ -20,38 +19,8 @@
  * @details Will handle the benchmark startup and its parameters.
  */
 
-/** @brief The struct which will contain the schedulability properties for this benchmarks.
- * @details
- * Use our own `sched_attr` structure instead of the one in `sched.h` to
- * allow later setting further parameters at the end (e.g., criticality).
- */
-struct my_sched_attr {
-	uint32_t size; ///< The size of the structure.
-
-	uint32_t sched_policy; ///< The scheduling policy.
-	uint64_t sched_flags; ///< The flags for the scheduling policy.
-
-	/* SCHED_NORMAL, SCHED_BATCH */
-	int32_t sched_nice; ///< The nice value, used only in `SCHED_NORMAL` and `SCHED_BATCH`.
-
-	/* SCHED_FIFO, SCHED_RR */
-	uint32_t sched_priority; ///< Priority value, used only in `SCHED_FIFO` and `SCHED_RR`.
-
-	/* SCHED_DEADLINE */
-	uint64_t sched_runtime; ///< `SCHED_DEADLINE` runtime value.
-	uint64_t sched_deadline; ///< `SCHED_DEADLINE` deadline value.
-	uint64_t sched_period; ///< `SCHED_DEADLINE` period value.
-
-	/* Utilization hints */
-	uint32_t sched_util_min; ///< Utilization hint.
-	uint32_t sched_util_max; ///< Utilization hint.
-};
-
-/** @brief Set sched_deadline policy for current thread.
- * @param[in] period see `chrt` or `include/linux/sched/types.h`.
- * @param[in] deadline see `chrt` or `include/linux/sched/types.h`.
- * @param[in] runtime see `chrt` or `include/linux/sched/types.h`.
- * @returns 0 on success, < 0 on failure.
+/**
+ * @brief Set sched_deadline policy for current thread.
  *
  * @details
  * @note `sched_setattr()` is not provided as wrapper in most glibc.
@@ -80,7 +49,8 @@ static int set_sched_deadline(
 	/* IN: runtime (see chrt or include/linux/sched/types.h */
 	uint64_t runtime)
 {
-	struct my_sched_attr attr = { 0 };
+	int ret;
+	struct rtbench_sched_attr attr = { 0 };
 
 	/* Keep compatibility with chrt, at least the period must be != 0 */
 	if (period == 0) {
@@ -95,14 +65,38 @@ static int set_sched_deadline(
 		runtime = deadline;
 	}
 
-	attr.size = sizeof(struct my_sched_attr);
+	attr.size = sizeof(struct rtbench_sched_attr);
 	attr.sched_policy = SCHED_DEADLINE;
 	attr.sched_runtime = runtime;
 	attr.sched_deadline = deadline;
 	attr.sched_period = period;
 
 	/* NOTE: sched_setattr() is not provided as wrapper in most glibc */
-	return syscall(SYS_sched_setattr, 0, &attr, 0);
+	ret = sched_setattr(0, &attr, 0);
+	if (ret != 0) {
+		return ret;
+	}
+
+	/* Try to read the info back */
+	attr.size = sizeof(attr);
+	attr.sched_policy = 0;
+	attr.sched_runtime = 0;
+	attr.sched_deadline = 0;
+	attr.sched_period = 0;
+
+	ret = sched_getattr(0, &attr, sizeof(attr), 0);
+	if (ret != 0) {
+		return ret;
+	}
+
+	elogf(LOG_LEVEL_INFO,
+	      "\nsize: %u, policy: %u, flags: %lu, prio: %u"
+	      "\nT: %lu, D: %lu, P: %lu\n",
+	      attr.size, attr.sched_policy, attr.sched_flags,
+	      attr.sched_priority, attr.sched_runtime, attr.sched_deadline,
+	      attr.sched_period);
+
+	return ret;
 }
 
 /**
@@ -116,7 +110,8 @@ static int set_sched_fifo_prio(
 	/* IN: prio (see chrt or include/linux/sched/types.h */
 	unsigned int prio)
 {
-	struct my_sched_attr attr = { 0 };
+	int ret;
+	struct rtbench_sched_attr attr = { 0 };
 
 	/* cap prio to max */
 	if (prio > sched_get_priority_max(SCHED_FIFO)) {
@@ -127,7 +122,31 @@ static int set_sched_fifo_prio(
 	attr.sched_priority = prio;
 
 	/* NOTE: sched_setattr() is not provided as wrapper in most glibc */
-	return syscall(SYS_sched_setattr, 0, &attr, 0);
+	ret = sched_setattr(0, &attr, 0);
+	if (ret != 0) {
+		return ret;
+	}
+
+	/* Try to read the info back */
+	attr.size = sizeof(attr);
+	attr.sched_policy = 0;
+	attr.sched_runtime = 0;
+	attr.sched_deadline = 0;
+	attr.sched_period = 0;
+
+	ret = sched_getattr(0, &attr, sizeof(attr), 0);
+	if (ret != 0) {
+		return ret;
+	}
+
+	elogf(LOG_LEVEL_INFO,
+	      "\nsize: %u, policy: %u, flags: %lu, prio: %u"
+	      "\nT: %lu, D: %lu, P: %lu\n",
+	      attr.size, attr.sched_policy, attr.sched_flags,
+	      attr.sched_priority, attr.sched_runtime, attr.sched_deadline,
+	      attr.sched_period);
+
+	return ret;
 }
 
 /** @brief Parse cli options and arguments via argp.
