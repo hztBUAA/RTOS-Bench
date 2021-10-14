@@ -31,6 +31,8 @@ struct execution_options {
 	unsigned long long tasks_to_launch; ///< Number of tasks to launch before exiting, if 0 the program will run until `SIGINT` is received.
 	/** Sched FIFO period */
 	uint32_t prio;
+	/** MCMG criticality of the task */
+	uint32_t criticality;
 	/** Sched Deadline parameters */
 	uint64_t runtime;
 	uint64_t period;
