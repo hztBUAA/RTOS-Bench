@@ -210,7 +210,7 @@ def parser_init():
 
     parser.add_argument(
         "-i",
-        "--interfering-bmark",
+        "--interfering-bmarks",
         metavar="bmark-exec:arg1,arg2,...",
         nargs="+",
         type=str,
@@ -352,9 +352,10 @@ def test_init(parser):
         print("Error: missing options for SCHED_DEADLINE")
         return -1
     # we use SCHED_FIFO if nothing from SCHED_DEADLINE has been specified
-    if all(sched_deadline_vals) is None:
-        sched_params = ["-f", args.fifo]
+    if all(sched_deadline_vals) is False:
+        sched_params = ["-f", str(args.fifo)]
     else:
+        print(sched_deadline_vals)
         sched_params = [
             "-D",
             args.sched_deadline,
@@ -377,17 +378,18 @@ def test_init(parser):
     move_processes(f"0")
 
     output_len = len(args.output)
+    if output_len > 0 and len(args.benchmarks) > output_len:
+        print(
+            "A single folder has been specified as output path for more than one target benchmark, test will continue but it will overwrite previous files."
+        )
     for i in range(0, len(args.benchmarks)):
         if output_len == 0:
             args.output.append(os.path.dirname(args.benchmarks[i][0]))
         elif output_len == len(args.benchmarks):
             subprocess.run(["mkdir", "-p", args.output[i]])
         else:
-            print(
-                "Error: A single folder has been specified as output path for more than one target benchmark, this WILL overwrite data from all but the last target benchmark."
-            )
-            params.update({"res:": -1})
-            return params
+            if i > 0:
+                args.output.append(args.output[0])
     params.update({"args": args})
     return params
 
@@ -423,8 +425,8 @@ def test_teardown(params):
 if __name__ == "__main__":
     parser_obj = parser_init()
     # we add an argument to let the user choose the type of test to execute.
-    tests_available = ["WCET", "sched"]
-    help_str = "Determines the type of test to execute:\n\n\t WCET: Worst Case Execution Test\n\tsched: Schedulability test"
+    tests_available = ["WCET", "sched", "WSS"]
+    help_str = "Determines the type of test to execute:\n\n\t WCET: Worst Case Execution Test\n\tsched: Schedulability test\n\t WSS: minimum working set size test"
     parser_obj.add_argument(
         "-tt",
         "--test-type",
@@ -445,4 +447,8 @@ if __name__ == "__main__":
         import schedulability
 
         schedulability.execute(test_params)
+    elif parsed_args.test == "WSS":
+        import WSS
+
+        WSS.execute(test_params)
     test_teardown(test_params)

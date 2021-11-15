@@ -58,30 +58,40 @@ def sched_test(
 
     Test is executed on the last available physical core after the environment has been prepared by `base.test_init()`.
 
-    The benchmark is instructed to log data in a set of files called: `sched_test_x.csv` where `x` is the expected utilization percentage, while the number of scheduled processes at each step will be recorded in `sched_test_res.csv`.
+    The benchmark is instructed to log data in a set of files called: `[benchamrk executable name]_sched_test_x.csv` where `x` is the expected utilization percentage, while the number of scheduled processes at each step will be recorded in `[benchmark executable name]_sched_test_res.csv`.
     @returns `0` on success, `-1` on error.
     """
     deadline = worst_case
     utilization = 1 - (deadline / worst_case)
+    bmark_name = os.path.basename(bmark)
     try:
         res_file = open(
-            os.path.join(output, prefix + "sched_test_res" + postfix + ".csv"), "w"
+            os.path.join(
+                output, prefix + bmark_name + "_sched_test_res" + postfix + ".csv"
+            ),
+            "w",
         )
     except Exception as e:
         print("Cannot open file for storing schedulability test results ", e)
         return -1
     writer = csv.writer(res_file)
     writer.writerow(
-        ["utilization", "mean_utilization", "successfully_scheduled", "total_started"]
+        [
+            "benchmark",
+            "utilization",
+            "mean_utilization",
+            "successfully_scheduled",
+            "total_started",
+        ]
     )
-    print(f"\n\nStarting schedulability test for {bmark}")
+    print(f"\n\nStarting schedulability test for {bmark_name}")
     while deadline >= 1e-9:
         sum_utilization = 0
         print(
             f"\ntest  with {utilization*100}% utilization, deadline: {deadline} seconds"
         )
         log_fname = os.path.join(
-            output, f"{prefix}sched_test_{utilization}{postfix}.csv"
+            output, f"{prefix}{bmark_name}_sched_test_{utilization:.3g}{postfix}.csv"
         )
         try:
             subprocess.run(
@@ -127,6 +137,7 @@ def sched_test(
         )
         writer.writerow(
             [
+                bmark_name,
                 str(utilization),
                 str(sum_utilization / started),
                 str(scheduled),

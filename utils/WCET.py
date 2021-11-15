@@ -17,10 +17,11 @@ Dependencies:
 """
 
 
-import base
+import csv
 import os
 import subprocess
-import csv
+
+import base
 
 
 def worst_case_exec_test(
@@ -49,18 +50,21 @@ def worst_case_exec_test(
     After the all tasks have completed their execution, the output file will be scanned to find the maximum execution time.
 
     The maximum execution time will be saved in clock cycles and in seconds.
-    The found worst case execution time will be exported into a file called `worst_case_exec.csv`
-    All the taken test will be exported into a file called `worst_case_exec_test.csv`.
+    The found worst case execution time will be exported into a file called `[benchmark executable name]_worst_case_exec.csv`
+    All the taken test will be exported into a file called `[benchmark executable name]_worst_case_exec_test.csv`.
 
     If previous test files are found then the test if performed and the new WCET will be computed including also the previous WCET.
-    However, only the tests taken in the current executions can be found in `worst_case_exec_test.csv`.
+    However, only the tests taken in the current executions can be found in `[benchmark executable name]_worst_case_exec_test.csv`.
     @returns The found worst case execution time in seconds or -1 in case of error.
     """
     deadline = 0.001
     fails_count = 1
+    bmark_name = os.path.basename(bmark)
     try:
         worst_file = open(
-            os.path.join(output, prefix + "worst_case_exec" + postfix + ".csv")
+            os.path.join(
+                output, prefix + bmark_name + "_worst_case_exec" + postfix + ".csv"
+            )
         )
         prev_reader = csv.reader(worst_file)
         next(prev_reader)
@@ -70,15 +74,21 @@ def worst_case_exec_test(
         worst_file.close()
         print(f"read {worst} clock cycles : {worst_time} seconds")
     except Exception as e:
-        print(f"{prefix}worst_case_exec{postfix}.csv not found, creating it", e)
+        print(
+            f"{prefix}{bmark_name}_worst_case_exec{postfix}.csv not found, creating it",
+            e,
+        )
         worst = 0
         worst_time = 0
     worst_file = open(
-        os.path.join(output, prefix + "worst_case_exec" + postfix + ".csv"), "w"
+        os.path.join(
+            output, prefix + bmark_name + "_worst_case_exec" + postfix + ".csv"
+        ),
+        "w",
     )
     writer = csv.writer(worst_file)
-    writer.writerow(["worst_in_clock", "worst_in_seconds"])
-    print(f"\nstarting worst case execution test for {bmark}")
+    writer.writerow(["benchmark", "worst_in_clock", "worst_in_seconds"])
+    print(f"\nstarting worst case execution test for {bmark_name}")
     while fails_count > 0:
         print(
             f"deadline value: {deadline}, current WCET: {worst_time}, executing {worst_case_tests} tasks"
@@ -99,7 +109,8 @@ def worst_case_exec_test(
                 str(worst_case_tests),
                 "-o",
                 os.path.join(
-                    output, prefix + "worst_case_exec_test" + postfix + ".csv"
+                    output,
+                    prefix + bmark_name + "_worst_case_exec_test" + postfix + ".csv",
                 ),
             ]
             + sched_params
@@ -109,7 +120,8 @@ def worst_case_exec_test(
         try:
             test_file = open(
                 os.path.join(
-                    output, prefix + "worst_case_exec_test" + postfix + ".csv"
+                    output,
+                    prefix + bmark_name + "_worst_case_exec_test" + postfix + ".csv",
                 ),
                 "r",
             )
@@ -130,7 +142,7 @@ def worst_case_exec_test(
             print(f"{fails_count} benchmark failed, increasing deadline")
             deadline *= 10
     print(f"done, test results:{worst} clock cycles {worst_time} seconds\n")
-    writer.writerow([worst, worst_time])
+    writer.writerow([bmark_name, worst, worst_time])
     worst_file.close()
     return worst_time
 
@@ -138,13 +150,13 @@ def worst_case_exec_test(
 def execute(params):
     """!
     @brief Execute the WCET test on the given benchmarks
-    @param[in,out] params The paramter dictionary provieded by `base.test_init()`.
+    @param[in,out] params The parameter dictionary provieded by `base.test_init()`.
     @details
 
     In case of success, the `params` dictionary will be updated with a new key, `worst_runtimes`, which will contain the list of
     WCETs for the given benchmarks (in the same order of the benchmark list in `params["args"].benchmarks`).
 
-    @returns The updated `params` dictionary with {"res":0} on success, or {"res":-1} on failure.
+    @returns The updated `params` dictionary with `{"res":0}` on success, or `{"res":-1}` on failure.
     """
     args = params.get("args")
     if args is None:
@@ -175,6 +187,7 @@ def execute(params):
             args.prefix,
             args.postfix,
             last_core,
+            sched_params,
         )
         if WCET < 0:
             params.update({"res:": WCET})
