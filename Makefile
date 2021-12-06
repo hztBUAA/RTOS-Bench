@@ -22,6 +22,8 @@ run-cortex: run-cortex-small run-cortex-medium run-cortex-large
 run-vision:
 	make -C ${CURDIR}/vision/ c-run
 
+compile-vision:
+	make -C ${CURDIR}/vision/ compile
 
 compile-cortex:
 	for dir in $(subdirs); do\
