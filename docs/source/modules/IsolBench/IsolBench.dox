@@ -1,0 +1,16 @@
+/**
+* @defgroup IsolBench IsolBench Benchmarks
+* @brief IsolBench is a set of micro-benchmarks that are designed to quantify the quality of isolation of multicore systems.
+*
+* This page contains the [IsolBench Benchmarks](https://github.com/CSL-KU/IsolBench) documentation.
+* The benchmarks are located in the `IsolBench` folder and have been integrated in the exisiting benchmark suite.
+* The documentation covers the changes for each benchmark, these changes are explained in each benchmark module.
+*
+*
+* Accepted and required parameters can vary between benchmarks and are described in details for each benchmark.
+* Each benchmark also provides an help function (`-h` or `--help`) that documents common accepted parameters.
+*
+* Please refer to the README.md file in the `IsolBench` folder, for detailed information.
+*
+* The original version of these benchmarks can be found here: https://github.com/CSL-KU/IsolBench.
+*/
