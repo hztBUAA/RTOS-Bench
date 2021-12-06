@@ -33,6 +33,9 @@
 /// Default output path and filename for timing information.
 #define DEFAULT_OUTPUT_PATH "./timing.csv"
 
+/// Indicates whether to print skipped deadelines with 0s
+#define PRINT_SKIPPED_DEADLINE 0
+
 /// Number of parameters passed to the benchmark.
 static int benchmark_param_num = 0;
 
@@ -251,7 +254,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 				     job_end_timestamp, job_deadline_timestamp);
 
 		}
-
+		#ifdef PRINT_SKIPPED_DEADLINE
 		// or the skipped deadline
 		else {
 			if (last_deadline_timestamp_clocks !=
@@ -263,6 +266,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 					     last_deadline_timestamp);
 			}
 		}
+		#endif /* PRINT_SKIPPED_DEADLINE */
 	}
 	// If a job has ended or we are starting for the first time we need to reset
 	// the reporting variables and unlock the semaphore.
