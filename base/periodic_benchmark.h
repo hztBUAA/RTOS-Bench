@@ -30,13 +30,13 @@ struct execution_options {
 	cpu_set_t core_affinity; ///< The core mask which will be used during the benchmark to set the core affinity. This mask can represent at most 1024, if more are needed the mask should allocated dynamically via `CPU_ALLOC`.
 	unsigned long long tasks_to_launch; ///< Number of tasks to launch before exiting, if 0 the program will run until `SIGINT` is received.
 	/** Sched FIFO period */
-	uint32_t prio;
+	uint32_t prio; ///< Priority of the tasks when using SCHED-FIFO
 	/** MCMG criticality of the task */
-	uint32_t criticality;
+	uint32_t criticality; ///< Criticality associated with the tasks
 	/** Sched Deadline parameters */
-	uint64_t runtime;
-	uint64_t period;
-	uint64_t deadline;
+	uint64_t runtime; ///< Allocated CPU runtime in nano-seconds when using SCHED-DEADLINE
+	uint64_t period; ///< The SCHED_DEADLINE period in nano-seconds
+	uint64_t deadline; ///< The SCHED-DEADLINE deadline in nano-seconds
 };
 
 /**
