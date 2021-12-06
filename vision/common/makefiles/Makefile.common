@@ -17,7 +17,7 @@ endif
 endif
 
 CC=gcc
-override CFLAGS += -DGCC -DCHECK -D$(INPUT)
+override CFLAGS += -DGCC -D$(INPUT) #-DCHECK
 
 BASE_DIR := $(TOP_DIR)/../base
 COMMON_DIR := $(TOP_DIR)/common/c
