@@ -14,7 +14,13 @@
  */
 enum log_level benchmark_verbosity = LOG_LEVEL_INFO;
 
-/** @details
+/** @brief Reports the benchmark timing depending on the chosen logging level.
+ * @param[in] file The file where the timing will be printed if the logging level is set to `::LOG_LEVEL_FILE`.
+ * @param[in] period_start The timestamp when the period started.
+ * @param[in] period_end The timestamp when the period completed.
+ * @param[in] job_end The timestamp  when the job ended.
+ * @param[in] deadline The timestamp of the first deadline since the job started, or the timestamp of the skipped deadline.
+ * @details
  * Depending on the chosen log level (`::benchmark_verbosity` value), the benchmark timing can be either be printed in a human-friendly or in a csv-like format.
  * The job is assumed to start when the period starts.\n
  * The verbose output is associated to `::LOG_LEVEL_TRACE`, while the csv-like format is associated to both `::LOG_LEVEL_INFO` and `::LOG_LEVEL_FILE`.
@@ -119,14 +125,14 @@ void print_timing(FILE *file, unsigned long long period_start_clocks,
 		break;
 	case LOG_LEVEL_FILE:
 		fprintf(file,
-			"%llu,%llu,%llu,%llu,%llu,%.9Lf,%.9Lf,%.9Lf,%.9Lf,%.9Lf,%d,%.3g,%.3g\n",
+			"%llu,%llu,%llu,%llu,%llu,%.9Lf,%.9Lf,%.9Lf,%.9Lf,%.9Lf,%d,%.3g,%.3g",
 			period_start_clocks, period_end_clocks, job_end_clocks,
 			deadline_clocks, elapsed_clocks, period_start,
 			period_end, job_end, deadline, elapsed, deadline_status,
 			u, d);
 		break;
 	case LOG_LEVEL_INFO:
-		printf("%llu,%llu,%llu,%llu,%llu,%.9Lf,%.9Lf,%.9Lf,%.9Lf,%.9Lf,%d,%.3g,%.3g\n",
+		printf("%llu,%llu,%llu,%llu,%llu,%.9Lf,%.9Lf,%.9Lf,%.9Lf,%.9Lf,%d,%.3g,%.3g",
 		       period_start_clocks, period_end_clocks, job_end_clocks,
 		       deadline_clocks, elapsed_clocks, period_start,
 		       period_end, job_end, deadline, elapsed, deadline_status,
@@ -135,4 +141,71 @@ void print_timing(FILE *file, unsigned long long period_start_clocks,
 	case LOG_LEVEL_ERR:
 		break;
 	}
+}
+
+void print_performance_counters(FILE* file, long unsigned l1_ref_start, long unsigned l1_miss_start,
+				long unsigned l2_ref_start, long unsigned l2_miss_start,
+				long unsigned l1_ref_end, long unsigned l1_miss_end,
+				long unsigned l2_ref_end, long unsigned l2_miss_end)
+{
+	long unsigned job_l1_ref = l1_ref_end - l1_ref_start;
+	long unsigned job_l1_miss = l1_miss_end - l1_miss_start;
+	long unsigned job_l2_ref = l2_ref_end - l2_ref_start;
+	long unsigned job_l2_miss = l2_miss_end - l2_miss_start;
+	double job_l1_miss_ratio = ((double)job_l1_miss)/((double)job_l1_ref);
+	double job_l2_miss_ratio = ((double)job_l2_miss)/((double)job_l2_ref);
+	switch (benchmark_verbosity) {
+        case LOG_LEVEL_TRACE:
+		printf("\nLevel 1 Data cache\n");
+		printf("L1-D references/accesses: %lu\n", job_l1_ref);
+		printf("L1-D refills/misses: %lu\n", job_l1_miss);
+		printf("L1-D miss ratio (accesses/misses): %f%%\n", job_l1_miss_ratio);
+                printf("\nLevel 2 Data cache\n");
+                printf("L2 references/accesses: %lu\n", job_l2_ref);
+                printf("L2 refills/misses: %lu\n", job_l2_miss);
+                printf("L2 miss ratio (accesses/misses): %f%%\n", job_l2_miss_ratio);
+                break;
+        case LOG_LEVEL_FILE:
+                fprintf(file,
+                        ",%lu,%lu,%f,%lu,%lu,%f",
+                        job_l1_ref, job_l1_miss, job_l1_miss_ratio,
+			job_l2_ref, job_l2_miss, job_l2_miss_ratio);
+                break;
+        case LOG_LEVEL_INFO:
+		printf(",%lu,%lu,%f,%lu,%lu,%f",
+                       job_l1_ref, job_l1_miss, job_l1_miss_ratio,
+                       job_l2_ref, job_l2_miss, job_l2_miss_ratio);
+                break;
+        case LOG_LEVEL_ERR:
+                break;
+        }
+}
+
+void print_statistics(FILE *file, unsigned long long period_start_clocks,
+			unsigned long long period_end_clocks, unsigned long long job_end_clocks,
+			unsigned long long deadline_clocks, long double period_start,
+			long double period_end, long double job_end,
+			long double deadline, long unsigned l1_ref_start, long unsigned l1_miss_start,
+			long unsigned l2_ref_start, long unsigned l2_miss_start, long unsigned l1_ref_end,
+			long unsigned l1_miss_end, long unsigned l2_ref_end, long unsigned l2_miss_end)
+{
+	print_timing(file, period_start_clocks, period_end_clocks, job_end_clocks, deadline_clocks,
+			period_start, period_end, job_end, deadline);
+	#ifdef AARCH64
+	#ifdef CORTEX_A53
+	print_performance_counters(file, l1_ref_start, l1_miss_start, l2_ref_start, l2_miss_start,
+					l1_ref_end, l1_miss_end, l2_ref_end, l2_miss_end);
+	#endif
+	#endif
+	switch (benchmark_verbosity) {
+        case LOG_LEVEL_FILE:
+                fprintf(file, "\n");
+                break;
+        case LOG_LEVEL_INFO:
+                printf("\n");
+                break;
+	case LOG_LEVEL_TRACE:
+        case LOG_LEVEL_ERR:
+                break;
+        }
 }
