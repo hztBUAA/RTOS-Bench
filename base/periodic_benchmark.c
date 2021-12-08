@@ -7,6 +7,7 @@
  */
 
 #include "periodic_benchmark.h"
+#include "performance_counters.h"
 #include "get_cpu_timestamp.h"
 #include "logging.h"
 #include "memory_watcher.h"
@@ -99,6 +100,12 @@ static long double job_period_start_timestamp = 0;
 /// Number of tasks launched.
 static unsigned long long tasks_launched = 0;
 
+/// Performance counters at the start of the period.
+static struct perf_counters job_perf_counters_start;
+
+/// Performance counters at the end of the period.
+static struct perf_counters job_perf_counters_end;
+
 /**
  * @brief Teardown function registered to be called when exit is called.
  * @param[in] status The exit status.
@@ -138,6 +145,10 @@ static void stop_benchmark(int status, void *arg)
 	}
 	elogf(LOG_LEVEL_TRACE, "Cleaning up job environment\n");
 	benchmark_teardown(benchmark_param_num, benchmark_params);
+	res = teardown_pmcs();
+	if (res < 0) {
+		perror("Error: performance counters file descriptors could not be closed\n");
+	}
 }
 
 /**
@@ -161,7 +172,7 @@ static void quit_handler(int signo, siginfo_t *info, void *context)
  * @details
  * When the deadline timer expires, the current timestamp is saved in
  * `::last_deadline_timestamp`, If this if the first deadline expiration since
- * the period start, the the timestamp values is also copied in
+ * the period start, then the timestamp values is also copied in
  * `::job_deadline_timestamp`.
  * Both `get_rdtsc()` and `get_timestamp()` are used, to be safe in case only one of these methods is working.
  */
@@ -204,7 +215,7 @@ static void deadline_handler(int signo, siginfo_t *info, void *context)
  *
  * Both `get_rdtsc()` and `get_timestamp()` are used, to be safe in case only one of these methods is working.
  *
- * Reporting is done using `print_benchmark_timing()`.
+ * Reporting is done using `print_statistics()`.
  */
 static void period_handler(int signo, siginfo_t *info, void *context)
 {
@@ -245,13 +256,21 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 	    job_period_start_timestamp > 0) {
 		// we report a job completion
 		if (job_end_timestamp_clocks > 0 || job_end_timestamp > 0) {
-			print_timing(filep, job_period_start_timestamp_clocks,
+			print_statistics(filep, job_period_start_timestamp_clocks,
 				     job_period_end_timestamp_clocks,
 				     job_end_timestamp_clocks,
 				     job_deadline_timestamp_clocks,
 				     job_period_start_timestamp,
 				     job_period_end_timestamp,
-				     job_end_timestamp, job_deadline_timestamp);
+				     job_end_timestamp, job_deadline_timestamp,
+				     job_perf_counters_start.l1_references,
+				     job_perf_counters_start.l1_refills,
+				     job_perf_counters_start.l2_references,
+                                     job_perf_counters_start.l2_refills,
+				     job_perf_counters_end.l1_references,
+                                     job_perf_counters_end.l1_refills,
+                                     job_perf_counters_end.l2_references,
+                                     job_perf_counters_end.l2_refills);
 
 		}
 		#ifdef PRINT_SKIPPED_DEADLINE
@@ -260,10 +279,12 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 			if (last_deadline_timestamp_clocks !=
 				    job_deadline_timestamp_clocks ||
 			    last_deadline_timestamp != job_deadline_timestamp) {
-				print_timing(filep, 0, 0, 0,
-					     last_deadline_timestamp_clocks,
-					     0.0, 0.0, 0.0,
-					     last_deadline_timestamp);
+				print_statistics(filep, 0, 0, 0,
+					     	last_deadline_timestamp_clocks,
+					     	0.0, 0.0, 0.0,
+					     	last_deadline_timestamp,
+					     	job_end_timestamp, job_deadline_timestamp,
+					     	0, 0, 0, 0, 0, 0);
 			}
 		}
 		#endif /* PRINT_SKIPPED_DEADLINE */
@@ -283,6 +304,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 		job_period_end_timestamp = 0;
 		job_end_timestamp = 0;
 		job_deadline_timestamp = 0;
+		job_perf_counters_start = pmcs_get_value();
 		// we unlock the semaphore to allow the next job to start
 		res = sem_post(&period_sem);
 		if (res < 0) {
@@ -450,7 +472,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		}
 		filep = fopen(fname, "w+");
 		fprintf(filep,
-			"period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density\n");
+			"period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density,job_l1_references,job_l1_misses,job_l1_miss_ratio,job_l2_references,job_l2_misses,job_l2_miss_ratio\n");
 		if (exec_opts->output_path != NULL) {
 			free(exec_opts->output_path);
 		}
@@ -492,6 +514,11 @@ int periodic_benchmark(struct execution_options *exec_opts)
 
 	if (exec_opts->bytes_to_preallocate > 0) {
 		start_memory_watcher(exec_opts->bytes_to_preallocate);
+	}
+
+	res = setup_pmcs();
+	if (res < 0) {
+		return res;
 	}
 
 	elogf(LOG_LEVEL_TRACE, "Configuring timers...\n");
@@ -540,6 +567,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		benchmark_execution(benchmark_param_num, benchmark_params);
 		job_end_timestamp_clocks = get_rdtsc();
 		job_end_timestamp = get_timestamp();
+		job_perf_counters_end = pmcs_get_value();
 		elogf(LOG_LEVEL_TRACE, "Done task %llu\n", tasks_launched);
 		// we update the number of launched benchmarks
 		tasks_launched++;
