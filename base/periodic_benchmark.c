@@ -304,7 +304,6 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 		job_period_end_timestamp = 0;
 		job_end_timestamp = 0;
 		job_deadline_timestamp = 0;
-		job_perf_counters_start = pmcs_get_value();
 		// we unlock the semaphore to allow the next job to start
 		res = sem_post(&period_sem);
 		if (res < 0) {
@@ -564,10 +563,11 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			return res;
 		}
 		// we start executing the job
+		job_perf_counters_start = pmcs_get_value();
 		benchmark_execution(benchmark_param_num, benchmark_params);
+		job_perf_counters_end = pmcs_get_value();
 		job_end_timestamp_clocks = get_rdtsc();
 		job_end_timestamp = get_timestamp();
-		job_perf_counters_end = pmcs_get_value();
 		elogf(LOG_LEVEL_TRACE, "Done task %llu\n", tasks_launched);
 		// we update the number of launched benchmarks
 		tasks_launched++;
