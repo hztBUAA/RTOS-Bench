@@ -5,15 +5,19 @@
  * @author Denis Hoornaert
  */
 
+#include <stdio.h>
 #include <linux/perf_event.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 #include "performance_counters.h"
+#include "logging.h"
 
 /// System-call number to open performance counter event.
-#if ARCH == AARCH64
+#ifdef AARCH64
 #define __NR_perf_event_open 241
 
 /// Core model specific performance counter event IDs
-#if CORE == CORTEX_A53
+#ifdef CORTEX_A53
 #define        L1_REFERENCES 0x04
 #define           L1_REFILLS 0x03
 #define        L2_REFERENCES 0x16
@@ -24,6 +28,9 @@
 
 /// Indicates which thread/process performance counters to follow.
 #define          this_thread 0
+
+/// Enables monitoring of the task performance events on any cores
+#define             any_core -1
 
 /** @brief Struct holding raw measurement and ID of a performance counter.
  *
@@ -65,17 +72,19 @@ static int l2_refills_fd;
  * @param[in] this_cpu The CPU to which the core is attached.
  * @return The file directory opened, -1 on failures.
  */
-static int open_pmc_fd(unsigned int pmc_type, int group_fd, int this_cpu) {
+static int open_pmc_fd(unsigned int pmc_type, int group_fd)
+{
 	static struct perf_event_attr attr;
 	attr.type = PERF_TYPE_RAW;
 	attr.config = pmc_type;
 	attr.size = sizeof(struct perf_event_attr);
 	attr.read_format = PERF_FORMAT_GROUP|PERF_FORMAT_ID|PERF_FORMAT_TOTAL_TIME_ENABLED|PERF_FORMAT_TOTAL_TIME_RUNNING;
 
-	int fd = syscall(__NR_perf_event_open, &attr, this_thread, this_cpu, group_fd, 0);
+	int fd = syscall(__NR_perf_event_open, &attr, this_thread, any_core, group_fd, 0);
 
-	if (fd == -1)
-		perror("Could not open fd for performance counter %x\n", pmc_type);
+	if (fd == -1) {
+		perror("Could not open fd for performance counter\n");
+	}
 
 	return fd;
 }
@@ -83,7 +92,8 @@ static int open_pmc_fd(unsigned int pmc_type, int group_fd, int this_cpu) {
 /** @brief Enable user-space access to performance counters.
  * @return Group_fd head's pid on sucess, -1 on error.
  */
-int setup_pmcs(void) {
+int setup_pmcs(void)
+{
 	elogf(LOG_LEVEL_TRACE, "Openning performance counters fd\n");
 	l1_references_fd = open_pmc_fd(L1_REFERENCES, -1);
         if (l1_references_fd == -1)
@@ -94,7 +104,7 @@ int setup_pmcs(void) {
 	l2_references_fd = open_pmc_fd(L2_REFERENCES, l1_references_fd);
         if (l2_references_fd == -1)
                 return -1;
-	l2_refills_fd = open_pmc_fd(L2_REFILL, l1_references_fd);
+	l2_refills_fd = open_pmc_fd(L2_REFILLS, l1_references_fd);
         if (l2_refills_fd == -1)
                 return -1;
 	return l1_references_fd;
@@ -106,17 +116,20 @@ int setup_pmcs(void) {
  * @param[in] pmc_type The platform specific ID of the performance counter to close.
  * @return Returns file descriptor status upon closing, return -1 on failures.
  */
-static inline int close_pmc_fd(int fd, unsigned int pmc_type) {
+static inline int close_pmc_fd(int fd)
+{
 	int ret = close(fd);
-	if (ret == -1)
-		perror("Could not close fd for performance counter %x\n", pmc_type);
+	if (ret == -1) {
+		perror("Could not close fd for performance counter\n");
+	}
 	return ret;
 }
 
 /** @brief Close access to performance counters.
  * @return 0 on sucess, -1 on error.
  */
-int teardown_pmcs(void) {
+int teardown_pmcs(void)
+{
 	elogf(LOG_LEVEL_TRACE, "Closing performance counters fd\n");
 	int ret = 0;
 	ret = close_pmc_fd(l1_references_fd);
@@ -137,13 +150,17 @@ int teardown_pmcs(void) {
 /** @brief Read performance counters value.
  * @return struct perf_countrers.
  */
-inline struct perf_counters pmcs_get_value(void) {
+struct perf_counters pmcs_get_value(void)
+{
 	struct read_format measurement;
-	read(l1_refills_fd, &measurement, sizeof(struct read_format));
+	size_t size = read(l1_references_fd, &measurement, sizeof(struct read_format));
+	if (size != sizeof(struct read_format)) {
+		perror("Error: Size reqd from performance counters differ from size expected.");
+	}
 	struct perf_counters res;
-	res.l1_references = measurement.l1_accesses.value;
-	res.l1_refills = measurement.l1_misses.value;
-	res.l2_references = measurement.l2_accesses.value;
-	res.l1_refills = measurement.l1_misses.value;
+	res.l1_references = measurement.l1_references.value;
+	res.l1_refills = measurement.l1_refills.value;
+	res.l2_references = measurement.l2_references.value;
+	res.l2_refills = measurement.l2_refills.value;
 	return res;
 }
