@@ -472,7 +472,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		}
 		filep = fopen(fname, "w+");
 		fprintf(filep,
-			"period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density,job_l1_references,job_l1_misses,job_l1_miss_ratio,job_l2_references,job_l2_misses,job_l2_miss_ratio\n");
+			"period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density,job_l1_references,job_l1_misses,job_l1_miss_ratio(%%),job_l2_references,job_l2_misses,job_l2_miss_ratio(%%)\n");
 		if (exec_opts->output_path != NULL) {
 			free(exec_opts->output_path);
 		}
