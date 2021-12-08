@@ -31,6 +31,6 @@ int teardown_pmcs(void);
 /** @brief Read performance counters value.
  * @return struct perf_countrers.
  */
-inline struct perf_counters pmcs_get_value(void);
+struct perf_counters pmcs_get_value(void);
 
 #endif /* PERFORMANCE_COUNTERS_H */
