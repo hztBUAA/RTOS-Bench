@@ -17,7 +17,7 @@ endif
 endif
 
 CC=gcc
-override CFLAGS += -DGCC -D$(INPUT) #-DCHECK
+override CFLAGS += -DGCC -D$(INPUT) -DAARCH64 -DCORTEX_A53 #-DCHECK
 
 BASE_DIR := $(TOP_DIR)/../base
 COMMON_DIR := $(TOP_DIR)/common/c
@@ -92,6 +92,7 @@ profile: compile-prof
 compile: $(C_SRC)
 	@echo
 	@echo -e "Benchmark\t\t- $(BMARK)"
+	@echo -e "${COMPILE_C}"
 	@$(COMPILE_C) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE) $(C_LIBS)
 
 compile-prof: $(C_SRC)
