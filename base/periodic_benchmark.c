@@ -135,7 +135,7 @@ static void stop_benchmark(int status, void *arg)
 	if (filep_sampler != NULL) {
 		elogf(LOG_LEVEL_TRACE, "Closing performance counter monitoring file\n");
 		res = teardown_perf_sampler();
-        	if (res == 0) {
+        	if (res != 0) {
                 	perror("Error during the closing of the performance sampler thread\n");
         	}
 		res = fclose(filep_sampler);

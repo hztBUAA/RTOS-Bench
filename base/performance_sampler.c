@@ -51,7 +51,7 @@ int setup_perf_sampler(void)
 }
 
 /// Assumes stop has been performed before
-/// Returns 0 on errors
+/// Returns 0 on success
 int teardown_perf_sampler(void)
 {
 	sampling_alive = 0;
