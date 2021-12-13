@@ -8,6 +8,7 @@
 
 #include "periodic_benchmark.h"
 #include "performance_counters.h"
+#include "performance_sampler.h"
 #include "get_cpu_timestamp.h"
 #include "logging.h"
 #include "memory_watcher.h"
@@ -34,6 +35,9 @@
 /// Default output path and filename for timing information.
 #define DEFAULT_OUTPUT_PATH "./timing.csv"
 
+/// Default output path and filename for performance counter runtime monitoring.
+#define DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH "./perf.csv"
+
 /// Indicates whether to print skipped deadelines with 0s
 #define PRINT_SKIPPED_DEADLINE 0
 
@@ -59,8 +63,11 @@ static timer_t period_timer;
 /// The timing interval of a deadline, used to rearm the deadline timer.
 static struct itimerspec deadline_timing;
 
-/// The file pointer to the output file.
+/// The file pointer to the timing output file.
 static FILE *filep = NULL;
+
+/// The file pointer to the pruntime performance counter monitoring file.
+static FILE *filep_sampler = NULL;
 
 /// Semaphore used to determine if a new job can be started.
 static sem_t period_sem;
@@ -123,6 +130,17 @@ static void stop_benchmark(int status, void *arg)
 		res = fclose(filep);
 		if (res == EOF) {
 			perror("Error during output file close");
+		}
+	}
+	if (filep_sampler != NULL) {
+		elogf(LOG_LEVEL_TRACE, "Closing performance counter monitoring file\n");
+		res = teardown_perf_sampler();
+        	if (res == 0) {
+                	perror("Error during the closing of the performance sampler thread\n");
+        	}
+		res = fclose(filep_sampler);
+		if (res == EOF) {
+			perror("Error during the closing of the performance counter monitoring output file\n");
 		}
 	}
 	if (deadline_timer != NULL) {
@@ -271,6 +289,8 @@ static void period_handler(int signo, siginfo_t *info, void *context)
                                      job_perf_counters_end.l1_refills,
                                      job_perf_counters_end.l2_references,
                                      job_perf_counters_end.l2_refills);
+			// if (perf counter monitoring enabled)
+			log_samples(filep_sampler, 0); // TODO: get iteration number
 
 		}
 		#ifdef PRINT_SKIPPED_DEADLINE
@@ -304,6 +324,8 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 		job_period_end_timestamp = 0;
 		job_end_timestamp = 0;
 		job_deadline_timestamp = 0;
+		// if (perf counter monitoring enabled)
+		reset_sampling();
 		// we unlock the semaphore to allow the next job to start
 		res = sem_post(&period_sem);
 		if (res < 0) {
@@ -437,6 +459,12 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	int res;
 
 	elogf(LOG_LEVEL_TRACE, "Starting setup of execution environment\n");
+	// Initialize the performance sampler thread
+	res = setup_perf_sampler();
+	if (res != 0) {
+		perror("Error during the creation of the performance sampler thread\n");
+		return res;
+	}
 	// we initialize the period semaphore to 0, to wait for the period end.
 	res = sem_init(&period_sem, 1, 0);
 	if (res < 0) {
@@ -481,7 +509,10 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		}
 		elogf(LOG_LEVEL_TRACE, "Output file setup complete\n");
 	}
-
+	elogf(LOG_LEVEL_TRACE, "Initializing runtime performance sampling");
+	//if (runtime_perf_sampling_enabled) {
+	filep_sampler = fopen(DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH, "w");
+	//}
 	elogf(LOG_LEVEL_TRACE, "Initializing job environment\n");
 	res = benchmark_init(benchmark_param_num, benchmark_params);
 	if (res < 0) {
@@ -563,9 +594,11 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			return res;
 		}
 		// we start executing the job
+		start_sampling();
 		job_perf_counters_start = pmcs_get_value();
 		benchmark_execution(benchmark_param_num, benchmark_params);
 		job_perf_counters_end = pmcs_get_value();
+		stop_sampling();
 		job_end_timestamp_clocks = get_rdtsc();
 		job_end_timestamp = get_timestamp();
 		elogf(LOG_LEVEL_TRACE, "Done task %llu\n", tasks_launched);
