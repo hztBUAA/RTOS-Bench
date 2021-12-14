@@ -132,6 +132,8 @@ static void stop_benchmark(int status, void *arg)
 			perror("Error during output file close");
 		}
 	}
+	// if (runtime performance counter monitoring enabled) // TODO
+	log_samples(filep_sampler);
 	if (filep_sampler != NULL) {
 		elogf(LOG_LEVEL_TRACE, "Closing performance counter monitoring file\n");
 		res = teardown_perf_sampler();
@@ -289,8 +291,6 @@ static void period_handler(int signo, siginfo_t *info, void *context)
                                      job_perf_counters_end.l1_refills,
                                      job_perf_counters_end.l2_references,
                                      job_perf_counters_end.l2_refills);
-			// if (perf counter monitoring enabled)
-			log_samples(filep_sampler, 0); // TODO: get iteration number
 
 		}
 		#ifdef PRINT_SKIPPED_DEADLINE
@@ -324,8 +324,6 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 		job_period_end_timestamp = 0;
 		job_end_timestamp = 0;
 		job_deadline_timestamp = 0;
-		// if (perf counter monitoring enabled)
-		reset_sampling();
 		// we unlock the semaphore to allow the next job to start
 		res = sem_post(&period_sem);
 		if (res < 0) {
@@ -460,7 +458,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 
 	elogf(LOG_LEVEL_TRACE, "Starting setup of execution environment\n");
 	// Initialize the performance sampler thread
-	res = setup_perf_sampler();
+	res = setup_perf_sampler(exec_opts->tasks_to_launch);
 	if (res != 0) {
 		perror("Error during the creation of the performance sampler thread\n");
 		return res;
