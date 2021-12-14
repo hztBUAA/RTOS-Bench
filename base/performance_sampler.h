@@ -11,7 +11,7 @@ struct sampling_data {
 	long unsigned* samples;
 };
 
-int setup_perf_sampler(void);
+int setup_perf_sampler(unsigned iterations);
 
 /// Assumes stop has been performed before
 /// Returns 0 on errors
@@ -21,8 +21,6 @@ void start_sampling(void);
 
 void stop_sampling(void);
 
-void reset_sampling(void);
-
-void log_samples(FILE* filep, unsigned iteration_number);
+void log_samples(FILE* filep);
 
 #endif /* PERFORMANCE_SAMPLER */

@@ -6,6 +6,14 @@
 #include <time.h>
 
 
+#define NANOSECONDS  (1UL)
+#define MICROSECONDS (1000*NANOSECONDS)
+#define MILLISECONDS (1000*MICROSECONDS)
+#define SECONDS      (1000*MILLISECONDS)
+#define MINUTES      (60*SECONDS)
+
+#define TIME_BUCKET  (10*MILLISECONDS)
+
 static pthread_t sampler_thread;
 
 
@@ -20,29 +28,41 @@ static struct timespec time_bucket;
 static struct timespec rem;
 
 
-static struct sampling_data sampling_data;
+static unsigned long first_l2_refills_sample;
+static unsigned sampling_counter;
+static struct sampling_data* sampling_data;
 
 
 static void* sampling(void* dummy)
 {
 	while (sampling_alive) {
 		if (sampling_active) {
-			sampling_data.len++;
-			sampling_data.samples[sampling_data.len] = pmcs_get_value().l2_refills;
+			if (sampling_data[sampling_counter].len == 0) {
+				first_l2_refills_sample = pmcs_get_value().l2_refills;
+				sampling_data[sampling_counter].samples[sampling_data[sampling_counter].len] = 0;
+			}
+			else {
+				sampling_data[sampling_counter].samples[sampling_data[sampling_counter].len] = pmcs_get_value().l2_refills-first_l2_refills_sample;
+			}
+			sampling_data[sampling_counter].len++;
 		}
 		nanosleep(&time_bucket, &rem);
 	}
 }
 
 
-int setup_perf_sampler(void)
+int setup_perf_sampler(unsigned iterations)
 {
 	sampling_alive = 1;
 	time_bucket.tv_sec = 0;
-	time_bucket.tv_nsec = 10000000;
+	time_bucket.tv_nsec = TIME_BUCKET;
 	// setup sampling struct
-	sampling_data.len = 0;
-	sampling_data.samples = (long unsigned*)malloc(16*MB);
+	sampling_counter = 0;
+	sampling_data = (struct sampling_data*)malloc(iterations*sizeof(struct sampling_data));
+	for (unsigned i = 0; i < iterations; i++) {
+		sampling_data[i].len = 0;
+		sampling_data[i].samples = (long unsigned*)malloc(MINUTES/TIME_BUCKET*sizeof(long unsigned));
+	}
 	// pthread_attr
 	// Start thread
 	int ret = pthread_create(&sampler_thread, NULL, sampling, NULL);
@@ -55,7 +75,11 @@ int setup_perf_sampler(void)
 int teardown_perf_sampler(void)
 {
 	sampling_alive = 0;
-	return pthread_join(sampler_thread, NULL);
+	int res = pthread_join(sampler_thread, NULL);
+	for (unsigned i = 0; i < sampling_counter; i++) {
+		free(sampling_data[i].samples);
+	}
+	return res;
 }
 
 void start_sampling(void)
@@ -66,16 +90,15 @@ void start_sampling(void)
 void stop_sampling(void)
 {
 	sampling_active = 0;
+	sampling_counter++;
 }
 
-void reset_sampling(void)
+void log_samples(FILE* filep)
 {
-	sampling_data.len = 0;
-}
-
-void log_samples(FILE* filep, unsigned iteration_number)
-{
-	for (int i = 0; i < sampling_data.len; i++) {
-		fprintf(filep, "%u, %lu\n", iteration_number, sampling_data.samples[i]);
+	for (unsigned i = 0; i < sampling_counter; i++) {
+		for (int j = 0; j < sampling_data[i].len; j++) {
+			fprintf(filep, "%lu,", sampling_data[i].samples[j]);
+		}
+		fprintf(filep, "\n");
 	}
 }
