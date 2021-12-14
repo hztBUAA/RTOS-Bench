@@ -1,6 +1,9 @@
+#define _GNU_SOURCE
+
 #include "performance_sampler.h"
 #include "performance_counters.h"
 #include <semaphore.h>
+#include <sched.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
@@ -15,7 +18,9 @@
 #define TIME_BUCKET  (10*MILLISECONDS)
 
 static pthread_t sampler_thread;
-
+static pthread_attr_t attr;
+static struct sched_param params;
+static cpu_set_t cpu_set;
 
 static sem_t sampler_sync;
 
@@ -64,9 +69,36 @@ int setup_perf_sampler(unsigned iterations)
 		sampling_data[i].samples = (long unsigned*)malloc(MINUTES/TIME_BUCKET*sizeof(long unsigned));
 	}
 	// pthread_attr
+	int res = pthread_attr_init(&attr);
+	if (res != 0) {
+		return res;
+	}
+	res = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+	if (res != 0) {
+		return res;
+	}
+	res = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+	if (res != 0) {
+		return res;
+	}
+	res = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+	if (res != 0) {
+		return res;
+	}
+	params.sched_priority = 51;
+	res = pthread_attr_setschedparam(&attr, &params);
+	if (res != 0) {
+		return res;
+	}
+	CPU_ZERO(&cpu_set);
+	CPU_SET(2, &cpu_set);
+	res = pthread_attr_setaffinity_np(&attr, sizeof(cpu_set), &cpu_set);
+	if (res != 0) {
+		return res;
+	}
 	// Start thread
-	int ret = pthread_create(&sampler_thread, NULL, sampling, NULL);
-	return ret;
+	res = pthread_create(&sampler_thread, &attr, sampling, NULL);
+	return res;
 
 }
 
