@@ -332,26 +332,14 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		parsed_args->period = strtoull(arg, NULL, 0);
 		break;
 	case 'M':
-		parsed_args->memory_profiling_enable = strtod(arg, NULL);
-		if ((errno != 0) | ((parsed_args->memory_profiling_enable != 0) | (parsed_args->memory_profiling_enable != 1))) {
-			argp_failure(state, EXIT_FAILURE, errno,
-                                     "Error during memory-profiling-enable parsing");
-		}
+		parsed_args->memory_profiling_enable = strtoul(arg, NULL, 0);
 		break;
 	case 'C':
-		memory_profiling_core_affinity = strtod(arg, NULL);
-		if (errno != 0) {
-			argp_failure(state, EXIT_FAILURE, errno,
-				     "Error during memory-profiling-core-affinity parsing");
-		}
+		memory_profiling_core_affinity = strtoul(arg, NULL, 0);
 		CPU_SET(memory_profiling_core_affinity, &parsed_args->memory_profiling_core_affinity);
 		break;
 	case 'B':
 		memory_profiling_time_bucket = strtoul(arg, NULL, 0);
-		if (errno != 0) {
-			argp_failure(state, EXIT_FAILURE, errno,
-				     "Error during memory-profiling-time-bucket parsing");
-		}
 		break;
 	case ARGP_KEY_END:
 		if (parsed_args->deadline_nsec == 0 &&
