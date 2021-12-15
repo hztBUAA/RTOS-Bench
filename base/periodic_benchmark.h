@@ -37,6 +37,10 @@ struct execution_options {
 	uint64_t runtime; ///< Allocated CPU runtime in nano-seconds when using SCHED-DEADLINE
 	uint64_t period; ///< The SCHED_DEADLINE period in nano-seconds
 	uint64_t deadline; ///< The SCHED-DEADLINE deadline in nano-seconds
+	/** Runtime memory profiling parameters */
+	unsigned memory_profiling_enable;
+	cpu_set_t memory_profiling_core_affinity;
+	long unsigned memory_profiling_time_bucket;
 };
 
 /**
