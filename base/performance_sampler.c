@@ -3,7 +3,6 @@
 #include "performance_sampler.h"
 #include "performance_counters.h"
 #include <semaphore.h>
-#include <sched.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
@@ -15,12 +14,10 @@
 #define SECONDS      (1000*MILLISECONDS)
 #define MINUTES      (60*SECONDS)
 
-#define TIME_BUCKET  (10*MILLISECONDS)
 
 static pthread_t sampler_thread;
 static pthread_attr_t attr;
 static struct sched_param params;
-static cpu_set_t cpu_set;
 
 static sem_t sampler_sync;
 
@@ -56,17 +53,17 @@ static void* sampling(void* dummy)
 }
 
 
-int setup_perf_sampler(unsigned iterations)
+int setup_perf_sampler(unsigned iterations, cpu_set_t core_affinity, long unsigned input_time_bucket)
 {
 	sampling_alive = 1;
 	time_bucket.tv_sec = 0;
-	time_bucket.tv_nsec = TIME_BUCKET;
+	time_bucket.tv_nsec = input_time_bucket;
 	// setup sampling struct
 	sampling_counter = 0;
 	sampling_data = (struct sampling_data*)malloc(iterations*sizeof(struct sampling_data));
 	for (unsigned i = 0; i < iterations; i++) {
 		sampling_data[i].len = 0;
-		sampling_data[i].samples = (long unsigned*)malloc(MINUTES/TIME_BUCKET*sizeof(long unsigned));
+		sampling_data[i].samples = (long unsigned*)malloc(MINUTES/input_time_bucket*sizeof(long unsigned));
 	}
 	// pthread_attr
 	int res = pthread_attr_init(&attr);
@@ -90,11 +87,12 @@ int setup_perf_sampler(unsigned iterations)
 	if (res != 0) {
 		return res;
 	}
-	CPU_ZERO(&cpu_set);
-	CPU_SET(2, &cpu_set);
-	res = pthread_attr_setaffinity_np(&attr, sizeof(cpu_set), &cpu_set);
-	if (res != 0) {
-		return res;
+	// If no core specified (i.e., core affinity == 0), then inherit from parent thread (i.e., skip setaffinity)
+	if (CPU_COUNT(&core_affinity) > 0) {
+		res = pthread_attr_setaffinity_np(&attr, sizeof(core_affinity), &core_affinity);
+		if (res != 0) {
+			return res;
+		}
 	}
 	// Start thread
 	res = pthread_create(&sampler_thread, &attr, sampling, NULL);
