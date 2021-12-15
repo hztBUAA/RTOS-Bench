@@ -133,6 +133,8 @@ static void stop_benchmark(int status, void *arg)
 			perror("Error during output file close");
 		}
 	}
+	#ifdef AARCH64
+        #ifdef CORTEX_A53
 	if (*memory_profiling_enable) {
 		log_samples(filep_sampler);
 		if (filep_sampler != NULL) {
@@ -147,6 +149,8 @@ static void stop_benchmark(int status, void *arg)
 			}
 		}
 	}
+	#endif
+	#endif
 	if (deadline_timer != NULL) {
 		elogf(LOG_LEVEL_TRACE, "Deleting deadline timer\n");
 		res = timer_delete(deadline_timer);
@@ -458,6 +462,8 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	// status variables
 	int res;
 
+	#ifdef AARCH64
+	#ifdef CORTEX_A53
 	// Initialize the performance sampler thread
         if (exec_opts->memory_profiling_enable) {
         	elogf(LOG_LEVEL_TRACE, "Initializing runtime performance sampling");
@@ -468,6 +474,8 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			return res;
 		}
 	}
+	#endif
+	#endif
 	elogf(LOG_LEVEL_TRACE, "Starting setup of execution environment\n");
 	// we initialize the period semaphore to 0, to wait for the period end.
 	res = sem_init(&period_sem, 1, 0);
@@ -594,11 +602,23 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			return res;
 		}
 		// we start executing the job
-		start_sampling();
+		#ifdef AARCH64
+        	#ifdef CORTEX_A53
+		if (exec_opts->memory_profiling_enable) {
+			start_sampling();
+		}
 		job_perf_counters_start = pmcs_get_value();
+		#endif
+		#endif
 		benchmark_execution(benchmark_param_num, benchmark_params);
+		#ifdef AARCH64
+        	#ifdef CORTEX_A53
 		job_perf_counters_end = pmcs_get_value();
-		stop_sampling();
+		if (exec_opts->memory_profiling_enable) {
+			stop_sampling();
+		}
+		#endif
+		#endif
 		job_end_timestamp_clocks = get_rdtsc();
 		job_end_timestamp = get_timestamp();
 		elogf(LOG_LEVEL_TRACE, "Done task %llu\n", tasks_launched);
