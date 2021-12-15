@@ -69,7 +69,8 @@ void print_statistics(FILE *file, unsigned long long period_start_clocks,
                         unsigned long long deadline_clocks, long double period_start,
                         long double period_end, long double job_end,
                         long double deadline, long unsigned l1_ref_start, long unsigned l1_miss_start,
-                        long unsigned l2_ref_start, long unsigned l2_miss_start, long unsigned l1_ref_end,
-                        long unsigned l1_miss_end, long unsigned l2_ref_end, long unsigned l2_miss_end);
+                        long unsigned l2_ref_start, long unsigned l2_miss_start, long unsigned inst_retired_start,
+			long unsigned l1_ref_end, long unsigned l1_miss_end, long unsigned l2_ref_end,
+			long unsigned l2_miss_end, long unsigned inst_retired_end);
 
 #endif

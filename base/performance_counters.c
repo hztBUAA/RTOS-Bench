@@ -22,6 +22,7 @@
 #define           L1_REFILLS 0x03
 #define        L2_REFERENCES 0x16
 #define           L2_REFILLS 0x17
+#define         INST_RETIRED 0x08
 
 #endif
 #endif
@@ -51,6 +52,7 @@ struct read_format {
         struct event l1_refills;
         struct event l2_references;
         struct event l2_refills;
+	struct event inst_retired;
 };
 
 /// File descriptor for L1-D references (also, group-fd head)
@@ -62,8 +64,11 @@ static int l1_refills_fd;
 /// File descriptor for L2 references
 static int l2_references_fd;
 
-// File descriptor for L2 misses
+/// File descriptor for L2 misses
 static int l2_refills_fd;
+
+/// File descriptor for instruction retired
+static int inst_retired_fd;
 
 /**
  * @brief Open a file descriptor for the performance counter specified.
@@ -107,6 +112,9 @@ int setup_pmcs(void)
 	l2_refills_fd = open_pmc_fd(L2_REFILLS, l1_references_fd);
         if (l2_refills_fd == -1)
                 return -1;
+	inst_retired_fd = open_pmc_fd(INST_RETIRED, l1_references_fd);
+	if (inst_retired_fd == -1)
+		return -1;
 	return l1_references_fd;
 }
 
@@ -144,6 +152,9 @@ int teardown_pmcs(void)
 	ret = close_pmc_fd(l2_refills_fd);
         if (ret == -1)
                 return ret;
+	ret = close_pmc_fd(inst_retired_fd);
+	if (ret == -1)
+		return ret;
 	return 0;
 }
 
@@ -162,5 +173,6 @@ struct perf_counters pmcs_get_value(void)
 	res.l1_refills = measurement.l1_refills.value;
 	res.l2_references = measurement.l2_references.value;
 	res.l2_refills = measurement.l2_refills.value;
+	res.inst_retired = measurement.inst_retired.value;
 	return res;
 }
