@@ -123,6 +123,7 @@ static struct perf_counters job_perf_counters_end;
 static void stop_benchmark(int status, void *arg)
 {
 	int res;
+	unsigned* memory_profiling_enable = (unsigned*)arg;
 	// we stop the memory watcher
 	stop_memory_watcher();
 	if (filep != NULL) {
@@ -132,17 +133,18 @@ static void stop_benchmark(int status, void *arg)
 			perror("Error during output file close");
 		}
 	}
-	// if (runtime performance counter monitoring enabled) // TODO
-	log_samples(filep_sampler);
-	if (filep_sampler != NULL) {
-		elogf(LOG_LEVEL_TRACE, "Closing performance counter monitoring file\n");
-		res = teardown_perf_sampler();
-        	if (res != 0) {
-                	perror("Error during the closing of the performance sampler thread\n");
-        	}
-		res = fclose(filep_sampler);
-		if (res == EOF) {
-			perror("Error during the closing of the performance counter monitoring output file\n");
+	if (*memory_profiling_enable) {
+		log_samples(filep_sampler);
+		if (filep_sampler != NULL) {
+			elogf(LOG_LEVEL_TRACE, "Closing performance counter monitoring file\n");
+			res = teardown_perf_sampler();
+	        	if (res != 0) {
+        	        	perror("Error during the closing of the performance sampler thread\n");
+        		}
+			res = fclose(filep_sampler);
+			if (res == EOF) {
+				perror("Error during the closing of the performance counter monitoring output file\n");
+			}
 		}
 	}
 	if (deadline_timer != NULL) {
@@ -473,7 +475,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		perror("Error during deadline semaphore initialization");
 		return res;
 	}
-	res = on_exit(stop_benchmark, NULL);
+	res = on_exit(stop_benchmark, (void*)&(exec_opts->memory_profiling_enable));
 	if (res != 0) {
 		elogf(LOG_LEVEL_ERR,
 		      "Error during on_exit function registration");
