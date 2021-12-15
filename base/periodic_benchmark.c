@@ -456,13 +456,17 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	// status variables
 	int res;
 
-	elogf(LOG_LEVEL_TRACE, "Starting setup of execution environment\n");
 	// Initialize the performance sampler thread
-	res = setup_perf_sampler(exec_opts->tasks_to_launch);
-	if (res != 0) {
-		perror("Error during the creation of the performance sampler thread\n");
-		return res;
+        if (exec_opts->memory_profiling_enable) {
+        	elogf(LOG_LEVEL_TRACE, "Initializing runtime performance sampling");
+	        filep_sampler = fopen(DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH, "w");
+		res = setup_perf_sampler(exec_opts->tasks_to_launch, exec_opts->memory_profiling_core_affinity, exec_opts->memory_profiling_time_bucket);
+		if (res != 0) {
+			perror("Error during the creation of the performance sampler thread\n");
+			return res;
+		}
 	}
+	elogf(LOG_LEVEL_TRACE, "Starting setup of execution environment\n");
 	// we initialize the period semaphore to 0, to wait for the period end.
 	res = sem_init(&period_sem, 1, 0);
 	if (res < 0) {
@@ -507,10 +511,6 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		}
 		elogf(LOG_LEVEL_TRACE, "Output file setup complete\n");
 	}
-	elogf(LOG_LEVEL_TRACE, "Initializing runtime performance sampling");
-	//if (runtime_perf_sampling_enabled) {
-	filep_sampler = fopen(DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH, "w");
-	//}
 	elogf(LOG_LEVEL_TRACE, "Initializing job environment\n");
 	res = benchmark_init(benchmark_param_num, benchmark_params);
 	if (res < 0) {
