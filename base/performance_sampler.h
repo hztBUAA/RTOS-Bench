@@ -1,6 +1,7 @@
 #ifndef PERFORMANCE_SAMPLER_H
 #define PERFORMACE_SAMPLER_H
 
+#include <sched.h>
 #include <stdio.h>
 
 #define KB 1024
@@ -11,7 +12,7 @@ struct sampling_data {
 	long unsigned* samples;
 };
 
-int setup_perf_sampler(unsigned iterations);
+int setup_perf_sampler(unsigned iterations, cpu_set_t core_affinity, long unsigned time_bucket);
 
 /// Assumes stop has been performed before
 /// Returns 0 on errors
