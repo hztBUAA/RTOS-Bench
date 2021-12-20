@@ -3,5 +3,5 @@
 * @ingroup IsolBench
 * @brief Bandwidth benchmark.
 *
-* Modified files for the bandwidth benchmark, located in `IsolBench/bench`.
+* Modified files for the bandwidth benchmark, located in `IsolBench`.
 */
