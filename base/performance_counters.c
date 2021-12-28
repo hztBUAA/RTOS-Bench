@@ -24,6 +24,13 @@
 #define           L2_REFILLS 0x17
 #define         INST_RETIRED 0x08
 
+#else
+#define        L1_REFERENCES 0x0
+#define           L1_REFILLS 0x0
+#define        L2_REFERENCES 0x0
+#define           L2_REFILLS 0x0
+#define         INST_RETIRED 0x0
+
 #endif
 #endif
 
@@ -84,6 +91,10 @@ static int open_pmc_fd(unsigned int pmc_type, int group_fd)
 	attr.config = pmc_type;
 	attr.size = sizeof(struct perf_event_attr);
 	attr.read_format = PERF_FORMAT_GROUP|PERF_FORMAT_ID|PERF_FORMAT_TOTAL_TIME_ENABLED|PERF_FORMAT_TOTAL_TIME_RUNNING;
+	attr.disabled = 0;
+	attr.exclude_kernel = 1;
+	attr.exclude_hv = 1;
+	printf("PMC attr (disabled, exclude_kernel, exclude_hv): (%u, %u, %u)\n", attr.disabled, attr.exclude_kernel, attr.exclude_hv);
 
 	int fd = syscall(__NR_perf_event_open, &attr, this_thread, any_core, group_fd, 0);
 
