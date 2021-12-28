@@ -32,6 +32,7 @@ static struct timespec rem;
 
 static unsigned long first_l2_refills_sample;
 static unsigned sampling_counter;
+static unsigned expected_samples;
 static struct sampling_data* sampling_data;
 
 
@@ -55,6 +56,7 @@ static void* sampling(void* dummy)
 
 int setup_perf_sampler(unsigned iterations, cpu_set_t core_affinity, long unsigned input_time_bucket)
 {
+	expected_samples = iterations;
 	sampling_alive = 1;
 	time_bucket.tv_sec = 0;
 	time_bucket.tv_nsec = input_time_bucket;
@@ -63,7 +65,7 @@ int setup_perf_sampler(unsigned iterations, cpu_set_t core_affinity, long unsign
 	sampling_data = (struct sampling_data*)malloc(iterations*sizeof(struct sampling_data));
 	for (unsigned i = 0; i < iterations; i++) {
 		sampling_data[i].len = 0;
-		sampling_data[i].samples = (long unsigned*)malloc(MINUTES/input_time_bucket*sizeof(long unsigned));
+		sampling_data[i].samples = (long unsigned*)malloc(5*SECONDS/input_time_bucket*sizeof(long unsigned));
 	}
 	// pthread_attr
 	int res = pthread_attr_init(&attr);
@@ -106,9 +108,10 @@ int teardown_perf_sampler(void)
 {
 	sampling_alive = 0;
 	int res = pthread_join(sampler_thread, NULL);
-	for (unsigned i = 0; i < sampling_counter; i++) {
+	for (unsigned i = 0; i < expected_samples; i++) {
 		free(sampling_data[i].samples);
 	}
+	free(sampling_data);
 	return res;
 }
 
@@ -125,7 +128,7 @@ void stop_sampling(void)
 
 void log_samples(FILE* filep)
 {
-	for (unsigned i = 0; i < sampling_counter; i++) {
+	for (unsigned i = 0; i < expected_samples; i++) {
 		for (int j = 0; j < sampling_data[i].len; j++) {
 			fprintf(filep, "%lu,", sampling_data[i].samples[j]);
 		}
