@@ -123,7 +123,6 @@ static struct perf_counters job_perf_counters_end;
 static void stop_benchmark(int status, void *arg)
 {
 	int res;
-	unsigned* memory_profiling_enable = (unsigned*)arg;
 	// we stop the memory watcher
 	stop_memory_watcher();
 	if (filep != NULL) {
@@ -135,17 +134,20 @@ static void stop_benchmark(int status, void *arg)
 	}
 	#ifdef AARCH64
         #ifdef CORTEX_A53
-	if (*memory_profiling_enable) {
-		log_samples(filep_sampler);
-		if (filep_sampler != NULL) {
-			elogf(LOG_LEVEL_TRACE, "Closing performance counter monitoring file\n");
-			res = teardown_perf_sampler();
-	        	if (res != 0) {
-        	        	perror("Error during the closing of the performance sampler thread\n");
-        		}
-			res = fclose(filep_sampler);
-			if (res == EOF) {
-				perror("Error during the closing of the performance counter monitoring output file\n");
+	if (arg != NULL) {
+		unsigned* memory_profiling_enable = (unsigned*)arg;
+		if (*memory_profiling_enable) {
+			log_samples(filep_sampler);
+			if (filep_sampler != NULL) {
+				elogf(LOG_LEVEL_TRACE, "Closing performance counter monitoring file\n");
+				res = teardown_perf_sampler();
+	        		if (res != 0) {
+        	        		perror("Error during the closing of the performance sampler thread\n");
+        			}
+				res = fclose(filep_sampler);
+				if (res == EOF) {
+					perror("Error during the closing of the performance counter monitoring output file\n");
+				}
 			}
 		}
 	}
@@ -468,7 +470,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	#ifdef CORTEX_A53
 	// Initialize the performance sampler thread
         if (exec_opts->memory_profiling_enable) {
-        	elogf(LOG_LEVEL_TRACE, "Initializing runtime performance sampling");
+        	elogf(LOG_LEVEL_TRACE, "Initializing runtime performance sampling\n");
 	        filep_sampler = fopen(DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH, "w");
 		res = setup_perf_sampler(exec_opts->tasks_to_launch, exec_opts->memory_profiling_core_affinity, exec_opts->memory_profiling_time_bucket);
 		if (res != 0) {
@@ -485,7 +487,15 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		perror("Error during deadline semaphore initialization");
 		return res;
 	}
+	#ifdef AARCH64
+        #ifdef CORTEX_A53
 	res = on_exit(stop_benchmark, (void*)&(exec_opts->memory_profiling_enable));
+	#elif
+	res = on_exit(stop_benchmark, NULL);
+	#endif
+	#elif
+	res = on_exit(stop_benchmark, NULL);
+        #endif
 	if (res != 0) {
 		elogf(LOG_LEVEL_ERR,
 		      "Error during on_exit function registration");
