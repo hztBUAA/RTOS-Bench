@@ -46,6 +46,7 @@
 // Libraries used by rt-bench
 #include "logging.h"
 #include "periodic_benchmark.h"
+#include <string.h>
 
 /**************************************************************************
  * Public Definitions
@@ -70,12 +71,12 @@ int *g_mem_ptr = 0; /* pointer to allocated memory region */
 
 volatile uint64_t g_nread = 0; /* number of bytes read */
 volatile unsigned int g_start; /* starting time */
-int cpuid = 0;
 /// Memory access type
 int acc_type = READ;
 /// Number of iterations
-int iterations = 0;
-
+int iterations = 5;
+/// Log file for the benchmark output.
+FILE *bmark_output = NULL;
 /**************************************************************************
  * Public Functions
  **************************************************************************/
@@ -85,17 +86,19 @@ unsigned int get_usecs() {
   return (time.tv_sec * 1000000 + time.tv_usec);
 }
 
-void quit(int param) {
+void print_bandwidth(int param) {
   float dur_in_sec;
   float bw;
   float dur = get_usecs() - g_start;
   dur_in_sec = (float)dur / 1000000;
-  printf("g_nread(bytes read) = %lld\n", (long long)g_nread);
-  printf("elapsed = %.2f sec ( %.0f usec )\n", dur_in_sec, dur);
+  flogf(LOG_LEVEL_FILE, bmark_output, "g_nread(bytes read) = %lld\n",
+        (long long)g_nread);
+  flogf(LOG_LEVEL_FILE, bmark_output, "elapsed = %.2f sec ( %.0f usec )\n",
+        dur_in_sec, dur);
   bw = (float)g_nread / dur_in_sec / 1024 / 1024;
-  printf("CPU%d: B/W = %.2f MB/s | ", cpuid, bw);
-  printf("CPU%d: average = %.2f ns\n", cpuid,
-         (dur * 1000) / (g_nread / CACHE_LINE_SIZE));
+  flogf(LOG_LEVEL_FILE, bmark_output, "B/W = %.2f MB/s | ", bw);
+  flogf(LOG_LEVEL_FILE, bmark_output, "average = %.2f ns\n\n",
+        (dur * 1000) / (g_nread / CACHE_LINE_SIZE));
 }
 
 int64_t bench_read() {
@@ -121,11 +124,10 @@ void usage(int argc, char *argv[]) {
   printf("Usage: $ %s [<option>]*\n\n", argv[0]);
   printf("-m: memory size in KB. deafult=8192\n");
   printf("-a: access type - read, write. default=read\n");
-  printf("-t: time to run in sec. 0 means indefinite. default=5. \n");
-  printf("-i: iterations. 0 means intefinite. default=0\n");
+  printf("-i: iterations. default=5\n");
   printf("-h: help\n");
-  printf("\nExamples: \n$ bandwidth -m 8192 -a read -t 1  <- 8MB read "
-         "for 1 second\n");
+  printf("\nExamples: \n$ bandwidth -m 8192 -a read -i 1  <- 8MB read "
+         ",1 one iteration.\n");
   exit(1);
 }
 
@@ -135,23 +137,23 @@ void usage(int argc, char *argv[]) {
  * @param[in] parameters The list of passed parameters.
  * @details
  * The required parameters array is documented in `usage()`, and can be brought
- * up by havin "-h" in `parameters`.
+ * up by having "-h" in `parameters`.
  * @returns `0` on success, `-1` on error, setting errno.
  */
 int benchmark_init(int parameters_num, void **parameters) {
-  unsigned finish = 5;
-  int prio = 0;
-  int num_processors;
   int opt;
-  cpu_set_t cmask;
   int i;
-  struct sched_param param;
 
   /*
    * get command line options
    */
-  while ((opt = getopt(parameters_num, (char *const *)parameters,
-                       "m:a:t:i:h")) != -1) {
+  // adjust parameters list to have a dummy argument at position 0 (to fool
+  // getopt)
+  int opt_num = parameters_num + 1;
+  char **opts = malloc(sizeof(char *) * opt_num);
+  opts[0] = "bandwidth";
+  memcpy(opts + 1, parameters, sizeof(char *) * parameters_num);
+  while ((opt = getopt(opt_num, opts, "m:a:t:i:h")) != -1) {
     switch (opt) {
     case 'm': /* set memory size */
       g_mem_size = 1024 * strtol(optarg, NULL, 0);
@@ -161,21 +163,24 @@ int benchmark_init(int parameters_num, void **parameters) {
         acc_type = READ;
       else if (!strcmp(optarg, "write"))
         acc_type = WRITE;
-      else
-        exit(1);
-      break;
-    case 't': /* set time in secs to run */
-      finish = strtol(optarg, NULL, 0);
+      else {
+        errno = EINVAL;
+        return -1;
+      }
       break;
     case 'i': /* iterations */
       iterations = strtol(optarg, NULL, 0);
       break;
     case 'h':
-      usage(parameters_num, (char **)parameters);
+      usage(opt_num, opts);
+      return 0;
       break;
     }
   }
-
+  bmark_output = open_log_file("bandwidth.log");
+  if (bmark_output == NULL) {
+    return -1;
+  }
   /*
    * allocate contiguous region of memory
    */
@@ -187,16 +192,11 @@ int benchmark_init(int parameters_num, void **parameters) {
     g_mem_ptr[i] = i;
 
   /* print experiment info before starting */
-  printf("memsize=%d KB, type=%s, cpuid=%d\n", g_mem_size / 1024,
-         ((acc_type == READ) ? "read" : "write"), cpuid);
-  printf("stop at %d\n", finish);
+  flogf(LOG_LEVEL_FILE, bmark_output, "memsize=%d KB, type=%s\n",
+        g_mem_size / 1024, ((acc_type == READ) ? "read" : "write"));
+  flogf(LOG_LEVEL_FILE, bmark_output, "stop at %d iterations\n", iterations);
 
-  /* set signals to terminate once time has been reached */
-  signal(SIGINT, &quit);
-  if (finish > 0) {
-    signal(SIGALRM, &quit);
-    alarm(finish);
-  }
+  return 0;
 }
 
 /**
@@ -227,8 +227,8 @@ void benchmark_execution(int parameters_num, void **parameters) {
     if (iterations > 0 && i + 1 >= iterations)
       break;
   }
-  printf("total sum = %ld\n", (long)sum);
-  quit(0);
+  flogf(LOG_LEVEL_FILE, bmark_output, "total sum = %ld\n", (long)sum);
+  print_bandwidth(0);
 }
 
 /**
@@ -239,5 +239,6 @@ void benchmark_execution(int parameters_num, void **parameters) {
  * @details It will free `::g_mem_ptr`.
  */
 void benchmark_teardown(int parameters_num, void **parameters) {
+  close_log_file(bmark_output);
   free(g_mem_ptr);
 }

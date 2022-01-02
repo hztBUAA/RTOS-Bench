@@ -41,6 +41,7 @@
 // Libraries used by rt-bench
 #include "logging.h"
 #include "periodic_benchmark.h"
+#include <string.h>
 /**************************************************************************
  * Public Definitions
  **************************************************************************/
@@ -77,7 +78,8 @@ struct timespec start, end;
 int repeat = DEFAULT_ITER;
 /// Working set size
 int workingset_size = 1024;
-
+/// Output log file
+FILE *bmark_output = NULL;
 /**************************************************************************
  * Public Function Prototypes
  **************************************************************************/
@@ -96,7 +98,7 @@ uint64_t get_elapsed(struct timespec *start, struct timespec *end) {
 void usage(int argc, char *argv[]) {
   printf("Usage: $ %s [<option>]*\n\n", argv[0]);
   printf("-m: memory size in KB. deafult=%d\n", DEFAULT_ALLOC_SIZE_KB);
-  printf("-s: turn on he serial access mode\n");
+  printf("-s: turn on the serial access mode\n");
   printf("-i: iterations. default=%d\n", DEFAULT_ITER);
   printf("-h: help\n");
   exit(1);
@@ -118,7 +120,14 @@ int benchmark_init(int parameters_num, void **parameters) {
   /*
    * get command line options
    */
-  while ((opt = getopt(parameters_num, (char **)parameters, "m:si:h")) != -1) {
+  // adjust parameters list to have a dummy argument at position 0 (to fool
+  // getopt)
+  int opt_num = parameters_num + 1;
+  char **opts = malloc(sizeof(char *) * opt_num);
+  opts[0] = "latency";
+  memcpy(opts + 1, parameters, sizeof(char *) * parameters_num);
+  while ((opt = getopt(opt_num, opts, "m:si:h")) != -1) {
+    printf("opt:%d\n", opt);
     switch (opt) {
     case 'm': /* set memory size */
       g_mem_size = 1024 * strtol(optarg, NULL, 0);
@@ -128,14 +137,18 @@ int benchmark_init(int parameters_num, void **parameters) {
       break;
     case 'i': /* iterations */
       repeat = strtol(optarg, NULL, 0);
-      fprintf(stderr, "repeat=%d\n", repeat);
       break;
     case 'h':
-      usage(parameters_num, (char **)parameters);
+      usage(opt_num, opts);
       break;
     }
   }
-
+  bmark_output = open_log_file("latency.log");
+  if (bmark_output == NULL) {
+    return -1;
+  }
+  flogf(LOG_LEVEL_FILE, bmark_output, "repeat=%d\n", repeat);
+  free(opts);
   workingset_size = g_mem_size / CACHE_LINE_SIZE;
   srand(0);
   INIT_LIST_HEAD(&head);
@@ -149,7 +162,8 @@ int benchmark_init(int parameters_num, void **parameters) {
     INIT_LIST_HEAD(&list[i].list);
     // printf("%d 0x%x\n", list[i].data, &list[i].data);
   }
-  printf("allocated: wokingsetsize=%d entries\n", workingset_size);
+  flogf(LOG_LEVEL_FILE, bmark_output, "allocated: wokingsetsize=%d entries\n",
+        workingset_size);
 
   /* initialize */
 
@@ -169,7 +183,7 @@ int benchmark_init(int parameters_num, void **parameters) {
     list_add(&list[perm[i]].list, &head);
     // printf("%d\n", perm[i]);
   }
-  fprintf(stderr, "initialized.\n");
+  elogf(LOG_LEVEL_TRACE, "initialized.\n");
   return 0;
 }
 
@@ -204,10 +218,13 @@ void benchmark_execution(int parameters_num, void **parameters) {
 
   nsdiff = get_elapsed(&start, &end);
   avglat = (double)nsdiff / workingset_size / repeat;
-  printf("duration %.0f us\naverage %.2f ns | ", (double)nsdiff / 1000, avglat);
-  printf("bandwidth %.2f MB (%.2f MiB)/s\n", (double)64 * 1000 / avglat,
-         (double)64 * 1000000000 / avglat / 1024 / 1024);
-  printf("readsum  %lld\n", (unsigned long long)readsum);
+  flogf(LOG_LEVEL_FILE, bmark_output, "duration %.0f us\naverage %.2f ns | ",
+        (double)nsdiff / 1000, avglat);
+  flogf(LOG_LEVEL_FILE, bmark_output, "bandwidth %.2f MB (%.2f MiB)/s\n",
+        (double)64 * 1000 / avglat,
+        (double)64 * 1000000000 / avglat / 1024 / 1024);
+  flogf(LOG_LEVEL_FILE, bmark_output, "readsum  %lld\n\n",
+        (unsigned long long)readsum);
 }
 
 /**
@@ -217,4 +234,7 @@ void benchmark_execution(int parameters_num, void **parameters) {
  * @param[in] parameters Ignored.
  * @details It will free `::list`.
  */
-void benchmark_teardown(int parameters_num, void **parameters) { free(list); }
+void benchmark_teardown(int parameters_num, void **parameters) {
+  close_log_file(bmark_output);
+  free(list);
+}

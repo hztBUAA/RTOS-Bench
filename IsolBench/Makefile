@@ -1,17 +1,15 @@
 CC=gcc
-CXX=g++
 PGMS=latency bandwidth
-BASE_DIR=../base
-BASE_SRC := $(wildcard $(BASE_DIR)/*.c)
-BASE_O := $(wildcard $(BASE_DIR)/*.o)
-CFLAGS=-O2 -Wall -g -I$(BASE_DIR)
+BASE_SRC=$(wildcard ../base/*.c)
+BASE_O=$(patsubst %.c,%.o,$(BASE_SRC))
+CFLAGS=-O2 -Wall -g -I../base -DGCC
 CXXFLAGS=$(CFLAGS)
-LDFLAGS=-Wl,--no-as-needed -lrt
+LDFLAGS=-Wl,--no-as-needed -lrt -lm -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap
 
-all:base $(PGMS)
-latency:base latency.o
-bandwidth:base bandwidth.o
-base: $(BASE_SRC)
-	$(CC) $(CFLAGS) $(LDFLAGS) $< -o $@
+
+all: $(PGMS)
+latency:latency.o $(BASE_O)
+bandwidth: bandwidth.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $< $(BASE_SRC) -o $@
 clean:
-	rm *.o *~ $(PGMS) $(BASE_O)
+	rm *.o $(PGMS) $(BASE_O)
