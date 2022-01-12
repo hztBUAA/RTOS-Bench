@@ -5,4 +5,4 @@ rt-bench is a collection of popular benchmarks for real-time applications which 
 
 Documentation can be built and consulted by following [these](docs/source/2-Documentation_rules.markdown) instructions.
 
-Online documentation is available [here](https://rntmancuso.github.io/rt-bench/).
+Online documentation is available [here](https://bastoni.gitlab.io/rt-bench).
