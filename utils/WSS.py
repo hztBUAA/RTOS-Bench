@@ -21,6 +21,7 @@ import csv
 import subprocess
 import os
 import base
+import graph
 
 
 def execute(params):
@@ -28,6 +29,7 @@ def execute(params):
     @brief Execute the working set size test on the given benchmarks.
     @param[in,out] params Parameters dictionary provided by `base.test_init()`.
     @details Will call `wss_test()` for each element of `params.args.benchmarks`.
+    A graph of the test will be produced in each output folder in both png and svg formats.
     @returns The updated `params` dictionary with {"res":0} on success, or {"res":-1} on failure.
     """
     args = params.get("args")
@@ -45,6 +47,8 @@ def execute(params):
         print("ERROR: Missing corelist to execute the wss test!")
         params.update({"res": -1})
         return params
+    bmark_wss = []
+    bmarks = []
     for i in range(0, len(args.benchmarks)):
         res = wss_test(
             args.benchmarks[i][0],
@@ -59,7 +63,36 @@ def execute(params):
         if res < 0:
             break
         else:
+            bmark_wss.append(res)
+            bmarks.append(
+                os.path.basename(args.benchmarks[i][0])
+                + " - "
+                + os.path.basename(args.benchmarks[i][1][0])
+            )
             res = 0
+    WSS_graph = graph.bar(
+        bmark_wss,
+        bmarks,
+        "Minimum working set size (MB)",
+        "Working set size"
+        if len(args.interfering) == 0
+        else "Working set size with interference",
+    )
+    for output in args.output:
+        graph.export_graph(
+            WSS_graph,
+            os.path.join(
+                output,
+                args.prefix
+                + os.path.basename(
+                    args.benchmarks[i][0] + "_WSS"
+                    if len(args.interfering) == 0
+                    else "_WSS_inter"
+                )
+                + args.postfix,
+            ),
+        )
+    graph.teardown()
     params.update({"res": res})
     return params
 
@@ -75,7 +108,7 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
     @param[in] postfix The generated file postfix.
     @param[in] core Physical core on which the test will be executed.
     @param[in] sched_params Scheduling attributes.
-    @details The function will run a number of tests, specified in `params` constraining the benchmark available memory to 1MB.
+    @details The function will run a number of tests, specified in `params` constraining the benchmark available memory to 1KB.
     If all the test succeed the available memory limit will be halved. Otherwise the memory limit will be doubled.
     The execution will stop when the smallest amount of memory to run a benchmark is determined.
 
@@ -83,7 +116,7 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
 
     @returns the minimum wss, failures in the benchmark execution treated as a wrong wss size.
     """
-    current_wss = 2 ** 20
+    current_wss = 1 ** 10
     last_wss = 0
     failed_tests = 0
     bmark_name = os.path.basename(bmark)
@@ -129,7 +162,7 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
         writer = csv.writer(file)
         writer.writerow(["benchmark", "minimum wss (bytes)"])
         writer.writerow([bmark_name, current_wss])
-    return current_wss
+    return current_wss // (1 ** 20)
 
 
 if __name__ == "__main__":

@@ -12,14 +12,11 @@ from matplotlib import cm
 from matplotlib.figure import Figure
 from cycler import cycler
 
-##The cycler used for dots and lines.
-CYCLER_DOTS = None
-
-##The cycler used for boxes and bars.
-CYCLER_BOX = None
-
 ## The figure which will contain the plot.
 FIGURE = None
+
+## The last index used in to determine an item property (color,linstyle,hatch,marker).
+CYCLER_LAST_INDEX = 0
 
 linestyle_tuple = [
     (0, ()),  ##< solid
@@ -36,11 +33,32 @@ linestyle_tuple = [
     (0, (3, 1, 1, 1)),  ##< densely dashdotted
     (0, (3, 1, 1, 1, 1, 1)),  ##< densely dashdotdotted
 ]
-hatches = ["/", "\\", "|", "-", "+", "x", "o", "O", ".", "*"]
-markers = [
+hatches = [
+    "/",
+    "\\",
+    "|",
+    "-",
+    "+",
+    "x",
     ".",
+    "//",
+    "\\",
+    "||",
+    "--",
+    "++",
+    "xx",
+    "oo",
+    "OO",
+    "..",
+    "**",
+    "O.",
     "o",
+    "O",
+    "*",
+]
+markers = [
     "v",
+    "o",
     "^",
     "<",
     ">",
@@ -75,14 +93,19 @@ def export_graph(graph, fname, output="./", prefix="", postfix=""):
     """
     output_path = os.path.join(output, prefix + fname + postfix)
     global FIGURE
-    FIGURE.savefig(output_path + ".png", format="png")
-    FIGURE.savefig(output_path + ".svg", format="svg")
-    global CYCLER
-    CYCLER = None
+    FIGURE.savefig(output_path + ".png", format="png", bbox_inches="tight")
+    FIGURE.savefig(output_path + ".svg", format="svg", bbox_inches="tight")
+
+
+def teardown():
+    """!
+    @brief Destroy all the global graph variables
+    @details Resets `FIGURE` to `None` and `CYCLER_LAST_INDEX` to `0`
+    """
+    global FIGURE
+    global CYCLER_LAST_INDEX
     FIGURE = None
-
-
-##@TODO: Make possible to print a single group of data.
+    CYCLER_LAST_INDEX = 0
 
 
 def set_graph_properties(
@@ -114,34 +137,43 @@ def set_graph_properties(
     if ylabel is not None:
         graph.set_ylabel(ylabel)
     if legend is not None:
-        graph.legend(legend)
+        FIGURE.legend(
+            loc="lower center",
+            bbox_to_anchor=(0.125, -0.075, 0.750, 0),
+            mode="expand",
+            ncol=4,
+        )
     graph.grid(grid, axis=grid_axes)
 
 
-def init_cycler_for_boxes(groups):
-    """!
-    @brief Initializes the cycler with common properties of boxes and bars.
-    @param[in] groups The number of data groups to plot.
-    """
-    global CYCLER_BOX
-    CYCLER_BOX = cycler(color=cm.tab20(np.linspace(0, 1, groups)))
-    if groups <= len(hatches):
-        CYCLER_BOX += cycler(hatch=hatches[:groups])
-
-
-def init_cycler_for_dots(groups):
+def init_cycler(groups, graph_type):
     """!
     @brief Initializes the cycler with common properties of dots and lines.
     @param[in] groups The number of data groups to plot.
+    @param[in] graph_type The name of the function that is producing the graph, as a string.
     """
     # we setup a cycler, which will change line style,
     # markers and color automatically
-    global CYCLER_DOTS
-    CYCLER_DOTS = cycler(color=cm.tab20(np.linspace(0, 1, groups)))
-    if groups <= len(markers):
-        CYCLER_DOTS += cycler(marker=markers[:groups])
-    if groups <= len(linestyle_tuple):
-        CYCLER_DOTS += cycler(linestyle=linestyle_tuple[:groups])
+    global CYCLER_LAST_INDEX
+    graph_cycler = cycler(
+        color=cm.plasma(
+            np.linspace(0.05, 0.85, (CYCLER_LAST_INDEX + groups))[CYCLER_LAST_INDEX:]
+        )
+    )
+    if CYCLER_LAST_INDEX + groups <= len(markers) and graph_type in ["scatter", "plot"]:
+        graph_cycler += cycler(
+            marker=markers[CYCLER_LAST_INDEX : CYCLER_LAST_INDEX + groups]
+        )
+    if CYCLER_LAST_INDEX + groups <= len(linestyle_tuple) and graph_type in ["plot"]:
+        graph_cycler += cycler(
+            linestyle=linestyle_tuple[CYCLER_LAST_INDEX : CYCLER_LAST_INDEX + groups]
+        )
+    if CYCLER_LAST_INDEX + groups <= len(hatches) and graph_type in ["bar", "hist"]:
+        graph_cycler += cycler(
+            hatch=hatches[CYCLER_LAST_INDEX : CYCLER_LAST_INDEX + groups]
+        )
+    CYCLER_LAST_INDEX += groups
+    return graph_cycler
 
 
 def plot(x, y, xlabel=None, ylabel=None, title=None, line_label=None, graph=None):
@@ -164,17 +196,25 @@ def plot(x, y, xlabel=None, ylabel=None, title=None, line_label=None, graph=None
         global FIGURE
         FIGURE = Figure()
         graph = FIGURE.gca()
+    if type(x[0]) is list:
+        xlist = x
+        ylist = y
+        groups = len(xlist)
+    else:
+        xlist = [x]
+        ylist = [y]
+        groups = len(xlist)
+
     # we set the cycler
-    if CYCLER_DOTS is None:
-        init_cycler_for_dots(len(x))
-        graph.set_prop_cycle(CYCLER_DOTS)
+    graph_cycler = init_cycler(groups, "plot")
+    graph.set_prop_cycle(graph_cycler)
     # we create the line collection
-    for i in range(0, len(x)):
+    for i in range(0, groups):
         if line_label is not None:
             label = line_label[i]
         else:
             label = None
-        graph.plot(x[i], y[i], label=label)
+        graph.plot(xlist[i], ylist[i], label=label)
     # we set plot properties
     set_graph_properties(graph, xlabel, ylabel, title, line_label)
     return graph
@@ -200,19 +240,22 @@ def hist(
     @param[in] title The title of the graph.
     @param[in] box_labels The labels of the bins.
     @param[in] graph An already existing Axes object, the histogram will be added here.
-    @TODO: fix hatches
     """
     # get the axes
     if graph is None:
         global FIGURE
         FIGURE = Figure()
         graph = FIGURE.gca()
-    # we set the cycler
-    if CYCLER_BOX is None:
-        init_cycler_for_boxes(len(bins))
-        graph.set_prop_cycle(CYCLER_BOX)
     set_graph_properties(graph, xlabel, ylabel, title, box_labels, True, "y")
-    graph.hist(data, bins, label=box_labels, density=density)
+    graph_cycler = init_cycler(1, "hist")
+    graph.set_prop_cycle(graph_cycler)
+    hist = graph.hist(
+        data,
+        bins,
+        label=box_labels,
+        density=density,
+        hatch=graph_cycler.by_key().get("hatch")[0],
+    )
     return graph
 
 
@@ -231,7 +274,6 @@ def bar(data, xlabel=None, ylabel=None, title=None, bar_label=None, graph=None):
     Bar groups will automatically change color, marker and shape, to keep the
     graph as readable as possible.
     @returns The graph on which the bars have been plotted.
-    @TODO: fix hatches
     """
     # get the axes
     if graph is None:
@@ -239,13 +281,41 @@ def bar(data, xlabel=None, ylabel=None, title=None, bar_label=None, graph=None):
         FIGURE = Figure()
         graph = FIGURE.gca()
     # we set the cycler
-    if CYCLER_BOX is None:
-        init_cycler_for_boxes(len(data))
-        graph.set_prop_cycle(CYCLER_BOX)
+    if type(data[0]) is list:
+        groups = len(data)
+        latest_data = np.zeros(len(data[0]))
+    else:
+        groups = 1
+        latest_data = np.zeros(len(data))
+
+    graph_cycler = init_cycler(groups, "bar")
+    graph.set_prop_cycle(graph_cycler)
     # we create the bar chart
-    latest_data = np.zeros(len(data[0]))
-    for i in range(len(data)):
-        graph.bar(range(len(data[i])), data[i], tick_label=xlabel, bottom=latest_data)
+    for i in range(groups):
+        if bar_label is not None:
+            label = bar_label[i]
+        else:
+            label = None
+        if type(data[0]) is list:
+            xvals = range(len(data[i]))
+            yvals = data[i]
+        else:
+            xvals = range(len(data))
+            yvals = data
+        bar = graph.bar(
+            xvals,
+            yvals,
+            tick_label=xlabel,
+            bottom=latest_data,
+            label=label,
+            hatch=graph_cycler.by_key().get("hatch")[i],
+        )
+        graph.bar_label(
+            bar,
+            fmt="%.3g",
+            label_type="center",
+            bbox={"boxstyle": "circle", "color": "white"},
+        )
         latest_data += np.asarray(data[i])
     # we set plot properties
     set_graph_properties(graph, None, ylabel, title, bar_label, True, "y")
@@ -266,35 +336,65 @@ def scatter(x, y, xlabel=None, ylabel=None, title=None, group_label=None, graph=
     @details
     Groups of points will automatically change color, marker and shape, to keep the graph as readable as possible.
     @returns The graph on which the lines have been plotted.
-    @TODO fix markers
     """
     # get the axes
     if graph is None:
         global FIGURE
         FIGURE = Figure()
         graph = FIGURE.gca()
-    # we set the cycler
-    if CYCLER_DOTS is None:
-        init_cycler_for_dots(len(x))
-        graph.set_prop_cycle(CYCLER_DOTS)
+    graph_cycler = init_cycler(len(x), "scatter")
+    graph.set_prop_cycle(graph_cycler)
     # we create the line collection
     for i in range(0, len(x)):
-        graph.scatter(x[i], y[i])
+        if group_label is not None:
+            label = group_label[i]
+        else:
+            label = None
+        graph.plot(x[i], y[i], linestyle="", label=label)
     # we set plot properties
     set_graph_properties(graph, xlabel, ylabel, title, group_label)
     return graph
 
 
-graph = bar(
-    [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],
-    [1, 2, 3, 4],
-    "ylabel",
-    "title",
-    ["1", "2", "3", "4"],
-)
+def test():
+    graph = plot(
+        [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],
+        [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],
+        [1, 2, 3, 4],
+        "ylabel",
+        "title",
+        ["1", "2", "3", "4"],
+    )
+    export_graph(graph, "test-plot")
 
-export_graph(graph, "test")
+    graph = scatter(
+        [[1, 2], [3, 4]],
+        [[1, 2], [3, 4]],
+        xlabel="xlabel",
+        ylabel="ylabel",
+        title="title",
+        group_label=["group1", "group2"],
+    )
+    export_graph(graph, "test-scatter")
+
+    graph = hist(
+        [1, 2, 3, 4, 5],
+        bins=3,
+        density=False,
+        xlabel="xlabel",
+        ylabel="ylabel",
+        title="title",
+    )
+    export_graph(graph, "test-hist")
+    graph = bar(
+        [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],
+        [1, 2, 3, 4],
+        "ylabel",
+        "title",
+        ["1", "2", "3", "4"],
+    )
+    export_graph(graph, "test-bar")
 
 
-# if __name__ == "__main__":
-## @TODO: parse command line arguments (for graph name, type, properties and csv location), then parse csv, draw graph
+if __name__ == "__main__":
+    test()

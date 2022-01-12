@@ -5,9 +5,9 @@
 @author Mattia Nicolella
 @brief Procedures for a benchmark worst case execution test (WCET)
 
-This script will execute a schedulability test on the given benchmark by:
+This script will execute a worst case execution test on the given benchmark by:
 - Using `base.test_init()` to initialize the environment of the test
-- Execute a WCET test
+- Calling `worst_case_exec_test()` which will execute the test
 - Restore the environment status using `base.test_teardown()`
 
 This script will create some files in the output folder, as described by `worst_case_execution_test()`.
@@ -20,8 +20,8 @@ Dependencies:
 import csv
 import os
 import subprocess
-
 import base
+import graph
 
 
 def worst_case_exec_test(
@@ -69,8 +69,8 @@ def worst_case_exec_test(
         prev_reader = csv.reader(worst_file)
         next(prev_reader)
         row = next(prev_reader)
-        worst = int(row[0])
-        worst_time = float(row[1])
+        worst = int(row[1])
+        worst_time = float(row[2])
         worst_file.close()
         print(f"read {worst} clock cycles : {worst_time} seconds")
     except Exception as e:
@@ -150,11 +150,13 @@ def worst_case_exec_test(
 def execute(params):
     """!
     @brief Execute the WCET test on the given benchmarks
-    @param[in,out] params The parameter dictionary provieded by `base.test_init()`.
+    @param[in,out] params The parameter dictionary provided by `base.test_init()`.
     @details
 
     In case of success, the `params` dictionary will be updated with a new key, `worst_runtimes`, which will contain the list of
     WCETs for the given benchmarks (in the same order of the benchmark list in `params["args"].benchmarks`).
+
+    A graph of all the test will be produced in each output folder in png and svg formats.
 
     @returns The updated `params` dictionary with `{"res":0}` on success, or `{"res":-1}` on failure.
     """
@@ -178,6 +180,7 @@ def execute(params):
     last_core = cores[0] - 1
     # get the list of worst case runtimes
     worst_runtimes = []
+    bmarks = []
     for i in range(0, len(args.benchmarks)):
         WCET = worst_case_exec_test(
             args.benchmarks[i][0],
@@ -193,6 +196,34 @@ def execute(params):
             params.update({"res:": WCET})
             return params
         worst_runtimes.append(WCET)
+        bmarks.append(
+            os.path.basename(args.benchmarks[i][0])
+            + " - "
+            + os.path.basename(args.benchmarks[i][1][0])
+        )
+    WCET_graph = graph.bar(
+        worst_runtimes,
+        bmarks,
+        "Runtime (seconds)",
+        "Worst case execution time"
+        if len(args.interfering) == 0
+        else "Worst case execution time with interference",
+    )
+    for output in args.output:
+        graph.export_graph(
+            WCET_graph,
+            os.path.join(
+                output,
+                args.prefix
+                + os.path.basename(
+                    args.benchmarks[i][0] + "_WCET"
+                    if len(args.interfering) == 0
+                    else "_WCET_inter"
+                )
+                + args.postfix,
+            ),
+        )
+    graph.teardown()
     params.update({"res": 0, "worst_runtimes": worst_runtimes})
     return params
 

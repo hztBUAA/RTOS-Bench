@@ -25,6 +25,7 @@ import subprocess
 import csv
 import base
 import WCET
+import graph
 
 
 def sched_test(
@@ -58,9 +59,12 @@ def sched_test(
 
     Test is executed on the last available physical core after the environment has been prepared by `base.test_init()`.
 
-    The benchmark is instructed to log data in a set of files called: `[benchamrk executable name]_sched_test_x.csv` where `x` is the expected utilization percentage, while the number of scheduled processes at each step will be recorded in `[benchmark executable name]_sched_test_res.csv`.
-    @returns `0` on success, `-1` on error.
+    The benchmark is instructed to log data in a set of files called: `[benchmark executable name]_sched_test_x.csv` where `x` is the expected utilization percentage, while the number of scheduled processes at each step will be recorded in `[benchmark executable name]_sched_test_res.csv`.
+    @returns a dictionary with two keys (`utilization`) and (`num_scheduled`) on success, `None` on error.
     """
+    res = {}
+    res_util = []
+    res_sched = []
     deadline = worst_case
     utilization = 1 - (deadline / worst_case)
     bmark_name = os.path.basename(bmark)
@@ -73,7 +77,7 @@ def sched_test(
         )
     except Exception as e:
         print("Cannot open file for storing schedulability test results ", e)
-        return -1
+        return None
     writer = csv.writer(res_file)
     writer.writerow(
         [
@@ -116,14 +120,14 @@ def sched_test(
             )
         except Exception as e:
             print("Error during schedulability test ", e)
-            return -1
+            return None
         scheduled = 0
         started = 0
         try:
             log_file = open(log_fname)
         except Exception as e:
             print("Cannot open benchmark result file ", e)
-            return -1
+            return None
         reader = csv.reader(log_file)
         next(reader)
         for row in reader:
@@ -144,19 +148,24 @@ def sched_test(
                 str(started),
             ]
         )
+        res_util.append(utilization)
+        res_sched.append(scheduled)
         deadline = deadline - (util_inc * worst_case)
         utilization = 1 - (deadline / worst_case)
     res_file.close()
-    return 0
+    res.update({"utilization": res_util})
+    res.update({"num_scheduled": res_sched})
+    return res
 
 
 def execute(params):
     """!
     @brief Execute the schedulability test on the given benchmarks
-    @param[in,out] params The paramter dictionary provieded by `base.test_init()` plus the array of WCETs provided by `WCET.execute()`.
+    @param[in,out] params The parameter dictionary provided by `base.test_init()` plus the array of WCETs provided by `WCET.execute()`.
     @details
     If the user requested interfering benchmarks, then the `params` dictionary will be updated with the key `int_processes`, which will contain the list
     of interfering processes.
+    A graph of the test will be produced in each output folder in png and svg formats.
     @returns The updated `params` dictionary with {"res":0} on success, or {"res":-1} on failure.
     """
     args = params.get("args")
@@ -195,6 +204,10 @@ def execute(params):
     params.update({"int_processes": int_processes})
     # we start the schedulability test for each benchmark
     last_core = cores[0] - 1
+    sched_graph = None
+    graph_lines = []
+    sched_utilization = []
+    sched_num_scheduled = []
     for i in range(0, len(args.benchmarks)):
         res = sched_test(
             args.benchmarks[i][0],
@@ -208,9 +221,44 @@ def execute(params):
             last_core,
             sched_params,
         )
-        if res < 0:
+        if res is None:
+            params.update({"res": -1})
             break
-    params.update({"res": res})
+        graph_lines.append(
+            os.path.basename(args.benchmarks[i][0])
+            + " - "
+            + os.path.basename(args.benchmarks[i][1][0])
+        )
+        sched_utilization.append(res.get("utilization"))
+        sched_num_scheduled.append(res.get("num_scheduled"))
+    sched_graph = graph.plot(
+        sched_utilization,
+        sched_num_scheduled,
+        "Utilization",
+        "Scheduled",
+        "Schedulability test"
+        if len(args.interfering) == 0
+        else "Schedulability test with interference",
+        graph_lines,
+    )
+    for output in args.output:
+        print(output)
+        print(sched_graph)
+        graph.export_graph(
+            sched_graph,
+            os.path.join(
+                output,
+                args.prefix
+                + os.path.basename(
+                    args.benchmarks[i][0] + "_sched"
+                    if len(args.interfering) == 0
+                    else "_sched_inter"
+                )
+                + args.postfix,
+            ),
+        )
+    graph.teardown()
+    params.update({"res": 0})
     return params
 
 

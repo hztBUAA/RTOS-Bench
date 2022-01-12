@@ -380,7 +380,7 @@ def test_init(parser):
     output_len = len(args.output)
     if output_len > 0 and len(args.benchmarks) > output_len:
         print(
-            "A single folder has been specified as output path for more than one target benchmark, test will continue but it will overwrite previous files."
+            "A single folder has been specified as output path for more than one target benchmark, test will continue but it may overwrite previous files."
         )
     for i in range(0, len(args.benchmarks)):
         if output_len == 0:
@@ -425,8 +425,8 @@ def test_teardown(params):
 if __name__ == "__main__":
     parser_obj = parser_init()
     # we add an argument to let the user choose the type of test to execute.
-    tests_available = ["WCET", "sched", "WSS"]
-    help_str = "Determines the type of test to execute:\n\n\t WCET: Worst Case Execution Test\n\tsched: Schedulability test\n\t WSS: minimum working set size test"
+    tests_available = ["all", "WCET", "sched", "WSS"]
+    help_str = "Determines the type of test to execute:\n\n\t WCET: Worst Case Execution Test\n\tsched: Schedulability test\n\t WSS: minimum working set size test\n\tall: execute all available tests"
     parser_obj.add_argument(
         "-tt",
         "--test-type",
@@ -434,7 +434,8 @@ if __name__ == "__main__":
         type=str,
         help=help_str,
         choices=tests_available,
-        required=True,
+        required=False,
+        default="all",
         dest="test",
     )
     test_params = test_init(parser_obj)
@@ -443,11 +444,11 @@ if __name__ == "__main__":
         import WCET
 
         WCET.execute(test_params)
-    elif parsed_args.test == "sched":
+    if parsed_args.test in ["sched", "all"]:
         import schedulability
 
         schedulability.execute(test_params)
-    elif parsed_args.test == "WSS":
+    if parsed_args.test in ["all", "WSS"]:
         import WSS
 
         WSS.execute(test_params)
