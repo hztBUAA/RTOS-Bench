@@ -5,8 +5,9 @@ pages:
     - apk update && apk add doxygen graphviz make git
     - cd docs
     - make
+    - mv html /public
     artifacts:
         paths:
-            - docs/conf/html
+            - /public
     only:
     - main
