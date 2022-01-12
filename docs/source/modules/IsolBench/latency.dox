@@ -1,0 +1,8 @@
+/**
+* @defgroup latency Latency
+* @ingroup IsolBench
+* @brief Latency benchmark.
+*
+* Modified files for the latency benchmark, located in `IsolBench`.
+* Latency is a memory access latency measurement microbenchmark.
+*/

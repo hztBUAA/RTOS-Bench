@@ -1,0 +1,7 @@
+/**
+* @defgroup bandwidth Bandwidth
+* @ingroup IsolBench
+* @brief Bandwidth benchmark.
+*
+* Modified files for the bandwidth benchmark, located in `IsolBench`.
+*/
