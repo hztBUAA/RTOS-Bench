@@ -36,10 +36,6 @@ ifeq ("$(wildcard conf/doxygen-awesome)", "")
 	@echo installing dependencies
 	@git clone https://github.com/jothepro/doxygen-awesome-css.git conf/doxygen-awesome
 endif
-ifeq ("$(wildcard html)","")
-	@echo setting up folder for github pages
-	@git clone -b gh-pages --single-branch git@github.com:rntmancuso/rt-bench.git html
-endif
 
 clean: clean-pdf clean-html
 

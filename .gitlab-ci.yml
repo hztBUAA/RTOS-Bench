@@ -1,0 +1,12 @@
+image: alpine
+
+pages:
+    script:
+    - apk update && apk add doxygen graphviz make git
+    - cd docs
+    - make
+    artifacts:
+        paths:
+            - docs/conf/html
+    only:
+    - main

@@ -1,6 +1,7 @@
 .*
 !.gitattributes
 !.gitignore
+!.gitlab-ci.yml
 docs/*pdf
 docs/latex/*
 docs/*html
