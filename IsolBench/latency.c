@@ -1,6 +1,6 @@
 /**
  * @file latency.c
- * @ingroup IsolBench
+ * @ingroup latency
  * @brief Functions used to run the latency benchmark periodically.
  * @details
  * The original script has been broken down in three components:
@@ -56,10 +56,11 @@
 /**************************************************************************
  * Public Types
  **************************************************************************/
+/// Linked list entry
 struct item {
-  int data;
-  int in_use;
-  struct list_head list;
+  int data;              ///< Data to read/write.
+  int in_use;            /// If the data is in use.
+  struct list_head list; /// List where the item belongs.
 } __attribute__((aligned(CACHE_LINE_SIZE)));
 ;
 
@@ -87,6 +88,11 @@ FILE *bmark_output = NULL;
 /**************************************************************************
  * Implementation
  **************************************************************************/
+/** @brief Compute elapsed time.
+ * @param[in] start Timestamp when the benchmark started.
+ * @param[in] end Timestamp when the benchmark stopped.
+ * @returns Elapsed time in nanoseconds
+ * */
 uint64_t get_elapsed(struct timespec *start, struct timespec *end) {
   uint64_t dur;
 
@@ -95,6 +101,7 @@ uint64_t get_elapsed(struct timespec *start, struct timespec *end) {
   return dur;
 }
 
+/// @brief Print usage info.
 void usage(int argc, char *argv[]) {
   printf("Usage: $ %s [<option>]*\n\n", argv[0]);
   printf("-m: memory size in KB. deafult=%d\n", DEFAULT_ALLOC_SIZE_KB);

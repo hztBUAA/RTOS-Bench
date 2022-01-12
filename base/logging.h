@@ -102,7 +102,7 @@ void print_timing(FILE *file, unsigned long long period_start_clocks,
 FILE *open_log_file(char *filename);
 
 /** @brief Closes a log file.
- * @param[in] filename The file pointer of the log file to close.
+ * @param[in] file The file pointer of the log file to close.
  * @returns A `0` or `EOF` in case or error, setting `errno`.
  */
 int close_log_file(FILE *file);

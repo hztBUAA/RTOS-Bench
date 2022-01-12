@@ -1,9 +1,10 @@
 #! /bin/python
 """!
 @file graph.py
-@brief Draw graphs with matplotlib from csv files containing data
+@ingroup utils
+@brief Utils to draw graphs with matplotlib.
 @details
-This script contains a collection of methods to draw graphs starting from data in csv files.
+This script contains a collection of methods to draw graphs.
 @author Mattia Nicolella
 """
 import os
@@ -124,7 +125,7 @@ def set_graph_properties(
     @param[in] ylabel The label for the y axis.
     @param[in] title The graph title.
     @param[in] legend The legend that must be shown.
-    @oaram[in] grid Whether to draw a grid.
+    @param[in] grid Whether to draw a grid.
     @param[in] grid_axes The axes that should be used for the grid (x,y or both)
     @details
     In addition the graph will also be scaled and a grid will be shown.

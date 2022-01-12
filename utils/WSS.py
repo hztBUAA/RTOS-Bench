@@ -102,7 +102,7 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
     @brief Perform a minimum working set size test.
     @param[in] bmark Benchmark on which the test should be executed.
     @param[in] bmark_args Benchmark arguments.
-    @param[in] test Number of tests to execute for each working set size.
+    @param[in] tests Number of tests to execute for each working set size.
     @param[in] output The output folder.
     @param[in] prefix The generated file prefix.
     @param[in] postfix The generated file postfix.

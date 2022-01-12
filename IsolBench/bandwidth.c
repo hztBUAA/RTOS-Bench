@@ -1,6 +1,6 @@
 /**
  * @file bandwidth.c
- * @ingroup IsolBench
+ * @ingroup Bandwidth
  * @brief Functions used to run the bandwidth benchmark periodically.
  * @details
  * The original script has been broken down in three components:
@@ -46,12 +46,11 @@
 // Libraries used by rt-bench
 #include "logging.h"
 #include "periodic_benchmark.h"
-#include <string.h>
 
 /**************************************************************************
  * Public Definitions
  **************************************************************************/
-#define CACHE_LINE_SIZE 64 /* cache Line size is 64 byte */
+#define CACHE_LINE_SIZE 64 /** cache Line size is 64 byte */
 #ifdef __arm__
 #define DEFAULT_ALLOC_SIZE_KB 4096
 #else
@@ -61,16 +60,17 @@
 /**************************************************************************
  * Public Types
  **************************************************************************/
+/// Type of memory access to perform.
 enum access_type { READ, WRITE };
 
 /**************************************************************************
  * Global Variables
  **************************************************************************/
-int g_mem_size = DEFAULT_ALLOC_SIZE_KB * 1024; /* memory size */
-int *g_mem_ptr = 0; /* pointer to allocated memory region */
+int g_mem_size = DEFAULT_ALLOC_SIZE_KB * 1024; /** Memory size */
+int *g_mem_ptr = 0; /** Pointer to allocated memory region */
 
-volatile uint64_t g_nread = 0; /* number of bytes read */
-volatile unsigned int g_start; /* starting time */
+volatile uint64_t g_nread = 0; /** Number of bytes read */
+volatile unsigned int g_start; /** Starting time */
 /// Memory access type
 int acc_type = READ;
 /// Number of iterations
@@ -80,12 +80,18 @@ FILE *bmark_output = NULL;
 /**************************************************************************
  * Public Functions
  **************************************************************************/
+/** @brief Get timestamp in microseconds.
+ * @returns Timestamp in microseconds.
+ * */
 unsigned int get_usecs() {
   struct timeval time;
   gettimeofday(&time, NULL);
   return (time.tv_sec * 1000000 + time.tv_usec);
 }
 
+/** @brief Print bandwidth stats.
+ * @param[in] param Unused.
+ * */
 void print_bandwidth(int param) {
   float dur_in_sec;
   float bw;
@@ -101,6 +107,9 @@ void print_bandwidth(int param) {
         (dur * 1000) / (g_nread / CACHE_LINE_SIZE));
 }
 
+/** @brief Read memory access.
+ * @returns Amount of memory read.
+ */
 int64_t bench_read() {
   int i;
   int64_t sum = 0;
@@ -111,6 +120,9 @@ int64_t bench_read() {
   return sum;
 }
 
+/** @brief Write memory access.
+ * @returns Amount of memory read.
+ */
 int bench_write() {
   register int i;
   for (i = 0; i < g_mem_size / 4; i += (CACHE_LINE_SIZE / 4)) {
@@ -120,6 +132,10 @@ int bench_write() {
   return 1;
 }
 
+/** @brief Print usage info.
+ * @param[in] argc arguments number.
+ * @param[in] argv Arguments array.
+ * */
 void usage(int argc, char *argv[]) {
   printf("Usage: $ %s [<option>]*\n\n", argv[0]);
   printf("-m: memory size in KB. deafult=8192\n");
