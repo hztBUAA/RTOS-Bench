@@ -14,6 +14,7 @@ This script will create some files in the output folder, as described by `worst_
 
 Dependencies:
 - base.py
+- graph.py
 """
 
 
@@ -214,13 +215,9 @@ def execute(params):
             WCET_graph,
             os.path.join(
                 output,
-                args.prefix
-                + os.path.basename(
-                    args.benchmarks[i][0] + "_WCET"
-                    if len(args.interfering) == 0
-                    else "_WCET_inter"
-                )
-                + args.postfix,
+                args.prefix + "WCET"
+                if len(args.interfering) == 0
+                else "WCET_inter" + args.postfix,
             ),
         )
     graph.teardown()

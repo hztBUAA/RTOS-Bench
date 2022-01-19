@@ -13,6 +13,7 @@ As a test result some files will be created, these are described `wss_test()`
 
 Dependecies:
 - base.py
+- graph.py
 
 @author Mattia Nicolella
 """
@@ -83,13 +84,9 @@ def execute(params):
             WSS_graph,
             os.path.join(
                 output,
-                args.prefix
-                + os.path.basename(
-                    args.benchmarks[i][0] + "_WSS"
-                    if len(args.interfering) == 0
-                    else "_WSS_inter"
-                )
-                + args.postfix,
+                args.prefix + "WSS"
+                if len(args.interfering) == 0
+                else "WSS_inter" + args.postfix,
             ),
         )
     graph.teardown()
@@ -108,22 +105,24 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
     @param[in] postfix The generated file postfix.
     @param[in] core Physical core on which the test will be executed.
     @param[in] sched_params Scheduling attributes.
-    @details The function will run a number of tests, specified in `params` constraining the benchmark available memory to 1KB.
+    @details The function will run a number of tests, specified in `params` constraining the benchmark available memory to 1 byte.
     If all the test succeed the available memory limit will be halved. Otherwise the memory limit will be doubled.
     The execution will stop when the smallest amount of memory to run a benchmark is determined.
 
     Results will be saved in a file called: `working_set_size_test.csv`
 
-    @returns the minimum wss, failures in the benchmark execution treated as a wrong wss size.
+    @returns the minimum wss in MB, failures in the benchmark execution treated as a wrong wss size.
     """
-    current_wss = 1 ** 10
+    current_wss = 1
     last_wss = 0
+    wss_lower_bound = 1
+    wss_upper_bound = 0
     failed_tests = 0
     bmark_name = os.path.basename(bmark)
     filename = os.path.join(
         output, prefix + bmark_name + "_min_wss_test" + postfix + ".csv"
     )
-    while current_wss != last_wss or failed_tests != 0:
+    while current_wss != last_wss:
         print(f"\n\n{bmark_name} current wss:{current_wss}, last wss:{last_wss}")
         failed_tests = 0
         try:
@@ -149,20 +148,27 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
                 check=True,
             )
         except subprocess.CalledProcessError as e:
+            # we failed at least one test
             failed_tests += 1
-            last_wss = current_wss
-            current_wss = last_wss * 2
+            wss_lower_bound = current_wss
         else:
-            if current_wss // 2 != last_wss and current_wss // 2 > 0:
-                last_wss = current_wss
-                current_wss = last_wss // 2
-            else:
-                last_wss = current_wss
+            # all tests succeeded, so we can save this upper bound
+            wss_upper_bound = current_wss
+        # if we already have an upper bound we try to reduce it
+        last_wss = current_wss
+        if wss_upper_bound > 0:
+            sum_wss = wss_lower_bound + wss_upper_bound
+            current_wss = sum_wss // 2
+        else:
+            # if we don't have an upper bound we double the current wss
+            current_wss = last_wss * 2
+        print(f"\nnext wss {current_wss} last wss {last_wss}")
+        print(f"wss lower bound {wss_lower_bound}  wss upper bound {wss_upper_bound}")
     with open(filename, "w") as file:
         writer = csv.writer(file)
         writer.writerow(["benchmark", "minimum wss (bytes)"])
-        writer.writerow([bmark_name, current_wss])
-    return current_wss // (1 ** 20)
+        writer.writerow([bmark_name, wss_upper_bound])
+    return wss_upper_bound / (2 ** 20)
 
 
 if __name__ == "__main__":

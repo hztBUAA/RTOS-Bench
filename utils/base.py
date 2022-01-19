@@ -12,6 +12,7 @@ If executed not as a module will let the user choose what kind of test perform a
 Available test at the moment are:
 - `WCET`: Worst Case Execution Time.
 - `sched`: Schedulablity test.
+- `WSS`: minimum Working Set Size
 
 @note This script might require administrative privileges (to change scheduling policy and move processes in other cores).
 
@@ -24,8 +25,10 @@ Dependencies:
 - ps
 - taskset
 - mkdir
+- graph.py
 - schedulability.py (for `sched` execution)
 - WCET.py (for `sched` and `WCET` execution)
+- WSS.py (for `WSS` execution)
 """
 
 import argparse
@@ -160,8 +163,11 @@ def handle_bmark_list(bmark_list):
     """
     new_list = []
     for bmark in bmark_list:
-        tmp = bmark.split(":")
-        new_list.append((tmp[0], tmp[1].split(",")))
+        if ":" in bmark:
+            tmp = bmark.split(":")
+            new_list.append((tmp[0], tmp[1].split(",")))
+        else:
+            new_list.append((bmark, []))
     return new_list
 
 
