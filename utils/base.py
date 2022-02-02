@@ -171,16 +171,14 @@ def parser_init():
     @returns The initialized `ArgumentParser` object.
     """
     # set up the argument parser
-    parser = argparse.ArgumentParser(
-        description="A script to perform a schedulability test"
-    )
+    parser = argparse.ArgumentParser(description="A script to perform a tests")
     parser.add_argument(
         "-u",
         "--utilization-increase",
         metavar="utilization",
         type=float,
         help="How much the utilization should increase at each test step.",
-        default=0.1,
+        default=0.05,
         choices=map(lambda x: x / 100.0, range(1, 100)),
         required=False,
         dest="util_inc",
@@ -375,7 +373,7 @@ def test_init(parser):
         return params
     params.update({"cores": cores})
     # we move all processes to the first core
-    move_processes(f"0")
+    move_processes("0")
 
     output_len = len(args.output)
     if output_len > 0 and len(args.benchmarks) > output_len:

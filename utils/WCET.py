@@ -60,6 +60,7 @@ def worst_case_exec_test(
     deadline = 0.001
     fails_count = 1
     bmark_name = os.path.basename(bmark)
+    times=[]
     try:
         worst_file = open(
             os.path.join(
@@ -134,6 +135,7 @@ def worst_case_exec_test(
         for row in reader:
             if int(row[10]) == 0 and float(row[9]) != 0:
                 fails_count += 1
+            times.append(float(row[9]))
             if float(row[9]) > worst_time:
                 worst_time = float(row[9])
                 worst = int(row[4])
@@ -144,7 +146,7 @@ def worst_case_exec_test(
     print(f"done, test results:{worst} clock cycles {worst_time} seconds\n")
     writer.writerow([bmark_name, worst, worst_time])
     worst_file.close()
-    return worst_time
+    return worst_time,times
 
 
 def execute(params):
@@ -180,9 +182,10 @@ def execute(params):
     last_core = cores[0] - 1
     # get the list of worst case runtimes
     worst_runtimes = []
+    times=[]
     bmarks = []
     for i in range(0, len(args.benchmarks)):
-        WCET = worst_case_exec_test(
+        WCET, time = worst_case_exec_test(
             args.benchmarks[i][0],
             args.benchmarks[i][1],
             args.worst_case_tests,
@@ -196,12 +199,13 @@ def execute(params):
             params.update({"res:": WCET})
             return params
         worst_runtimes.append(WCET)
+        times.append(time)
         bmarks.append(
             os.path.basename(args.benchmarks[i][0])
             + " - "
             + os.path.basename(args.benchmarks[i][1][0])
         )
-    WCET_graph = graph.bar(
+    WCET_graph = graph.boxplot(
         worst_runtimes,
         bmarks,
         "Runtime (seconds)",

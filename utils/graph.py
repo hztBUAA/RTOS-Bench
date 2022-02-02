@@ -7,6 +7,8 @@
 This script contains a collection of methods to draw graphs.
 @author Mattia Nicolella
 """
+import csv
+import argparse
 import os
 import numpy as np
 from matplotlib import cm
@@ -325,7 +327,7 @@ def bar(data, xlabel=None, ylabel=None, title=None, bar_label=None, graph=None):
 
 def scatter(x, y, xlabel=None, ylabel=None, title=None, group_label=None, graph=None):
     """!
-    @brief Draws a scatter  graph, output will be in png and svg.
+    @brief Draws a scatter  graph.
     @param[in] x List of x values to be plotted, if more than one group of points is being plotted, then this is a list of lists.
     @param[in] y List of y values to be plotted, if more than one group of points is being plotted, then this is a list of lists.
     @param[in] xlabel The label for the x axis.
@@ -354,6 +356,29 @@ def scatter(x, y, xlabel=None, ylabel=None, title=None, group_label=None, graph=
         graph.plot(x[i], y[i], linestyle="", label=label)
     # we set plot properties
     set_graph_properties(graph, xlabel, ylabel, title, group_label)
+    return graph
+
+
+def boxplot(x, labels=None, xlabel=None, ylabel=None, title=None, graph=None):
+    """!
+    @brief Draws a boxoplot graphs.
+    @param[in] x The data that needs to be plotted, it can be a 2D array.
+    If so, a boxplot per column will be plotted.
+    @param[in] labels The labels for each dataset.
+    @param[in] notch If a notch needs to be drawed.
+    @param[in] xlabel The label for the x axis.
+    @param[in] ylabel The label for the y axis.
+    @param[in] title The graph title.
+    @param[in] graph An already existing Axes object, lines will be added here.
+    """
+    if graph is None:
+        global FIGURE
+        FIGURE = Figure()
+        graph = FIGURE.gca()
+    graph_cycler = init_cycler(len(x), "scatter")
+    graph.set_prop_cycle(graph_cycler)
+    graph.boxplot(x, labels=labels)
+    set_graph_properties(graph, xlabel, ylabel, title)
     return graph
 
 
@@ -396,6 +421,227 @@ def test():
     )
     export_graph(graph, "test-bar")
 
+    graph = boxplot(
+        [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],
+        ["lbl1", "2", "3", "lbl4"],
+        "xlabel",
+        "ylabel",
+        "title",
+    )
+    export_graph(graph, "test-boxplot")
+
+
+def parser_init():
+    """!
+    @brief Initialize an argument parser with a set of common arguments.
+    @returns The initialized `ArgumentParser` object.
+    """
+    # set up the argument parser
+    parser = argparse.ArgumentParser(
+        description="A script to create graphs from csv files."
+    )
+
+    parser.add_argument(
+        "-g",
+        "--graph",
+        metavar="graph",
+        nargs="+",
+        type=str,
+        help="Which type of graph must be plotted. If repeated plots will stack.",
+        choices=["plot", "bar", "hist", "scatter", "boxplot", "test"],
+        required=True,
+        dest="graph_type",
+    )
+
+    parser.add_argument(
+        "-i",
+        "--input",
+        metavar="file1,file2,...",
+        nargs="+",
+        type=str,
+        help="Path to the input file. Can be repeated.",
+        required=True,
+        dest="input_files",
+    )
+
+    parser.add_argument(
+        "-xc",
+        "--x-column",
+        metavar="column1,column2,...",
+        nargs="+",
+        type=str,
+        help="CSV column that contain the data to plot on the x axis. Can be repeated (one for each graph type).",
+        required=True,
+        dest="x_col",
+    )
+
+    parser.add_argument(
+        "-yc",
+        "--y-column",
+        metavar="column1,column2,...",
+        nargs="+",
+        type=str,
+        help="CSV column that contain the data to plot on the y axis. Can be repeated (one for each graph type).",
+        required=False,
+        default=None,
+        dest="y_col",
+    )
+
+    parser.add_argument(
+        "-lc",
+        "--labels",
+        metavar="label1,label2,...",
+        nargs="+",
+        type=str,
+        help="Labels for each group of data.",
+        required=False,
+        default=[],
+        dest="labels",
+    )
+
+    parser.add_argument(
+        "-t",
+        "--title",
+        metavar="title",
+        type=str,
+        help="Graph title.",
+        required=False,
+        default=None,
+        dest="title",
+    )
+
+    parser.add_argument(
+        "-xlbl",
+        "--xlabel",
+        metavar="x-label",
+        type=str,
+        help="Graph label for the x axis.",
+        required=False,
+        default=None,
+        dest="x_label",
+    )
+
+    parser.add_argument(
+        "-ylbl",
+        "--ylabel",
+        metavar="y-label",
+        type=str,
+        help="Graph label for the y axis.",
+        required=False,
+        default=None,
+        dest="x_label",
+    )
+
+    parser.add_argument(
+        "-hb",
+        "--hist-bins",
+        metavar="bins-num",
+        type=int,
+        help="Number of bins for histogram graph",
+        required=False,
+        default=0,
+        dest="bins",
+    )
+    parser.add_argument(
+        "-hd",
+        "--hist-density",
+        type=bool,
+        help="Number of bins for histogram graph",
+        required=False,
+        default=False,
+        choices=[True, False],
+        dest="density",
+    )
+    return parser
+
+
+def read_data(files, x_col, y_col=None):
+    x_data = []
+    if y_col is not None:
+        y_data = []
+    else:
+        y_data = None
+    for file_str in files:
+        try:
+            file = open(file_str)
+        except Exception as e:
+            print(f"file {file_str} not found: {e}")
+            return None
+        reader = csv.reader(file)
+        # skip the header
+        next(reader)
+        x_tmp = []
+        if y_col is not None:
+            y_tmp = []
+        else:
+            y_tmp = None
+        for row in reader:
+            x_tmp = float(row[x_col])
+            if y_col is not None:
+                y_tmp = float(row[y_col])
+        x_data.append(x_tmp)
+        if y_col is not None:
+            y_data.append(y_tmp)
+    if len(files) == 1:
+        x_data = x_tmp
+        y_data = y_tmp
+    return x_data, y_data
+
 
 if __name__ == "__main__":
-    test()
+    parser = parser_init()
+    args = parser.parse_args()
+    if args.graph_type == "test":
+        test()
+    else:
+        x_data, y_data = read_data(args.input_files, args.x_col, args.y_col)
+        graph = None
+        if "plot" in args.graph_type:
+            graph = plot(
+                x_data,
+                y_data,
+                xlabel=args.x_label,
+                ylabel=args.ylabel,
+                title=args.title,
+                line_label=args.labels,
+                graph=graph,
+            )
+        elif "bar" in args.graph_type:
+            graph = bar(
+                x_data,
+                xlabel=args.x_label,
+                ylabel=args.y_label,
+                title=args.title,
+                bar_label=args.label,
+                graph=graph,
+            )
+        elif "hist" in args.graph_type:
+            graph = hist(
+                x_data,
+                bins=args.bins,
+                density=args.density,
+                xlabel=args.x_label,
+                ylabel=args.y_label,
+                title=args.title,
+                box_labels=args.labels,
+                graph=graph,
+            )
+        elif "scatter" in args.graph_type:
+            graph = scatter(
+                x_data,
+                y_data,
+                xlabel=args.x_label,
+                ylabel=args.y_label,
+                title=args.title,
+                group_label=args.labels,
+                graph=graph,
+            )
+        elif "boxplot" in args.graph_type:
+            graph = boxplot(
+                x_data,
+                labels=args.labels,
+                xlabel=args.x_label,
+                ylabel=args.y_label,
+                title=args.title,
+                graph=graph,
+            )
