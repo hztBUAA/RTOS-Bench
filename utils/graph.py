@@ -359,16 +359,24 @@ def scatter(x, y, xlabel=None, ylabel=None, title=None, group_label=None, graph=
     return graph
 
 
-def boxplot(x, labels=None, xlabel=None, ylabel=None, title=None, graph=None):
+def boxplot(
+    x,
+    labels=None,
+    xlabel=None,
+    ylabel=None,
+    title=None,
+    notch=False,
+    graph=None,
+):
     """!
-    @brief Draws a boxoplot graphs.
+    @brief Draws a boxplot graph.
     @param[in] x The data that needs to be plotted, it can be a 2D array.
-    If so, a boxplot per column will be plotted.
+    If so, a boxplot per column, man will be plotted.
     @param[in] labels The labels for each dataset.
-    @param[in] notch If a notch needs to be drawed.
+    @param[in] notch If a notch needs to be drawn.
     @param[in] xlabel The label for the x axis.
     @param[in] ylabel The label for the y axis.
-    @param[in] title The graph title.
+    @param[in] title The graph title.False
     @param[in] graph An already existing Axes object, lines will be added here.
     """
     if graph is None:
@@ -377,7 +385,38 @@ def boxplot(x, labels=None, xlabel=None, ylabel=None, title=None, graph=None):
         graph = FIGURE.gca()
     graph_cycler = init_cycler(len(x), "scatter")
     graph.set_prop_cycle(graph_cycler)
-    graph.boxplot(x, labels=labels)
+    graph.boxplot(x, whis=(0, 100), labels=labels, notch=notch)
+    set_graph_properties(graph, xlabel, ylabel, title)
+    return graph
+
+
+def violinplot(
+    x,
+    labels=None,
+    xlabel=None,
+    ylabel=None,
+    title=None,
+    graph=None,
+):
+    """!
+    @brief Draws a violinplot graph.
+    @param[in] x The data that needs to be plotted, it can be a 2D array.
+    If so, a boxplot per columdesi sei tappa, man will be plotted.
+    @param[in] labels The labels for each dataset.
+    @param[in] xlabel The label for the x axis.
+    @param[in] ylabel The label for the y axis.
+    @param[in] title The graph title.False
+    @param[in] graph An already existing Axes object, lines will be added here.
+    """
+    if graph is None:
+        global FIGURE
+        FIGURE = Figure()
+        graph = FIGURE.gca()
+    graph_cycler = init_cycler(len(x), "scatter")
+    graph.set_prop_cycle(graph_cycler)
+    graph.violinplot(x, showmeans=True, showextrema=True)
+    graph.set_xticks(range(0,len(labels)+1))
+    graph.set_xticklabels(labels=['']+labels)
     set_graph_properties(graph, xlabel, ylabel, title)
     return graph
 
@@ -429,6 +468,14 @@ def test():
         "title",
     )
     export_graph(graph, "test-boxplot")
+    graph = violinplot(
+        [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],
+        ["lbl1", "2", "3", "lbl4"],
+        "xlabel",
+        "ylabel",
+        "title",
+    )
+    export_graph(graph, "test-violinplot")
 
 
 def parser_init():
@@ -460,7 +507,7 @@ def parser_init():
         nargs="+",
         type=str,
         help="Path to the input file. Can be repeated.",
-        required=True,
+        required=False,
         dest="input_files",
     )
 
@@ -471,7 +518,7 @@ def parser_init():
         nargs="+",
         type=str,
         help="CSV column that contain the data to plot on the x axis. Can be repeated (one for each graph type).",
-        required=True,
+        required=False,
         dest="x_col",
     )
 
@@ -591,7 +638,7 @@ def read_data(files, x_col, y_col=None):
 if __name__ == "__main__":
     parser = parser_init()
     args = parser.parse_args()
-    if args.graph_type == "test":
+    if "test" in args.graph_type:
         test()
     else:
         x_data, y_data = read_data(args.input_files, args.x_col, args.y_col)

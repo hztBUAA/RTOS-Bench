@@ -161,7 +161,10 @@ def handle_bmark_list(bmark_list):
     new_list = []
     for bmark in bmark_list:
         tmp = bmark.split(":")
-        new_list.append((tmp[0], tmp[1].split(",")))
+        if len(tmp) > 1:
+            new_list.append((tmp[0], tmp[1].split(",")))
+        else:
+            new_list.append((tmp, []))
     return new_list
 
 

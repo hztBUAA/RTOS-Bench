@@ -60,7 +60,7 @@ def worst_case_exec_test(
     deadline = 0.001
     fails_count = 1
     bmark_name = os.path.basename(bmark)
-    times=[]
+    times = []
     try:
         worst_file = open(
             os.path.join(
@@ -146,7 +146,7 @@ def worst_case_exec_test(
     print(f"done, test results:{worst} clock cycles {worst_time} seconds\n")
     writer.writerow([bmark_name, worst, worst_time])
     worst_file.close()
-    return worst_time,times
+    return worst_time, times
 
 
 def execute(params):
@@ -182,10 +182,10 @@ def execute(params):
     last_core = cores[0] - 1
     # get the list of worst case runtimes
     worst_runtimes = []
-    times=[]
+    times = []
     bmarks = []
     for i in range(0, len(args.benchmarks)):
-        WCET, time = worst_case_exec_test(
+        WCET, exec_times = worst_case_exec_test(
             args.benchmarks[i][0],
             args.benchmarks[i][1],
             args.worst_case_tests,
@@ -199,32 +199,52 @@ def execute(params):
             params.update({"res:": WCET})
             return params
         worst_runtimes.append(WCET)
-        times.append(time)
+        times.append(exec_times)
         bmarks.append(
             os.path.basename(args.benchmarks[i][0])
             + " - "
             + os.path.basename(args.benchmarks[i][1][0])
         )
-    WCET_graph = graph.boxplot(
-        worst_runtimes,
-        bmarks,
-        "Runtime (seconds)",
-        "Worst case execution time"
-        if len(args.interfering) == 0
-        else "Worst case execution time with interference",
-    )
     for output in args.output:
+        WCET_graph = graph.boxplot(
+            times,
+            labels=bmarks,
+            ylabel="Runtime (seconds)",
+            title="Worst case execution time"
+            if len(args.interfering) == 0
+            else "Worst case execution time with interference",
+        )
         graph.export_graph(
             WCET_graph,
             os.path.join(
                 output,
-                args.prefix
+                "boxplot"
+                + args.prefix
                 + os.path.basename(
                     args.benchmarks[i][0] + "_WCET"
                     if len(args.interfering) == 0
                     else "_WCET_inter"
                 )
                 + args.postfix,
+            ),
+        )
+        graph.teardown()
+
+        WCET_graph2 = graph.violinplot(
+            times,
+            labels=bmarks,
+            ylabel="Runtime (seconds)",
+            title="Worst case execution time"
+            if len(args.interfering) == 0
+            else "Worst case execution time with interference",
+        )
+        graph.export_graph(
+            WCET_graph2,
+            os.path.join(
+                output,
+                "violin" + args.prefix + "_WCET"
+                if len(args.interfering) == 0
+                else "_WCET_inter" + args.postfix,
             ),
         )
     graph.teardown()

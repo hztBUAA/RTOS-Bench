@@ -242,19 +242,13 @@ def execute(params):
         graph_lines,
     )
     for output in args.output:
-        print(output)
-        print(sched_graph)
         graph.export_graph(
             sched_graph,
             os.path.join(
                 output,
-                args.prefix
-                + os.path.basename(
-                    args.benchmarks[i][0] + "_sched"
-                    if len(args.interfering) == 0
-                    else "_sched_inter"
-                )
-                + args.postfix,
+                args.prefix + "_sched"
+                if len(args.interfering) == 0
+                else "_sched_inter" + args.postfix,
             ),
         )
     graph.teardown()

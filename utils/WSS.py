@@ -83,13 +83,9 @@ def execute(params):
             WSS_graph,
             os.path.join(
                 output,
-                args.prefix
-                + os.path.basename(
-                    args.benchmarks[i][0] + "_WSS"
-                    if len(args.interfering) == 0
-                    else "_WSS_inter"
-                )
-                + args.postfix,
+                args.prefix + "_WSS"
+                if len(args.interfering) == 0
+                else "_WSS_inter" + args.postfix,
             ),
         )
     graph.teardown()
@@ -116,7 +112,7 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
 
     @returns the minimum wss, failures in the benchmark execution treated as a wrong wss size.
     """
-    current_wss = 1 ** 10
+    current_wss = 1**10
     last_wss = 0
     failed_tests = 0
     bmark_name = os.path.basename(bmark)
@@ -162,7 +158,7 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
         writer = csv.writer(file)
         writer.writerow(["benchmark", "minimum wss (bytes)"])
         writer.writerow([bmark_name, current_wss])
-    return current_wss // (1 ** 20)
+    return current_wss // (1**20)
 
 
 if __name__ == "__main__":
