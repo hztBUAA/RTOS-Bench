@@ -23,6 +23,7 @@ Dependencies:
 import os
 import subprocess
 import csv
+import datetime
 import base
 import WCET
 import graph
@@ -70,10 +71,8 @@ def sched_test(
     bmark_name = os.path.basename(bmark)
     try:
         res_file = open(
-            os.path.join(
-                output, prefix + bmark_name + "_sched_test_res" + postfix + ".csv"
-            ),
-            "w",
+            os.path.join(output, prefix + "sched_test_res" + postfix + ".csv"),
+            "a",
         )
     except Exception as e:
         print("Cannot open file for storing schedulability test results ", e)
@@ -81,7 +80,9 @@ def sched_test(
     writer = csv.writer(res_file)
     writer.writerow(
         [
+            "timestamp",
             "benchmark",
+            "arguments",
             "utilization",
             "mean_utilization",
             "successfully_scheduled",
@@ -95,7 +96,7 @@ def sched_test(
             f"\ntest  with {utilization*100}% utilization, deadline: {deadline} seconds"
         )
         log_fname = os.path.join(
-            output, f"{prefix}{bmark_name}_sched_test_{utilization:.3g}{postfix}.csv"
+            output, f"{prefix}sched_test_{utilization:.3g}{postfix}.csv"
         )
         try:
             subprocess.run(
@@ -128,20 +129,22 @@ def sched_test(
         except Exception as e:
             print("Cannot open benchmark result file ", e)
             return None
-        reader = csv.reader(log_file)
+        reader = csv.DictReader(log_file)
         next(reader)
         for row in reader:
             started += 1
-            if int(row[10]) == 1:
+            if int(row["deadline_status(1=met)"]) == 1:
                 scheduled += 1
-            sum_utilization += float(row[11])
+            sum_utilization += float(row["job_utilization"])
         log_file.close()
         print(
             f"successfully scheduled {scheduled} over {started} tasks ({scheduled/started*100}%), mean utilization: {sum_utilization/started}"
         )
         writer.writerow(
             [
-                bmark_name,
+                datetime.datetime.now(),
+                bmark,
+                bmark_args,
                 str(utilization),
                 str(sum_utilization / started),
                 str(scheduled),
@@ -244,12 +247,7 @@ def execute(params):
     for output in args.output:
         graph.export_graph(
             sched_graph,
-            os.path.join(
-                output,
-                args.prefix + "_sched"
-                if len(args.interfering) == 0
-                else "_sched_inter" + args.postfix,
-            ),
+            os.path.join(output, args.prefix + "sched"),
         )
     graph.teardown()
     params.update({"res": 0})

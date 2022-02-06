@@ -20,6 +20,7 @@ Dependecies:
 import csv
 import subprocess
 import os
+import datetime
 import base
 import graph
 
@@ -81,12 +82,7 @@ def execute(params):
     for output in args.output:
         graph.export_graph(
             WSS_graph,
-            os.path.join(
-                output,
-                args.prefix + "_WSS"
-                if len(args.interfering) == 0
-                else "_WSS_inter" + args.postfix,
-            ),
+            os.path.join(output, args.prefix + "WSS"),
         )
     graph.teardown()
     params.update({"res": res})
@@ -116,9 +112,7 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
     last_wss = 0
     failed_tests = 0
     bmark_name = os.path.basename(bmark)
-    filename = os.path.join(
-        output, prefix + bmark_name + "_min_wss_test" + postfix + ".csv"
-    )
+    filename = os.path.join(output, prefix + "min_wss_test" + postfix + ".csv")
     while current_wss != last_wss or failed_tests != 0:
         print(f"\n\n{bmark_name} current wss:{current_wss}, last wss:{last_wss}")
         failed_tests = 0
@@ -154,10 +148,10 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
                 current_wss = last_wss // 2
             else:
                 last_wss = current_wss
-    with open(filename, "w") as file:
+    with open(filename, "a") as file:
         writer = csv.writer(file)
-        writer.writerow(["benchmark", "minimum wss (bytes)"])
-        writer.writerow([bmark_name, current_wss])
+        writer.writerow(["timestamp", "benchmark", "arguments", "minimum wss (bytes)"])
+        writer.writerow([datetime.datetime.now(), bmark, bmark_args, current_wss])
     return current_wss // (1**20)
 
 

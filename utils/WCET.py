@@ -20,6 +20,7 @@ Dependencies:
 import csv
 import os
 import subprocess
+import datetime
 import base
 import graph
 
@@ -61,34 +62,31 @@ def worst_case_exec_test(
     fails_count = 1
     bmark_name = os.path.basename(bmark)
     times = []
-    try:
-        worst_file = open(
-            os.path.join(
-                output, prefix + bmark_name + "_worst_case_exec" + postfix + ".csv"
-            )
-        )
-        prev_reader = csv.reader(worst_file)
+    fname = os.path.join(output, prefix + "worst_case_exec_res" + postfix + ".csv")
+    file_exists = os.path.exists(fname)
+    worst_file = open(fname, "a")
+    writer = csv.writer(worst_file)
+    if file_exists:
+        print(f"{fname}.csv open.")
+        prev_reader = csv.DictReader(worst_file)
         next(prev_reader)
         row = next(prev_reader)
-        worst = int(row[1])
-        worst_time = float(row[2])
-        worst_file.close()
+        worst = int(row["worst_in_clock"])
+        worst_time = float(row["worst_in_seconds"])
         print(f"read {worst} clock cycles : {worst_time} seconds")
-    except Exception as e:
-        print(
-            f"{prefix}{bmark_name}_worst_case_exec{postfix}.csv not found, creating it",
-            e,
-        )
+    else:
+        print(f"{fname} created.")
         worst = 0
         worst_time = 0
-    worst_file = open(
-        os.path.join(
-            output, prefix + bmark_name + "_worst_case_exec" + postfix + ".csv"
-        ),
-        "w",
-    )
-    writer = csv.writer(worst_file)
-    writer.writerow(["benchmark", "worst_in_clock", "worst_in_seconds"])
+        writer.writerow(
+            [
+                "timestamp",
+                "benchmark",
+                "arguments",
+                "worst_in_clock",
+                "worst_in_seconds",
+            ]
+        )
     print(f"\nstarting worst case execution test for {bmark_name}")
     while fails_count > 0:
         print(
@@ -111,7 +109,7 @@ def worst_case_exec_test(
                 "-o",
                 os.path.join(
                     output,
-                    prefix + bmark_name + "_worst_case_exec_test" + postfix + ".csv",
+                    prefix + "worst_case_exec_test" + postfix + ".csv",
                 ),
             ]
             + sched_params
@@ -122,29 +120,32 @@ def worst_case_exec_test(
             test_file = open(
                 os.path.join(
                     output,
-                    prefix + bmark_name + "_worst_case_exec_test" + postfix + ".csv",
+                    prefix + "worst_case_exec_test" + postfix + ".csv",
                 ),
                 "r",
             )
         except Exception as e:
             print("Error opening worst case execution test report file", e)
             return -1
-        reader = csv.reader(test_file, delimiter=",")
+        reader = csv.DictReader(test_file, delimiter=",")
         # skip the header
         next(reader)
         for row in reader:
-            if int(row[10]) == 0 and float(row[9]) != 0:
+            if (
+                int(row["deadline_status(1=met)"]) == 0
+                and float(row["job_elapsed(seconds)"]) != 0
+            ):
                 fails_count += 1
-            times.append(float(row[9]))
-            if float(row[9]) > worst_time:
-                worst_time = float(row[9])
-                worst = int(row[4])
+            times.append(float(row["job_elapsed(seconds)"]))
+            if float(row["job_elapsed(seconds)"]) > worst_time:
+                worst_time = float(row["job_elapsed(seconds)"])
+                worst = int(row["job_elapsed(clock_cycles)"])
         test_file.close()
         if fails_count > 0:
             print(f"{fails_count} benchmark failed, increasing deadline")
             deadline *= 10
     print(f"done, test results:{worst} clock cycles {worst_time} seconds\n")
-    writer.writerow([bmark_name, worst, worst_time])
+    writer.writerow([datetime.datetime.now(), bmark, bmark_args, worst, worst_time])
     worst_file.close()
     return worst_time, times
 
@@ -216,17 +217,7 @@ def execute(params):
         )
         graph.export_graph(
             WCET_graph,
-            os.path.join(
-                output,
-                "boxplot"
-                + args.prefix
-                + os.path.basename(
-                    args.benchmarks[i][0] + "_WCET"
-                    if len(args.interfering) == 0
-                    else "_WCET_inter"
-                )
-                + args.postfix,
-            ),
+            os.path.join(output, "boxplot_" + args.prefix + "WCET"),
         )
         graph.teardown()
 
@@ -240,12 +231,7 @@ def execute(params):
         )
         graph.export_graph(
             WCET_graph2,
-            os.path.join(
-                output,
-                "violin" + args.prefix + "_WCET"
-                if len(args.interfering) == 0
-                else "_WCET_inter" + args.postfix,
-            ),
+            os.path.join(output, "violin_" + args.prefix + "WCET"),
         )
     graph.teardown()
     params.update({"res": 0, "worst_runtimes": worst_runtimes})
