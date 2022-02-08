@@ -490,10 +490,10 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	#ifdef AARCH64
         #ifdef CORTEX_A53
 	res = on_exit(stop_benchmark, (void*)&(exec_opts->memory_profiling_enable));
-	#elif
+	#else
 	res = on_exit(stop_benchmark, NULL);
 	#endif
-	#elif
+	#else
 	res = on_exit(stop_benchmark, NULL);
         #endif
 	if (res != 0) {
@@ -633,7 +633,6 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		#endif
 		job_end_timestamp_clocks = get_rdtsc();
 		job_end_timestamp = get_timestamp();
-		elogf(LOG_LEVEL_TRACE, "Done task %llu\n", tasks_launched);
 		// we update the number of launched benchmarks
 		tasks_launched++;
 	}
