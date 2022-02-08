@@ -91,10 +91,6 @@ static int open_pmc_fd(unsigned int pmc_type, int group_fd)
 	attr.config = pmc_type;
 	attr.size = sizeof(struct perf_event_attr);
 	attr.read_format = PERF_FORMAT_GROUP|PERF_FORMAT_ID|PERF_FORMAT_TOTAL_TIME_ENABLED|PERF_FORMAT_TOTAL_TIME_RUNNING;
-	attr.disabled = 0;
-	attr.exclude_kernel = 1;
-	attr.exclude_hv = 1;
-	printf("PMC attr (disabled, exclude_kernel, exclude_hv): (%u, %u, %u)\n", attr.disabled, attr.exclude_kernel, attr.exclude_hv);
 
 	int fd = syscall(__NR_perf_event_open, &attr, this_thread, any_core, group_fd, 0);
 
@@ -177,7 +173,7 @@ struct perf_counters pmcs_get_value(void)
 	struct read_format measurement;
 	size_t size = read(l1_references_fd, &measurement, sizeof(struct read_format));
 	if (size != sizeof(struct read_format)) {
-		perror("Error: Size reqd from performance counters differ from size expected.");
+		perror("Error: Size read from performance counters differ from size expected.");
 	}
 	struct perf_counters res;
 	res.l1_references = measurement.l1_references.value;
