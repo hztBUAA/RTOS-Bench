@@ -23,7 +23,6 @@ Dependencies:
 import os
 import subprocess
 import csv
-import datetime
 import base
 import WCET
 import graph
@@ -40,6 +39,7 @@ def sched_test(
     postfix,
     last_core,
     sched_params,
+    timestamp,
 ):
     """!
     @brief schedulability test for a single benchmark.
@@ -142,7 +142,7 @@ def sched_test(
         )
         writer.writerow(
             [
-                datetime.datetime.now(),
+                timestamp,
                 bmark,
                 bmark_args,
                 str(utilization),

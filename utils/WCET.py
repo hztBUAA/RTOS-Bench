@@ -20,7 +20,6 @@ Dependencies:
 import csv
 import os
 import subprocess
-import datetime
 import base
 import graph
 
@@ -34,6 +33,7 @@ def worst_case_exec_test(
     postfix,
     last_core,
     sched_params,
+    timestamp,
 ):
     """!
     @brief Finds the worst case execution time using only the first core.
@@ -45,6 +45,7 @@ def worst_case_exec_test(
     @param[in] postfix The postfix to append to the generated files.
     @param[in] last_core The core on which the benchmarks will be executed, usually the last physical core.
     @param[in] sched_params Parameters that tune the benchmark scheduling attributes (a list with CLI options and it's attributes).
+    @param[in] timestamp The timestamp of the test.
     @details
     The worst case execution time will be the longest time a single task has run without missing the deadline.
     To do so a number of tasks (`worst_case_tests`) is run and if at least one misses the deadline then the deadline be increased and the test restarted.
@@ -63,30 +64,21 @@ def worst_case_exec_test(
     bmark_name = os.path.basename(bmark)
     times = []
     fname = os.path.join(output, prefix + "worst_case_exec_res" + postfix + ".csv")
-    file_exists = os.path.exists(fname)
-    worst_file = open(fname, "a")
+    test_fname = prefix + "worst_case_exec_test_" + timestamp + postfix + ".csv"
+    worst_file = open(fname, "w")
     writer = csv.writer(worst_file)
-    if file_exists:
-        print(f"{fname}.csv open.")
-        prev_reader = csv.DictReader(worst_file)
-        next(prev_reader)
-        row = next(prev_reader)
-        worst = int(row["worst_in_clock"])
-        worst_time = float(row["worst_in_seconds"])
-        print(f"read {worst} clock cycles : {worst_time} seconds")
-    else:
-        print(f"{fname} created.")
-        worst = 0
-        worst_time = 0
-        writer.writerow(
-            [
-                "timestamp",
-                "benchmark",
-                "arguments",
-                "worst_in_clock",
-                "worst_in_seconds",
-            ]
-        )
+    print(f"{fname} created.")
+    worst = 0
+    worst_time = 0
+    writer.writerow(
+        [
+            "timestamp",
+            "benchmark",
+            "arguments",
+            "worst_in_clock",
+            "worst_in_seconds",
+        ]
+    )
     print(f"\nstarting worst case execution test for {bmark_name}")
     while fails_count > 0:
         print(
@@ -109,7 +101,7 @@ def worst_case_exec_test(
                 "-o",
                 os.path.join(
                     output,
-                    prefix + "worst_case_exec_test" + postfix + ".csv",
+                    test_fname,
                 ),
             ]
             + sched_params
@@ -120,7 +112,7 @@ def worst_case_exec_test(
             test_file = open(
                 os.path.join(
                     output,
-                    prefix + "worst_case_exec_test" + postfix + ".csv",
+                    test_fname,
                 ),
                 "r",
             )
@@ -145,7 +137,7 @@ def worst_case_exec_test(
             print(f"{fails_count} benchmark failed, increasing deadline")
             deadline *= 10
     print(f"done, test results:{worst} clock cycles {worst_time} seconds\n")
-    writer.writerow([datetime.datetime.now(), bmark, bmark_args, worst, worst_time])
+    writer.writerow([timestamp, bmark, bmark_args, worst, worst_time])
     worst_file.close()
     return worst_time, times
 
@@ -163,6 +155,11 @@ def execute(params):
 
     @returns The updated `params` dictionary with `{"res":0}` on success, or `{"res":-1}` on failure.
     """
+    timestamp = params.get("timestamp")
+    if timestamp is None:
+        print("ERROR: Missing test timestamp!")
+        params.update({"res": -1})
+        return params
     args = params.get("args")
     if args is None:
         print("ERROR: Missing argument dictionary to execute the WCET test!")
@@ -195,6 +192,7 @@ def execute(params):
             args.postfix,
             last_core,
             sched_params,
+            timestamp,
         )
         if WCET < 0:
             params.update({"res:": WCET})
@@ -206,32 +204,21 @@ def execute(params):
             + " - "
             + os.path.basename(args.benchmarks[i][1][0])
         )
+    WCET_graph = graph.violinplot(
+        times,
+        labels=bmarks,
+        ylabel="Runtime (seconds)",
+        title="Worst case execution time"
+        if len(args.interfering) == 0
+        else "Worst case execution time with interference",
+    )
     for output in args.output:
-        WCET_graph = graph.boxplot(
-            times,
-            labels=bmarks,
-            ylabel="Runtime (seconds)",
-            title="Worst case execution time"
-            if len(args.interfering) == 0
-            else "Worst case execution time with interference",
-        )
         graph.export_graph(
             WCET_graph,
-            os.path.join(output, "boxplot_" + args.prefix + "WCET"),
-        )
-        graph.teardown()
-
-        WCET_graph2 = graph.violinplot(
-            times,
-            labels=bmarks,
-            ylabel="Runtime (seconds)",
-            title="Worst case execution time"
-            if len(args.interfering) == 0
-            else "Worst case execution time with interference",
-        )
-        graph.export_graph(
-            WCET_graph2,
-            os.path.join(output, "violin_" + args.prefix + "WCET"),
+            os.path.join(
+                output,
+                args.prefix + "WCET_" + timestamp + args.postfix,
+            ),
         )
     graph.teardown()
     params.update({"res": 0, "worst_runtimes": worst_runtimes})

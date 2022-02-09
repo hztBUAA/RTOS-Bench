@@ -30,6 +30,7 @@ Dependencies:
 
 import argparse
 import subprocess
+import datetime
 import os
 import signal
 
@@ -327,9 +328,11 @@ def test_init(parser):
     - `cores`: The number of cores detected by `detect_cores()`.
     - `sched_params`: A list with the scheduling parameters of the target benchmark.
     - `res`: The result of the last operation.
+    - `timestamp`: The timestamp of the test in ISO format (with `-` instead of `:` and `.` to avoid filesystem problems).
 
     @returns a dictionary called `params`.
     """
+
     # initialize the dictionary that will be returned
     params = {
         "res": 0,
@@ -337,6 +340,10 @@ def test_init(parser):
         "int_processes": None,
         "args": None,
         "sched_params": [],
+        "timestamp": datetime.datetime.now()
+        .isoformat()
+        .replace(":", "-")
+        .replace(".", "-"),
     }
     # parse arguments
     args = parser.parse_args()

@@ -20,7 +20,6 @@ Dependecies:
 import csv
 import subprocess
 import os
-import datetime
 import base
 import graph
 
@@ -33,6 +32,11 @@ def execute(params):
     A graph of the test will be produced in each output folder in both png and svg formats.
     @returns The updated `params` dictionary with {"res":0} on success, or {"res":-1} on failure.
     """
+    timestamp = params.get("timestamp")
+    if timestamp is None:
+        print("ERROR: Missing test timestamp!")
+        params.update({"res": -1})
+        return params
     args = params.get("args")
     if args is None:
         print("ERROR: Missing argument dictionary to execute the wss test!")
@@ -60,6 +64,7 @@ def execute(params):
             args.postfix,
             cores[0] - 1,
             sched_params,
+            timestamp,
         )
         if res < 0:
             break
@@ -82,14 +87,16 @@ def execute(params):
     for output in args.output:
         graph.export_graph(
             WSS_graph,
-            os.path.join(output, args.prefix + "WSS"),
+            os.path.join(output, args.prefix + "WSS_" + timestamp + args.postfix),
         )
     graph.teardown()
     params.update({"res": res})
     return params
 
 
-def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_params):
+def wss_test(
+    bmark, bmark_args, tests, output, prefix, postfix, core, sched_params, timestamp
+):
     """!
     @brief Perform a minimum working set size test.
     @param[in] bmark Benchmark on which the test should be executed.
@@ -100,6 +107,7 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
     @param[in] postfix The generated file postfix.
     @param[in] core Physical core on which the test will be executed.
     @param[in] sched_params Scheduling attributes.
+    @param[in] timestamp The timestamp of the test.
     @details The function will run a number of tests, specified in `params` constraining the benchmark available memory to 1KB.
     If all the test succeed the available memory limit will be halved. Otherwise the memory limit will be doubled.
     The execution will stop when the smallest amount of memory to run a benchmark is determined.
@@ -151,7 +159,7 @@ def wss_test(bmark, bmark_args, tests, output, prefix, postfix, core, sched_para
     with open(filename, "a") as file:
         writer = csv.writer(file)
         writer.writerow(["timestamp", "benchmark", "arguments", "minimum wss (bytes)"])
-        writer.writerow([datetime.datetime.now(), bmark, bmark_args, current_wss])
+        writer.writerow([timestamp, bmark, bmark_args, current_wss])
     return current_wss // (1**20)
 
 
