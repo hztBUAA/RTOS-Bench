@@ -49,8 +49,6 @@
  *
 */
 static int set_sched_deadline(
-	/** IN: criticality: the criticality of this task (MCMG) */
-	uint32_t criticality,
 	/** IN: period (see chrt or include/linux/sched/types.h */
 	uint64_t period,
 	/** IN: deadline (see chrt or include/linux/sched/types.h */
@@ -79,7 +77,6 @@ static int set_sched_deadline(
 	attr.sched_runtime = runtime;
 	attr.sched_deadline = deadline;
 	attr.sched_period = period;
-	attr.sched_criticality = criticality;
 
 	/* NOTE: sched_setattr() is not provided as wrapper in most glibc */
 	ret = sched_setattr(0, &attr, 0);
@@ -93,7 +90,6 @@ static int set_sched_deadline(
 	attr.sched_runtime = 0;
 	attr.sched_deadline = 0;
 	attr.sched_period = 0;
-	attr.sched_criticality = 0;
 
 	ret = sched_getattr(0, &attr, sizeof(attr), 0);
 	if (ret != 0) {
@@ -102,11 +98,10 @@ static int set_sched_deadline(
 
 	elogf(LOG_LEVEL_INFO,
 			"\nsize: %u, policy: %u, flags: %lu, prio: %u"
-			"\nT: %lu, D: %lu, P: %lu, CRIT: %u\n",
+			"\nT: %lu, D: %lu, P: %lu\n",
 			attr.size, attr.sched_policy, attr.sched_flags,
 			attr.sched_priority,
-			attr.sched_runtime, attr.sched_deadline, attr.sched_period,
-			attr.sched_criticality);
+			attr.sched_runtime, attr.sched_deadline, attr.sched_period);
 
 	return ret;
 }
@@ -164,7 +159,6 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		memset(parsed_args, 0, sizeof(struct execution_options));
 		CPU_ZERO(&parsed_args->core_affinity);
 		parsed_args->prio = 100;
-		parsed_args->criticality = 0;
 		parsed_args->runtime = 0;
 		parsed_args->period = 0;
 		parsed_args->deadline = 0;
@@ -319,9 +313,6 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	case 'f':
 		parsed_args->prio = strtoul(arg, NULL, 0);
 		break;
-	case 'y':
-		parsed_args->criticality = strtoul(arg, NULL, 0);
-		break;
 	case 'T':
 		parsed_args->runtime = strtoull(arg, NULL, 0);
 		break;
@@ -375,8 +366,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		}
 
 		if (parsed_args->period > 0) {
-			res = set_sched_deadline(parsed_args->criticality,
-						 parsed_args->period,
+			res = set_sched_deadline(parsed_args->period,
 						 parsed_args->deadline,
 						 parsed_args->runtime);
 			if (res < 0) {
@@ -421,8 +411,6 @@ int main(int argc, char **argv)
 		  "The number of tasks to be executed. 0 means until the program receives a SIGINT. Default is 0." },
 		{ "fifo", 'f', "0<=prio<=99", 0,
 		  "Set SCHED_FIFO priority with specified priority. Need root." },
-		{ "crit", 'y', "int>=0", 0,
-		  "Criticality of the task (for MCMG setup) with SCHED_DEADLINE." },
 		{ "sched-runtime", 'T', "ns", 0,
 		  "Set SCHED_DEADLINE runtime. Alternative to --fifo. Need root." },
 		{ "sched-deadline", 'D', "ns", 0,
