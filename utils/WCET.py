@@ -14,14 +14,22 @@ This script will create some files in the output folder, as described by `worst_
 
 Dependencies:
 - base.py
+- graph.py optional
 """
 
 
 import csv
 import os
 import subprocess
+
 import base
-import graph
+
+try:
+    import graph
+
+    graph_imported = True
+except ImportError:
+    graph_imported = False
 
 
 def worst_case_exec_test(
@@ -34,9 +42,10 @@ def worst_case_exec_test(
     last_core,
     sched_params,
     timestamp,
+    interference,
 ):
-    """!
-    @brief Finds the worst case execution time using only the first core.
+    """!  @brief Finds the worst case execution time using only the first core.
+
     @param[in] bmark The target benchmark.
     @param[in] bmark_args The arguments for the target benchmark.
     @param[in] worst_case_tests The number of tests to execute for detecting the worst case scenario execution time.
@@ -46,6 +55,7 @@ def worst_case_exec_test(
     @param[in] last_core The core on which the benchmarks will be executed, usually the last physical core.
     @param[in] sched_params Parameters that tune the benchmark scheduling attributes (a list with CLI options and it's attributes).
     @param[in] timestamp The timestamp of the test.
+    @param[in] interference If the test has interference, this will change the csv filename, adding `interfering`.
     @details
     The worst case execution time will be the longest time a single task has run without missing the deadline.
     To do so a number of tasks (`worst_case_tests`) is run and if at least one misses the deadline then the deadline be increased and the test restarted.
@@ -62,29 +72,38 @@ def worst_case_exec_test(
     deadline = 0.001
     fails_count = 1
     bmark_name = os.path.basename(bmark)
-    times = []
-    fname = os.path.join(output, prefix + "worst_case_exec_res" + postfix + ".csv")
+    runtimes = []
+    interf_str = ""
+    if interference:
+        interf_str = "interfering_"
+    fname = os.path.join(
+        output, prefix + interf_str + "worst_case_exec_res" + postfix + ".csv"
+    )
     test_fname = prefix + "worst_case_exec_test_" + timestamp + postfix + ".csv"
-    worst_file = open(fname, "w")
+    file_exists = os.path.isfile(fname)
+    worst_file = open(fname, "a")
     writer = csv.writer(worst_file)
-    print(f"{fname} created.")
+    print(f"{fname} opened.")
     worst = 0
     worst_time = 0
-    writer.writerow(
-        [
-            "timestamp",
-            "benchmark",
-            "arguments",
-            "worst_in_clock",
-            "worst_in_seconds",
-        ]
-    )
-    print(f"\nstarting worst case execution test for {bmark_name}")
+    if not file_exists:
+        writer.writerow(
+            [
+                "timestamp",
+                "benchmark",
+                "arguments",
+                "worst_in_clock",
+                "worst_in_seconds",
+                "runtimes_in_seconds",
+            ]
+        )
+    print(f"\nstarting worst case execution test for {bmark_name} {bmark_args}")
     while fails_count > 0:
         print(
             f"deadline value: {deadline}, current WCET: {worst_time}, executing {worst_case_tests} tasks"
         )
         fails_count = 0
+        runtimes = []
         subprocess.run(
             [
                 bmark,
@@ -118,33 +137,40 @@ def worst_case_exec_test(
             )
         except Exception as e:
             print("Error opening worst case execution test report file", e)
-            return -1
         reader = csv.DictReader(test_file, delimiter=",")
-        # skip the header
-        next(reader)
         for row in reader:
-            if (
-                int(row["deadline_status(1=met)"]) == 0
-                and float(row["job_elapsed(seconds)"]) != 0
-            ):
+            elapsed_secs = float(row["job_elapsed(seconds)"])
+            elapsed_clocks = float(row["job_elapsed(clock_cycles)"])
+            deadline = int(row["deadline_status(1=met)"])
+            if deadline == 0:
                 fails_count += 1
-            times.append(float(row["job_elapsed(seconds)"]))
-            if float(row["job_elapsed(seconds)"]) > worst_time:
-                worst_time = float(row["job_elapsed(seconds)"])
-                worst = int(row["job_elapsed(clock_cycles)"])
+            if fails_count == 0:
+                runtimes.append(elapsed_secs)
+            if elapsed_secs > worst_time:
+                worst_time = elapsed_secs
+                worst = elapsed_clocks
         test_file.close()
         if fails_count > 0:
-            print(f"{fails_count} benchmark failed, increasing deadline")
-            deadline *= 10
+            print(f"{fails_count} deadlines were missed, increasing deadline")
+            deadline = worst_time
     print(f"done, test results:{worst} clock cycles {worst_time} seconds\n")
-    writer.writerow([timestamp, bmark, bmark_args, worst, worst_time])
+    writer.writerow(
+        [
+            timestamp,
+            bmark,
+            base.stringify_list(bmark_args),
+            worst,
+            worst_time,
+            base.stringify_list(runtimes),
+        ]
+    )
     worst_file.close()
-    return worst_time, times
+    return worst_time, runtimes
 
 
 def execute(params):
-    """!
-    @brief Execute the WCET test on the given benchmarks
+    """! @brief Execute the WCET test on the given benchmarks
+
     @param[in,out] params The parameter dictionary provided by `base.test_init()`.
     @details
 
@@ -155,74 +181,119 @@ def execute(params):
 
     @returns The updated `params` dictionary with `{"res":0}` on success, or `{"res":-1}` on failure.
     """
-    timestamp = params.get("timestamp")
-    if timestamp is None:
-        print("ERROR: Missing test timestamp!")
-        params.update({"res": -1})
-        return params
     args = params.get("args")
     if args is None:
         print("ERROR: Missing argument dictionary to execute the WCET test!")
         params.update({"res": -1})
         return params
-    sched_params = params.get("sched_params")
-    if sched_params is None:
-        print(
-            "ERROR: Missing scheduling parameters to execute the schedulability test!"
-        )
-        params.update({"res": -1})
-        return params
-    cores = params.get("cores")
-    if cores is None:
-        print("ERROR: Missing corelist to execute the WCET test!")
-        params.update({"res": -1})
-        return params
-    last_core = cores[0] - 1
-    # get the list of worst case runtimes
-    worst_runtimes = []
-    times = []
-    bmarks = []
-    for i in range(0, len(args.benchmarks)):
-        WCET, exec_times = worst_case_exec_test(
-            args.benchmarks[i][0],
-            args.benchmarks[i][1],
-            args.worst_case_tests,
-            args.output[i],
-            args.prefix,
-            args.postfix,
-            last_core,
-            sched_params,
-            timestamp,
-        )
-        if WCET < 0:
-            params.update({"res:": WCET})
+    if args.draw_graph != "only":
+        timestamp = params.get("timestamp")
+        if timestamp is None:
+            print("ERROR: Missing test timestamp!")
+            params.update({"res": -1})
             return params
-        worst_runtimes.append(WCET)
-        times.append(exec_times)
-        bmarks.append(
-            os.path.basename(args.benchmarks[i][0])
-            + " - "
-            + os.path.basename(args.benchmarks[i][1][0])
+        sched_params = params.get("sched_params")
+        if sched_params is None:
+            print(
+                "ERROR: Missing scheduling parameters to execute the schedulability test!"
+            )
+            params.update({"res": -1})
+            return params
+        cores = params.get("cores")
+        if cores is None:
+            print("ERROR: Missing corelist to execute the WCET test!")
+            params.update({"res": -1})
+            return params
+        last_core = cores[0] - 1
+        # get the list of worst case runtimes
+        worst_runtimes = []
+        runtimes = []
+        bmarks = []
+        for i in range(0, len(args.benchmarks)):
+            WCET, exec_times = worst_case_exec_test(
+                args.benchmarks[i][0],
+                args.benchmarks[i][1],
+                args.worst_case_tests,
+                args.output[i],
+                args.prefix,
+                args.postfix,
+                last_core,
+                sched_params,
+                timestamp,
+                len(args.interfering) > 0,
+            )
+            if WCET < 0:
+                params.update({"res:": WCET})
+                return params
+            worst_runtimes.append(WCET)
+            runtimes.append(exec_times)
+            bmarks.append(
+                os.path.basename(args.benchmarks[i][0])
+                + "\n"
+                + os.path.basename(args.benchmarks[i][1][0])
+            )
+        params.update(
+            {
+                "res": 0,
+                "WCET": {
+                    "worst_in_seconds": worst_runtimes,
+                    "legend": bmarks,
+                    "runtimes_in_seconds": runtimes,
+                },
+            }
         )
-    WCET_graph = graph.violinplot(
-        times,
+    if args.draw_graph != "no":
+        params = base.draw_and_save_graph(
+            draw_graph,
+            params,
+            "WCET",
+            "WCET",
+            ["worst_in_seconds", "runtimes_in_seconds"],
+            [float, convert_read_runtimes],
+        )
+    return params
+
+
+def convert_read_runtimes(data):
+    return list(map(float, base.unstringify_list(data)))
+
+
+def draw_graph(data, interference=False, old_graph=None):
+    """! @brief Draw a violin plot.
+
+    @param[in] data The data that needs to be plotted.
+    @param[in] interference If there is interference in the graph, this will only change the graph title.
+    @param[in] graph A previous graph object on which lines will be added.
+    @returns The graph object.
+    """
+    runtimes = data.get("runtimes_in_seconds")
+    if type(runtimes[0]) is list:
+        if type(runtimes[0][0]) is list:
+            tmp_list = []
+            for elem in runtimes:
+                tmp_list.append(elem[0])
+                runtimes = tmp_list
+    legend = data.get("legend")
+    min_data = min(list(map(min, runtimes)))
+    max_data = max(list(map(max, runtimes)))
+    log_scale = abs(max_data / min_data) > 100
+    log_scale = False
+    bmarks = []
+    for elem in legend:
+        bmarks.append(elem.replace(" - ", "\n"))
+    if runtimes is None:
+        print("ERROR: Not enough data to plot a WCET graph")
+        return None
+    WCET_graph = graph.boxplot(
+        runtimes,
         labels=bmarks,
         ylabel="Runtime (seconds)",
         title="Worst case execution time"
-        if len(args.interfering) == 0
+        if not interference
         else "Worst case execution time with interference",
+        log_scale=log_scale,
     )
-    for output in args.output:
-        graph.export_graph(
-            WCET_graph,
-            os.path.join(
-                output,
-                args.prefix + "WCET_" + timestamp + args.postfix,
-            ),
-        )
-    graph.teardown()
-    params.update({"res": 0, "worst_runtimes": worst_runtimes})
-    return params
+    return WCET_graph
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 #! /bin/python3
+
 """!
 @file base.py
 @ingroup utils
@@ -26,18 +27,26 @@ Dependencies:
 - mkdir
 - schedulability.py (for `sched` execution)
 - WCET.py (for `sched` and `WCET` execution)
+- graph.py as an optional dependency
 """
 
 import argparse
-import subprocess
 import datetime
 import os
 import signal
+import subprocess
+
+try:
+    import graph
+
+    graph_imported = True
+except ImportError:
+    graph_imported = False
 
 
 def start_interfering(deadline, bmarks, num_cpus):
-    """!
-    @brief Launches interfering benchmarks
+    """! @brief Launches interfering benchmarks.
+
     @param[in] deadline The deadline (and period) to give to the interfering benchmarks.
     @param[in] bmarks The list of interfering benchmarks executables.
     @param[in] num_cpus The number of available physical cores.
@@ -47,9 +56,15 @@ def start_interfering(deadline, bmarks, num_cpus):
     @returns The list of process id associated to the spawned benchmarks or `None` on error.
     """
     print("Starting interfering benchmarks")
-    cpu_range = "0"
-    for i in range(1, num_cpus - 1):
-        cpu_range += "," + str(i)
+    cores = []
+    # exclude core 0 and the last core
+    if len(bmarks) > num_cpus - 2:
+        print(
+            "WARNING:You have more interfering benchmarks than physical cores, this will assign more that one benchmark to the same core, with fifo scheduling and the same priority."
+        )
+    # exclude core 0 and the last core
+    for i in range(0, len(bmarks)):
+        cores.append(str(i % (num_cpus - 2) + 1))
     bmark_processes = []
     for i in range(0, len(bmarks)):
         try:
@@ -64,7 +79,7 @@ def start_interfering(deadline, bmarks, num_cpus):
                         "-l",
                         "1",
                         "-c",
-                        cpu_range,
+                        cores[i],
                         "-f",
                         "1",
                         "-b",
@@ -81,8 +96,8 @@ def start_interfering(deadline, bmarks, num_cpus):
 
 
 def stop_interfering(processes):
-    """!
-    @brief Stops the running interfering benchmarks.
+    """! @brief Stops the running interfering benchmarks.
+
     @param[in] processes The list of interfering benchmark that are in execution.
     @details
     The interfering benchmarks are stopped with a `SIGINT`.
@@ -94,8 +109,8 @@ def stop_interfering(processes):
 
 
 def detect_cores():
-    """!
-    @brief Detect physical and logical cores.
+    """! @brief Detect physical and logical cores.
+
     @returns The number of available physical and logical cores in the machine, as a tuple (phys,logic). -1 is given on error.
     """
     # get the number of available cores
@@ -123,8 +138,8 @@ def detect_cores():
 
 
 def move_processes(corelist):
-    """!
-    @brief Move processes according to the provided corelist.
+    """! @brief Move processes according to the provided corelist.
+
     @param[in] corelist The list of cores (as a `taskset` compatible string) on which processes are allowed to run.
     @details
     Moves all the existing processes (assumed to not be part of the testing set) according to the provided corelist, to avoid interference as much as possible.
@@ -154,8 +169,8 @@ def move_processes(corelist):
 
 
 def handle_bmark_list(bmark_list):
-    """!
-    @brief Split the list of benchmark in executable,arguments tuples.
+    """! @brief Split the list of benchmark in executable,arguments tuples.
+
     @param[in] bmark_list The list of benchmark in the `"executable:arg1,arg2,..."` format.
     @returns a list of benchmark in the `["executable","arg1 arg2 ..."]` format.
     """
@@ -165,13 +180,13 @@ def handle_bmark_list(bmark_list):
         if len(tmp) > 1:
             new_list.append((tmp[0], tmp[1].split(",")))
         else:
-            new_list.append((tmp, []))
+            new_list.append((tmp[0], []))
     return new_list
 
 
 def parser_init():
-    """!
-    @brief Initialize an argument parser with a set of common arguments.
+    """! @brief Initialize an argument parser with a set of common arguments.
+
     @returns The initialized `ArgumentParser` object.
     """
     # set up the argument parser
@@ -228,8 +243,9 @@ def parser_init():
         metavar="bmark-exec:arg1,arg2,...",
         nargs="+",
         type=str,
+        default=[],
         help="A list of  benchmarks executables, with their arguments. A schedulability test will be performed on each of these benchmarks.\n This option can be specified multiple times.",
-        required=True,
+        required=False,
         dest="benchmarks",
     )
 
@@ -241,7 +257,7 @@ def parser_init():
         type=str,
         help="The location where all the generated output files will be located. This option can be repeated for each target benchmark.",
         required=False,
-        default=[],
+        default=["./"],
         dest="output",
     )
 
@@ -310,12 +326,37 @@ def parser_init():
         default="",
         dest="postfix",
     )
+
+    parser.add_argument(
+        "-g",
+        "--draw-graph",
+        metavar="graph",
+        type=str,
+        nargs="?",
+        help="If tests should also draw graphs. Selecting 'only' will make the test only draw graphs from the csv files specified in --graph-inputs",
+        default="no",
+        choices=["no", "yes", "only"],
+        required=False,
+        const="yes",
+        dest="draw_graph",
+    )
+    parser.add_argument(
+        "-gi",
+        "--graph-inputs",
+        metavar="file1.csv file2.csv ...",
+        type=str,
+        nargs="+",
+        help="The source file to use for drawing the graph",
+        default=[],
+        required=False,
+        dest="graph_inputs",
+    )
     return parser
 
 
 def test_init(parser):
-    """!
-    @brief Function that will set up the machine for executing the test.
+    """! @brief Function that will set up the machine for executing the test.
+
     @param[in] parser The parser created by `parser_init()`.
     @details
     This function will:
@@ -332,7 +373,6 @@ def test_init(parser):
 
     @returns a dictionary called `params`.
     """
-
     # initialize the dictionary that will be returned
     params = {
         "res": 0,
@@ -347,6 +387,8 @@ def test_init(parser):
     }
     # parse arguments
     args = parser.parse_args()
+    if not graph_imported:
+        args.draw_graph = "no"
     sched_deadline_vals = [
         args.sched_deadline is not None,
         args.sched_runtime is not None,
@@ -354,10 +396,10 @@ def test_init(parser):
     ]
     # handle scheduling parameters
     if args.fifo != 1 and any(sched_deadline_vals):
-        print("Error: cannot specify options for both SCHED_FIFO and SCHED_DEADLINE")
+        print("ERROR: cannot specify options for both SCHED_FIFO and SCHED_DEADLINE")
         return -1
     if any(sched_deadline_vals) and not all(sched_deadline_vals):
-        print("Error: missing options for SCHED_DEADLINE")
+        print("ERROR: missing options for SCHED_DEADLINE")
         return -1
     # we use SCHED_FIFO if nothing from SCHED_DEADLINE has been specified
     if all(sched_deadline_vals) is False:
@@ -376,14 +418,6 @@ def test_init(parser):
     # adjust the list of benchmarks and interfering benchmarks
     args.benchmarks = handle_bmark_list(args.benchmarks)
     args.interfering = handle_bmark_list(args.interfering)
-    # we detect the physical cores
-    cores = detect_cores()
-    if cores == -1:
-        params.update({"res:": cores})
-        return params
-    params.update({"cores": cores})
-    # we move all processes to the first core
-    move_processes("0")
 
     output_len = len(args.output)
     if output_len > 0 and len(args.benchmarks) > output_len:
@@ -398,13 +432,30 @@ def test_init(parser):
         else:
             if i > 0:
                 args.output.append(args.output[0])
+    if len(args.benchmarks) == 0 and args.draw_graph != "only":
+        print("ERROR: Missing benchmark list!")
+        params.update({"res": -1})
+        return params
+    if args.draw_graph == "only" and len(args.graph_inputs) == 0:
+        print("ERROR: Missing input files for graph generation!")
+        params.update({"res": -1})
+        return params
+    if args.draw_graph != "only":
+        # we detect the physical cores
+        cores = detect_cores()
+        if cores == -1:
+            params.update({"res:": cores})
+            return params
+        params.update({"cores": cores})
+        # we move all processes to the first core
+        move_processes("0")
     params.update({"args": args})
     return params
 
 
 def test_teardown(params):
-    """!
-    @brief The function that will revert the environment to the state it had before the benchmark test.
+    """! @brief The function that will revert the environment to the state it had before the benchmark test.
+
     @param[in] params: A dictionary containing the parsed arguments, the list of interfering benchmarks and the number of detected cores. Provided by `test_init()`.
     @details
     This function will:
@@ -417,16 +468,131 @@ def test_teardown(params):
     """
     args = params.get("args")
     int_processes = params.get("int_processes")
-    cores = params.get("cores")
-    if cores == None or args == None:
-        print("ERROR: mising parameters for test_teardown()")
-        return -1
+    if args.draw_graph != "only":
+        cores = params.get("cores")
+        if cores is None or args is None:
+            print("ERROR: Missing parameters for test_teardown()")
+            return -1
+
+        # we restore the normal execution of the tasks
+        move_processes(f"0-{cores[1]-1}")
     # we stop the interfering benchmarks if necessary
-    if args.interfering != [] and int_processes != None:
+    if args.interfering != [] and int_processes is not None:
         stop_interfering(int_processes)
-    # we restore the normal execution of the tasks
-    move_processes(f"0-{cores[1]-1}")
     return 0
+
+
+def stringify_list(data_list):
+    """! @brief Transofrm a list of argument in as string, separatin them with ;.
+
+    @param[in] bmark_args The argument list
+    @return A string containg all arguments separated by ;
+    """
+    args_str = ""
+    args_num = len(data_list)
+    for i in range(0, args_num):
+        args_str += str(data_list[i])
+        if i < args_num - 1:
+            args_str += ";"
+    return args_str
+
+
+def unstringify_list(list_str):
+    """! @bref Turns a string created by stringify_list() in back into a list.
+
+    @param[in] list_str The string to turn back into a list.
+    @returns The list derived from the string.
+    """
+    return list_str.split(";")
+
+
+def reduce_args(args):
+    """! @brief Reduces the list of arguments int oa single string, concatenating their basename.
+
+    @param[in] args The list of arguments.
+    @return a string with the reduced arguments.
+    """
+    args_str = ""
+    args_len = len(args)
+    for i in range(0, args_len):
+        args_str += os.path.basename(args[i])
+        if i < args_len - 1:
+            args_str += "_"
+    return args_str
+
+
+def save_graph(sched_graph, outputs, name):
+    """! @brief Saves the given graph to file.
+
+    @param[in] sched_graph The graph to save.
+    @param[in] outputs A list of paths where the graph needs to be saved.
+    @param[in] name The filename to use.
+    """
+    for output in outputs:
+        graph.export_graph(
+            sched_graph,
+            os.path.join(output, name),
+        )
+    graph.teardown()
+
+
+def draw_and_save_graph(draw_function, params, data_dict_key, name, fields, conv=None):
+    """! @brief Draw and save a graph either by using the given data or by parsing csv files.
+
+    @param[in] draw_function the function that draws a graph.
+    @param[in] params The parameters dictionary.
+    @param[in] data_dict_key The strin that represents the dicitonary with the test data inside params.
+    @param[in] name The graph name.
+    @param[in] fields the fields to read from the csv files.
+    @param[in] conv The list containing the convertion function for each field.
+    """
+    args = params.get("args")
+    if args is None:
+        print("ERROR: missing arguments structure to draw graph!")
+        params.update({"res": -1})
+        return params
+    interf_str = ""
+    if args.draw_graph != "no":
+        if len(args.interfering) > 0 or "interfering" in args.graph_inputs:
+            interf_str = "_interfering"
+        if args.draw_graph == "only":
+            data = graph.parse_res_csv(
+                args.graph_inputs,
+                fields,
+                conv=conv,
+            )
+            if data is None:
+                print("ERROR: could not read data from input files")
+                params.update({"res": -1})
+                return params
+            for read_timestamp in data.keys():
+                drawed_graph = draw_function(
+                    data[read_timestamp], interference=interf_str != ""
+                )
+                save_graph(
+                    drawed_graph,
+                    args.output,
+                    args.prefix
+                    + read_timestamp
+                    + "_"
+                    + name
+                    + interf_str
+                    + args.postfix,
+                )
+        if args.draw_graph == "yes":
+            data = params.get(data_dict_key)
+            if data is None:
+                print("ERROR: missing data dictionary to print graph")
+                params.update({"res": -1})
+                return params
+            drawed_graph = draw_function(data, interference=interf_str != "")
+            save_graph(
+                drawed_graph,
+                args.output,
+                args.prefix + name + interf_str + args.postfix,
+            )
+    params.update({"res": 0})
+    return params
 
 
 # Execute the main function when this script is not a module
@@ -447,6 +613,8 @@ if __name__ == "__main__":
         dest="test",
     )
     test_params = test_init(parser_obj)
+    if test_params["res"] < 0:
+        exit(test_params["res"])
     parsed_args = test_params.get("args")
     if parsed_args.test == "WCET":
         import WCET

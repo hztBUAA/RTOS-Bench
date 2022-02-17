@@ -7,13 +7,16 @@
 This script contains a collection of methods to draw graphs.
 @author Mattia Nicolella
 """
-import csv
 import argparse
+import csv
 import os
+
 import numpy as np
+from cycler import cycler
 from matplotlib import cm
 from matplotlib.figure import Figure
-from cycler import cycler
+
+import base
 
 ## The figure which will contain the plot.
 FIGURE = None
@@ -87,7 +90,8 @@ markers = [
 
 
 def export_graph(graph, fname, output="./", prefix="", postfix=""):
-    """! @brief save the current plot in png and svg format, also reset the global cycler
+    """! @brief save the current plot in png and svg format, also reset the global cycler.
+
     @param[in] graph The plot to export.
     @param[in] fname The name of the output file.
     @param[in] output The output path.
@@ -101,8 +105,8 @@ def export_graph(graph, fname, output="./", prefix="", postfix=""):
 
 
 def teardown():
-    """!
-    @brief Destroy all the global graph variables
+    """! @brief Destroy all the global graph variables.
+
     @details Resets `FIGURE` to `None` and `CYCLER_LAST_INDEX` to `0`
     """
     global FIGURE
@@ -120,8 +124,8 @@ def set_graph_properties(
     grid=True,
     grid_axes="both",
 ):
-    """!
-    @brief Set common graph properties.
+    """! @brief Set common graph properties.
+
     @param[in] graph The graph which properties need to be adjusted.
     @param[in] xlabel The label for the x axis.
     @param[in] ylabel The label for the y axis.
@@ -140,18 +144,31 @@ def set_graph_properties(
     if ylabel is not None:
         graph.set_ylabel(ylabel)
     if legend is not None:
-        FIGURE.legend(
-            loc="lower center",
-            bbox_to_anchor=(0.125, -0.075, 0.750, 0),
-            mode="expand",
-            ncol=4,
+        graph.legend(
+            # loc="upper right",
+            # bbox_to_anchor=(0.125, 1, 0.775, 0),
+            # mode="expand",
         )
     graph.grid(grid, axis=grid_axes)
 
 
+def adjust_x_ticks_labels(graph, labels):
+    """! @brief If the labels for the x ticks are too long rotates them.
+    @param[in] graph The graph on which labels should be checked.
+    @param[in] labels The list of labels to adjust.
+    @details
+    `\n` is taken into account when computing the label length.
+    """
+    lbl_len_list = list(map(len, labels))
+    lbl_max_idx = lbl_len_list.index(max(lbl_len_list))
+    lbl_max_len = lbl_len_list[lbl_max_idx] / (labels[lbl_max_idx].count("\n") + 1)
+    if len(labels) > 4 and lbl_max_len > 10:
+        graph.tick_params(axis="x", rotation=22)
+
+
 def init_cycler(groups, graph_type):
-    """!
-    @brief Initializes the cycler with common properties of dots and lines.
+    """! @brief Initializes the cycler with common properties of dots and lines.
+
     @param[in] groups The number of data groups to plot.
     @param[in] graph_type The name of the function that is producing the graph, as a string.
     """
@@ -179,9 +196,18 @@ def init_cycler(groups, graph_type):
     return graph_cycler
 
 
-def plot(x, y, xlabel=None, ylabel=None, title=None, line_label=None, graph=None):
-    """!
-    @brief Draws a line graph, output will be in png and svg.
+def plot(
+    x,
+    y,
+    xlabel=None,
+    ylabel=None,
+    title=None,
+    line_label=None,
+    log_scale=False,
+    graph=None,
+):
+    """! @brief Draws a line graph, output will be in png and svg.
+
     @param[in] x List of x values to be plotted, if more than one line is being plotted, then this is a list of lists.
     @param[in] y List of y values to be plotted, if more than one line is being plotted, then this is a list of lists.
     @param[in] xlabel The label for the x axis.
@@ -189,6 +215,7 @@ def plot(x, y, xlabel=None, ylabel=None, title=None, line_label=None, graph=None
     @param[in] title The graph title.
     @param[in] line_label The label of the line, which will be displayed in a legend, if more than one line is being
     plotted.
+    @param[in] log_scale If the scale of the plot must be logarithmic
     @param[in] graph An already existing Axes object, lines will be added here.
     @details
     Lines will automatically change color, marker and shape, to keep the graph as readable as possible.
@@ -219,6 +246,9 @@ def plot(x, y, xlabel=None, ylabel=None, title=None, line_label=None, graph=None
             label = None
         graph.plot(xlist[i], ylist[i], label=label)
     # we set plot properties
+    if log_scale:
+        graph.set_yscale("log")
+        graph.set_xscale("log")
     set_graph_properties(graph, xlabel, ylabel, title, line_label)
     return graph
 
@@ -231,10 +261,11 @@ def hist(
     ylabel=None,
     title=None,
     box_labels=None,
+    log_scale=False,
     graph=None,
 ):
-    """!
-    @brief Draws a histogram.
+    """! @brief Draws a histogram.
+
     @param[in] data The data to plot in the histogram.
     @param[in] bins The number of bins.
     @param[in] density If a probability density should be visualized, instead of just counting the occurencies.
@@ -242,6 +273,7 @@ def hist(
     @param[in] ylabel The label for the y-axis.
     @param[in] title The title of the graph.
     @param[in] box_labels The labels of the bins.
+    @param[in] log_scale If the logarithmic scale must be used to plot data.
     @param[in] graph An already existing Axes object, the histogram will be added here.
     """
     # get the axes
@@ -249,22 +281,33 @@ def hist(
         global FIGURE
         FIGURE = Figure()
         graph = FIGURE.gca()
-    set_graph_properties(graph, xlabel, ylabel, title, box_labels, True, "y")
     graph_cycler = init_cycler(1, "hist")
     graph.set_prop_cycle(graph_cycler)
-    hist = graph.hist(
+    graph = graph.hist(
         data,
         bins,
         label=box_labels,
         density=density,
         hatch=graph_cycler.by_key().get("hatch")[0],
     )
+    if log_scale:
+        graph.set_yscale("log")
+    set_graph_properties(graph, xlabel, ylabel, title, box_labels, True, "y")
+    adjust_x_ticks_labels(graph, box_labels)
     return graph
 
 
-def bar(data, xlabel=None, ylabel=None, title=None, bar_label=None, graph=None):
-    """!
-    @brief Draws a bar graph.
+def bar(
+    data,
+    xlabel=None,
+    ylabel=None,
+    title=None,
+    bar_label=None,
+    log_scale=False,
+    graph=None,
+):
+    """! @brief Draws a bar graph.
+
     @param[in] data List of values to be plotted is more than one group of bars
     is being plotted, then this is a list of lists.
     @param[in] xlabel The label for the bars in the x axis.
@@ -272,6 +315,7 @@ def bar(data, xlabel=None, ylabel=None, title=None, bar_label=None, graph=None):
     @param[in] title The graph title.
     @param[in] bar_label The label of each bar group, which will be displayed in a
     legend, one per groups of bars.
+    @param[in] log_scale If the logarithmic scale must be used to plot data.
     @param[in] graph An already existing Axes object, bars will be added here.
     @details
     Bar groups will automatically change color, marker and shape, to keep the
@@ -316,18 +360,30 @@ def bar(data, xlabel=None, ylabel=None, title=None, bar_label=None, graph=None):
         graph.bar_label(
             bar,
             fmt="%.3g",
-            label_type="center",
-            bbox={"boxstyle": "circle", "color": "white"},
+            label_type="edge",
+            # bbox={"boxstyle": "circle", "color": "white"},
         )
         latest_data += np.asarray(data[i])
     # we set plot properties
+    if log_scale:
+        graph.set_yscale("log")
     set_graph_properties(graph, None, ylabel, title, bar_label, True, "y")
+    adjust_x_ticks_labels(graph, xlabel)
     return graph
 
 
-def scatter(x, y, xlabel=None, ylabel=None, title=None, group_label=None, graph=None):
-    """!
-    @brief Draws a scatter  graph.
+def scatter(
+    x,
+    y,
+    xlabel=None,
+    ylabel=None,
+    title=None,
+    group_label=None,
+    log_scale=False,
+    graph=None,
+):
+    """! @brief Draws a scatter  graph.
+
     @param[in] x List of x values to be plotted, if more than one group of points is being plotted, then this is a list of lists.
     @param[in] y List of y values to be plotted, if more than one group of points is being plotted, then this is a list of lists.
     @param[in] xlabel The label for the x axis.
@@ -335,6 +391,7 @@ def scatter(x, y, xlabel=None, ylabel=None, title=None, group_label=None, graph=
     @param[in] title The graph title.
     @param[in] group_label The label of the group of points, which will be displayed in a legend, if more than one group is being
     plotted.
+    @param[in] log_scale If the logarithmic scale must be used to plot data.
     @param[in] graph An already existing Axes object, lines will be added here.
     @details
     Groups of points will automatically change color, marker and shape, to keep the graph as readable as possible.
@@ -355,69 +412,82 @@ def scatter(x, y, xlabel=None, ylabel=None, title=None, group_label=None, graph=
             label = None
         graph.plot(x[i], y[i], linestyle="", label=label)
     # we set plot properties
+    if log_scale:
+        graph.set_xscale("log")
+        graph.set_yscale("log")
     set_graph_properties(graph, xlabel, ylabel, title, group_label)
     return graph
 
 
 def boxplot(
-    x,
+    data,
     labels=None,
     xlabel=None,
     ylabel=None,
     title=None,
     notch=False,
+    log_scale=False,
     graph=None,
 ):
-    """!
-    @brief Draws a boxplot graph.
-    @param[in] x The data that needs to be plotted, it can be a 2D array.
+    """! @brief Draws a boxplot graph.
+
+    @param[in] data The data that needs to be plotted, it can be a 2D array.
     If so, a boxplot per column, man will be plotted.
     @param[in] labels The labels for each dataset.
     @param[in] notch If a notch needs to be drawn.
     @param[in] xlabel The label for the x axis.
     @param[in] ylabel The label for the y axis.
     @param[in] title The graph title.False
+    @param[in] log_scale if the scale of the plot must be logarithmic.
     @param[in] graph An already existing Axes object, lines will be added here.
     """
     if graph is None:
         global FIGURE
         FIGURE = Figure()
         graph = FIGURE.gca()
-    graph_cycler = init_cycler(len(x), "scatter")
+    graph_cycler = init_cycler(len(data), "scatter")
     graph.set_prop_cycle(graph_cycler)
-    graph.boxplot(x, whis=(0, 100), labels=labels, notch=notch)
+    graph.boxplot(data, whis=(0, 100), labels=labels, notch=notch)
+    if log_scale:
+        graph.set_yscale("log")
     set_graph_properties(graph, xlabel, ylabel, title)
+    adjust_x_ticks_labels(graph, labels)
     return graph
 
 
 def violinplot(
-    x,
+    data,
     labels=None,
     xlabel=None,
     ylabel=None,
     title=None,
+    log_scale=False,
     graph=None,
 ):
-    """!
-    @brief Draws a violinplot graph.
+    """! @brief Draws a violinplot graph.
+
     @param[in] x The data that needs to be plotted, it can be a 2D array.
     If so, a boxplot per columdesi sei tappa, man will be plotted.
     @param[in] labels The labels for each dataset.
     @param[in] xlabel The label for the x axis.
     @param[in] ylabel The label for the y axis.
     @param[in] title The graph title.False
+    @param[in] log_scale if the scale of the plot must be logarithmic.
     @param[in] graph An already existing Axes object, lines will be added here.
     """
     if graph is None:
         global FIGURE
         FIGURE = Figure()
         graph = FIGURE.gca()
-    graph_cycler = init_cycler(len(x), "scatter")
+    graph_cycler = init_cycler(len(data), "scatter")
     graph.set_prop_cycle(graph_cycler)
-    graph.violinplot(x, showmeans=True, showextrema=True)
-    graph.set_xticks(range(0,len(labels)+1))
-    graph.set_xticklabels(labels=['']+labels)
+    graph.violinplot(data, showmeans=True, showextrema=True)
+    graph.set_xticks(range(0, len(labels) + 1))
+    graph.set_xticklabels(labels=[""] + labels)
+    if log_scale:
+        graph.set_yscale("log")
     set_graph_properties(graph, xlabel, ylabel, title)
+    adjust_x_ticks_labels(graph, labels)
     return graph
 
 
@@ -429,6 +499,7 @@ def test():
         "ylabel",
         "title",
         ["1", "2", "3", "4"],
+        log_scale=True,
     )
     export_graph(graph, "test-plot")
 
@@ -439,6 +510,7 @@ def test():
         ylabel="ylabel",
         title="title",
         group_label=["group1", "group2"],
+        log_scale=True,
     )
     export_graph(graph, "test-scatter")
 
@@ -449,6 +521,7 @@ def test():
         xlabel="xlabel",
         ylabel="ylabel",
         title="title",
+        log_scale=True,
     )
     export_graph(graph, "test-hist")
     graph = bar(
@@ -457,6 +530,7 @@ def test():
         "ylabel",
         "title",
         ["1", "2", "3", "4"],
+        log_scale=True,
     )
     export_graph(graph, "test-bar")
 
@@ -466,6 +540,7 @@ def test():
         "xlabel",
         "ylabel",
         "title",
+        log_scale=True,
     )
     export_graph(graph, "test-boxplot")
     graph = violinplot(
@@ -474,13 +549,14 @@ def test():
         "xlabel",
         "ylabel",
         "title",
+        log_scale=True,
     )
     export_graph(graph, "test-violinplot")
 
 
 def parser_init():
-    """!
-    @brief Initialize an argument parser with a set of common arguments.
+    """! @brief Initialize an argument parser with a set of common arguments.
+
     @returns The initialized `ArgumentParser` object.
     """
     # set up the argument parser
@@ -495,7 +571,15 @@ def parser_init():
         nargs="+",
         type=str,
         help="Which type of graph must be plotted. If repeated plots will stack.",
-        choices=["plot", "bar", "hist", "scatter", "boxplot", "test"],
+        choices=[
+            "plot",
+            "bar",
+            "hist",
+            "scatter",
+            "boxplot",
+            "violin",
+            "test",
+        ],
         required=True,
         dest="graph_type",
     )
@@ -635,6 +719,84 @@ def read_data(files, x_col, y_col=None):
     return x_data, y_data
 
 
+def parse_res_csv(inputs, fields, conv=[]):
+    """! @brief get data from a a csv which is timestamped.
+
+     @param[in] inputs A list of inputs.
+     @param[in] fields A list of csv fiels that must be read.
+     @param[in] conv A list of functions to convert the fields to a specific datatype. If unspecified alla lists will contain strings.
+     @returns The parsed data, in a dictionary with a key for every timestamp. `None` on error.
+     @details
+     Supported csv file mus have at least 3 columns:
+     - `timestamp`: with the test timestamp
+     - `benchamark`: with the benchmark executable path
+     - `arguments`: with the list of argument of the benchmark, separated by `;`.
+     Additionally fields in the csv must be separated by `,`.
+
+     Each timestamp key will locate a dictionary with a list of lists (one sublist per benchmark).
+     Each sublist will have as elements the values of the fields that match the benchmark and the timestamp.
+     Additionally there will a list called `legend` which will combine the benchamrk name and arguments to create a label for each of the above sublists.
+
+     If several input files have the same timestamp data will be aggregated.
+
+     Example: Calling: `parse_res_csv(file.scv,['utilization','num_scheduled'],conv=[float,int])` with a csv generated by schedulability.py could return:
+     `data={'2022-02-09T20-26-31-407037':{'utilization':[[0.1, ... , 1] [0.1, ... , 1]], 'num_scheduled':[[100, ..., 0] [100, ..., 0]],'legend':['disparity - cif','mser - vga']}}`.
+    @TODO: This function should be superseded by a wrapper that leverages the pandas library
+    """
+    if len(inputs) < 1:
+        print(
+            "ERROR: Wrong number of input files! This test needs at least 1 input file."
+        )
+        return None
+    data = {}
+    len_fields = len(fields)
+    if conv == []:
+        for i in range(0, len_fields):
+            conv.append(str)
+    for filepath in inputs:
+        with open(filepath) as file:
+            csv_reader = csv.DictReader(file)
+            for row in csv_reader:
+                timestamp = row.get("timestamp")
+                if timestamp is None:
+                    print("ERROR: Missing timestamp value in input file!")
+                    print(row)
+                    return None
+                # we get the corresponding dictionary or we Initialize it
+                timestamped_data = data.get(timestamp)
+                if timestamped_data is None:
+                    data.update({timestamp: {}})
+                    timestamped_data = data.get(timestamp)
+                    for field in fields:
+                        timestamped_data.update({field: []})
+                    timestamped_data.update({"legend": []})
+                # we create the string for the legend
+                bmark = row.get("benchmark")
+                if bmark is None:
+                    print("ERROR: Missing benchmark name in input file!")
+                    print(row)
+                    return None
+                bmark = os.path.basename(bmark)
+                args = row.get("arguments").split(";")
+                reduced_args = base.reduce_args(args)
+                legend_str = bmark + " - " + reduced_args
+                if legend_str not in timestamped_data["legend"]:
+                    timestamped_data["legend"].append(legend_str)
+                    # we also create a sublist for this benchmark in each field list
+                    for field in fields:
+                        timestamped_data[field].append([])
+                # we read the data in the row
+                for j in range(0, len_fields):
+                    read_data = row.get(fields[j])
+                    if read_data is None:
+                        print(f"ERROR: Missing {fields[j]} value in input file!")
+                        print(row)
+                        return None
+                    timestamped_data[fields[j]][-1].append(conv[j](read_data))
+
+    return data
+
+
 if __name__ == "__main__":
     parser = parser_init()
     args = parser.parse_args()
@@ -643,52 +805,61 @@ if __name__ == "__main__":
     else:
         x_data, y_data = read_data(args.input_files, args.x_col, args.y_col)
         graph = None
-        if "plot" in args.graph_type:
-            graph = plot(
-                x_data,
-                y_data,
-                xlabel=args.x_label,
-                ylabel=args.ylabel,
-                title=args.title,
-                line_label=args.labels,
-                graph=graph,
-            )
-        elif "bar" in args.graph_type:
-            graph = bar(
-                x_data,
-                xlabel=args.x_label,
-                ylabel=args.y_label,
-                title=args.title,
-                bar_label=args.label,
-                graph=graph,
-            )
-        elif "hist" in args.graph_type:
-            graph = hist(
-                x_data,
-                bins=args.bins,
-                density=args.density,
-                xlabel=args.x_label,
-                ylabel=args.y_label,
-                title=args.title,
-                box_labels=args.labels,
-                graph=graph,
-            )
-        elif "scatter" in args.graph_type:
-            graph = scatter(
-                x_data,
-                y_data,
-                xlabel=args.x_label,
-                ylabel=args.y_label,
-                title=args.title,
-                group_label=args.labels,
-                graph=graph,
-            )
-        elif "boxplot" in args.graph_type:
-            graph = boxplot(
-                x_data,
-                labels=args.labels,
-                xlabel=args.x_label,
-                ylabel=args.y_label,
-                title=args.title,
-                graph=graph,
-            )
+        for graph_type in args.graph_type:
+            if "plot" == graph_type:
+                graph = plot(
+                    x_data,
+                    y_data,
+                    xlabel=args.x_label,
+                    ylabel=args.ylabel,
+                    title=args.title,
+                    line_label=args.labels,
+                    graph=graph,
+                )
+            elif "bar" == graph_type:
+                graph = bar(
+                    x_data,
+                    xlabel=args.x_label,
+                    ylabel=args.y_label,
+                    title=args.title,
+                    bar_label=args.label,
+                    graph=graph,
+                )
+            elif "hist" == graph_type:
+                graph = hist(
+                    x_data,
+                    bins=args.bins,
+                    density=args.density,
+                    xlabel=args.x_label,
+                    ylabel=args.y_label,
+                    title=args.title,
+                    box_labels=args.labels,
+                    graph=graph,
+                )
+            elif "scatter" == graph_type:
+                graph = scatter(
+                    x_data,
+                    y_data,
+                    xlabel=args.x_label,
+                    ylabel=args.y_label,
+                    title=args.title,
+                    group_label=args.labels,
+                    graph=graph,
+                )
+            elif "boxplot" == graph_type:
+                graph = boxplot(
+                    x_data,
+                    labels=args.labels,
+                    xlabel=args.x_label,
+                    ylabel=args.y_label,
+                    title=args.title,
+                    graph=graph,
+                )
+            elif "violin" == graph_type:
+                graph = violinplot(
+                    x_data,
+                    xlabel=args.x_label,
+                    ylabel=args.y_label,
+                    title=args.title,
+                    graph=graph,
+                )
