@@ -104,6 +104,7 @@ def sched_test(
                 "mean_utilization",
                 "successfully_scheduled",
                 "total_started",
+                "periods_elapsed",
             ]
         )
     print(f"\n\nStarting schedulability test for {bmark_name} {bmark_args}")
@@ -140,7 +141,7 @@ def sched_test(
             print("Error during schedulability test ", e)
             return None
         scheduled = 0
-        started = 0
+        periods = 0
         try:
             log_file = open(log_fname)
         except Exception as e:
@@ -148,13 +149,13 @@ def sched_test(
             return None
         reader = csv.DictReader(log_file)
         for row in reader:
-            started += 1
+            periods += 1
             if int(row["deadline_status(1=met)"]) == 1:
                 scheduled += 1
             sum_utilization += float(row["job_utilization"])
         log_file.close()
         print(
-            f"successfully scheduled {scheduled} over {started} tasks ({scheduled/started*100}%), mean utilization: {sum_utilization/started}"
+            f"successfully scheduled {scheduled} over {tasks_num} tasks ({scheduled/tasks_num*100}%) in {periods} periods, mean utilization: {sum_utilization/periods}"
         )
         args_str = base.stringify_list(bmark_args)
         writer.writerow(
@@ -163,14 +164,16 @@ def sched_test(
                 bmark,
                 args_str,
                 str(utilization),
-                str(sum_utilization / started),
+                str(sum_utilization / tasks_num),
                 str(scheduled),
-                str(started),
+                str(tasks_num),
+                str(periods),
             ]
         )
         res_util.append(utilization)
         res_sched.append(scheduled)
-        utilization += util_inc
+
+        utilization = round(utilization + util_inc, 3)
         deadline = worst_case / utilization
     res_file.close()
     res.update({"utilization": res_util})
@@ -211,7 +214,12 @@ def execute(params):
             )
             params.update({"res": -1})
             return params
+        # we want a WCET without interference
+        interfering = args.interfering.copy()
+        args.interfering.clear()
         params = WCET.execute(params)
+        # but we want interference in the scheudulability test
+        args.interfering.extend(interfering)
         WCET_dict = params.get("WCET")
         if WCET_dict is None:
             print("ERROR: Missing WCET dictionary to execute the schedulability test!")
@@ -226,7 +234,7 @@ def execute(params):
         if args.interfering != []:
             # if the user requested it, we start the interfering benchmarks
             int_processes = base.start_interfering(
-                min(worst_runtimes), args.interfering, cores[0]
+                min(worst_runtimes), interfering, cores[0]
             )
             if int_processes == [] and params.get("int_processes") is None:
                 print("ERROR: cannot start interfering processes, aborting")
@@ -303,7 +311,7 @@ def draw_graph(data, interference=False, old_graph=None):
         sched_utilization,
         sched_num_scheduled,
         "Utilization",
-        "Scheduled",
+        "Num. Scheduled",
         "Schedulability test"
         if not interference
         else "Schedulability test with interference",

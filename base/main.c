@@ -167,6 +167,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	int affinity_core;
 	char *affinity_substr = NULL;
 	unsigned long long tasks = 0;
+	int arg_len = 0;
 	errno = 0;
 	feclearexcept(FE_ALL_EXCEPT);
 	switch (key) {
@@ -263,15 +264,15 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		break;
 	case 'o':
-		parsed_args->output_path =
-			malloc(sizeof(char) * strlen(arg) + 1);
+		arg_len = strlen(arg);
+		parsed_args->output_path = malloc(sizeof(char) * arg_len + 1);
 		if (parsed_args->output_path == NULL) {
 			argp_failure(
 				state, EXIT_FAILURE, errno,
 				"Can't allocate memory for output filename.");
 		}
 		strncpy(parsed_args->output_path, arg,
-			sizeof(char) * strlen(arg) + 1);
+			sizeof(char) * arg_len + 1);
 		break;
 	case 'l':
 		log_level = atoi(arg);

@@ -204,8 +204,17 @@ def execute(params):
             print("ERROR: Missing corelist to execute the WCET test!")
             params.update({"res": -1})
             return params
-        last_core = cores[0] - 1
+        int_processes = None
+        if args.interfering != []:
+            # if the user requested it, we start the interfering benchmarks
+            int_processes = base.start_interfering(0.001, args.interfering, cores[0])
+            if int_processes == [] and params.get("int_processes") is None:
+                print("ERROR: cannot start interfering processes, aborting")
+                params.update({"res": -1})
+                return params
+        params.update({"int_processes": int_processes})
         # get the list of worst case runtimes
+        last_core = cores[0] - 1
         worst_runtimes = []
         runtimes = []
         bmarks = []
@@ -274,9 +283,9 @@ def draw_graph(data, interference=False, old_graph=None):
                 tmp_list.append(elem[0])
                 runtimes = tmp_list
     legend = data.get("legend")
-    min_data = min(list(map(min, runtimes)))
-    max_data = max(list(map(max, runtimes)))
-    log_scale = abs(max_data / min_data) > 100
+    # min_data = min(list(map(min, runtimes)))
+    # max_data = max(list(map(max, runtimes)))
+    # log_scale = abs(max_data / min_data) > 100
     log_scale = False
     bmarks = []
     for elem in legend:
@@ -284,7 +293,7 @@ def draw_graph(data, interference=False, old_graph=None):
     if runtimes is None:
         print("ERROR: Not enough data to plot a WCET graph")
         return None
-    WCET_graph = graph.boxplot(
+    WCET_graph = graph.violinplot(
         runtimes,
         labels=bmarks,
         ylabel="Runtime (seconds)",

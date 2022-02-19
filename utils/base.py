@@ -616,16 +616,18 @@ if __name__ == "__main__":
     if test_params["res"] < 0:
         exit(test_params["res"])
     parsed_args = test_params.get("args")
-    if parsed_args.test == "WCET":
+    if parsed_args.test in ["WCET", "all"]:
         import WCET
 
         WCET.execute(test_params)
+        test_teardown(test_params)
     if parsed_args.test in ["sched", "all"]:
         import schedulability
 
         schedulability.execute(test_params)
+        test_teardown(test_params)
     if parsed_args.test in ["all", "WSS"]:
         import WSS
 
         WSS.execute(test_params)
-    test_teardown(test_params)
+        test_teardown(test_params)

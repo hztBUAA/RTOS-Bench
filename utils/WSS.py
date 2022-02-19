@@ -74,7 +74,6 @@ def execute(params):
                 cores[0] - 1,
                 sched_params,
                 timestamp,
-                len(args.interfering) > 0,
             )
             if res < 0:
                 break
@@ -133,9 +132,7 @@ def draw_graph(data, interference=False, old_graph=None):
         bmark_wss,
         bmarks,
         "Minimum working set size (bytes)",
-        "Working set size"
-        if not interference
-        else "Working set size with interference",
+        "Working set size",
         log_scale=log_scale,
         graph=old_graph,
     )
@@ -152,7 +149,6 @@ def wss_test(
     core,
     sched_params,
     timestamp,
-    interference,
 ):
     """! @brief Perform a minimum working set size test.
 
@@ -165,7 +161,6 @@ def wss_test(
     @param[in] core Physical core on which the test will be executed.
     @param[in] sched_params Scheduling attributes.
     @param[in] timestamp The timestamp of the test.
-    @param[in] interference If the test has interference, this will change the csv filename, adding `interfering`.
     @details The function will run a number of tests, specified in `params` constraining the benchmark available memory to 1KB.
     If all the test succeed the available memory limit will be halved. Otherwise the memory limit will be doubled.
     The execution will stop when the smallest amount of memory to run a benchmark is determined.
@@ -178,12 +173,7 @@ def wss_test(
     last_wss = 0
     failed_tests = 0
     bmark_name = os.path.basename(bmark)
-    interf_str = ""
-    if interference:
-        interf_str = "interfering_"
-    filename = os.path.join(
-        output, prefix + interf_str + "min_wss_test" + postfix + ".csv"
-    )
+    filename = os.path.join(output, prefix + "min_wss_test" + postfix + ".csv")
     while current_wss != last_wss or failed_tests != 0:
         print(
             f"\n\n{bmark_name} {bmark_args} current wss:{current_wss}, last wss:{last_wss}"
