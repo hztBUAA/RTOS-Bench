@@ -105,6 +105,9 @@ static int set_sched_deadline(
  * @returns
  *   0 on success
  *   < 0 on failure
+
+ * @note If this function fails when the program is run by the root user try `ulimit -r unlimited` and 
+ * `echo $$ > /sys/fs/cgroup/cpu/tasks` from the shell that will run the program. See [this stackoverflow question](https://stackoverflow.com/questions/9313428/getting-eperm-when-calling-pthread-create-for-sched-fifo-thread-as-root-on-lin) for details  
  */
 static int set_sched_fifo_prio(
 	/* IN: prio (see chrt or include/linux/sched/types.h */

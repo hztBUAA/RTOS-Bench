@@ -171,10 +171,12 @@ def wss_test(
     """
     current_wss = 1
     last_wss = 0
+    wss_lower_bound = 1
+    wss_upper_bound = 0
     failed_tests = 0
     bmark_name = os.path.basename(bmark)
     filename = os.path.join(output, prefix + "min_wss_test" + postfix + ".csv")
-    while current_wss != last_wss or failed_tests != 0:
+    while current_wss != last_wss:
         print(
             f"\n\n{bmark_name} {bmark_args} current wss:{current_wss}, last wss:{last_wss}"
         )
@@ -202,15 +204,22 @@ def wss_test(
                 check=True,
             )
         except subprocess.CalledProcessError as e:
+            # we failed at least one test
             failed_tests += 1
-            last_wss = current_wss
-            current_wss = last_wss * 2
+            wss_lower_bound = current_wss
         else:
-            if current_wss // 2 != last_wss and current_wss // 2 > 0:
-                last_wss = current_wss
-                current_wss = last_wss // 2
-            else:
-                last_wss = current_wss
+            # all tests succeeded, so we can save this upper bound
+            wss_upper_bound = current_wss
+        # if we already have an upper bound we try to reduce it
+        last_wss = current_wss
+        if wss_upper_bound > 0:
+            sum_wss = wss_lower_bound + wss_upper_bound
+            current_wss = sum_wss // 2
+        else:
+            # if we don't have an upper bound we double the current wss
+            current_wss = last_wss * 2
+        print(f"\nnext wss {current_wss} last wss {last_wss}")
+        print(f"wss lower bound {wss_lower_bound}  wss upper bound {wss_upper_bound}")
     file_exists = os.path.isfile(filename)
     with open(filename, "a") as file:
         writer = csv.writer(file)
