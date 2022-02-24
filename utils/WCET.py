@@ -186,7 +186,7 @@ def execute(params):
         print("ERROR: Missing argument dictionary to execute the WCET test!")
         params.update({"res": -1})
         return params
-    if args.draw_graph != "only":
+    if args["draw_graph"] != "only":
         timestamp = params.get("timestamp")
         if timestamp is None:
             print("ERROR: Missing test timestamp!")
@@ -205,31 +205,36 @@ def execute(params):
             params.update({"res": -1})
             return params
         int_processes = None
-        if args.interfering != []:
+        if args["interfering"] != []:
             # if the user requested it, we start the interfering benchmarks
-            int_processes = base.start_interfering(0.001, args.interfering, cores[0])
+            int_processes = base.start_interfering(
+                0.001,
+                args["interfering"],
+                cores[0],
+                args["target_core"],
+                args["system_core"],
+            )
             if int_processes == [] and params.get("int_processes") is None:
                 print("ERROR: cannot start interfering processes, aborting")
                 params.update({"res": -1})
                 return params
         params.update({"int_processes": int_processes})
         # get the list of worst case runtimes
-        last_core = cores[0] - 1
         worst_runtimes = []
         runtimes = []
         bmarks = []
-        for i in range(0, len(args.benchmarks)):
+        for i in range(0, len(args["benchmarks"])):
             WCET, exec_times = worst_case_exec_test(
-                args.benchmarks[i][0],
-                args.benchmarks[i][1],
-                args.worst_case_tests,
-                args.output[i],
-                args.prefix,
-                args.postfix,
-                last_core,
+                args["benchmarks"][i][0],
+                args["benchmarks"][i][1],
+                args["worst_case_tests"],
+                args["output"][i],
+                args["prefix"],
+                args["postfix"],
+                args["target_core"],
                 sched_params,
                 timestamp,
-                len(args.interfering) > 0,
+                len(args["interfering"]) > 0,
             )
             if WCET < 0:
                 params.update({"res:": WCET})
@@ -237,9 +242,9 @@ def execute(params):
             worst_runtimes.append(WCET)
             runtimes.append(exec_times)
             bmarks.append(
-                os.path.basename(args.benchmarks[i][0])
+                os.path.basename(args["benchmarks"][i][0])
                 + "\n"
-                + os.path.basename(args.benchmarks[i][1][0])
+                + os.path.basename(args["benchmarks"][i][1][0])
             )
         params.update(
             {
@@ -251,7 +256,7 @@ def execute(params):
                 },
             }
         )
-    if args.draw_graph != "no":
+    if args["draw_graph"] != "no":
         params = base.draw_and_save_graph(
             draw_graph,
             params,

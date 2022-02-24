@@ -45,7 +45,7 @@ def execute(params):
         print("ERROR: Missing argument dictionary to execute the wss test!")
         params.update({"res": -1})
         return params
-    if args.draw_graph != "only":
+    if args["draw_graph"] != "only":
         timestamp = params.get("timestamp")
         if timestamp is None:
             print("ERROR: Missing test timestamp!")
@@ -63,15 +63,15 @@ def execute(params):
             return params
         bmark_wss = []
         bmarks = []
-        for i in range(0, len(args.benchmarks)):
+        for i in range(0, len(args["benchmarks"])):
             res = wss_test(
-                args.benchmarks[i][0],
-                args.benchmarks[i][1],
-                args.tasks_num,
-                args.output[i],
-                args.prefix,
-                args.postfix,
-                cores[0] - 1,
+                args["benchmarks"][i][0],
+                args["benchmarks"][i][1],
+                args["tasks_num"],
+                args["output"][i],
+                args["prefix"],
+                args["postfix"],
+                args["target_core"],
                 sched_params,
                 timestamp,
             )
@@ -80,9 +80,9 @@ def execute(params):
             else:
                 bmark_wss.append(res)
                 bmarks.append(
-                    os.path.basename(args.benchmarks[i][0])
+                    os.path.basename(args["benchmarks"][i][0])
                     + "\n"
-                    + os.path.basename(args.benchmarks[i][1][0])
+                    + os.path.basename(args["benchmarks"][i][1][0])
                 )
                 res = 0
             params.update(
@@ -94,7 +94,7 @@ def execute(params):
                     },
                 }
             )
-    if args.draw_graph != "no":
+    if args["draw_graph"] != "no":
         params = base.draw_and_save_graph(
             draw_graph,
             params,

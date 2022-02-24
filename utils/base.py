@@ -44,12 +44,32 @@ except ImportError:
     graph_imported = False
 
 
-def start_interfering(deadline, bmarks, num_cpus):
+def convert_corelist_to_list(corelist):
+    """! @brief Converts a corelist (string) in a python list.
+
+    @param[in] corelist The corelist to convert.
+    @returns A python list of all the cores in the corelist.
+    """
+    tmp = corelist.split(",")
+    core_list = []
+    for elem in tmp:
+        if "-" in elem:
+            tmp2 = elem.split("-")
+            for i in range(int(tmp2[0]), int(tmp2[1]) + 1):
+                core_list.append(i)
+        else:
+            core_list.append(int(elem))
+    return core_list
+
+
+def start_interfering(deadline, bmarks, num_cpus, target_core, system_core):
     """! @brief Launches interfering benchmarks.
 
     @param[in] deadline The deadline (and period) to give to the interfering benchmarks.
     @param[in] bmarks The list of interfering benchmarks executables.
     @param[in] num_cpus The number of available physical cores.
+    @param[in] target_core The corelist on which the benchmark will run, which must not have an interfering benchmark.
+    @param[in] system_core The corelist on which the benchmark will run, which must not have an interfering benchmark.
     @details
     The interfering benchmarks can be executed on all the available cores, excluding the first, the decision of which benchmark to place on which core is left to the scheduler.
     The benchmarks will continue to be executed until they receive a `SIGINT`.
@@ -57,14 +77,22 @@ def start_interfering(deadline, bmarks, num_cpus):
     """
     print("Starting interfering benchmarks")
     cores = []
-    # exclude core 0 and the last core
+    system_core_list = convert_corelist_to_list(system_core)
+    target_core_list = convert_corelist_to_list(target_core)
+    # exclude core 0 and the target core
     if len(bmarks) > num_cpus - 2:
         print(
             "WARNING:You have more interfering benchmarks than physical cores, this will assign more that one benchmark to the same core, with fifo scheduling and the same priority."
         )
-    # exclude core 0 and the last core
-    for i in range(0, len(bmarks)):
-        cores.append(str(i % (num_cpus - 2) + 1))
+    i = 0
+    # we want the core array to be as long the the list of interfering benchmarks.
+    while len(cores) < len(bmarks):
+        # We don't want interfering benchmarks on core 0.
+        core = (i % (num_cpus - 1)) + 1
+        # or on the core that will run the target benchmark.
+        if core not in target_core_list and core not in system_core_list:
+            cores.append(str(core))
+        i += 1
     bmark_processes = []
     for i in range(0, len(bmarks)):
         try:
@@ -81,7 +109,7 @@ def start_interfering(deadline, bmarks, num_cpus):
                         "-c",
                         cores[i],
                         "-f",
-                        "1",
+                        "99",
                         "-b",
                     ]
                     + bmarks[i][1]
@@ -160,7 +188,7 @@ def move_processes(corelist):
         if pid not in ("PID", " ", ""):
             try:
                 subprocess.check_output(
-                    ["taskset", "-cp", corelist, pid], stderr=subprocess.DEVNULL
+                    ["taskset", "-acp", corelist, pid], stderr=subprocess.DEVNULL
                 )
             except Exception:
                 pass
@@ -273,13 +301,33 @@ def parser_init():
     )
 
     parser.add_argument(
+        "-c",
+        "--target_core",
+        metavar="core1,core2-coren",
+        type=str,
+        help="Corelist on which the target benchmark will be executed. If not provided is the last physical core.",
+        required=False,
+        default=None,
+        dest="target_core",
+    )
+    parser.add_argument(
+        "-sc",
+        "--system_core",
+        metavar="core1,core2-coren",
+        type=str,
+        help="Corelist on which the system processes will be moved. If not provided is core 0.",
+        required=False,
+        default="0",
+        dest="system_core",
+    )
+    parser.add_argument(
         "-f",
         "--fifo",
         metavar="fifo-prio",
         type=int,
-        help="Priority for the SCHED_FIFO scheduler of the target benchmark",
+        help="Priority for the SCHED_FIFO scheduler of the target benchmark.",
         required=False,
-        default=1,
+        default=None,
         dest="fifo",
     )
 
@@ -299,7 +347,7 @@ def parser_init():
         "--sched_runtime",
         metavar="sched_deadline_runtime",
         type=int,
-        help="Runtime in nanoseconds for the SCHED_DEADLINE scheduler of the target benchmark, will override --fifo.",
+        # we set the target core is was not set by the use="Runtime in nanoseconds for the SCHED_DEADLINE scheduler of the target benchmark, will override --fifo.",
         required=False,
         default=None,
         dest="sched_runtime",
@@ -387,68 +435,82 @@ def test_init(parser):
     }
     # parse arguments
     args = parser.parse_args()
+    # we convert the Namespace to a dictionary since we need to modify some parameters
+    args = vars(args)
     if not graph_imported:
-        args.draw_graph = "no"
+        args["draw_graph"] = "no"
+
     sched_deadline_vals = [
-        args.sched_deadline is not None,
-        args.sched_runtime is not None,
-        args.sched_period is not None,
+        args["sched_deadline"] is not None,
+        args["sched_runtime"] is not None,
+        args["sched_period"] is not None,
     ]
     # handle scheduling parameters
-    if args.fifo != 1 and any(sched_deadline_vals):
+    if args["fifo"] is None and not any(sched_deadline_vals):
+        print(
+            "Missing scheduling parameters! Provide SCHED_FIFO or SCHED_DEADLINE parameters!"
+        )
+        params.update({"res": -1})
+        return params
+    if args["fifo"] is not None and any(sched_deadline_vals):
         print("ERROR: cannot specify options for both SCHED_FIFO and SCHED_DEADLINE")
-        return -1
+        params.update({"res": -1})
+        return params
     if any(sched_deadline_vals) and not all(sched_deadline_vals):
         print("ERROR: missing options for SCHED_DEADLINE")
-        return -1
+        params.update({"res": -1})
+        return params
     # we use SCHED_FIFO if nothing from SCHED_DEADLINE has been specified
     if all(sched_deadline_vals) is False:
-        sched_params = ["-f", str(args.fifo)]
+        sched_params = ["-f", str(args["fifo"])]
     else:
         print(sched_deadline_vals)
         sched_params = [
             "-D",
-            args.sched_deadline,
+            args["sched_deadline"],
             "-P",
-            args.sched_period,
+            args["sched_period"],
             "-T",
-            args.sched_runtime,
+            args["sched_runtime"],
         ]
     params.update({"sched_params": sched_params})
     # adjust the list of benchmarks and interfering benchmarks
-    args.benchmarks = handle_bmark_list(args.benchmarks)
-    args.interfering = handle_bmark_list(args.interfering)
+    args["benchmarks"] = handle_bmark_list(args["benchmarks"])
+    args["interfering"] = handle_bmark_list(args["interfering"])
 
-    output_len = len(args.output)
-    if output_len > 0 and len(args.benchmarks) > output_len:
+    output_len = len(args["output"])
+    if output_len > 0 and len(args["benchmarks"]) > output_len:
         print(
             "A single folder has been specified as output path for more than one target benchmark, test will continue but it may overwrite previous files."
         )
-    for i in range(0, len(args.benchmarks)):
+    for i in range(0, len(args["benchmarks"])):
         if output_len == 0:
-            args.output.append(os.path.dirname(args.benchmarks[i][0]))
-        elif output_len == len(args.benchmarks):
-            subprocess.run(["mkdir", "-p", args.output[i]])
+            args["output"].append(os.path.dirname(args["benchmarks"][i][0]))
+        elif output_len == len(args["benchmarks"]):
+            subprocess.run(["mkdir", "-p", args["output"][i]])
         else:
             if i > 0:
-                args.output.append(args.output[0])
-    if len(args.benchmarks) == 0 and args.draw_graph != "only":
+                args["output"].append(args["output"][0])
+    if len(args["benchmarks"]) == 0 and args["draw_graph"] != "only":
         print("ERROR: Missing benchmark list!")
         params.update({"res": -1})
         return params
-    if args.draw_graph == "only" and len(args.graph_inputs) == 0:
+    if args["draw_graph"] == "only" and len(args["graph_inputs"]) == 0:
         print("ERROR: Missing input files for graph generation!")
         params.update({"res": -1})
         return params
-    if args.draw_graph != "only":
+    if args["draw_graph"] != "only":
         # we detect the physical cores
         cores = detect_cores()
         if cores == -1:
             params.update({"res:": cores})
             return params
         params.update({"cores": cores})
+        # we set the target core is was not set by the user
+        if args["target_core"] is None:
+            args["target_core"] = str(cores[0] - 1)
         # we move all processes to the first core
-        move_processes("0")
+        move_processes(args["system_core"])
     params.update({"args": args})
     return params
 
@@ -468,7 +530,7 @@ def test_teardown(params):
     """
     args = params.get("args")
     int_processes = params.get("int_processes")
-    if args.draw_graph != "only":
+    if args["draw_graph"] != "only":
         cores = params.get("cores")
         if cores is None or args is None:
             print("ERROR: Missing parameters for test_teardown()")
@@ -477,7 +539,7 @@ def test_teardown(params):
         # we restore the normal execution of the tasks
         move_processes(f"0-{cores[1]-1}")
     # we stop the interfering benchmarks if necessary
-    if args.interfering != [] and int_processes is not None:
+    if args["interfering"] != [] and int_processes is not None:
         stop_interfering(int_processes)
     return 0
 
@@ -552,12 +614,12 @@ def draw_and_save_graph(draw_function, params, data_dict_key, name, fields, conv
         params.update({"res": -1})
         return params
     interf_str = ""
-    if args.draw_graph != "no":
-        if len(args.interfering) > 0 or "interfering" in args.graph_inputs:
+    if args["draw_graph"] != "no":
+        if len(args["interfering"]) > 0 or "interfering" in args["graph_inputs"]:
             interf_str = "_interfering"
-        if args.draw_graph == "only":
+        if args["draw_graph"] == "only":
             data = graph.parse_res_csv(
-                args.graph_inputs,
+                args["graph_inputs"],
                 fields,
                 conv=conv,
             )
@@ -566,30 +628,30 @@ def draw_and_save_graph(draw_function, params, data_dict_key, name, fields, conv
                 params.update({"res": -1})
                 return params
             for read_timestamp in data.keys():
-                drawed_graph = draw_function(
+                drawn_graph = draw_function(
                     data[read_timestamp], interference=interf_str != ""
                 )
                 save_graph(
-                    drawed_graph,
-                    args.output,
-                    args.prefix
+                    drawn_graph,
+                    args["output"],
+                    args["prefix"]
                     + read_timestamp
                     + "_"
                     + name
                     + interf_str
-                    + args.postfix,
+                    + args["postfix"],
                 )
-        if args.draw_graph == "yes":
+        if args["draw_graph"] == "yes":
             data = params.get(data_dict_key)
             if data is None:
                 print("ERROR: missing data dictionary to print graph")
                 params.update({"res": -1})
                 return params
-            drawed_graph = draw_function(data, interference=interf_str != "")
+            drawn_graph = draw_function(data, interference=interf_str != "")
             save_graph(
-                drawed_graph,
-                args.output,
-                args.prefix + name + interf_str + args.postfix,
+                drawn_graph,
+                args["output"],
+                args["prefix"] + name + interf_str + args["postfix"],
             )
     params.update({"res": 0})
     return params
@@ -616,17 +678,17 @@ if __name__ == "__main__":
     if test_params["res"] < 0:
         exit(test_params["res"])
     parsed_args = test_params.get("args")
-    if parsed_args.test in ["WCET", "all"]:
+    if parsed_args["test"] in ["WCET", "all"]:
         import WCET
 
         WCET.execute(test_params)
         test_teardown(test_params)
-    if parsed_args.test in ["sched", "all"]:
+    if parsed_args["test"] in ["sched", "all"]:
         import schedulability
 
         schedulability.execute(test_params)
         test_teardown(test_params)
-    if parsed_args.test in ["all", "WSS"]:
+    if parsed_args["test"] in ["all", "WSS"]:
         import WSS
 
         WSS.execute(test_params)

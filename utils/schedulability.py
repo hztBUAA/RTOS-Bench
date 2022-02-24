@@ -196,7 +196,7 @@ def execute(params):
         print("ERROR: Missing argument dictionary to execute the schedulability test!")
         params.update({"res": -1})
         return params
-    if args.draw_graph != "only":
+    if args["draw_graph"] != "only":
         timestamp = params.get("timestamp")
         if timestamp is None:
             print("ERROR: Missing test timestamp!")
@@ -215,11 +215,11 @@ def execute(params):
             params.update({"res": -1})
             return params
         # we want a WCET without interference
-        interfering = args.interfering.copy()
-        args.interfering.clear()
+        interfering = args["interfering"].copy()
+        args["interfering"].clear()
         params = WCET.execute(params)
         # but we want interference in the scheudulability test
-        args.interfering.extend(interfering)
+        args["interfering"].extend(interfering)
         WCET_dict = params.get("WCET")
         if WCET_dict is None:
             print("ERROR: Missing WCET dictionary to execute the schedulability test!")
@@ -231,10 +231,14 @@ def execute(params):
             params.update({"res": -1})
             return params
         int_processes = None
-        if args.interfering != []:
+        if args["interfering"] != []:
             # if the user requested it, we start the interfering benchmarks
             int_processes = base.start_interfering(
-                min(worst_runtimes), interfering, cores[0]
+                min(worst_runtimes),
+                interfering,
+                cores[0],
+                args["target_core"],
+                args["system_core"],
             )
             if int_processes == [] and params.get("int_processes") is None:
                 print("ERROR: cannot start interfering processes, aborting")
@@ -242,32 +246,31 @@ def execute(params):
                 return params
         params.update({"int_processes": int_processes})
         # we start the schedulability test for each benchmark
-        last_core = cores[0] - 1
         graph_lines = []
         sched_utilization = []
         sched_num_scheduled = []
-        for i in range(0, len(args.benchmarks)):
+        for i in range(0, len(args["benchmarks"])):
             res = sched_test(
-                args.benchmarks[i][0],
-                args.benchmarks[i][1],
+                args["benchmarks"][i][0],
+                args["benchmarks"][i][1],
                 worst_runtimes[i],
-                args.util_inc,
-                args.tasks_num,
-                args.output[i],
-                args.prefix,
-                args.postfix,
-                last_core,
+                args["util_inc"],
+                args["tasks_num"],
+                args["output"][i],
+                args["prefix"],
+                args["postfix"],
+                args["target_core"],
                 sched_params,
                 timestamp,
-                len(args.interfering) > 0,
+                len(args["interfering"]) > 0,
             )
             if res is None:
                 params.update({"res": -1})
                 break
             graph_lines.append(
-                os.path.basename(args.benchmarks[i][0])
+                os.path.basename(args["benchmarks"][i][0])
                 + " - "
-                + os.path.basename(args.benchmarks[i][1][0])
+                + os.path.basename(args["benchmarks"][i][1][0])
             )
             sched_utilization.append(res.get("utilization"))
             sched_num_scheduled.append(res.get("successfully_scheduled"))
@@ -281,7 +284,7 @@ def execute(params):
                 },
             }
         )
-    if args.draw_graph != "no":
+    if args["draw_graph"] != "no":
         params = base.draw_and_save_graph(
             draw_graph,
             params,
