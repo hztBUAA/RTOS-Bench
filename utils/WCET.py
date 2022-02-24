@@ -43,6 +43,7 @@ def worst_case_exec_test(
     sched_params,
     timestamp,
     interference,
+    threshold=0,
 ):
     """!  @brief Finds the worst case execution time using only the first core.
 
@@ -56,6 +57,7 @@ def worst_case_exec_test(
     @param[in] sched_params Parameters that tune the benchmark scheduling attributes (a list with CLI options and it's attributes).
     @param[in] timestamp The timestamp of the test.
     @param[in] interference If the test has interference, this will change the csv filename, adding `interfering`.
+    @param[in] threshold The percentage of missed deadline that can make te test still succeed.
     @details
     The worst case execution time will be the longest time a single task has run without missing the deadline.
     To do so a number of tasks (`worst_case_tests`) is run and if at least one misses the deadline then the deadline be increased and the test restarted.
@@ -69,6 +71,9 @@ def worst_case_exec_test(
     However, only the tests taken in the current executions can be found in `[benchmark executable name]_worst_case_exec_test.csv`.
     @returns The found worst case execution time in seconds or -1 in case of error.
     """
+    if threshold > 1:
+        print("ERROR: The threshold for failed tests is greater than 100%")
+        return -1
     deadline = 0.001
     fails_count = 1
     bmark_name = os.path.basename(bmark)
@@ -95,10 +100,12 @@ def worst_case_exec_test(
                 "worst_in_clock",
                 "worst_in_seconds",
                 "runtimes_in_seconds",
+                "acceptance_threshold",
+                "tests_number",
             ]
         )
     print(f"\nstarting worst case execution test for {bmark_name} {bmark_args}")
-    while fails_count > 0:
+    while fails_count > worst_case_tests * threshold:
         print(
             f"deadline value: {deadline}, current WCET: {worst_time}, executing {worst_case_tests} tasks"
         )
@@ -162,6 +169,8 @@ def worst_case_exec_test(
             worst,
             worst_time,
             base.stringify_list(runtimes),
+            threshold,
+            worst_case_tests,
         ]
     )
     worst_file.close()
@@ -213,6 +222,7 @@ def execute(params):
                 cores[0],
                 args["target_core"],
                 args["system_core"],
+                args["fifo_interfering"],
             )
             if int_processes == [] and params.get("int_processes") is None:
                 print("ERROR: cannot start interfering processes, aborting")

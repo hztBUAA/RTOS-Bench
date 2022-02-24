@@ -239,6 +239,7 @@ def execute(params):
                 cores[0],
                 args["target_core"],
                 args["system_core"],
+                args["fifo_interfering"],
             )
             if int_processes == [] and params.get("int_processes") is None:
                 print("ERROR: cannot start interfering processes, aborting")

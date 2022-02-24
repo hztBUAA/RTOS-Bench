@@ -62,7 +62,7 @@ def convert_corelist_to_list(corelist):
     return core_list
 
 
-def start_interfering(deadline, bmarks, num_cpus, target_core, system_core):
+def start_interfering(deadline, bmarks, num_cpus, target_core, system_core, fifo_prio):
     """! @brief Launches interfering benchmarks.
 
     @param[in] deadline The deadline (and period) to give to the interfering benchmarks.
@@ -70,6 +70,7 @@ def start_interfering(deadline, bmarks, num_cpus, target_core, system_core):
     @param[in] num_cpus The number of available physical cores.
     @param[in] target_core The corelist on which the benchmark will run, which must not have an interfering benchmark.
     @param[in] system_core The corelist on which the benchmark will run, which must not have an interfering benchmark.
+    @param[in] fifo_prio The priority of the interfering benchmarks
     @details
     The interfering benchmarks can be executed on all the available cores, excluding the first, the decision of which benchmark to place on which core is left to the scheduler.
     The benchmarks will continue to be executed until they receive a `SIGINT`.
@@ -95,6 +96,10 @@ def start_interfering(deadline, bmarks, num_cpus, target_core, system_core):
         i += 1
     bmark_processes = []
     for i in range(0, len(bmarks)):
+        if bmarks[i][1] != []:
+            interf_args = ["-b"] + bmarks[i][1]
+        else:
+            interf_args = []
         try:
             bmark_processes.append(
                 subprocess.Popen(
@@ -109,10 +114,9 @@ def start_interfering(deadline, bmarks, num_cpus, target_core, system_core):
                         "-c",
                         cores[i],
                         "-f",
-                        "99",
-                        "-b",
+                        str(fifo_prio),
                     ]
-                    + bmarks[i][1]
+                    + interf_args
                 )
             )
         except Exception as e:
@@ -204,11 +208,11 @@ def handle_bmark_list(bmark_list):
     """
     new_list = []
     for bmark in bmark_list:
-        tmp = bmark.split(":")
-        if len(tmp) > 1:
+        if ":" in bmark:
+            tmp = bmark.split(":")
             new_list.append((tmp[0], tmp[1].split(",")))
         else:
-            new_list.append((tmp[0], []))
+            new_list.append((bmark, []))
     return new_list
 
 
@@ -247,10 +251,21 @@ def parser_init():
         "--worst-case-tests",
         metavar="tests-num",
         type=int,
-        help="The number of tasks to be executed when searching for the worst case runtime.",
+        help="The number of tasks to be executed when searching for the worst case execution time.",
         default=1000,
         required=False,
         dest="worst_case_tests",
+    )
+
+    parser.add_argument(
+        "-wd",
+        "--worst-case-threshold",
+        metavar="tests-num",
+        type=float,
+        help="The percentage of missed deadlines that can be allowed when searching for the worst case execution time.",
+        default=0,
+        required=False,
+        dest="worst_case_threshold",
     )
 
     parser.add_argument(
@@ -320,6 +335,18 @@ def parser_init():
         default="0",
         dest="system_core",
     )
+
+    parser.add_argument(
+        "-fi",
+        "--fifo-interfering",
+        metavar="fifo-prio",
+        type=int,
+        help="Priority for the SCHED_FIFO scheduler of the interfering benchmarks.",
+        required=False,
+        default=None,
+        dest="fifo_interfering",
+    )
+
     parser.add_argument(
         "-f",
         "--fifo",
@@ -458,6 +485,10 @@ def test_init(parser):
         return params
     if any(sched_deadline_vals) and not all(sched_deadline_vals):
         print("ERROR: missing options for SCHED_DEADLINE")
+        params.update({"res": -1})
+        return params
+    if args["fifo_interfering"] is None and args["interfering"] != []:
+        print("ERROR: missing SCHED_FIFO priority for interfering benchmarks")
         params.update({"res": -1})
         return params
     # we use SCHED_FIFO if nothing from SCHED_DEADLINE has been specified
