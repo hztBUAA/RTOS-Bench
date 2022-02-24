@@ -157,10 +157,10 @@ def worst_case_exec_test(
                 worst_time = elapsed_secs
                 worst = elapsed_clocks
         test_file.close()
-        if fails_count > 0:
-            print(f"{fails_count} deadlines were missed, increasing deadline")
+        if fails_count > worst_case_tests * threshold:
+            print(f"{fails_count} deadlines were missed increasing deadline threshold: {threshold}, test_performed:{worst_case_tests} missed deadlines:{fails_count} max missable deadlines {threshold * worst_case_tests}")
             deadline = worst_time
-    print(f"done, test results:{worst} clock cycles {worst_time} seconds\n")
+    print(f"done, test results:{worst} clock cycles {worst_time} seconds\n threshold: {threshold}, test_performed:{worst_case_tests} missed deadlines:{fails_count} max missable deadlines {threshold * worst_case_tests}")
     writer.writerow(
         [
             timestamp,
@@ -245,6 +245,7 @@ def execute(params):
                 sched_params,
                 timestamp,
                 len(args["interfering"]) > 0,
+                args["worst_case_threshold"]
             )
             if WCET < 0:
                 params.update({"res:": WCET})
