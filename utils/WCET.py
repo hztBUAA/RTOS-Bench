@@ -75,7 +75,7 @@ def worst_case_exec_test(
         print("ERROR: The threshold for failed tests is greater than 100%")
         return -1
     deadline = 0.001
-    fails_count = 1
+    fails_count = worst_case_tests * threshold + 1
     bmark_name = os.path.basename(bmark)
     runtimes = []
     interf_str = ""
@@ -158,9 +158,13 @@ def worst_case_exec_test(
                 worst = elapsed_clocks
         test_file.close()
         if fails_count > worst_case_tests * threshold:
-            print(f"{fails_count} deadlines were missed increasing deadline threshold: {threshold}, test_performed:{worst_case_tests} missed deadlines:{fails_count} max missable deadlines {threshold * worst_case_tests}")
+            print(
+                f"{fails_count} deadlines were missed increasing deadline threshold: {threshold}, test_performed:{worst_case_tests} missed deadlines:{fails_count} max missable deadlines {threshold * worst_case_tests}"
+            )
             deadline = worst_time
-    print(f"done, test results:{worst} clock cycles {worst_time} seconds\n threshold: {threshold}, test_performed:{worst_case_tests} missed deadlines:{fails_count} max missable deadlines {threshold * worst_case_tests}")
+    print(
+        f"done, test results:{worst} clock cycles {worst_time} seconds\n threshold: {threshold}, test_performed:{worst_case_tests} missed deadlines:{fails_count} max missable deadlines {threshold * worst_case_tests}"
+    )
     writer.writerow(
         [
             timestamp,
@@ -245,7 +249,7 @@ def execute(params):
                 sched_params,
                 timestamp,
                 len(args["interfering"]) > 0,
-                args["worst_case_threshold"]
+                args["worst_case_threshold"],
             )
             if WCET < 0:
                 params.update({"res:": WCET})
