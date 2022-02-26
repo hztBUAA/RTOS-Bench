@@ -473,7 +473,11 @@ def test_init(parser):
         args["sched_period"] is not None,
     ]
     # handle scheduling parameters
-    if args["fifo"] is None and not any(sched_deadline_vals):
+    if (
+        args["draw_graph"] != "only"
+        and args["fifo"] is None
+        and not any(sched_deadline_vals)
+    ):
         print(
             "Missing scheduling parameters! Provide SCHED_FIFO or SCHED_DEADLINE parameters!"
         )
