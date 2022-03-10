@@ -14,9 +14,8 @@ import os
 import numpy as np
 from cycler import cycler
 from matplotlib import cm
-from matplotlib.figure import Figure
+from matplotlib.pyplot import figure
 
-import base
 
 ## The figure which will contain the plot.
 FIGURE = None
@@ -100,8 +99,8 @@ def export_graph(graph, fname, output="./", prefix="", postfix=""):
     """
     output_path = os.path.join(output, prefix + fname + postfix)
     global FIGURE
-    FIGURE.savefig(output_path + ".png", format="png", bbox_inches="tight")
-    FIGURE.savefig(output_path + ".svg", format="svg", bbox_inches="tight")
+    FIGURE.savefig(output_path + ".png", format="png", bbox_inches="tight", dpi=300)
+    FIGURE.savefig(output_path + ".svg", format="svg", bbox_inches="tight", dpi=300)
 
 
 def teardown():
@@ -113,6 +112,16 @@ def teardown():
     global CYCLER_LAST_INDEX
     FIGURE = None
     CYCLER_LAST_INDEX = 0
+
+
+def set_figsize(width, height):
+    """! @brief Sets the size of the figure.
+
+    @param[in] width Figure width.
+    @param[in] height Figure height.
+    """
+    global FIGURE
+    FIGURE = figure(figsize=(width, height), tight_layout=True)
 
 
 def set_graph_properties(
@@ -136,7 +145,7 @@ def set_graph_properties(
     @details
     In addition the graph will also be scaled and a grid will be shown.
     """
-    graph.autoscale()
+    # graph.autoscale()
     if title is not None:
         graph.set_title(title)
     if xlabel is not None:
@@ -204,6 +213,7 @@ def plot(
     title=None,
     line_label=None,
     log_scale=False,
+    line_markers=True,
     graph=None,
 ):
     """! @brief Draws a line graph, output will be in png and svg.
@@ -215,7 +225,8 @@ def plot(
     @param[in] title The graph title.
     @param[in] line_label The label of the line, which will be displayed in a legend, if more than one line is being
     plotted.
-    @param[in] log_scale If the scale of the plot must be logarithmic
+    @param[in] log_scale If the scale of the plot must be logarithmic.
+    @param[in] markers If point markers have to be painted.
     @param[in] graph An already existing Axes object, lines will be added here.
     @details
     Lines will automatically change color, marker and shape, to keep the graph as readable as possible.
@@ -224,9 +235,10 @@ def plot(
     # get the axes
     if graph is None:
         global FIGURE
-        FIGURE = Figure()
+        if FIGURE is None:
+            FIGURE = figure(tight_layout=True)
         graph = FIGURE.gca()
-    if type(x[0]) is list:
+    if hasattr(x[0], "__iter__"):
         xlist = x
         ylist = y
         groups = len(xlist)
@@ -236,7 +248,10 @@ def plot(
         groups = len(xlist)
 
     # we set the cycler
-    graph_cycler = init_cycler(groups, "plot")
+    if line_markers is True:
+        graph_cycler = init_cycler(groups, "plot")
+    else:
+        graph_cycler = init_cycler(groups, "plot-nomarkers")
     graph.set_prop_cycle(graph_cycler)
     # we create the line collection
     for i in range(0, groups):
@@ -244,7 +259,11 @@ def plot(
             label = line_label[i]
         else:
             label = None
-        graph.plot(xlist[i], ylist[i], label=label)
+        graph.plot(
+            xlist[i],
+            ylist[i],
+            label=label,
+        )
     # we set plot properties
     if log_scale:
         graph.set_yscale("log")
@@ -279,7 +298,8 @@ def hist(
     # get the axes
     if graph is None:
         global FIGURE
-        FIGURE = Figure()
+        if FIGURE is None:
+            FIGURE = figure(tight_layout=True)
         graph = FIGURE.gca()
     graph_cycler = init_cycler(1, "hist")
     graph.set_prop_cycle(graph_cycler)
@@ -299,11 +319,12 @@ def hist(
 
 def bar(
     data,
-    xlabel=None,
+    xlabel,
     ylabel=None,
     title=None,
     bar_label=None,
     log_scale=False,
+    stacked=False,
     graph=None,
 ):
     """! @brief Draws a bar graph.
@@ -316,6 +337,7 @@ def bar(
     @param[in] bar_label The label of each bar group, which will be displayed in a
     legend, one per groups of bars.
     @param[in] log_scale If the logarithmic scale must be used to plot data.
+    @param[in] stacked True to plot a stacked bar chart, false to plot a grouped bar char.
     @param[in] graph An already existing Axes object, bars will be added here.
     @details
     Bar groups will automatically change color, marker and shape, to keep the
@@ -325,16 +347,20 @@ def bar(
     # get the axes
     if graph is None:
         global FIGURE
-        FIGURE = Figure()
+        if FIGURE is None:
+            FIGURE = figure(tight_layout=True)
         graph = FIGURE.gca()
     # we set the cycler
-    if type(data[0]) is list:
+    if hasattr(data[0], "__iter__"):
         groups = len(data)
         latest_data = np.zeros(len(data[0]))
     else:
         groups = 1
         latest_data = np.zeros(len(data))
-
+    if stacked is True:
+        bar_width = 1
+    else:
+        bar_width = 0.8 / groups
     graph_cycler = init_cycler(groups, "bar")
     graph.set_prop_cycle(graph_cycler)
     # we create the bar chart
@@ -343,27 +369,33 @@ def bar(
             label = bar_label[i]
         else:
             label = None
-        if type(data[0]) is list:
-            xvals = range(len(data[i]))
+        if hasattr(data[0], "__iter__"):
+            xvals = np.arange(0, len(data[i]))
             yvals = data[i]
         else:
             xvals = range(len(data))
             yvals = data
-        bar = graph.bar(
-            xvals,
+        bar_graph = graph.bar(
+            xvals + (i * bar_width),
             yvals,
             tick_label=xlabel,
             bottom=latest_data,
             label=label,
             hatch=graph_cycler.by_key().get("hatch")[i],
+            width=bar_width,
         )
-        graph.bar_label(
-            bar,
-            fmt="%.3g",
-            label_type="edge",
-            # bbox={"boxstyle": "circle", "color": "white"},
-        )
-        latest_data += np.asarray(data[i])
+        if stacked is True:
+            latest_data += np.asarray(data[i])
+        else:
+            graph.set_xticks(xvals + bar_width / groups)
+            graph.set_xticklabels(xlabel)
+        if groups == 1:
+            graph.bar_label(
+                bar_graph,
+                fmt="%.3g",
+                label_type="edge",
+                # bbox={"boxstyle": "circle", "color": "white"},
+            )
     # we set plot properties
     if log_scale:
         graph.set_yscale("log")
@@ -400,7 +432,8 @@ def scatter(
     # get the axes
     if graph is None:
         global FIGURE
-        FIGURE = Figure()
+        if FIGURE is None:
+            FIGURE = figure(tight_layout=True)
         graph = FIGURE.gca()
     graph_cycler = init_cycler(len(x), "scatter")
     graph.set_prop_cycle(graph_cycler)
@@ -443,7 +476,8 @@ def boxplot(
     """
     if graph is None:
         global FIGURE
-        FIGURE = Figure()
+        if FIGURE is None:
+            FIGURE = figure(tight_layout=True)
         graph = FIGURE.gca()
     graph_cycler = init_cycler(len(data), "scatter")
     graph.set_prop_cycle(graph_cycler)
@@ -467,7 +501,7 @@ def violinplot(
     """! @brief Draws a violinplot graph.
 
     @param[in] x The data that needs to be plotted, it can be a 2D array.
-    If so, a boxplot per columdesi sei tappa, man will be plotted.
+    If so, a boxplot per columns, man will be plotted.
     @param[in] labels The labels for each dataset.
     @param[in] xlabel The label for the x axis.
     @param[in] ylabel The label for the y axis.
@@ -477,7 +511,8 @@ def violinplot(
     """
     if graph is None:
         global FIGURE
-        FIGURE = Figure()
+        if FIGURE is None:
+            FIGURE = figure(tight_layout=True)
         graph = FIGURE.gca()
     graph_cycler = init_cycler(len(data), "scatter")
     graph.set_prop_cycle(graph_cycler)
@@ -717,84 +752,6 @@ def read_data(files, x_col, y_col=None):
         x_data = x_tmp
         y_data = y_tmp
     return x_data, y_data
-
-
-def parse_res_csv(inputs, fields, conv=[]):
-    """! @brief get data from a a csv which is timestamped.
-
-     @param[in] inputs A list of inputs.
-     @param[in] fields A list of csv fiels that must be read.
-     @param[in] conv A list of functions to convert the fields to a specific datatype. If unspecified alla lists will contain strings.
-     @returns The parsed data, in a dictionary with a key for every timestamp. `None` on error.
-     @details
-     Supported csv file mus have at least 3 columns:
-     - `timestamp`: with the test timestamp
-     - `benchamark`: with the benchmark executable path
-     - `arguments`: with the list of argument of the benchmark, separated by `;`.
-     Additionally fields in the csv must be separated by `,`.
-
-     Each timestamp key will locate a dictionary with a list of lists (one sublist per benchmark).
-     Each sublist will have as elements the values of the fields that match the benchmark and the timestamp.
-     Additionally there will a list called `legend` which will combine the benchamrk name and arguments to create a label for each of the above sublists.
-
-     If several input files have the same timestamp data will be aggregated.
-
-     Example: Calling: `parse_res_csv(file.scv,['utilization','num_scheduled'],conv=[float,int])` with a csv generated by schedulability.py could return:
-     `data={'2022-02-09T20-26-31-407037':{'utilization':[[0.1, ... , 1] [0.1, ... , 1]], 'num_scheduled':[[100, ..., 0] [100, ..., 0]],'legend':['disparity - cif','mser - vga']}}`.
-    @TODO: This function should be superseded by a wrapper that leverages the pandas library
-    """
-    if len(inputs) < 1:
-        print(
-            "ERROR: Wrong number of input files! This test needs at least 1 input file."
-        )
-        return None
-    data = {}
-    len_fields = len(fields)
-    if conv == []:
-        for i in range(0, len_fields):
-            conv.append(str)
-    for filepath in inputs:
-        with open(filepath) as file:
-            csv_reader = csv.DictReader(file)
-            for row in csv_reader:
-                timestamp = row.get("timestamp")
-                if timestamp is None:
-                    print("ERROR: Missing timestamp value in input file!")
-                    print(row)
-                    return None
-                # we get the corresponding dictionary or we Initialize it
-                timestamped_data = data.get(timestamp)
-                if timestamped_data is None:
-                    data.update({timestamp: {}})
-                    timestamped_data = data.get(timestamp)
-                    for field in fields:
-                        timestamped_data.update({field: []})
-                    timestamped_data.update({"legend": []})
-                # we create the string for the legend
-                bmark = row.get("benchmark")
-                if bmark is None:
-                    print("ERROR: Missing benchmark name in input file!")
-                    print(row)
-                    return None
-                bmark = os.path.basename(bmark)
-                args = row.get("arguments").split(";")
-                reduced_args = base.reduce_args(args)
-                legend_str = bmark + " - " + reduced_args
-                if legend_str not in timestamped_data["legend"]:
-                    timestamped_data["legend"].append(legend_str)
-                    # we also create a sublist for this benchmark in each field list
-                    for field in fields:
-                        timestamped_data[field].append([])
-                # we read the data in the row
-                for j in range(0, len_fields):
-                    read_data = row.get(fields[j])
-                    if read_data is None:
-                        print(f"ERROR: Missing {fields[j]} value in input file!")
-                        print(row)
-                        return None
-                    timestamped_data[fields[j]][-1].append(conv[j](read_data))
-
-    return data
 
 
 if __name__ == "__main__":
