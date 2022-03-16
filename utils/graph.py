@@ -16,7 +16,6 @@ from cycler import cycler
 from matplotlib import cm
 from matplotlib.pyplot import figure
 
-
 ## The figure which will contain the plot.
 FIGURE = None
 
@@ -89,7 +88,7 @@ markers = [
 
 
 def export_graph(graph, fname, output="./", prefix="", postfix=""):
-    """! @brief save the current plot in png and svg format, also reset the global cycler.
+    """! @brief save the current plot in png, pdf and svg format, also reset the global cycler.
 
     @param[in] graph The plot to export.
     @param[in] fname The name of the output file.
@@ -99,8 +98,18 @@ def export_graph(graph, fname, output="./", prefix="", postfix=""):
     """
     output_path = os.path.join(output, prefix + fname + postfix)
     global FIGURE
-    FIGURE.savefig(output_path + ".png", format="png", bbox_inches="tight", dpi=300)
-    FIGURE.savefig(output_path + ".svg", format="svg", bbox_inches="tight", dpi=300)
+    FIGURE.savefig(output_path + ".png",
+                   format="png",
+                   bbox_inches="tight",
+                   dpi=300)
+    FIGURE.savefig(output_path + ".svg",
+                   format="svg",
+                   bbox_inches="tight",
+                   dpi=300)
+    FIGURE.savefig(output_path + ".pdf",
+                   format="pdf",
+                   bbox_inches="tight",
+                   dpi=300)
 
 
 def teardown():
@@ -170,7 +179,8 @@ def adjust_x_ticks_labels(graph, labels):
     """
     lbl_len_list = list(map(len, labels))
     lbl_max_idx = lbl_len_list.index(max(lbl_len_list))
-    lbl_max_len = lbl_len_list[lbl_max_idx] / (labels[lbl_max_idx].count("\n") + 1)
+    lbl_max_len = lbl_len_list[lbl_max_idx] / (
+        labels[lbl_max_idx].count("\n") + 1)
     if len(labels) > 4 and lbl_max_len > 10:
         graph.tick_params(axis="x", rotation=22)
 
@@ -184,23 +194,25 @@ def init_cycler(groups, graph_type):
     # we setup a cycler, which will change line style,
     # markers and color automatically
     global CYCLER_LAST_INDEX
-    graph_cycler = cycler(
-        color=cm.plasma(
-            np.linspace(0.05, 0.85, (CYCLER_LAST_INDEX + groups))[CYCLER_LAST_INDEX:]
-        )
-    )
-    if CYCLER_LAST_INDEX + groups <= len(markers) and graph_type in ["scatter", "plot"]:
+    graph_cycler = cycler(color=cm.plasma(
+        np.linspace(0.05, 0.85, (CYCLER_LAST_INDEX +
+                                 groups))[CYCLER_LAST_INDEX:]))
+    if CYCLER_LAST_INDEX + groups <= len(markers) and graph_type in [
+            "scatter", "plot"
+    ]:
         graph_cycler += cycler(
-            marker=markers[CYCLER_LAST_INDEX : CYCLER_LAST_INDEX + groups]
-        )
-    if CYCLER_LAST_INDEX + groups <= len(linestyle_tuple) and graph_type in ["plot"]:
+            marker=markers[CYCLER_LAST_INDEX:CYCLER_LAST_INDEX + groups])
+    if CYCLER_LAST_INDEX + groups <= len(linestyle_tuple) and graph_type in [
+            "plot"
+    ]:
         graph_cycler += cycler(
-            linestyle=linestyle_tuple[CYCLER_LAST_INDEX : CYCLER_LAST_INDEX + groups]
-        )
-    if CYCLER_LAST_INDEX + groups <= len(hatches) and graph_type in ["bar", "hist"]:
+            linestyle=linestyle_tuple[CYCLER_LAST_INDEX:CYCLER_LAST_INDEX +
+                                      groups])
+    if CYCLER_LAST_INDEX + groups <= len(hatches) and graph_type in [
+            "bar", "hist"
+    ]:
         graph_cycler += cycler(
-            hatch=hatches[CYCLER_LAST_INDEX : CYCLER_LAST_INDEX + groups]
-        )
+            hatch=hatches[CYCLER_LAST_INDEX:CYCLER_LAST_INDEX + groups])
     CYCLER_LAST_INDEX += groups
     return graph_cycler
 
@@ -373,7 +385,7 @@ def bar(
             xvals = np.arange(0, len(data[i]))
             yvals = data[i]
         else:
-            xvals = range(len(data))
+            xvals = np.arange(0, len(data))
             yvals = data
         bar_graph = graph.bar(
             xvals + (i * bar_width),
@@ -387,15 +399,15 @@ def bar(
         if stacked is True:
             latest_data += np.asarray(data[i])
         else:
-            graph.set_xticks(xvals + bar_width / groups)
-            graph.set_xticklabels(xlabel)
-        if groups == 1:
-            graph.bar_label(
-                bar_graph,
-                fmt="%.3g",
-                label_type="edge",
-                # bbox={"boxstyle": "circle", "color": "white"},
-            )
+            if groups > 1:
+                graph.set_xticks(xvals + bar_width / groups)
+                graph.set_xticklabels(xlabel)
+        #graph.bar_label(
+        #bar_graph,
+        #fmt="%.3g",
+        #label_type="edge",
+        # bbox={"boxstyle": "circle", "color": "white"},
+        #)
     # we set plot properties
     if log_scale:
         graph.set_yscale("log")
@@ -596,8 +608,7 @@ def parser_init():
     """
     # set up the argument parser
     parser = argparse.ArgumentParser(
-        description="A script to create graphs from csv files."
-    )
+        description="A script to create graphs from csv files.")
 
     parser.add_argument(
         "-g",
@@ -605,7 +616,8 @@ def parser_init():
         metavar="graph",
         nargs="+",
         type=str,
-        help="Which type of graph must be plotted. If repeated plots will stack.",
+        help=
+        "Which type of graph must be plotted. If repeated plots will stack.",
         choices=[
             "plot",
             "bar",
@@ -636,7 +648,8 @@ def parser_init():
         metavar="column1,column2,...",
         nargs="+",
         type=str,
-        help="CSV column that contain the data to plot on the x axis. Can be repeated (one for each graph type).",
+        help=
+        "CSV column that contain the data to plot on the x axis. Can be repeated (one for each graph type).",
         required=False,
         dest="x_col",
     )
@@ -647,7 +660,8 @@ def parser_init():
         metavar="column1,column2,...",
         nargs="+",
         type=str,
-        help="CSV column that contain the data to plot on the y axis. Can be repeated (one for each graph type).",
+        help=
+        "CSV column that contain the data to plot on the y axis. Can be repeated (one for each graph type).",
         required=False,
         default=None,
         dest="y_col",

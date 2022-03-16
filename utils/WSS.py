@@ -53,7 +53,9 @@ def execute(params):
             return params
         sched_params = params.get("sched_params")
         if sched_params is None:
-            print("ERROR: Missing scheduling parameters to execute the wss test!")
+            print(
+                "ERROR: Missing scheduling parameters to execute the wss test!"
+            )
             params.update({"res": -1})
             return params
         cores = params.get("cores")
@@ -80,20 +82,16 @@ def execute(params):
             else:
                 bmark_wss.append(res)
                 bmarks.append(
-                    os.path.basename(args["benchmarks"][i][0])
-                    + "\n"
-                    + os.path.basename(args["benchmarks"][i][1][0])
-                )
+                    os.path.basename(args["benchmarks"][i][0]) + "\n" +
+                    os.path.basename(args["benchmarks"][i][1][0]))
                 res = 0
-            params.update(
-                {
-                    "res": res,
-                    "WSS": {
-                        "minimum_wss(bytes)": bmark_wss,
-                        "legend": bmarks,
-                    },
-                }
-            )
+            params.update({
+                "res": res,
+                "WSS": {
+                    "minimum_wss(bytes)": bmark_wss,
+                    "legend": bmarks,
+                },
+            })
     if args["draw_graph"] != "no":
         params = base.draw_and_save_graph(
             draw_graph,
@@ -116,7 +114,7 @@ def draw_graph(data, interference=False, old_graph=None):
     """
     bmark_wss = data.get("minimum_wss(bytes)")
     # if we get a list of lists we flatten in to a single list.
-    if type(bmark_wss[0]) is list:
+    if hasattr(bmark_wss[0], '__iter__'):
         tmp_list = []
         for elem in bmark_wss:
             tmp_list.append(elem[0])
@@ -197,10 +195,7 @@ def wss_test(
                     str(tests),
                     "-m",
                     str(current_wss),
-                ]
-                + sched_params
-                + ["-b"]
-                + bmark_args,
+                ] + sched_params + ["-b"] + bmark_args,
                 check=True,
             )
         except subprocess.CalledProcessError as e:
@@ -219,17 +214,18 @@ def wss_test(
             # if we don't have an upper bound we double the current wss
             current_wss = last_wss * 2
         print(f"\nnext wss {current_wss} last wss {last_wss}")
-        print(f"wss lower bound {wss_lower_bound}  wss upper bound {wss_upper_bound}")
+        print(
+            f"wss lower bound {wss_lower_bound}  wss upper bound {wss_upper_bound}"
+        )
     file_exists = os.path.isfile(filename)
     with open(filename, "a") as file:
         writer = csv.writer(file)
         if not file_exists:
             writer.writerow(
-                ["timestamp", "benchmark", "arguments", "minimum_wss(bytes)"]
-            )
+                ["timestamp", "benchmark", "arguments", "minimum_wss(bytes)"])
         writer.writerow(
-            [timestamp, bmark, base.stringify_list(bmark_args), current_wss]
-        )
+            [timestamp, bmark,
+             base.stringify_list(bmark_args), current_wss])
     return current_wss
 
 

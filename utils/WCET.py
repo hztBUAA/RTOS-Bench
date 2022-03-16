@@ -296,8 +296,8 @@ def draw_graph(data, interference=False, old_graph=None):
     @returns The graph object.
     """
     runtimes = data.get("runtimes_in_seconds")
-    if type(runtimes[0]) is list:
-        if type(runtimes[0][0]) is list:
+    if hasattr(runtimes[0],'__iter__'):
+        if hasattr(runtimes[0][0],'__iter__'):
             tmp_list = []
             for elem in runtimes:
                 tmp_list.append(elem[0])
