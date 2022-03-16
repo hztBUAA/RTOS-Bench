@@ -16,6 +16,9 @@ Dependecies:
 - graph.py optional
 
 @author Mattia Nicolella
+
+Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
 """
 
 import csv

@@ -4,6 +4,9 @@
  * @details Timer expiration triggers a real time POSIX signal and `SIGINT` is
  * used to stop the benchmark and terminate the program.
  * @author Mattia Nicolella
+ *
+ * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "periodic_benchmark.h"

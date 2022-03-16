@@ -2,6 +2,9 @@
  * @ingroup base
  * @brief Implementation of a memory watcher, which will crash the program if it detects and heap extension.
  * @author Mattia Nicolella
+ *
+ * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+ * SPDX-License-Identifier: MIT
  */
 #include <malloc.h>
 #include <unistd.h>

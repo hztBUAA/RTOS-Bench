@@ -5,6 +5,9 @@
  * @ingroup base
  * @author Mattia Nicolella
  * @brief API to get the CPU timestamp value.
+ *
+ * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+ * SPDX-License-Identifier: MIT
  */
 
 /** @brief Reads the processor timestamp counter as an unsigned long long.

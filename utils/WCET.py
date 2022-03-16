@@ -15,6 +15,9 @@ This script will create some files in the output folder, as described by `worst_
 Dependencies:
 - base.py
 - graph.py optional
+
+Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
 """
 
 

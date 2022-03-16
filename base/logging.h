@@ -9,6 +9,9 @@
  * A simple work around is to delete the `##` before `__VA_ARGS__` and pass a blank string (`""`) when the macro is used without parameters
  * other than the format string and the log level.\n
  * Without the `##` it could happen that the compiler does not strip the `,` after the format string when is not necessary and the macro is not expanded properly.
+ *
+ * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef LOGGING_H

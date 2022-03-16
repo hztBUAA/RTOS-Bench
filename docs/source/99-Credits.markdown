@@ -4,6 +4,7 @@
 - Doxygen Theme provided by [jothepro](https://jothepro.github.io/doxygen-awesome-css/index.html)
 - Project logo made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.flaticon.com/)
 - San Diego Vision and Cortex benchmarks where taken from [here](https://bitbucket.org/taylor-bsg/cortexsuite/src/devel/)
+- IsolBench benchmarks were taken from [here](https://github.com/CSL-KU/IsolBench)
 
 # Benchmarks original authors and contributors
 
@@ -18,3 +19,13 @@
 # Contributors
 
 - Mattia Nicolella
+- Andrea Bastoni
+- Denis Hoornaert
+
+# License
+This project is under the [MIT](https://spdx.org/licenses/MIT.html) license.
+However individual benchmark suites have a different license, full licensing information is in the source files and in the `LICENSES` folder.
+
+A non-exhaustive list of licenses used is the following:
+- [MIT](https://spdx.org/licenses/MIT.html) For the rt-bench files and for the doxygen theme in `docs/conf/doxygen-awesome/`.
+- [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html) For files in the `vision` and `cortex` folder.

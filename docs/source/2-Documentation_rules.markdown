@@ -40,6 +40,7 @@ At the time of writing only the following file types are included in the documen
 
 - `.c` source files.
 - `.h` header files.
+- `.py` files.
 - `.markdown` files for documentation pages located in `docs/source` (doxygen has some quirks with the markdown syntax, refer to this explanation: https://www.doxygen.nl/manual/markdown.html).
 - `.dox` files, used for modules documentation (in `docs/source/modules`, to have all the modules in the same place and avoiding searching the module definition in different source files).
 
@@ -76,13 +77,21 @@ Below there is an example of how a file called `new_benchmark.c` should be docum
 /**
  * @file benchmark_file.c
  * @ingroup new_benchmark
+ * @author Author
  * @brief Benchmark brief description
  * @details
  * Benchmark detailed description.
+ *
+ * Copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+ * SPDX-License-Identifier: [SPDX license expression]
  */
 ```
 
 Also files should be included in the module that defines them.
+
+For licensing use a valid SPDX license expression and make sure that the license full-text is included as a file in the `LICENSES` folder.
+
+An SPDX license expression can be a simple license identifier from the [SPDX license list](https://spdx.org/licenses/) or a more complex expression, refer to [here](https://spdx.dev/resources/use/) and [here](https://github.com/david-a-wheeler/spdx-tutorial/) for further information.
 
 ## Documenting symbols
 

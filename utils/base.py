@@ -29,6 +29,9 @@ Dependencies:
 - schedulability.py (for `sched` execution)
 - WCET.py (for `sched` and `WCET` execution)
 - graph.py as an optional dependency
+
+Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
 """
 
 import argparse

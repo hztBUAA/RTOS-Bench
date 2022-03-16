@@ -3,6 +3,9 @@
  * @brief Implementation of a architecture independent and highly abstrcat way access to performance counters.
  * @details Uses interface provided by the Linux kernel to access teh performance counters value.
  * @author Denis Hoornaert
+ *
+ * Copyright (C) 2021 - 2022, Denis Hoornaert <denis.hoornaert@tum.de> and the rt-bench contributors.
+ * SPDX-License-Identifier: MIT
  */
 
 #include <stdio.h>

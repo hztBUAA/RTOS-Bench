@@ -1,3 +1,11 @@
+/** @file performance_sampler.c
+ * @ingroup base
+ * @brief Performance sampler implementation.
+ * @author Denis Hoornaert
+ *
+ * Copyright (C) 2021 - 2022, Denis Hoornaert <denis.hoornaert@tum.de> and the rt-bench contributors.
+ * SPDX-License-Identifier: MIT
+ */
 #define _GNU_SOURCE
 
 #include "performance_sampler.h"

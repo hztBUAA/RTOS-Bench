@@ -17,6 +17,9 @@
  * @author Mattia Nicolella
  * @brief Benchmark entry point.
  * @details Will handle the benchmark startup and its parameters.
+ *
+ * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+ * SPDX-License-Identifier: MIT
  */
 
 /**
