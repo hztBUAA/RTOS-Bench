@@ -106,6 +106,9 @@ static int set_sched_deadline(
  * @returns
  *   0 on success
  *   < 0 on failure
+
+ * @note If this function fails when the program is run by the root user try `ulimit -r unlimited` and 
+ * `echo $$ > /sys/fs/cgroup/cpu/tasks` from the shell that will run the program. See [this stackoverflow question](https://stackoverflow.com/questions/9313428/getting-eperm-when-calling-pthread-create-for-sched-fifo-thread-as-root-on-lin) for details  
  */
 static int set_sched_fifo_prio(unsigned int prio)
 {
@@ -166,8 +169,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	int affinity_core;
 	char *affinity_substr = NULL;
 	unsigned long long tasks = 0;
-	int memory_profiling_core_affinity;
-	long unsigned memory_profiling_time_bucket;
+	int arg_len = 0;
 	errno = 0;
 	feclearexcept(FE_ALL_EXCEPT);
 	switch (key) {
@@ -267,15 +269,15 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		break;
 	case 'o':
-		parsed_args->output_path =
-			malloc(sizeof(char) * strlen(arg) + 1);
+		arg_len = strlen(arg);
+		parsed_args->output_path = malloc(sizeof(char) * arg_len + 1);
 		if (parsed_args->output_path == NULL) {
 			argp_failure(
 				state, EXIT_FAILURE, errno,
 				"Can't allocate memory for output filename.");
 		}
 		strncpy(parsed_args->output_path, arg,
-			sizeof(char) * strlen(arg) + 1);
+			sizeof(char) * arg_len + 1);
 		break;
 	case 'l':
 		log_level = atoi(arg);

@@ -14,7 +14,7 @@
  */
 unsigned long long get_rdtsc() {
   unsigned long long timing = 0;
-  unsigned int timeHigh = 0, timeLow = 0;
+  unsigned long timeHigh = 0, timeLow = 0;
   magic_timing_begin(timeLow, timeHigh);
   timing = (((unsigned long long)0x0) | timeHigh) << 32 | timeLow;
   return timing;
