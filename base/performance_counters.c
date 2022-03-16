@@ -15,7 +15,7 @@
 /// System-call number to open performance counter event.
 #ifdef AARCH64
 #define __NR_perf_event_open 241
-
+#endif
 /// Core model specific performance counter event IDs
 #ifdef CORTEX_A53
 #define        L1_REFERENCES 0x04
@@ -31,7 +31,7 @@
 #define           L2_REFILLS 0x0
 #define         INST_RETIRED 0x0
 
-#endif
+
 #endif
 
 /// Indicates which thread/process performance counters to follow.

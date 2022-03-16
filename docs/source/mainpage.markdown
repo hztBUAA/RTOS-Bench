@@ -54,3 +54,7 @@ These arguments and options are described below and in the benchmark help messag
 
 - `-h`, `-?`, `--help`: Give this help list
 - `--usage`: Give a short usage message
+
+### Enabling performance counters
+Counters have been implemented only for Cortex A53 processors.
+Add `CORE=CORTEX_A53` to the make command to enable performance counters.
