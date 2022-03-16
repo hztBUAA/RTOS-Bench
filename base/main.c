@@ -21,6 +21,7 @@
 
 /**
  * @brief Set sched_deadline policy for current thread.
+ * @returns 0 on success, < 0 on failure
  *
  * @details
  * @note `sched_setattr()` is not provided as wrapper in most glibc.
@@ -106,9 +107,7 @@ static int set_sched_deadline(
  *   0 on success
  *   < 0 on failure
  */
-static int set_sched_fifo_prio(
-	/* IN: prio (see chrt or include/linux/sched/types.h */
-	unsigned int prio)
+static int set_sched_fifo_prio(unsigned int prio)
 {
 	int ret;
 	struct rtbench_sched_attr attr = { 0 };
@@ -167,6 +166,8 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	int affinity_core;
 	char *affinity_substr = NULL;
 	unsigned long long tasks = 0;
+	int memory_profiling_core_affinity;
+	long unsigned memory_profiling_time_bucket;
 	errno = 0;
 	feclearexcept(FE_ALL_EXCEPT);
 	switch (key) {
@@ -178,6 +179,9 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		parsed_args->runtime = 0;
 		parsed_args->period = 0;
 		parsed_args->deadline = 0;
+		parsed_args->memory_profiling_enable = 0;
+		CPU_ZERO(&parsed_args->memory_profiling_core_affinity);
+		parsed_args->memory_profiling_time_bucket = 10000000;
 		break;
 	case 'b':
 		//we want to directly grab the argument list, after the -b flag
@@ -335,6 +339,22 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	case 'P':
 		parsed_args->period = strtoull(arg, NULL, 0);
 		break;
+#ifdef AARCH64AARCH64AARCH64
+
+#ifdef CORTEX_A53
+	case 'M':
+		parsed_args->memory_profiling_enable = strtoul(arg, NULL, 0);
+		break;
+	case 'C':
+		memory_profiling_core_affinity = strtoul(arg, NULL, 0);
+		CPU_SET(memory_profiling_core_affinity,
+			&parsed_args->memory_profiling_core_affinity);
+		break;
+	case 'B':
+		memory_profiling_time_bucket = strtoul(arg, NULL, 0);
+		break;
+#endif
+#endif
 	case ARGP_KEY_END:
 		if (parsed_args->deadline_nsec == 0 &&
 		    parsed_args->deadline_sec == 0)
@@ -405,36 +425,46 @@ int main(int argc, char **argv)
 		"Run a benchmark periodically, trying to meet the given deadline.";
 	const char *argp_args_doc = "";
 	struct argp_option argp_options[] = {
-		{ 0, 0, 0, 0, "Period and deadline options:\n\n", 1 },
+		{ 0, 0, 0, 0, "Period and deadline options:", 1 },
 		{ "deadline", 'd', "secs", 0,
-		  "The benchmark deadline in seconds. Can be an integer, float or in scientific notation. Required. Must be less or equal than the benchmark period.\n" },
+		  "The benchmark deadline in seconds. Can be an integer, float or in scientific notation. Required. Must be less or equal than the benchmark period." },
 		{ "period", 'p', "secs", 0,
-		  "The benchmark period, in seconds. Can be an integer, float or in scientific notation. Required.\n" },
-		{ 0, 0, 0, 0, "Execution options:\n\n", 2 },
-		{ "tasks-num", 't', "tasks>=0", 0,
-		  "Number of tasks to execute. 0 means until SIGINT is received. Default is 0.\n" },
-		{ "core-affinity", 'c', "core1,core2,...", 0,
-		  "The benchmark core affinity, expressed as a comma separated list. A single core id is also accepted.\n" },
+		  "The benchmark period, in seconds. Can be an integer, float or in scientific notation. Required." },
+		{ 0, 0, 0, 0, "Execution options:", 2 },
+		{ "core-affinity", 'c', "core0,core1,...", 0,
+		  "The benchmark core affinity, expressed as a comma separated list. A single core id is also accepted." },
 		{ "mem-limit", 'm', "bytes[GMK]", 0,
-		  "The maximum amount of dynamic memory allocated during the periodic execution. If exceeded, the benchmark will crash. Specified as an integer plus an optional magnitude modifier: K=kilobytes, M=megabytes, G=gigabytes. Without a magnitude modifier specified the value is assumed to be in bytes. 0 Means no limit, and it is the default setting.\n" },
+		  "The maximum amount of dynamic memory allocated during the periodic execution. If exceeded, the benchmark will crash. Specified as an integer plus an optional magnitude modifier: K=kilobytes, M=megabytes, G=gigabytes. Without a magnitude modifier specified the value is assumed to be in bytes. 0 Means no limit, and it is the default setting." },
+		{ "tasks-number", 't', "integer>=0", 0,
+		  "The number of tasks to be executed. 0 means until the program receives a SIGINT. Default is 0." },
 		{ 0, 0, 0, 0, "Scheduling options:\n\n", 3 },
 		{ "fifo", 'f', "0<=prio<=99", 0,
-		  "Set SCHED_FIFO priority with specified priority. Need root.\n" },
+		  "Set SCHED_FIFO priority with specified priority. Need root." },
 		{ "sched-runtime", 'T', "ns", 0,
-		  "Set SCHED_DEADLINE runtime. Alternative to --fifo. Need root.\n" },
+		  "Set SCHED_DEADLINE runtime. Alternative to --fifo. Need root." },
 		{ "sched-deadline", 'D', "ns", 0,
-		  "Set SCHED_DEADLINE deadline. Alternative to --fifo. Need root.\n" },
+		  "Set SCHED_DEADLINE deadline. Alternative to --fifo. Need root." },
 		{ "sched-period", 'P', "ns", 0,
-		  "Set SCHED_DEADLINE period. Alternative to --fifo. Need root. At least --sched-period has to be specified to set sched_deadline params. If deadline is not specified, deadline is set to period. If runtime is not specified, runtime is set to deadline. NOTE: These parameters are different from --period and --deadline used to control the repetitive execution of the thread. To generate valid execution that are not truncated under hard server reservation, period < sched-period and deadline < sched-deadline.\n" },
-		{ 0, 0, 0, 0, "Reporting options:\n\n", 4 },
+		  "Set SCHED_DEADLINE period. Alternative to --fifo. Need root. At least --sched-period has to be specified to set sched_deadline params. If deadline is not specified, deadline is set to period. If runtime is not specified, runtime is set to deadline. NOTE: These parameters are different from --period and --deadline used to control the repetitive execution of the thread. To generate valid execution that are not truncated under hard server reservation, period < sched-period and deadline < sched-deadline." },
+		{ 0, 0, 0, 0, "Reporting options:", 3 },
+#ifdef AARCH64
+#ifdef CORTEX_A53
+		{ "memory-profiling-enable", 'M', "bool", 0,
+		  "Enables runtime memory profiling. Specify '1' to enable or '0' otherwise." },
+		{ "memory-profiling-core", 'C', "core0, core1,...", 0,
+		  "Core affinity of the runtime memory profiling thread. If not specified, it matches the 'core-affinity' parameter. Warning: 'memory-profiling-enable' must be asserted for this parameter to take effect." },
+		{ "memory-profiling-time-bucket", 'B', "ns", 0,
+		  "Period between measurements performed by the runtime memory profiler. If not specified, time bucket of 10ms is set. Warning: 'memory-profiling-enable' must be asserted for this parameter to take effect." },
+#endif
+#endif
 		{ "log-level", 'l', "log-lvl", 0,
-		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats to output file.\n3 - Print benchmark stats to stdout.\n4 - Print also informative messages on stderr.\nDefault is 3.\n" },
+		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats to output file.\n3 - Print benchmark stats to stdout.\n4 - Print also informative messages on stderr.\nDefault is 3." },
 		{ "output", 'o', "output_path", 0,
-		  "Where the info on the benchmark execution will be written. If not supplied, \"./timing.csv\" will be used.\n" },
-		{ 0, 0, 0, 0, "Benchmark arguments and options:\n\n", 5 },
+		  "Where the info on the benchmark execution will be written. If not supplied, \"./timing.csv\" will be used." },
+		{ 0, 0, 0, 0, "Benchmark arguments and options:", 4 },
 		{ "bmark-args", 'b', "arg opt ...", 0,
-		  "A space-separated list of arguments and options that must be relayed directly to the benchmark. It must be specified after every other option since everything after it will be passed directly to the benchmark routine.\n" },
-		{ 0, 0, 0, 0, "Informational options:\n\n", -1 },
+		  "A space-separated list of arguments and options that must be relayed directly to the benchmark. It must be specified after every other option since everything after it will be passed directly to the benchmark routine." },
+		{ 0, 0, 0, 0, "Informational options:\n", -1 },
 		{ NULL, 'h', NULL, 0, NULL },
 		{ 0, 0, 0, 0, 0, 0 }
 	};

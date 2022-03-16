@@ -17,7 +17,18 @@ endif
 endif
 
 CC=gcc
-override CFLAGS += -DGCC -DCHECK -D$(INPUT)
+
+override CFLAGS += -DGCC -D$(INPUT)
+
+ifdef CORE
+ifeq ($(CORE),CORTEX_A53)
+override CFLAGS +=-DAARCH64 -DCORTEX_A53
+endif
+endif
+
+ifdef CHECK_OUTPUT
+override CFLAGS+= -DCHECK
+endif
 
 BASE_DIR := $(TOP_DIR)/../base
 COMMON_DIR := $(TOP_DIR)/common/c
@@ -52,7 +63,6 @@ C_SRC := $(wildcard $(C_DIR)/*.c)
 COMMON_SRC := $(wildcard $(COMMON_DIR)/*.c)
 
 # RULES
-
 EXE =
 INCLUDES = -I$(COMMON_DIR) -I$(C_DIR) -I$(BASE_DIR)
 COMPILE_C = $(CC) $(CFLAGS) -O2 $(INCLUDES) -Wl,--wrap=malloc -Wl,--wrap=mmap
@@ -92,6 +102,7 @@ profile: compile-prof
 compile: $(C_SRC)
 	@echo
 	@echo -e "Benchmark\t\t- $(BMARK)"
+	@echo -e "${COMPILE_C}"
 	@$(COMPILE_C) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE) $(C_LIBS)
 
 compile-prof: $(C_SRC)

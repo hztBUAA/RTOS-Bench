@@ -7,6 +7,8 @@
  */
 
 #include "periodic_benchmark.h"
+#include "performance_counters.h"
+#include "performance_sampler.h"
 #include "get_cpu_timestamp.h"
 #include "logging.h"
 #include "memory_watcher.h"
@@ -33,6 +35,12 @@
 /// Default output path and filename for timing information.
 #define DEFAULT_OUTPUT_PATH "./timing.csv"
 
+/// Default output path and filename for performance counter runtime monitoring.
+#define DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH "./perf.csv"
+
+/// Indicates whether to print skipped deadelines with 0s
+#define PRINT_SKIPPED_DEADLINE 0
+
 /// Number of parameters passed to the benchmark.
 static int benchmark_param_num = 0;
 
@@ -55,8 +63,11 @@ static timer_t period_timer;
 /// The timing interval of a deadline, used to rearm the deadline timer.
 static struct itimerspec deadline_timing;
 
-/// The file pointer to the output file.
+/// The file pointer to the timing output file.
 static FILE *filep = NULL;
+
+/// The file pointer to the pruntime performance counter monitoring file.
+static FILE *filep_sampler = NULL;
 
 /// Semaphore used to determine if a new job can be started.
 static sem_t period_sem;
@@ -96,6 +107,12 @@ static long double job_period_start_timestamp = 0;
 /// Number of tasks launched.
 static unsigned long long tasks_launched = 0;
 
+/// Performance counters at the start of the period.
+static struct perf_counters job_perf_counters_start;
+
+/// Performance counters at the end of the period.
+static struct perf_counters job_perf_counters_end;
+
 /**
  * @brief Teardown function registered to be called when exit is called.
  * @param[in] status The exit status.
@@ -115,6 +132,28 @@ static void stop_benchmark(int status, void *arg)
 			perror("Error during output file close");
 		}
 	}
+#ifdef AARCH64
+#ifdef CORTEX_A53
+	if (arg != NULL) {
+		unsigned *memory_profiling_enable = (unsigned *)arg;
+		if (*memory_profiling_enable) {
+			log_samples(filep_sampler);
+			if (filep_sampler != NULL) {
+				elogf(LOG_LEVEL_TRACE,
+				      "Closing performance counter monitoring file\n");
+				res = teardown_perf_sampler();
+				if (res != 0) {
+					perror("Error during the closing of the performance sampler thread\n");
+				}
+				res = fclose(filep_sampler);
+				if (res == EOF) {
+					perror("Error during the closing of the performance counter monitoring output file\n");
+				}
+			}
+		}
+	}
+#endif
+#endif
 	if (deadline_timer != NULL) {
 		elogf(LOG_LEVEL_TRACE, "Deleting deadline timer\n");
 		res = timer_delete(deadline_timer);
@@ -135,6 +174,14 @@ static void stop_benchmark(int status, void *arg)
 	}
 	elogf(LOG_LEVEL_TRACE, "Cleaning up job environment\n");
 	benchmark_teardown(benchmark_param_num, benchmark_params);
+#ifdef AARCH64
+#ifdef CORTEX_A53
+	res = teardown_pmcs();
+	if (res < 0) {
+		perror("Error: performance counters file descriptors could not be closed\n");
+	}
+#endif
+#endif
 }
 
 /**
@@ -158,7 +205,7 @@ static void quit_handler(int signo, siginfo_t *info, void *context)
  * @details
  * When the deadline timer expires, the current timestamp is saved in
  * `::last_deadline_timestamp`, If this if the first deadline expiration since
- * the period start, the the timestamp values is also copied in
+ * the period start, then the timestamp values is also copied in
  * `::job_deadline_timestamp`.
  * Both `get_rdtsc()` and `get_timestamp()` are used, to be safe in case only one of these methods is working.
  */
@@ -201,7 +248,7 @@ static void deadline_handler(int signo, siginfo_t *info, void *context)
  *
  * Both `get_rdtsc()` and `get_timestamp()` are used, to be safe in case only one of these methods is working.
  *
- * Reporting is done using `print_benchmark_timing()`.
+ * Reporting is done using `print_statistics()`.
  */
 static void period_handler(int signo, siginfo_t *info, void *context)
 {
@@ -242,27 +289,43 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 	    job_period_start_timestamp > 0) {
 		// we report a job completion
 		if (job_end_timestamp_clocks > 0 || job_end_timestamp > 0) {
-			print_timing(filep, job_period_start_timestamp_clocks,
-				     job_period_end_timestamp_clocks,
-				     job_end_timestamp_clocks,
-				     job_deadline_timestamp_clocks,
-				     job_period_start_timestamp,
-				     job_period_end_timestamp,
-				     job_end_timestamp, job_deadline_timestamp);
+			print_statistics(filep,
+					 job_period_start_timestamp_clocks,
+					 job_period_end_timestamp_clocks,
+					 job_end_timestamp_clocks,
+					 job_deadline_timestamp_clocks,
+					 job_period_start_timestamp,
+					 job_period_end_timestamp,
+					 job_end_timestamp,
+					 job_deadline_timestamp,
+					 job_perf_counters_start.l1_references,
+					 job_perf_counters_start.l1_refills,
+					 job_perf_counters_start.l2_references,
+					 job_perf_counters_start.l2_refills,
+					 job_perf_counters_start.inst_retired,
+					 job_perf_counters_end.l1_references,
+					 job_perf_counters_end.l1_refills,
+					 job_perf_counters_end.l2_references,
+					 job_perf_counters_end.l2_refills,
+					 job_perf_counters_end.inst_retired);
 
 		}
-
+#ifdef PRINT_SKIPPED_DEADLINE
 		// or the skipped deadline
 		else {
 			if (last_deadline_timestamp_clocks !=
 				    job_deadline_timestamp_clocks ||
 			    last_deadline_timestamp != job_deadline_timestamp) {
-				print_timing(filep, 0, 0, 0,
-					     last_deadline_timestamp_clocks,
-					     0.0, 0.0, 0.0,
-					     last_deadline_timestamp);
+				print_statistics(filep, 0, 0, 0,
+						 last_deadline_timestamp_clocks,
+						 0.0, 0.0, 0.0,
+						 last_deadline_timestamp,
+						 job_end_timestamp,
+						 job_deadline_timestamp, 0, 0,
+						 0, 0, 0, 0, 0, 0);
 			}
 		}
+#endif /* PRINT_SKIPPED_DEADLINE */
 	}
 	// If a job has ended or we are starting for the first time we need to reset
 	// the reporting variables and unlock the semaphore.
@@ -411,6 +474,25 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	// status variables
 	int res;
 
+#ifdef AARCH64
+#ifdef CORTEX_A53
+	// Initialize the performance sampler thread
+	if (exec_opts->memory_profiling_enable) {
+		elogf(LOG_LEVEL_TRACE,
+		      "Initializing runtime performance sampling\n");
+		filep_sampler = fopen(
+			DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH, "w");
+		res = setup_perf_sampler(
+			exec_opts->tasks_to_launch,
+			exec_opts->memory_profiling_core_affinity,
+			exec_opts->memory_profiling_time_bucket);
+		if (res != 0) {
+			perror("Error during the creation of the performance sampler thread\n");
+			return res;
+		}
+	}
+#endif
+#endif
 	elogf(LOG_LEVEL_TRACE, "Starting setup of execution environment\n");
 	// we initialize the period semaphore to 0, to wait for the period end.
 	res = sem_init(&period_sem, 1, 0);
@@ -418,7 +500,16 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		perror("Error during deadline semaphore initialization");
 		return res;
 	}
+#ifdef AARCH64
+#ifdef CORTEX_A53
+	res = on_exit(stop_benchmark,
+		      (void *)&(exec_opts->memory_profiling_enable));
+#else
 	res = on_exit(stop_benchmark, NULL);
+#endif
+#else
+	res = on_exit(stop_benchmark, NULL);
+#endif
 	if (res != 0) {
 		elogf(LOG_LEVEL_ERR,
 		      "Error during on_exit function registration");
@@ -446,7 +537,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		}
 		filep = fopen(fname, "w+");
 		fprintf(filep,
-			"period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density\n");
+			"period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density,job_l1_references,job_l1_misses,job_l1_miss_ratio(%%),job_l2_references,job_l2_misses,job_l2_miss_ratio(%%),instructions_retired\n");
 		if (exec_opts->output_path != NULL) {
 			free(exec_opts->output_path);
 		}
@@ -456,7 +547,6 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		}
 		elogf(LOG_LEVEL_TRACE, "Output file setup complete\n");
 	}
-
 	elogf(LOG_LEVEL_TRACE, "Initializing job environment\n");
 	res = benchmark_init(benchmark_param_num, benchmark_params);
 	if (res < 0) {
@@ -489,6 +579,15 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	if (exec_opts->bytes_to_preallocate > 0) {
 		start_memory_watcher(exec_opts->bytes_to_preallocate);
 	}
+
+#ifdef AARCH64
+#ifdef CORTEX_A53
+	res = setup_pmcs();
+	if (res < 0) {
+		return res;
+	}
+#endif
+#endif
 
 	elogf(LOG_LEVEL_TRACE, "Configuring timers...\n");
 	// the deadline timer is created only if deadline and period differ
@@ -532,11 +631,26 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			perror("Error during period semaphore wait");
 			return res;
 		}
-		// we start executing the job
+// we start executing the job
+#ifdef AARCH64
+#ifdef CORTEX_A53
+		if (exec_opts->memory_profiling_enable) {
+			start_sampling();
+		}
+		job_perf_counters_start = pmcs_get_value();
+#endif
+#endif
 		benchmark_execution(benchmark_param_num, benchmark_params);
+#ifdef AARCH64
+#ifdef CORTEX_A53
+		job_perf_counters_end = pmcs_get_value();
+		if (exec_opts->memory_profiling_enable) {
+			stop_sampling();
+		}
+#endif
+#endif
 		job_end_timestamp_clocks = get_rdtsc();
 		job_end_timestamp = get_timestamp();
-		elogf(LOG_LEVEL_TRACE, "Done task %llu\n", tasks_launched);
 		// we update the number of launched benchmarks
 		tasks_launched++;
 	}
