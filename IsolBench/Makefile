@@ -7,6 +7,13 @@ CXXFLAGS=$(CFLAGS)
 LDFLAGS=-Wl,--no-as-needed -lrt -lm -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap
 
 
+ifdef CORE
+ifeq ($(CORE),CORTEX_A53)
+override CFLAGS +=-DAARCH64 -DCORTEX_A53
+endif
+endif
+
+
 all: $(PGMS)
 latency:latency.o $(BASE_O)
 bandwidth: bandwidth.o
