@@ -520,12 +520,14 @@ def violinplot(
     graph_cycler = init_cycler(len(data), "scatter")
     graph.set_prop_cycle(graph_cycler)
     graph.violinplot(data, showmeans=True, showextrema=True)
-    graph.set_xticks(range(0, len(labels) + 1))
-    graph.set_xticklabels(labels=[""] + labels)
+    if type(labels) == list:
+        graph.set_xticks(range(0, len(labels) + 1))
+        graph.set_xticklabels(labels=[""] + labels)
     if log_scale:
         graph.set_yscale("log")
     set_graph_properties(graph, xlabel, ylabel, title)
-    adjust_x_ticks_labels(graph, labels)
+    if type(labels) == list:
+        adjust_x_ticks_labels(graph, labels)
     return graph
 
 

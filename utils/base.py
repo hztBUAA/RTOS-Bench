@@ -35,10 +35,10 @@ SPDX-License-Identifier: MIT
 """
 
 import argparse
+import csv
 import datetime
 import os
 import signal
-import csv
 import subprocess
 
 try:
@@ -531,7 +531,11 @@ def test_init(parser):
         else:
             if i > 0:
                 args["output"].append(args["output"][0])
-    if len(args["benchmarks"]) == 0 and args["draw_graph"] != "only":
+    if (
+        len(args["benchmarks"]) == 0
+        and args["draw_graph"] != "only"
+        and args.get("test") != "overhead"
+    ):
         print("ERROR: Missing benchmark list!")
         params.update({"res": -1})
         return params
@@ -779,7 +783,7 @@ def parse_res_csv(inputs, fields, conv=[]):
 if __name__ == "__main__":
     parser_obj = parser_init()
     # we add an argument to let the user choose the type of test to execute.
-    tests_available = ["all", "WCET", "sched", "WSS"]
+    tests_available = ["all", "WCET", "sched", "WSS", "overhead"]
     help_str = "Determines the type of test to execute:\n\n\t WCET: Worst Case Execution Test\n\tsched: Schedulability test\n\t WSS: minimum working set size test\n\tall: execute all available tests"
     parser_obj.add_argument(
         "-tt",
@@ -810,4 +814,9 @@ if __name__ == "__main__":
         import WSS
 
         WSS.execute(test_params)
+        test_teardown(test_params)
+    if parsed_args["test"] in ["all", "overhead"]:
+        import overhead
+
+        overhead.execute(test_params)
         test_teardown(test_params)
