@@ -36,15 +36,15 @@ except ImportError:
 
 
 def overhead_test(
-        tests,
-        output,
-        prefix,
-        postfix,
-        last_core,
-        sched_params,
-        timestamp,
-        interference,
-        bmark_path=os.path.dirname(__file__),
+    tests,
+    output,
+    prefix,
+    postfix,
+    last_core,
+    sched_params,
+    timestamp,
+    interference,
+    bmark_path=os.path.dirname(__file__),
 ):
     """!  @brief Finds the worst case execution time using only the first core.
 
@@ -67,7 +67,8 @@ def overhead_test(
     if interference:
         interf_str = "interfering_"
     fname = os.path.join(
-        output, prefix + interf_str + "overhead_res" + postfix + ".csv")
+        output, prefix + interf_str + "overhead_res" + postfix + ".csv"
+    )
     test_fname = prefix + "overhead_test_" + timestamp + postfix + ".csv"
     file_exists = os.path.isfile(fname)
     worst_file = open(fname, "a")
@@ -77,39 +78,44 @@ def overhead_test(
     worst_secs = 0
     deadline = 0.001
     if not file_exists:
-        writer.writerow([
-            "timestamp",
-            "min_overhead_in_clock",
-            "mean_overhead_in_clock",
-            "worst_overhead_in_clock",
-            "std_clock",
-            "min_overhead_in_seconds",
-            "mean_overhead_in_seconds",
-            "worst_overhead_in_seconds",
-            "std_seconds",
-            "tests_number",
-            "overheads_clock",
-            "overheads_seconds",
-        ])
+        writer.writerow(
+            [
+                "timestamp",
+                "min_overhead_in_clock",
+                "mean_overhead_in_clock",
+                "worst_overhead_in_clock",
+                "std_clock",
+                "min_overhead_in_seconds",
+                "mean_overhead_in_seconds",
+                "worst_overhead_in_seconds",
+                "std_seconds",
+                "tests_number",
+                "overheads_clock",
+                "overheads_seconds",
+            ]
+        )
     print("\nstarting overhead test")
-    subprocess.run([
-        bmark,
-        "-d",
-        str(deadline),
-        "-p",
-        str(deadline),
-        "-l",
-        "2",
-        "-c",
-        str(last_core),
-        "-t",
-        str(tests),
-        "-o",
-        os.path.join(
-            output,
-            test_fname,
-        ),
-    ] + sched_params)
+    subprocess.run(
+        [
+            bmark,
+            "-d",
+            str(deadline),
+            "-p",
+            str(deadline),
+            "-l",
+            "2",
+            "-c",
+            str(last_core),
+            "-t",
+            str(tests),
+            "-o",
+            os.path.join(
+                output,
+                test_fname,
+            ),
+        ]
+        + sched_params
+    )
     try:
         test_file = open(
             os.path.join(
@@ -141,20 +147,22 @@ def overhead_test(
     print(f"Mean ovehead: {mean_secs} seconds, {mean_clocks} clock cycles")
     print(f"Worst ovehead: {worst_secs} seconds, {worst_clocks} clock cycles")
     print(f"STD: {std_secs} seconds, {std_clocks} clock cycles")
-    writer.writerow([
-        timestamp,
-        min_clocks,
-        mean_clocks,
-        worst_clocks,
-        std_clocks,
-        min_secs,
-        mean_secs,
-        worst_secs,
-        std_secs,
-        tests,
-        base.stringify_list(runtimes_clocks),
-        base.stringify_list(runtimes_secs),
-    ])
+    writer.writerow(
+        [
+            timestamp,
+            min_clocks,
+            mean_clocks,
+            worst_clocks,
+            std_clocks,
+            min_secs,
+            mean_secs,
+            worst_secs,
+            std_secs,
+            tests,
+            base.stringify_list(runtimes_clocks),
+            base.stringify_list(runtimes_secs),
+        ]
+    )
     worst_file.close()
     return runtimes_secs
 
@@ -174,8 +182,7 @@ def execute(params):
     """
     args = params.get("args")
     if args is None:
-        print(
-            "ERROR: Missing argument dictionary to execute the overhead test!")
+        print("ERROR: Missing argument dictionary to execute the overhead test!")
         params.update({"res": -1})
         return params
     if args["draw_graph"] != "only":
@@ -223,16 +230,18 @@ def execute(params):
             timestamp,
             len(args["interfering"]) > 0,
         )
-        params.update({
-            "res": 0,
-            "Overhead": {
-                "min_overhead_in_seconds": min(exec_times),
-                "worst_in_seconds": max(exec_times),
-                "mean_in_seconds": np.mean(exec_times),
-                "std_in_seconds": np.std(exec_times),
-                "runtimes_in_seconds": exec_times,
-            },
-        })
+        params.update(
+            {
+                "res": 0,
+                "Overhead": {
+                    "min_overhead_in_seconds": min(exec_times),
+                    "worst_in_seconds": max(exec_times),
+                    "mean_in_seconds": np.mean(exec_times),
+                    "std_in_seconds": np.std(exec_times),
+                    "runtimes_in_seconds": exec_times,
+                },
+            }
+        )
     if args["draw_graph"] != "no":
         params = base.draw_and_save_graph(
             draw_graph,
@@ -254,7 +263,7 @@ def draw_graph(data, interference=False, old_graph=None):
 
     @param[in] data The data that needs to be plotted.
     @param[in] interference If there is interference in the graph, this will only change the graph title.
-    @param[in] graph A previous graph object on which lines will be added.
+    @param[in] old_graph A previous graph object on which lines will be added.
     @returns The graph object.
     """
     runtimes = data.get("runtimes_in_seconds")
@@ -272,8 +281,7 @@ def draw_graph(data, interference=False, old_graph=None):
     WCET_graph = graph.violinplot(
         runtimes,
         ylabel="Runtime (seconds)",
-        title="Overhead"
-        if not interference else " Overhead with interference",
+        title="Overhead" if not interference else " Overhead with interference",
         log_scale=log_scale,
     )
     return WCET_graph

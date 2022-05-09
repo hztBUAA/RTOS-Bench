@@ -229,7 +229,7 @@ def plot(
     @param[in] line_label The label of the line, which will be displayed in a legend, if more than one line is being
     plotted.
     @param[in] log_scale If the scale of the plot must be logarithmic.
-    @param[in] markers If point markers have to be painted.
+    @param[in] line_markers If point markers have to be painted.
     @param[in] graph An already existing Axes object, lines will be added here.
     @details
     Lines will automatically change color, marker and shape, to keep the graph as readable as possible.
@@ -503,7 +503,7 @@ def violinplot(
 ):
     """! @brief Draws a violinplot graph.
 
-    @param[in] x The data that needs to be plotted, it can be a 2D array.
+    @param[in] data The data that needs to be plotted, it can be a 2D array.
     If so, a boxplot per columns, man will be plotted.
     @param[in] labels The labels for each dataset.
     @param[in] xlabel The label for the x axis.

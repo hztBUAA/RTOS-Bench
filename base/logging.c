@@ -20,10 +20,14 @@ enum log_level benchmark_verbosity = LOG_LEVEL_INFO;
 
 /** @brief Reports the benchmark timing depending on the chosen logging level.
  * @param[in] file The file where the timing will be printed if the logging level is set to `::LOG_LEVEL_FILE`.
- * @param[in] period_start The timestamp when the period started.
- * @param[in] period_end The timestamp when the period completed.
- * @param[in] job_end The timestamp  when the job ended.
- * @param[in] deadline The timestamp of the first deadline since the job started, or the timestamp of the skipped deadline.
+ * @param[in] period_start The timestamp, in seconds, when the period started.
+ * @param[in] period_end The timestamp, in seconds, when the period completed.
+ * @param[in] job_end The timestamp, in seconds, when the job ended.
+ * @param[in] deadline The timestamp, in seconds, of the first deadline since the job started, or the timestamp of the skipped deadline.
+ * @param[in] period_start_clocks The timestamp, in clock cycles, when the period started.
+ * @param[in] period_end_clocks The timestamp, in clock cycles, when the period completed.
+ * @param[in] job_end_clocks The timestamp, in clock cycles,  when the job ended.
+ * @param[in] deadline_clocks The timestamp, in clock cycles, of the first deadline since the job started, or the timestamp of the skipped deadline.
  * @details
  * Depending on the chosen log level (`::benchmark_verbosity` value), the benchmark timing can be either be printed in a human-friendly or in a csv-like format.
  * The job is assumed to start when the period starts.\n
@@ -147,78 +151,86 @@ void print_timing(FILE *file, unsigned long long period_start_clocks,
 	}
 }
 
-void print_performance_counters(FILE* file, long unsigned l1_ref_start, long unsigned l1_miss_start,
-				long unsigned l2_ref_start, long unsigned l2_miss_start,
-				long unsigned inst_retired_start, long unsigned l1_ref_end,
-				long unsigned l1_miss_end, long unsigned l2_ref_end,
-				long unsigned l2_miss_end, long unsigned inst_retired_end)
+void print_performance_counters(
+	FILE *file, long unsigned l1_ref_start, long unsigned l1_miss_start,
+	long unsigned l2_ref_start, long unsigned l2_miss_start,
+	long unsigned inst_retired_start, long unsigned l1_ref_end,
+	long unsigned l1_miss_end, long unsigned l2_ref_end,
+	long unsigned l2_miss_end, long unsigned inst_retired_end)
 {
 	long unsigned job_l1_ref = l1_ref_end - l1_ref_start;
 	long unsigned job_l1_miss = l1_miss_end - l1_miss_start;
 	long unsigned job_l2_ref = l2_ref_end - l2_ref_start;
 	long unsigned job_l2_miss = l2_miss_end - l2_miss_start;
 	long unsigned job_inst_retired = inst_retired_end - inst_retired_start;
-	double job_l1_miss_ratio = ((double)job_l1_miss)/((double)job_l1_ref);
-	double job_l2_miss_ratio = ((double)job_l2_miss)/((double)job_l2_ref);
+	double job_l1_miss_ratio = ((double)job_l1_miss) / ((double)job_l1_ref);
+	double job_l2_miss_ratio = ((double)job_l2_miss) / ((double)job_l2_ref);
 	switch (benchmark_verbosity) {
-        case LOG_LEVEL_TRACE:
+	case LOG_LEVEL_TRACE:
 		printf("\nLevel 1 Data cache\n");
 		printf("L1-D references/accesses: %lu\n", job_l1_ref);
 		printf("L1-D refills/misses: %lu\n", job_l1_miss);
-		printf("L1-D miss ratio (accesses/misses): %f%%\n", job_l1_miss_ratio);
-                printf("\nLevel 2 Data cache\n");
-                printf("L2 references/accesses: %lu\n", job_l2_ref);
-                printf("L2 refills/misses: %lu\n", job_l2_miss);
-                printf("L2 miss ratio (accesses/misses): %f%%\n", job_l2_miss_ratio);
+		printf("L1-D miss ratio (accesses/misses): %f%%\n",
+		       job_l1_miss_ratio);
+		printf("\nLevel 2 Data cache\n");
+		printf("L2 references/accesses: %lu\n", job_l2_ref);
+		printf("L2 refills/misses: %lu\n", job_l2_miss);
+		printf("L2 miss ratio (accesses/misses): %f%%\n",
+		       job_l2_miss_ratio);
 		printf("\nInstructions\n");
-		printf("Instruction retired (i.e., executed in hardware): %lu\n", job_inst_retired);
-                break;
-        case LOG_LEVEL_FILE:
-                fprintf(file,
-                        ",%lu,%lu,%f,%lu,%lu,%f,%lu",
-                        job_l1_ref, job_l1_miss, job_l1_miss_ratio,
-			job_l2_ref, job_l2_miss, job_l2_miss_ratio,
-			job_inst_retired);
-                break;
-        case LOG_LEVEL_INFO:
-		printf(",%lu,%lu,%f,%lu,%lu,%f,%lu",
-                       job_l1_ref, job_l1_miss, job_l1_miss_ratio,
-                       job_l2_ref, job_l2_miss, job_l2_miss_ratio,
+		printf("Instruction retired (i.e., executed in hardware): %lu\n",
 		       job_inst_retired);
-                break;
-        case LOG_LEVEL_ERR:
-                break;
-        }
+		break;
+	case LOG_LEVEL_FILE:
+		fprintf(file, ",%lu,%lu,%f,%lu,%lu,%f,%lu", job_l1_ref,
+			job_l1_miss, job_l1_miss_ratio, job_l2_ref, job_l2_miss,
+			job_l2_miss_ratio, job_inst_retired);
+		break;
+	case LOG_LEVEL_INFO:
+		printf(",%lu,%lu,%f,%lu,%lu,%f,%lu", job_l1_ref, job_l1_miss,
+		       job_l1_miss_ratio, job_l2_ref, job_l2_miss,
+		       job_l2_miss_ratio, job_inst_retired);
+		break;
+	case LOG_LEVEL_ERR:
+		break;
+	}
 }
 
 void print_statistics(FILE *file, unsigned long long period_start_clocks,
-			unsigned long long period_end_clocks, unsigned long long job_end_clocks,
-			unsigned long long deadline_clocks, long double period_start,
-			long double period_end, long double job_end,
-			long double deadline, long unsigned l1_ref_start, long unsigned l1_miss_start,
-			long unsigned l2_ref_start, long unsigned l2_miss_start, long unsigned inst_retired_start,
-			long unsigned l1_ref_end, long unsigned l1_miss_end, long unsigned l2_ref_end,
-			long unsigned l2_miss_end, long unsigned inst_retired_end)
+		      unsigned long long period_end_clocks,
+		      unsigned long long job_end_clocks,
+		      unsigned long long deadline_clocks,
+		      long double period_start, long double period_end,
+		      long double job_end, long double deadline,
+		      long unsigned l1_ref_start, long unsigned l1_miss_start,
+		      long unsigned l2_ref_start, long unsigned l2_miss_start,
+		      long unsigned inst_retired_start,
+		      long unsigned l1_ref_end, long unsigned l1_miss_end,
+		      long unsigned l2_ref_end, long unsigned l2_miss_end,
+		      long unsigned inst_retired_end)
 {
-	print_timing(file, period_start_clocks, period_end_clocks, job_end_clocks, deadline_clocks,
-			period_start, period_end, job_end, deadline);
-	#ifdef AARCH64
-	#ifdef CORTEX_A53
-	print_performance_counters(file, l1_ref_start, l1_miss_start, l2_ref_start, l2_miss_start, inst_retired_start,
-					l1_ref_end, l1_miss_end, l2_ref_end, l2_miss_end, inst_retired_end);
-	#endif
-	#endif
+	print_timing(file, period_start_clocks, period_end_clocks,
+		     job_end_clocks, deadline_clocks, period_start, period_end,
+		     job_end, deadline);
+#ifdef AARCH64
+#ifdef CORTEX_A53
+	print_performance_counters(file, l1_ref_start, l1_miss_start,
+				   l2_ref_start, l2_miss_start,
+				   inst_retired_start, l1_ref_end, l1_miss_end,
+				   l2_ref_end, l2_miss_end, inst_retired_end);
+#endif
+#endif
 	switch (benchmark_verbosity) {
-        case LOG_LEVEL_FILE:
-                fprintf(file, "\n");
-                break;
-        case LOG_LEVEL_INFO:
-                printf("\n");
-                break;
+	case LOG_LEVEL_FILE:
+		fprintf(file, "\n");
+		break;
+	case LOG_LEVEL_INFO:
+		printf("\n");
+		break;
 	case LOG_LEVEL_TRACE:
-        case LOG_LEVEL_ERR:
-                break;
-        }
+	case LOG_LEVEL_ERR:
+		break;
+	}
 }
 
 /** @details
@@ -226,26 +238,29 @@ void print_statistics(FILE *file, unsigned long long period_start_clocks,
  * given filename. After the file has been opened/created the timestamp (in ISO
  * 8601) of the current tun will be written.
  * */
-FILE *open_log_file(char *filename) {
-  FILE *bmark_output = fopen(filename, "a");
-  if (bmark_output != NULL) {
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
-    flogf(LOG_LEVEL_FILE, bmark_output,
-          "\n\tNEW RUN AT: %d-%02d-%02dT-%02d:%02d:%02d\n", tm.tm_year + 1900,
-          tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-  }
-  return bmark_output;
+FILE *open_log_file(char *filename)
+{
+	FILE *bmark_output = fopen(filename, "a");
+	if (bmark_output != NULL) {
+		time_t t = time(NULL);
+		struct tm tm = *localtime(&t);
+		flogf(LOG_LEVEL_FILE, bmark_output,
+		      "\n\tNEW RUN AT: %d-%02d-%02dT-%02d:%02d:%02d\n",
+		      tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
+		      tm.tm_min, tm.tm_sec);
+	}
+	return bmark_output;
 }
 
 /** @details
  *  Flushes and closes the log file.
  * */
-int close_log_file(FILE *file) {
-  int res = 0;
-  res = fflush(file);
-  if (res != EOF) {
-    res = fclose(file);
-  }
-  return res;
+int close_log_file(FILE *file)
+{
+	int res = 0;
+	res = fflush(file);
+	if (res != EOF) {
+		res = fclose(file);
+	}
+	return res;
 }
