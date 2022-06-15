@@ -75,16 +75,16 @@ Below there is an example of how a file called `new_benchmark.c` should be docum
 
 ```{.c}
 /**
- * @file benchmark_file.c
- * @ingroup new_benchmark
- * @author Author
- * @brief Benchmark brief description
- * @details
- * Benchmark detailed description.
- *
- * Copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
- * SPDX-License-Identifier: [SPDX license expression]
- */
+* @file benchmark_file.c
+* @ingroup new_benchmark
+* @author Author
+* @brief Benchmark brief description
+* @details
+* Benchmark detailed description.
+*
+* Copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+* SPDX-License-Identifier: [SPDX license expression]
+*/
 ```
 
 Also files should be included in the module that defines them.
@@ -98,44 +98,46 @@ An SPDX license expression can be a simple license identifier from the [SPDX lic
 Most global symbols should be documented to improve code readability, in particular:
 
 - Functions:
-  Function documentation is split in two parts: - Prototype documentation, which will describe briefly what the function does, the parameters taken and the return value:
+  Function documentation is split in two parts:
+ - Prototype documentation, which will describe briefly what the function does, the parameters taken and the return value:
 
-```{.c}
-/**
- * @brief brief description.
- * @param[in,out] parameter_name parameter description.
- * @details
- * Long description of what the function does.
- * @returns possible return values.
- */
-int foo(float bar);
-```
+  ```{.c}
+  /**
+  * @brief brief description.
+  * @param[in,out] parameter_name parameter description.
+  * @details
+  * Long description of what the function does.
+  * @returns possible return values.
+  */
+  int foo(float bar);
+  ```
 
-    - Implementation documentation, which will describe how the function is implemented is it not obvious or there are some aspects of the implementation to keep in mind:
+ - Implementation documentation, which will describe how the function is implemented if it is not obvious or there are some aspects of the implementation to keep in mind:
 
-```{.c}
-/**
- * Long description of what the function implementation.
- */
-int foo(float bar){
-```
+  ```{.c}
+  /**
+  * Description of the function implementation.
+  */
+  int foo(float bar){
+  ...
+  };
+  ```
 
-Doxygen will merge these two comments in the documentation allowing implementation modification without requiring modifications of header files.
-If some functions have multiple implementations (like method overriding in object-Oriented languages), or if functions are not exported (thus they have no prototypes) prototype documentation will be used to document the implementation and will include implementation details.
-In case of multiple implementation is best to exclude from the documentation the exported prototypes, refer to `base/periodic_benchmark.h` for a working example.
-document and
+ Doxygen will merge these two comments in the documentation allowing implementation modifications without requiring modifications of header files.
+ If some functions have multiple implementations (like method overriding in object-Oriented languages), or if functions are not exported (thus they have no prototypes) prototype documentation will be used to document the implementation and will include implementation details.
+ In case of multiple implementations is best to exclude from the documentation the exported prototypes, refer to `base/periodic_benchmark.h` for a working example.
 
 - Structs should be documented by describing what the struct represents and what do each member represents:
 
-```{.c}
-/**
-* @brief brief description.
-* @details Long description.
-*/
-struct foo{
-	int bar; ///< Member description
-};
-```
+  ```{.c}
+  /**
+  * @brief brief description.
+  * @details Long description.
+  */
+  struct foo{
+    int bar; ///< Member description
+  };
+  ```
 
 - Global variables should be documented describing what the variable represents, usually a one-line doxygen comment (started with `///`) is enough, but multi-line doxygen comments are also supported.
 - Macros should be documented as global variables or functions, depending on how they are used.
