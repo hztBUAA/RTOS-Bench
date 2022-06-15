@@ -305,7 +305,7 @@ def draw_graph(data, interference=False, old_graph=None):
 
     @param[in] data The data that needs to be plotted.
     @param[in] interference If there is interference in the graph, this will only change the graph title
-    @param[in] graph A previous graph object on which lines will be added.
+    @param[in] old_graph A previous graph object on which lines will be added.
     @returns The graph object
     """
     sched_utilization = data.get("utilization")

@@ -21,47 +21,46 @@
 #endif
 /// Core model specific performance counter event IDs
 #ifdef CORTEX_A53
-#define        L1_REFERENCES 0x04
-#define           L1_REFILLS 0x03
-#define        L2_REFERENCES 0x16
-#define           L2_REFILLS 0x17
-#define         INST_RETIRED 0x08
+#define L1_REFERENCES 0x04
+#define L1_REFILLS 0x03
+#define L2_REFERENCES 0x16
+#define L2_REFILLS 0x17
+#define INST_RETIRED 0x08
 
 #else
-#define        L1_REFERENCES 0x0
-#define           L1_REFILLS 0x0
-#define        L2_REFERENCES 0x0
-#define           L2_REFILLS 0x0
-#define         INST_RETIRED 0x0
-
+#define L1_REFERENCES 0x0
+#define L1_REFILLS 0x0
+#define L2_REFERENCES 0x0
+#define L2_REFILLS 0x0
+#define INST_RETIRED 0x0
 
 #endif
 
 /// Indicates which thread/process performance counters to follow.
-#define          this_thread 0
+#define this_thread 0
 
 /// Enables monitoring of the task performance events on any cores
-#define             any_core -1
+#define any_core -1
 
 /** @brief Struct holding raw measurement and ID of a performance counter.
  *
  */
 struct event {
-        long unsigned value;         /* The value of the event */
-        long unsigned id;            /* if PERF_FORMAT_ID */
+	long unsigned value; /* The value of the event */
+	long unsigned id; /* if PERF_FORMAT_ID */
 };
 
 /** @brief Struct returned by the kernel upon reading the file descriptor of the performance counters.
- *  @detail The struct holds values for l1-D refills and misses and l2 refills and misses.
+ *  @details The struct holds values for l1-D refills and misses and l2 refills and misses.
  */
 struct read_format {
-        long unsigned nr;            /* The number of events */
-        long unsigned time_enabled;  /* if PERF_FORMAT_TOTAL_TIME_ENABLED */
-        long unsigned time_running;  /* if PERF_FORMAT_TOTAL_TIME_RUNNING */
-        struct event l1_references;
-        struct event l1_refills;
-        struct event l2_references;
-        struct event l2_refills;
+	long unsigned nr; /* The number of events */
+	long unsigned time_enabled; /* if PERF_FORMAT_TOTAL_TIME_ENABLED */
+	long unsigned time_running; /* if PERF_FORMAT_TOTAL_TIME_RUNNING */
+	struct event l1_references;
+	struct event l1_refills;
+	struct event l2_references;
+	struct event l2_refills;
 	struct event inst_retired;
 };
 
@@ -84,7 +83,6 @@ static int inst_retired_fd;
  * @brief Open a file descriptor for the performance counter specified.
  * @param[in] pmc_type The platform specific ID of the performance counter.
  * @param[in] group_fd The file descriptor group to which the performance counter belongs.
- * @param[in] this_cpu The CPU to which the core is attached.
  * @return The file directory opened, -1 on failures.
  */
 static int open_pmc_fd(unsigned int pmc_type, int group_fd)
@@ -93,9 +91,12 @@ static int open_pmc_fd(unsigned int pmc_type, int group_fd)
 	attr.type = PERF_TYPE_RAW;
 	attr.config = pmc_type;
 	attr.size = sizeof(struct perf_event_attr);
-	attr.read_format = PERF_FORMAT_GROUP|PERF_FORMAT_ID|PERF_FORMAT_TOTAL_TIME_ENABLED|PERF_FORMAT_TOTAL_TIME_RUNNING;
+	attr.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID |
+			   PERF_FORMAT_TOTAL_TIME_ENABLED |
+			   PERF_FORMAT_TOTAL_TIME_RUNNING;
 
-	int fd = syscall(__NR_perf_event_open, &attr, this_thread, any_core, group_fd, 0);
+	int fd = syscall(__NR_perf_event_open, &attr, this_thread, any_core,
+			 group_fd, 0);
 
 	if (fd == -1) {
 		perror("Could not open fd for performance counter\n");
@@ -111,17 +112,17 @@ int setup_pmcs(void)
 {
 	elogf(LOG_LEVEL_TRACE, "Openning performance counters fd\n");
 	l1_references_fd = open_pmc_fd(L1_REFERENCES, -1);
-        if (l1_references_fd == -1)
-                return -1;
+	if (l1_references_fd == -1)
+		return -1;
 	l1_refills_fd = open_pmc_fd(L1_REFILLS, l1_references_fd);
-        if (l1_refills_fd == -1)
-                return -1;
+	if (l1_refills_fd == -1)
+		return -1;
 	l2_references_fd = open_pmc_fd(L2_REFERENCES, l1_references_fd);
-        if (l2_references_fd == -1)
-                return -1;
+	if (l2_references_fd == -1)
+		return -1;
 	l2_refills_fd = open_pmc_fd(L2_REFILLS, l1_references_fd);
-        if (l2_refills_fd == -1)
-                return -1;
+	if (l2_refills_fd == -1)
+		return -1;
 	inst_retired_fd = open_pmc_fd(INST_RETIRED, l1_references_fd);
 	if (inst_retired_fd == -1)
 		return -1;
@@ -131,7 +132,6 @@ int setup_pmcs(void)
 /**
  * @brief Close the file descriptor related to the performance counters.
  * @param[in] fd The file descriptor to close.
- * @param[in] pmc_type The platform specific ID of the performance counter to close.
  * @return Returns file descriptor status upon closing, return -1 on failures.
  */
 static inline int close_pmc_fd(int fd)
@@ -154,14 +154,14 @@ int teardown_pmcs(void)
 	if (ret == -1)
 		return ret;
 	ret = close_pmc_fd(l1_refills_fd);
-        if (ret == -1)
-                return ret;
+	if (ret == -1)
+		return ret;
 	ret = close_pmc_fd(l2_references_fd);
-        if (ret == -1)
-                return ret;
+	if (ret == -1)
+		return ret;
 	ret = close_pmc_fd(l2_refills_fd);
-        if (ret == -1)
-                return ret;
+	if (ret == -1)
+		return ret;
 	ret = close_pmc_fd(inst_retired_fd);
 	if (ret == -1)
 		return ret;
@@ -174,7 +174,8 @@ int teardown_pmcs(void)
 struct perf_counters pmcs_get_value(void)
 {
 	struct read_format measurement;
-	size_t size = read(l1_references_fd, &measurement, sizeof(struct read_format));
+	size_t size = read(l1_references_fd, &measurement,
+			   sizeof(struct read_format));
 	if (size != sizeof(struct read_format)) {
 		perror("Error: Size read from performance counters differ from size expected.");
 	}

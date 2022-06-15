@@ -16,6 +16,12 @@
             pkgs.gnugrep
             pkgs.coreutils
             pkgs.ps
+            pkgs.cloc
+            #pkgs.doxygen
+            pkgs.graphviz
+            pkgs.gnumake
+            pkgs.git
+            pkgs.gnused
           ];
         };
     }

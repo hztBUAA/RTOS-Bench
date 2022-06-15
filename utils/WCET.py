@@ -295,12 +295,12 @@ def draw_graph(data, interference=False, old_graph=None):
 
     @param[in] data The data that needs to be plotted.
     @param[in] interference If there is interference in the graph, this will only change the graph title.
-    @param[in] graph A previous graph object on which lines will be added.
+    @param[in] old_graph A previous graph object on which lines will be added.
     @returns The graph object.
     """
     runtimes = data.get("runtimes_in_seconds")
-    if hasattr(runtimes[0],'__iter__'):
-        if hasattr(runtimes[0][0],'__iter__'):
+    if hasattr(runtimes[0], "__iter__"):
+        if hasattr(runtimes[0][0], "__iter__"):
             tmp_list = []
             for elem in runtimes:
                 tmp_list.append(elem[0])

@@ -101,18 +101,9 @@ def export_graph(graph, fname, output="./", prefix="", postfix=""):
     """
     output_path = os.path.join(output, prefix + fname + postfix)
     global FIGURE
-    FIGURE.savefig(output_path + ".png",
-                   format="png",
-                   bbox_inches="tight",
-                   dpi=300)
-    FIGURE.savefig(output_path + ".svg",
-                   format="svg",
-                   bbox_inches="tight",
-                   dpi=300)
-    FIGURE.savefig(output_path + ".pdf",
-                   format="pdf",
-                   bbox_inches="tight",
-                   dpi=300)
+    FIGURE.savefig(output_path + ".png", format="png", bbox_inches="tight", dpi=300)
+    FIGURE.savefig(output_path + ".svg", format="svg", bbox_inches="tight", dpi=300)
+    FIGURE.savefig(output_path + ".pdf", format="pdf", bbox_inches="tight", dpi=300)
 
 
 def teardown():
@@ -182,8 +173,7 @@ def adjust_x_ticks_labels(graph, labels):
     """
     lbl_len_list = list(map(len, labels))
     lbl_max_idx = lbl_len_list.index(max(lbl_len_list))
-    lbl_max_len = lbl_len_list[lbl_max_idx] / (
-        labels[lbl_max_idx].count("\n") + 1)
+    lbl_max_len = lbl_len_list[lbl_max_idx] / (labels[lbl_max_idx].count("\n") + 1)
     if len(labels) > 4 and lbl_max_len > 10:
         graph.tick_params(axis="x", rotation=22)
 
@@ -197,25 +187,23 @@ def init_cycler(groups, graph_type):
     # we setup a cycler, which will change line style,
     # markers and color automatically
     global CYCLER_LAST_INDEX
-    graph_cycler = cycler(color=cm.plasma(
-        np.linspace(0.05, 0.85, (CYCLER_LAST_INDEX +
-                                 groups))[CYCLER_LAST_INDEX:]))
-    if CYCLER_LAST_INDEX + groups <= len(markers) and graph_type in [
-            "scatter", "plot"
-    ]:
+    graph_cycler = cycler(
+        color=cm.plasma(
+            np.linspace(0.05, 0.85, (CYCLER_LAST_INDEX + groups))[CYCLER_LAST_INDEX:]
+        )
+    )
+    if CYCLER_LAST_INDEX + groups <= len(markers) and graph_type in ["scatter", "plot"]:
         graph_cycler += cycler(
-            marker=markers[CYCLER_LAST_INDEX:CYCLER_LAST_INDEX + groups])
-    if CYCLER_LAST_INDEX + groups <= len(linestyle_tuple) and graph_type in [
-            "plot"
-    ]:
+            marker=markers[CYCLER_LAST_INDEX : CYCLER_LAST_INDEX + groups]
+        )
+    if CYCLER_LAST_INDEX + groups <= len(linestyle_tuple) and graph_type in ["plot"]:
         graph_cycler += cycler(
-            linestyle=linestyle_tuple[CYCLER_LAST_INDEX:CYCLER_LAST_INDEX +
-                                      groups])
-    if CYCLER_LAST_INDEX + groups <= len(hatches) and graph_type in [
-            "bar", "hist"
-    ]:
+            linestyle=linestyle_tuple[CYCLER_LAST_INDEX : CYCLER_LAST_INDEX + groups]
+        )
+    if CYCLER_LAST_INDEX + groups <= len(hatches) and graph_type in ["bar", "hist"]:
         graph_cycler += cycler(
-            hatch=hatches[CYCLER_LAST_INDEX:CYCLER_LAST_INDEX + groups])
+            hatch=hatches[CYCLER_LAST_INDEX : CYCLER_LAST_INDEX + groups]
+        )
     CYCLER_LAST_INDEX += groups
     return graph_cycler
 
@@ -241,7 +229,7 @@ def plot(
     @param[in] line_label The label of the line, which will be displayed in a legend, if more than one line is being
     plotted.
     @param[in] log_scale If the scale of the plot must be logarithmic.
-    @param[in] markers If point markers have to be painted.
+    @param[in] line_markers If point markers have to be painted.
     @param[in] graph An already existing Axes object, lines will be added here.
     @details
     Lines will automatically change color, marker and shape, to keep the graph as readable as possible.
@@ -405,12 +393,12 @@ def bar(
             if groups > 1:
                 graph.set_xticks(xvals + bar_width / groups)
                 graph.set_xticklabels(xlabel)
-        #graph.bar_label(
-        #bar_graph,
-        #fmt="%.3g",
-        #label_type="edge",
+        # graph.bar_label(
+        # bar_graph,
+        # fmt="%.3g",
+        # label_type="edge",
         # bbox={"boxstyle": "circle", "color": "white"},
-        #)
+        # )
     # we set plot properties
     if log_scale:
         graph.set_yscale("log")
@@ -515,7 +503,7 @@ def violinplot(
 ):
     """! @brief Draws a violinplot graph.
 
-    @param[in] x The data that needs to be plotted, it can be a 2D array.
+    @param[in] data The data that needs to be plotted, it can be a 2D array.
     If so, a boxplot per columns, man will be plotted.
     @param[in] labels The labels for each dataset.
     @param[in] xlabel The label for the x axis.
@@ -532,12 +520,14 @@ def violinplot(
     graph_cycler = init_cycler(len(data), "scatter")
     graph.set_prop_cycle(graph_cycler)
     graph.violinplot(data, showmeans=True, showextrema=True)
-    graph.set_xticks(range(0, len(labels) + 1))
-    graph.set_xticklabels(labels=[""] + labels)
+    if type(labels) == list:
+        graph.set_xticks(range(0, len(labels) + 1))
+        graph.set_xticklabels(labels=[""] + labels)
     if log_scale:
         graph.set_yscale("log")
     set_graph_properties(graph, xlabel, ylabel, title)
-    adjust_x_ticks_labels(graph, labels)
+    if type(labels) == list:
+        adjust_x_ticks_labels(graph, labels)
     return graph
 
 
@@ -611,7 +601,8 @@ def parser_init():
     """
     # set up the argument parser
     parser = argparse.ArgumentParser(
-        description="A script to create graphs from csv files.")
+        description="A script to create graphs from csv files."
+    )
 
     parser.add_argument(
         "-g",
@@ -619,8 +610,7 @@ def parser_init():
         metavar="graph",
         nargs="+",
         type=str,
-        help=
-        "Which type of graph must be plotted. If repeated plots will stack.",
+        help="Which type of graph must be plotted. If repeated plots will stack.",
         choices=[
             "plot",
             "bar",
@@ -646,15 +636,47 @@ def parser_init():
     )
 
     parser.add_argument(
+        "-o",
+        "--output",
+        metavar="path",
+        type=str,
+        help="The path where the graph will saved.",
+        required=False,
+        default="./",
+        dest="output",
+    )
+
+    parser.add_argument(
+        "-pre",
+        "--prefix",
+        metavar="prefix",
+        type=str,
+        help="A prefix to set on the graph files",
+        required=False,
+        default="",
+        dest="prefix",
+    )
+
+    parser.add_argument(
+        "-post",
+        "--postfix",
+        metavar="postfix",
+        type=str,
+        help="A postfix to set on the generated files",
+        required=False,
+        default="",
+        dest="postfix",
+    )
+
+    parser.add_argument(
         "-xc",
         "--x-column",
         metavar="column1,column2,...",
         nargs="+",
         type=str,
-        help=
-        "CSV column that contain the data to plot on the x axis. Can be repeated (one for each graph type).",
+        help="CSV column that contain the data to plot on the x axis. Can be repeated (one for each graph type).",
         required=False,
-        dest="x_col",
+        dest="x_cols",
     )
 
     parser.add_argument(
@@ -663,11 +685,10 @@ def parser_init():
         metavar="column1,column2,...",
         nargs="+",
         type=str,
-        help=
-        "CSV column that contain the data to plot on the y axis. Can be repeated (one for each graph type).",
+        help="CSV column that contain the data to plot on the y axis. Can be repeated (one for each graph type).",
         required=False,
         default=None,
-        dest="y_col",
+        dest="y_cols",
     )
 
     parser.add_argument(
@@ -678,7 +699,7 @@ def parser_init():
         type=str,
         help="Labels for each group of data.",
         required=False,
-        default=[],
+        default=None,
         dest="labels",
     )
 
@@ -712,7 +733,7 @@ def parser_init():
         help="Graph label for the y axis.",
         required=False,
         default=None,
-        dest="x_label",
+        dest="y_label",
     )
 
     parser.add_argument(
@@ -738,19 +759,22 @@ def parser_init():
     return parser
 
 
-def read_data(files, x_col, y_col=None):
+def read_data(files, x_cols, y_cols=None):
     x_data = []
-    if y_col is not None:
+    if y_cols is not None:
         y_data = []
     else:
         y_data = None
-    for file_str in files:
+    for tup in enumerate(files):
+        file_str = tup[1]
+        x_col = x_cols[tup[0]]
+        y_col = y_cols[tup[0]]
         try:
-            file = open(file_str)
+            data_file = open(file_str)
         except Exception as e:
             print(f"file {file_str} not found: {e}")
             return None
-        reader = csv.reader(file)
+        reader = csv.DictReader(data_file)
         # skip the header
         next(reader)
         x_tmp = []
@@ -759,9 +783,9 @@ def read_data(files, x_col, y_col=None):
         else:
             y_tmp = None
         for row in reader:
-            x_tmp = float(row[x_col])
+            x_tmp.append(float(row[x_col]))
             if y_col is not None:
-                y_tmp = float(row[y_col])
+                y_tmp.append(float(row[y_col]))
         x_data.append(x_tmp)
         if y_col is not None:
             y_data.append(y_tmp)
@@ -777,7 +801,16 @@ if __name__ == "__main__":
     if "test" in args.graph_type:
         test()
     else:
-        x_data, y_data = read_data(args.input_files, args.x_col, args.y_col)
+        path_is_file = os.path.isfile(args.output) or not os.path.exists(args.output)
+        if path_is_file:
+            output_path, output_file = os.path.split(args.output)
+        else:
+            output_path = args.output
+            output_file = "graph"
+        if not os.path.exists(output_path):
+            print(f"{output_path} is not a valid path!")
+            quit(-1)
+        x_data, y_data = read_data(args.input_files, args.x_cols, args.y_cols)
         graph = None
         for graph_type in args.graph_type:
             if "plot" == graph_type:
@@ -785,7 +818,7 @@ if __name__ == "__main__":
                     x_data,
                     y_data,
                     xlabel=args.x_label,
-                    ylabel=args.ylabel,
+                    ylabel=args.y_label,
                     title=args.title,
                     line_label=args.labels,
                     graph=graph,
@@ -837,3 +870,10 @@ if __name__ == "__main__":
                     title=args.title,
                     graph=graph,
                 )
+        export_graph(
+            graph,
+            output_file,
+            output=output_path,
+            prefix=args.prefix,
+            postfix=args.postfix,
+        )
