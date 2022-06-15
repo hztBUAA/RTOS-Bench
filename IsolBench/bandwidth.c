@@ -100,12 +100,12 @@ void print_bandwidth(int param)
 	float dur_in_sec;
 	float bw;
 	float dur = get_usecs() - g_start;
-	dur_in_sec = (float)dur / 1000000;
+	dur_in_sec = (float)dur / 1000000.0f;
 	flogf(LOG_LEVEL_FILE, bmark_output, "g_nread(bytes read) = %lld\n",
 	      (long long)g_nread);
 	flogf(LOG_LEVEL_FILE, bmark_output,
 	      "elapsed = %.2f sec ( %.0f usec )\n", dur_in_sec, dur);
-	bw = (float)g_nread / dur_in_sec / 1024 / 1024;
+	bw = (float)g_nread / dur_in_sec / 1024.0f / 1024.0f;
 	flogf(LOG_LEVEL_FILE, bmark_output, "B/W = %.2f MB/s | ", bw);
 	flogf(LOG_LEVEL_FILE, bmark_output, "average = %.2f ns\n\n",
 	      (dur * 1000) / (g_nread / CACHE_LINE_SIZE));
@@ -239,6 +239,7 @@ void benchmark_execution(int parameters_num, void **parameters)
    * actual memory access
    */
 	g_start = get_usecs();
+	g_nread = 0;
 	for (i = 0;; i++) {
 		switch (acc_type) {
 		case READ:
@@ -252,6 +253,9 @@ void benchmark_execution(int parameters_num, void **parameters)
 		if (iterations > 0 && i + 1 >= iterations)
 			break;
 	}
+	
+	flogf(LOG_LEVEL_FILE, bmark_output, "total sum = %ld\n", (long)sum);
+	print_bandwidth(0);
 }
 
 /**
@@ -263,11 +267,6 @@ void benchmark_execution(int parameters_num, void **parameters)
  */
 void benchmark_teardown(int parameters_num, void **parameters)
 {
-	if (iterations == 0) {
-		flogf(LOG_LEVEL_FILE, bmark_output, "total sum = %ld\n",
-		      (long)sum);
-		print_bandwidth(0);
-	}
 	close_log_file(bmark_output);
 	free(g_mem_ptr);
 }
