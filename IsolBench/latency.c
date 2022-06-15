@@ -127,7 +127,7 @@ void usage(int argc, char *argv[])
 int benchmark_init(int parameters_num, void **parameters)
 {
 	int i;
-	char opt;
+	int opt;
 	int serial = 0;
 	/*
    * get command line options

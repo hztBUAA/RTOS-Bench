@@ -31,7 +31,7 @@ typedef struct{
 
 
 void create_texture(F2D *image, params *data,F2D* result,F2D* target,int* atlas,int* xloopout,int* yloopout);
-I2D* parse_flags(int argc, char ** argv,params* data);
+I2D* parse_flags(int argc, char ** argv);
 void init_params(params *data, int WIDTHin, int HEIGHTin, int WIDTH, int HEIGHT, int localx,int localy);
 void init(F2D *image, params* data,int* atlas,F2D* target,F2D* result, int* vrstartx,int* vrstarty,int* vrfinishx,int* vrfinishy,int anotherpass);
 double compare_full_neighb(F2D *image,int x, int y, F2D *image1,int x1, int y1, params* data,int* xloopout,int* yloopout);
