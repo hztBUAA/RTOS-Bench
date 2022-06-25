@@ -1,104 +1,34 @@
-# rt-bench
+RT-Bench
+========
 
-## Introduction
+RT-Bench is a collection of popular benchmarks for real-time applications which have been restructured to be executed periodically.
 
-[TOC]
+RT-Bench is licensed under [MIT](LICENSES/MIT.txt) license and
+integrates benchmark suites that are licensed according to the information
+contained in the corresponding folders.
 
-rt-bench is a collection of popular benchmarks for real-time applications which
-have been restructured to be executed periodically.
+RT-Bench is developed by researchers and collaborators affiliated with the
+Cyber-Physical Systems Lab at Boston University [BU](https://cs-people.bu.edu/rmancuso/)
+with contributions from the Chair of Cyber-Physical System in Production Engineering at [TUM](https://rtsl.cps.mw.tum.de/).
 
-The available benchmarks sets, documented in the Modules section, are:
+### Citation
 
-- [San Diego Vision Benchmarks](@ref #SD-VBS)
-- [IsolBench Benchmarks](@ref #IsolBench)
-
-All available benchmarks share a set of files, described in the [Base](@ref #base) module, that provide some basic but essential facilities,
-such as logging functions and the logic to make execution periodic.
-
-## Usage
-
-Each set of benchmarks has specific compilation and usage instructions in the
-module description, refer to these instruction and to the benchmark
-specification for a correct usage.
-
-In addition all the benchmarks take the same input arguments and options (which
-are handled by the [Base](@ref #base) module).
-These arguments and options are described below and in the benchmark help message:
-
-### Period and deadline options
-
-- `-d`, `--deadline=secs`: The benchmark deadline in seconds. Can be an integer,
-  float or in scientific notation. Must be less or equal than the benchmark
-  period. **Required**.
-- `-p`, `--period=secs`: The benchmark period, in seconds. Can be an integer,
-  float or in scientific notation. **Required**.
-
-### Execution options
-
-- `-t`, `--tasks-number=integer>=0` The number of tasks to be executed. 0 means
-  until the program receives a `SIGINT`. Default is 0.
-- `-c`, `--core-affinity=core1,core2,...`: The benchmark core affinity,
-  expressed as a comma separated list. A
-  single core id is also accepted. If not provided the OS will decide on which
-  core(s) the benchmark can run.
-- `-m`, `--mem-limit=bytes[GMK]`: The maximum amount of dynamic memory allocated
-  during the periodic execution. If exceeded, the benchmark will crash.
-  Specified as an integer plus an optional magnitude modifier:
-
-  - `K`=kilobytes
-  - `M`=megabytes
-  - `G`=gigabytes
-
-    Without a magnitude modifier specified the value is assumed to be in bytes.
-    0 means no memory limit, and it is the default setting.
-
-### Scheduling options
-
-- `-f`, `--fifo=0<=prio<=99`: Set `SCHED_FIFO` priority with specified
-  priority. Needs root.
-- `-T`, `--sched-runtime=ns`: Set `SCHED_DEADLINE` runtime.
-  Alternative to `--fifo`. Needs root.
-- `-D` `--sched-deadline=ns`: Set `SCHED_DEADLINE` deadline.
-  Alternative to `--fifo`. Needs root.
-- `-P` `--sched-period=ns`: Set `SCHED_DEADLINE` period. Alternative to
-  `--fifo.` Need root. At least `--sched-period` has to be specified to
-  set sched_deadline parameters. If deadline is not specified, deadline is
-  set to period. If runtime is not specified, runtime is set to deadline.
-
-  **NOTE:** These parameters are different from `--period` and `--deadline`
-  used to control the repetitive execution of the thread.
-  To generate valid execution that are not truncated under hard server
-  reservation ensure that period < sched-period and deadline < sched-deadline.
-
-### Reporting options
-
-- `-l`, `--log-level=log-lvl`: Log level, can be one of the following:
-
-  - `1`: Print only errors.
-  - `2`: Print benchmark stats to output file in csv format.
-  - `3`: Print benchmark stats to `stdout` in csv format.
-  - `4`: Print informative messages on `stdout` and debug messages on `stderr`.
-
-  Default is 3.
-
-  See `print_benchmark_timing()` for an explanation on the format used in log
-  level 2 and 3.
-
-- `-o`, `--output=output_path`: Where the info on the benchmark execution will
-  be written. If not supplied, `./timing.csv` will be used.
-
-### Benchmark arguments and options
-
-- `-b`, `--bmark-args=arg opt ...`: A space-separated list of arguments and
-  options that will be relayed as it is to the benchmark. It must be specified
-  as the last option, since everything after it will be given directly to the
-  benchmark routine.
-
-### Informational options
-
-- `-h`, `-?`, `--help`: Give this help list
-- `--usage`: Give a short usage message
-
-### Enabling performance counters
-Counters have been implemented only for Cortex A53 processors.
-Add `CORE=CORTEX_A53` to the make command to enable performance counters.
+If you have found this project useful, do not hesitate to cite the associated paper and visit the [ACM Digital Library Link](https://dl.acm.org/doi/10.1145/3534879.3534888).
+```
+@inproceedings{10.1145/3534879.3534888,
+  author = {Nicolella, Mattia and Roozkhosh, Shahin and Hoornaert, Denis and Bastoni, Andrea and Mancuso, Renato},
+  title = {RT-Bench: An Extensible Benchmark Framework for the Analysis and Management of Real-Time Applications},
+  year = {2022},
+  isbn = {9781450396509},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3534879.3534888},
+  doi = {10.1145/3534879.3534888},
+  booktitle = {Proceedings of the 30th International Conference on Real-Time Networks and Systems},
+  pages = {184–195},
+  numpages = {12},
+  keywords = {extensible, periodic, benchmark suite, framework, open-source, real-time, interference, profiling, portable},
+  location = {Paris, France},
+  series = {RTNS 2022}
+}
+```

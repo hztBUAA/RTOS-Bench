@@ -41,7 +41,7 @@ At the time of writing only the following file types are included in the documen
 - `.c` source files.
 - `.h` header files.
 - `.py` files.
-- `.markdown` files for documentation pages located in `docs/source` (doxygen has some quirks with the markdown syntax, refer to this explanation: https://www.doxygen.nl/manual/markdown.html).
+- `.markdown` files for documentation pages located in `docs/source` (doxygen has some quirks with the markdown syntax, refer to this explanation: https://www.doxygen.nl/manual/markdown.html). In addition the alphabetical ordering of the files in `docs/source` will be reflected in the ordering of the pages in the documentation, so it is advised to use numbers in the file name (Which is ignored by doxygen) to order the pages as needed.
 - `.dox` files, used for modules documentation (in `docs/source/modules`, to have all the modules in the same place and avoiding searching the module definition in different source files).
 
 Doxygen configuration is stored in the following text file `docs/conf/Doxyfile`.
@@ -66,7 +66,7 @@ In this way for each new commit all the know issues can be documented easily.
 ## Documenting benchmark and benchmarks sets
 
 Each benchmark must be documented a module, and a part of a benchmark set, which must also be documented as a module.
-To do so a folder must be created in `docs/source/modules`, with the benchmark set name; inside that folder there must be a .dox file for the benchmark set and a .dox file for the each benchmark. Refer to [Adding benchmarks and benchmarks set](1-Adding_benchmarks.markdown) for more details and examples.
+To do so a folder must be created in `docs/source/modules`, with the benchmark set name; inside that folder there must be a .dox file for the benchmark set and a .dox file for the each benchmark. Refer to [Adding benchmarks and benchmarks set](3-Adding_benchmarks.markdown) for more details and examples.
 
 ## Documenting files
 
@@ -99,33 +99,33 @@ Most global symbols should be documented to improve code readability, in particu
 
 - Functions:
   Function documentation is split in two parts:
- - Prototype documentation, which will describe briefly what the function does, the parameters taken and the return value:
+- Prototype documentation, which will describe briefly what the function does, the parameters taken and the return value:
 
-  ```{.c}
-  /**
-  * @brief brief description.
-  * @param[in,out] parameter_name parameter description.
-  * @details
-  * Long description of what the function does.
-  * @returns possible return values.
-  */
-  int foo(float bar);
-  ```
+```{.c}
+/**
+* @brief brief description.
+* @param[in,out] parameter_name parameter description.
+* @details
+* Long description of what the function does.
+* @returns possible return values.
+*/
+int foo(float bar);
+```
 
- - Implementation documentation, which will describe how the function is implemented if it is not obvious or there are some aspects of the implementation to keep in mind:
+- Implementation documentation, which will describe how the function is implemented if it is not obvious or there are some aspects of the implementation to keep in mind:
 
-  ```{.c}
-  /**
-  * Description of the function implementation.
-  */
-  int foo(float bar){
-  ...
-  };
-  ```
+```{.c}
+/**
+* Description of the function implementation.
+*/
+int foo(float bar){
+...
+};
+```
 
- Doxygen will merge these two comments in the documentation allowing implementation modifications without requiring modifications of header files.
- If some functions have multiple implementations (like method overriding in object-Oriented languages), or if functions are not exported (thus they have no prototypes) prototype documentation will be used to document the implementation and will include implementation details.
- In case of multiple implementations is best to exclude from the documentation the exported prototypes, refer to `base/periodic_benchmark.h` for a working example.
+Doxygen will merge these two comments in the documentation allowing implementation modifications without requiring modifications of header files.
+If some functions have multiple implementations (like method overriding in object-Oriented languages), or if functions are not exported (thus they have no prototypes) prototype documentation will be used to document the implementation and will include implementation details.
+In case of multiple implementations is best to exclude from the documentation the exported prototypes, refer to `base/periodic_benchmark.h` for a working example.
 
 - Structs should be documented by describing what the struct represents and what do each member represents:
 

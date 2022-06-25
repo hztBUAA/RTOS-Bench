@@ -1,7 +1,7 @@
 /**
  * @file latency.c
  * @ingroup latency
- * @brief Functions used to run the latency benchmark periodically.
+ * @brief RT-Bench-compatible latency benchmark.
  * @details
  * The original script has been broken down in three components:
  * - init: benchmark_init();

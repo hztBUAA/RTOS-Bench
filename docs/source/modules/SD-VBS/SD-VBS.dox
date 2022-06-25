@@ -20,6 +20,7 @@
 *	- `debug-asan`: Runs the benchmark with [ASAN](https://github.com/google/sanitizers/wiki/AddressSanitizer).
 *	- `debug-valgrind`: Runs the benchmark with [Valgrind](https://valgrind.org/).
 *	- `debug-gdb`: Runs the benchmark with [GDB](https://www.gnu.org/software/gdb/).
+* - The original `compile` target has been modified to include RT-Bench files and flags, so it is possible to build a benchmark by navigating to its data directory, choosing the folder according to the desired input size and issuin a `make compile`.
 *
 * Detailed information of what each benchmark does can be found in [SD-VBS.pdf](attachments/SD-VBS.pdf) , the document is also available here: http://parallel.ucsd.edu/vision/SD-VBS-Final.pdf.
 *

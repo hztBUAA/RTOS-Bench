@@ -1,7 +1,7 @@
 /**
  * @file bandwidth.c
- * @ingroup Bandwidth
- * @brief Functions used to run the bandwidth benchmark periodically.
+ * @ingroup bandwidth
+ * @brief RT-Bench-compatible bandwidth benchmark.
  * @details
  * The original script has been broken down in three components:
  * - init: benchmark_init();

@@ -451,7 +451,7 @@ int main(int argc, char **argv)
 		  "Set SCHED_DEADLINE deadline. Alternative to --fifo. Need root." },
 		{ "sched-period", 'P', "ns", 0,
 		  "Set SCHED_DEADLINE period. Alternative to --fifo. Need root. At least --sched-period has to be specified to set sched_deadline params. If deadline is not specified, deadline is set to period. If runtime is not specified, runtime is set to deadline. NOTE: These parameters are different from --period and --deadline used to control the repetitive execution of the thread. To generate valid execution that are not truncated under hard server reservation, period < sched-period and deadline < sched-deadline." },
-		{ 0, 0, 0, 0, "Reporting options:", 3 },
+		{ 0, 0, 0, 0, "Reporting options:", 4 },
 #ifdef AARCH64
 #ifdef CORTEX_A53
 		{ "memory-profiling-enable", 'M', "bool", 0,
@@ -466,7 +466,7 @@ int main(int argc, char **argv)
 		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats to output file.\n3 - Print benchmark stats to stdout.\n4 - Print also informative messages on stderr.\nDefault is 3." },
 		{ "output", 'o', "output_path", 0,
 		  "Where the info on the benchmark execution will be written. If not supplied, \"./timing.csv\" will be used." },
-		{ 0, 0, 0, 0, "Benchmark arguments and options:", 4 },
+		{ 0, 0, 0, 0, "Benchmark arguments and options:", 5 },
 		{ "bmark-args", 'b', "arg opt ...", 0,
 		  "A space-separated list of arguments and options that must be relayed directly to the benchmark. It must be specified after every other option since everything after it will be passed directly to the benchmark routine." },
 		{ 0, 0, 0, 0, "Informational options:\n", -1 },
