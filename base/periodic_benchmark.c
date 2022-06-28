@@ -5,6 +5,9 @@
  * used to stop the benchmark and terminate the program.
  * @author Mattia Nicolella
  *
+ * **Dependencies**:
+ * - POSIX.4 real-time signals.
+ *
  * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
  */

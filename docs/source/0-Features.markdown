@@ -1,0 +1,21 @@
+# Features
+
+- Periodic execution of the benchmark with POSIX.4 real-time signals.
+- Statistic gathering for each of the jobs executed, including:
+  - Period start / end timestamps.
+  - Deadline timestamp.
+  - Job end timestamp (job starts at the beginning of the period).
+  - Period Utilization.
+  - Period Density.
+  - Perf counters value, (only for CORTEX_A53).
+- Several log levels, to log statistics in csv files or in a terminal with different levels of detail.
+- Pinning of the process on a single core or set of cores.
+- Scheduling policy change.
+- Constraining dynamic memory allocations during the execution phase.
+- Periodic monitoring of the L2 refills Perf counter (only for CORTEX_A53).
+- Automated scripts to perform the following tests:
+  - Framework overhead.
+  - Empirical minimum working set size.
+  - Empirical worst case execution test.
+  - Empirical schedulability test.
+- Plotting functions for the most common type of graphs, integrated in the test scripts and usable from csv inputs.

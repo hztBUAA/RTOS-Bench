@@ -194,13 +194,13 @@ def execute(params):
         sched_params = params.get("sched_params")
         if sched_params is None:
             print(
-                "ERROR: Missing scheduling parameters to execute the schedulability test!"
+                "ERROR: Missing scheduling parameters to execute the overhead test!"
             )
             params.update({"res": -1})
             return params
         cores = params.get("cores")
         if cores is None:
-            print("ERROR: Missing corelist to execute the WCET test!")
+            print("ERROR: Missing corelist to execute the overhead test!")
             params.update({"res": -1})
             return params
         int_processes = None

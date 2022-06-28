@@ -18,6 +18,10 @@
  * @brief Benchmark entry point.
  * @details Will handle the benchmark startup and its parameters.
  *
+ * **Dependencies**:
+ * - Glibc.
+ * - Linux syscalls, namely `set_schedattr` and `get_schedattr`.
+ *
  * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
  */
