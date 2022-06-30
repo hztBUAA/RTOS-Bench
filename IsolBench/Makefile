@@ -1,6 +1,6 @@
 CC=gcc
 PGMS=latency bandwidth
-BASE_SRC=$(wildcard ../base/*.c)
+BASE_SRC=$(wildcard ../rt-bench_generator/*.c)
 BASE_O=$(patsubst %.c,%.o,$(BASE_SRC))
 CFLAGS=-O2 -Wall -g -I../base -DGCC
 CXXFLAGS=$(CFLAGS)

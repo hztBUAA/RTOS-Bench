@@ -1,7 +1,7 @@
 #! /bin/python3
 """!
 @file WCET.py
-@ingroup utils
+@ingroup wcet
 @author Mattia Nicolella
 @brief Procedures for a benchmark worst case execution test (WCET)
 
@@ -329,7 +329,7 @@ def draw_graph(data, interference=False, old_graph=None):
 
 
 if __name__ == "__main__":
-    parser = base.parser_init()
+    parser = base.parser_init("A script to perform a worst case execution time test")
     params = base.test_init(parser)
     execute(params)
     base.test_teardown(params)

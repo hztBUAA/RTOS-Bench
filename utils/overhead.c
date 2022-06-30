@@ -1,6 +1,6 @@
 /**
  * @file overhead.c
- * @ingroup utils
+ * @ingroup overhead
  * @brief Benchmark to measure the RT-Bench framework overhead.
  * @details
  * The bnchmark is composed by three dummy function, that only have a return statement.

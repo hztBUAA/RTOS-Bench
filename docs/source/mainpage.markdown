@@ -11,27 +11,66 @@ integrates benchmark suites that are licensed according to the information
 contained in the corresponding folders.
 
 RT-Bench is developed by researchers and collaborators affiliated with the
-Cyber-Physical Systems Lab at Boston University [BU](https://cs-people.bu.edu/rmancuso/)
+Cyber-Physical Systems Lab at [Boston University](https://cs-people.bu.edu/rmancuso/)
 with contributions from the Chair of Cyber-Physical System in Production Engineering at [TUM](https://rtsl.cps.mw.tum.de/).
 
-- [Features](0-Features.markdown)
-- [Available Benchmarks](0-Available_Benchmarks.markdown)
+## How to use the documentation
+
+Navigating the documentation of the project can be counterintuitive at first, so
+this section will guide the user towards making the most of the available documentation.
+
+All the documentation is accessible from the sidebar, and includes:
+- Tutorials and explanation pages which will cover the framework in general.
+- A todo list
+- A buglist
+- A Modules page, from which the documentation specific to the 
+  [RT-Bench Generator](@ref #rt-bench_generator), the [utilities](@ref #utils) and [benchmarks](@ref #benchmarks) can be accessed.
+- Files and data structures documentation (reachable also from the Modules page).
+
+### Quick links
+- [Available Benchmarks](@ref #benchmarks)
 - [Usage guide](1-Usage.markdown)
 - [Compilation guide](2-Building_with_the_framework.markdown)
-- [Guide on how to add benchmarks](3-Adding_benchmarks.markdown)
+- [Guide on how to add benchmarks](3-Extending_rt-bench.markdown)
+- [Utilities](@ref #utils)
+
+## Features
+
+- Periodic execution of the benchmark with POSIX.4 real-time signals.
+- Statistic gathering for each of the jobs executed, including:
+  - Period start / end timestamps.
+  - Deadline timestamp.
+  - Job end timestamp (job starts at the beginning of the period).
+  - Period Utilization.
+  - Period Density.
+  - Perf counters value, (only for CORTEX_A53).
+- Several log levels, to log statistics in csv files or in a terminal with different levels of detail.
+- Pinning of the process on a single core or set of cores.
+- Scheduling policy change.
+- Constraining dynamic memory allocations during the execution phase.
+- Periodic monitoring of the L2 refills Perf counter (only for CORTEX_A53).
+- Automated scripts to perform the following tests:
+  - Framework overhead.
+  - Empirical minimum working set size.
+  - Empirical worst case execution test.
+  - Empirical schedulability test.
+- Plotting functions for the most common type of graphs, integrated in the test scripts and usable from csv inputs.
 
 ## Design and Principles
 
 This section will explain the reasoning behind RT-Bench and present at a high level
 of abstraction how the framework works.
 
+The framework lives fully in userspace and is composed by the [RT-Bench Generator](@ref #rt-bench_generator) and by a collection of scripts that  compose the [Utils](@ref #utils) optional layer.
+
+@image html rt-bench-structure.svg "RT-Bench control flow graph"
+@image latex rt-bench-structure.pdf "RT-Bench control flow graph" width=10cm
 
 ### Motivation and Principles
 
 Many popular benchmark suites do not exhibit real-time features and have to be
 restructured to integrate these features.
-RT-Bench is a framework that implements real-time features (presented in [Features](0-Features.markdown))
-in a generic fashion, to allow different benchmarks (described in [Available Benchmarks](0-Available_Benchmarks.markdown))
+RT-Bench is a framework that implements real-time features in a generic fashion, to allow different benchmarks (described in [Available Benchmarks](@ref #benchmarks))
 to have the features out-of-the-box and accessible via CLI.
 
 To implement the mentioned features, RT-Bench follow some core principles:
@@ -41,36 +80,15 @@ To implement the mentioned features, RT-Bench follow some core principles:
 - Common interface
   All the benchmark report the same basic statistics and have the same CLI interface.
 - Extensibility
-  Adding benchmark is easy, more details on how to do this are in [Adding Benchmark](3-Adding_benchmarks.markdown).
+  Adding benchmark is easy, more details on how to do this are in [Extending RT-Bench](3-Extending_rt-bench.markdown).
 - Compatibility
   RT-Bench is designed to be compatible with multiple platforms.
   Moreover, compatible benchmark do have their execution logic intact,
   so it's possible to compare their output with the output of their original version.
 
-### Dependencies
-
-@image html rt-bench-structure.svg "RT-Bench control flow graph"
-@image latex rt-bench-structure.pdf "RT-Bench control flow graph" width=10cm
-
-The framework lives fully in userspace and is composed by the RT-Bench generator
-(implemented by the [Base](@ref #base) module) and by an utility layer
-(implemented by the [Utils](@ref #utils) module).
-
-In the current implementation the framework has some
-dependencies the user has to be aware of:
-
-- Glibc: Provides primitives used by the memory watcher and the argument parser.
-- POSIX.4 real-time signals: used to execute the benchmark periodically and to gather stats.
-- Linux scheduler syscalls: Used to change the scheduling policy.
-- Linux Perf: Used to read performance counters (currently only on `CORTEX A53`)
-
-Currently RT-Bench targets the following platforms:
-- x86/x86_64
-- ARM64
-
 ### Benchmark Design
 
-To adhere to the above-mentioned principles, the benchmarks are required to implement their logic in the followig functions:
+To adhere to the above-mentioned principles, the benchmarks are required to implement their logic in the following functions:
 
 - `benchmark_init`: Initialization of the benchmark environment, executed only once.
 - `benchmark_execution`: Execution of the benchmark routines, executed periodically. 

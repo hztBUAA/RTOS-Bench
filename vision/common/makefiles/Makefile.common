@@ -30,7 +30,7 @@ ifdef CHECK_OUTPUT
 override CFLAGS+= -DCHECK
 endif
 
-BASE_DIR := $(TOP_DIR)/../base
+BASE_DIR := $(TOP_DIR)/../rt-bench_generator
 COMMON_DIR := $(TOP_DIR)/common/c
 M_COMMON := $(TOP_DIR)/common/matlab
 M_TOOLBOX=$(TOP_DIR)/common/toolbox

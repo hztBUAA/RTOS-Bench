@@ -1,6 +1,6 @@
 /**
  * @file periodic_benchmark.h
- * @ingroup base
+ * @ingroup rt-bench_generator
  * @brief A general periodic benchmark using a real time timer.
  * @author Mattia Nicolella
  *

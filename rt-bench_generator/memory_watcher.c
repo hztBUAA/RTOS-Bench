@@ -1,5 +1,5 @@
 /** @file memory_watcher.c
- * @ingroup base
+ * @ingroup rt-bench_generator
  * @brief Implementation of a memory watcher, which will crash the program if it detects and heap extension.
  * @author Mattia Nicolella
  *

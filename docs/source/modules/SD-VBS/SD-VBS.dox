@@ -1,5 +1,6 @@
 /**
 * @defgroup SD-VBS San Diego Vision Benchmarks
+* @ingroup benchmarks
 * @brief San Diego Vision Benchmarks (SD-VBS).
 *
 * This page contains the [San Diego Vision Benchmarks](http://parallel.ucsd.edu/vision/) documentation.

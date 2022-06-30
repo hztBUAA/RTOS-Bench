@@ -66,7 +66,7 @@ In this way for each new commit all the know issues can be documented easily.
 ## Documenting benchmark and benchmarks sets
 
 Each benchmark must be documented a module, and a part of a benchmark set, which must also be documented as a module.
-To do so a folder must be created in `docs/source/modules`, with the benchmark set name; inside that folder there must be a .dox file for the benchmark set and a .dox file for the each benchmark. Refer to [Adding benchmarks and benchmarks set](3-Adding_benchmarks.markdown) for more details and examples.
+To do so a folder must be created in `docs/source/modules`, with the benchmark set name; inside that folder there must be a .dox file for the benchmark set and a .dox file for the each benchmark. Refer to [Extending RT-Bench](3-Extending_rt-bench.markdown) for more details and examples.
 
 ## Documenting files
 

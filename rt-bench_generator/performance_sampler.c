@@ -1,5 +1,5 @@
 /** @file performance_sampler.c
- * @ingroup base
+ * @ingroup rt-bench_generator
  * @brief Performance sampler implementation.
  * @author Denis Hoornaert
  *
