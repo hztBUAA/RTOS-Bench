@@ -44,38 +44,31 @@ When adding and integrating new benchmark in an existing benchmark set the follo
 
 1. The benchmark files must be contained inside the relative benchmark set folder (example: `new_set`).
 It is also recommended to create a folder with the benchmark name that will contain all the benchmark-exclusive files (example: `new_set/new_benchmark`), but there are no defined rules on how the benchmark set folder must be organized, it is sufficient to explain how to maintain, compile and execute the benchmarks module (step 2) or in the set documentation.
-2. Create a .dox file with the benchmark name in the benchmark set documentation folder which will describe what the benchmark does (example: `docs/source/new_set/new_benchmark.dox`).
-
-	- `docs/source/new_set/new_benchmark.dox` example:
-
-        ```{.dox}
-        /**
-         * @defgroup new_benchmark
-         * @ingroup new_set
-         * @brief benchmark brief description.
-         *
-         * Benchmark detailed description which includes:
-         * - benchmark files location
-         * - what the benchmark does (a reference/link to another document is sufficient)
-         * - how to compile the benchmark (a reference/link to another document is sufficient)
-         * - how to execute the benchmark (a reference/link to another document is sufficient)
-         */
-        ```
-   
+2. Create a .dox file with the benchmark name in the benchmark set documentation folder which will describe what the benchmark does (example: `docs/source/new_set/new_benchmark.dox`). For instance:
+   ```{.dox}
+   /**
+    * @defgroup new_benchmark
+    * @ingroup new_set
+    * @brief benchmark brief description.
+    *
+    * Benchmark detailed description which includes:
+    * - benchmark files location
+    * - what the benchmark does (a reference/link to another document is sufficient)
+    * - how to compile the benchmark (a reference/link to another document is sufficient)
+    * - how to execute the benchmark (a reference/link to another document is sufficient)
+    */
+   ```
 3. Each source file and header must have a documentation header with a reference to the benchmark module, a brief description of the file contents and optionally a detailed description of the file contents (example: `new_set/new_benchmark/benchmark_file.c`,`new_set/new_benchmark/benchmark_header.h`).
-
     The example for `new_set/new_benchmark/benchmark_file.c`, `new_set/new_benchmark/benchmark_header.h` is the same:
-   
-    ```{.c}
-    /**
-     * @file benchmark_file.c
-     * @ingroup new_benchmark
-     * @brief Benchmark brief description
-     * @details
-     * Benchmark detailed description.
-     */
+   ```{.c}
+   /**
+    * @file benchmark_file.c
+    * @ingroup new_benchmark
+    * @brief Benchmark brief description
+    * @details
+    * Benchmark detailed description.
+    */
     ```
-
 4. The benchmark files must export (and document as described in the next section) three functions:
 	-
     ```{.c}
