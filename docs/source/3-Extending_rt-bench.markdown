@@ -86,7 +86,7 @@ It is also recommended to create a folder with the benchmark name that will cont
     ```
 	Will revert all the operations done by `benchmark_init` and free allocated memory, to ensure a clean termination of the program. This function is executed only when the program is terminating.
 
-`parameters_num` and `parameters` are initialized by the [RT-Bench Generator](@ref #rt-bench_generator) module with the contents of the `-b` options and can be used like `argc` and `argv`.
+`parameters_num` and `parameters` are initialized by the [RT-Bench Generator](@ref #generator) module with the contents of the `-b` options and can be used like `argc` and `argv`.
 Global variables can be used to maintain data between different calls of these three functions.
 
 Refer to the [disparity](@ref #disparity) benchmark documentation and source code for a working example.

@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 /** @file get_cpu_timestamp.c
- * @ingroup rt-bench_generator
+ * @ingroup generator
  * @author Mattia Nicolella
  * @brief Implementation of the API to get the CPU timestamp value.
  *

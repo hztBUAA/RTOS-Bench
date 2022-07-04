@@ -1,5 +1,5 @@
 /** @file logging.c
- * @ingroup rt-bench_generator
+ * @ingroup generator
  * @brief Implementation of the logging facilities in logging.h.
  * @author Mattia Nicolella
  */

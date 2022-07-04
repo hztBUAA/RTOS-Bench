@@ -13,7 +13,7 @@
 #include <sched.h>
 
 /** @file main.c
- * @ingroup rt-bench_generator
+ * @ingroup generator
  * @author Mattia Nicolella
  * @brief Benchmark entry point.
  * @details Will handle the benchmark startup and its parameters.

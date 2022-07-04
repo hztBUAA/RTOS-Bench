@@ -1,5 +1,5 @@
 /** @file performance_counters.c
- * @ingroup rt-bench_generator
+ * @ingroup generator
  * @brief Implementation of a architecture independent and highly abstrcat way access to performance counters.
  * @details Uses interface provided by the Linux kernel to access teh performance counters value.
  * @author Denis Hoornaert

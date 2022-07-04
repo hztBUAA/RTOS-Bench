@@ -1,5 +1,5 @@
 /** @file logging.h
- * @ingroup rt-bench_generator
+ * @ingroup generator
  * @brief Logging utilities.
  * @author Mattia Nicolella
  * @details Logging interfaces, to support different verbosity levels.

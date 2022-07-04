@@ -3,14 +3,14 @@
  @brief Available benchmarks.
  @details
  [TOC]
- All available benchmarks share a set of files, described in the [RT-Bench Generator](@ref #rt-bench_generator) module, that provide some basic but essential facilities,
+ All available benchmarks share a set of files, described in the [RT-Bench Generator](@ref #generator) module, that provide some basic but essential facilities,
  such as logging functions and the logic to make execution periodic.
 
 More details on the benchmarks are avaiable in the benchmark-specific modules.
 
 ## Common CLI options
 All the benchmarks take the same input arguments and options (which
-are handled by the [RT-Bench Generator](@ref #rt-bench_generator) module).
+are handled by the [RT-Bench Generator](@ref #generator) module).
 These arguments and options are described below and in the benchmark help message:
 
 ### Period and deadline options

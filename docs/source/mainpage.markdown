@@ -24,7 +24,7 @@ All the documentation is accessible from the sidebar, and includes:
 - A todo list
 - A buglist
 - A Modules page, from which the documentation specific to the 
-  [RT-Bench Generator](@ref #rt-bench_generator), the [utilities](@ref #utils) and [benchmarks](@ref #benchmarks) can be accessed.
+  [RT-Bench Generator](@ref #generator), the [utilities](@ref #utils) and [benchmarks](@ref #benchmarks) can be accessed.
 - Files and data structures documentation (reachable also from the Modules page).
 
 ### Quick links
@@ -61,7 +61,7 @@ All the documentation is accessible from the sidebar, and includes:
 This section will explain the reasoning behind RT-Bench and present at a high level
 of abstraction how the framework works.
 
-The framework lives fully in userspace and is composed by the [RT-Bench Generator](@ref #rt-bench_generator) and by a collection of scripts that  compose the [Utils](@ref #utils) optional layer.
+The framework lives fully in userspace and is composed by the [RT-Bench Generator](@ref #generator) and by a collection of scripts that  compose the [Utils](@ref #utils) optional layer.
 
 @image html rt-bench-structure.svg "RT-Bench control flow graph"
 @image latex rt-bench-structure.pdf "RT-Bench control flow graph" width=10cm

@@ -1,5 +1,5 @@
 /** @file periodic_benchmark.c
- * @ingroup rt-bench_generator
+ * @ingroup generator
  * @brief Implementation of a general periodic benchmark using real time timers.
  * @details Timer expiration triggers a real time POSIX signal and `SIGINT` is
  * used to stop the benchmark and terminate the program.
