@@ -25,15 +25,15 @@ Compiling a RT-Bench compliant benchmark (see [benchmark structure](3-Extending_
 The simplest compilation line necessary is as follows:
 
 ```{.sh}
-gcc -O2 -Wall -g -Ipath/to/rt-bench/rt-bench_generator -lrt -lm -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap target.c path/to/rt-bench/rt-bench_generator/*.c -o target
+gcc -O2 -Wall -g -Ipath/to/rt-bench/generator -lrt -lm -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap target.c path/to/rt-bench/generator/*.c -o target
 ```
 
 where:
 
 - `-O2 -Wall -g` are _optional_ but recommended flags
-- `-Ipath/to/rt-bench/rt-bench_generator` is the path to the `rt-bench_generator/` folder located within your local rt-bench repository (_mandatory_)
+- `-Ipath/to/rt-bench/generator` is the path to the `generator/` folder located within your local rt-bench repository (_mandatory_)
 - `-lrt -lm -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap` _must_ appear for the correct working of the RT-Bench core mechanics 
-- `path/to/rt-bench/rt-bench_generator/*.c` is the path to all the components located in the `rt-bench_generator/` folder within your local rt-bench repository 
+- `path/to/rt-bench/generator/*.c` is the path to all the components located in the `rt-bench_generator/` folder within your local rt-bench repository 
 - `target` is the name of the benchmark under consideration
 
 ## Optional RT-Bench specific options
