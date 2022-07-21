@@ -5,7 +5,7 @@ RT-Bench is a collection of popular benchmarks for real-time applications which 
 
 Documentation can be built and consulted by following [these](docs/source/4-Documentation_rules.markdown) instructions.
 
-Online documentation is available [here](https://bastoni.gitlab.io/rt-bench).
+Online documentation is available [here](https://rt-bench.gitlab.io/rt-bench/).
 
 RT-Bench is licensed under [MIT](LICENSES/MIT.txt) license and
 integrates benchmark suites that are licensed according to the information
