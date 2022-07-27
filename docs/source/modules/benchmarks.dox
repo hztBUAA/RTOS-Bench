@@ -13,6 +13,26 @@ All the benchmarks take the same input arguments and options (which
 are handled by the [RT-Bench Generator](@ref #generator) module).
 These arguments and options are described below and in the benchmark help message:
 
+### Configuration input
+- `-g`,`--configuration-file`: Specify the JSON file describing the configuration to use. Following options complement or override the JSON description. Conversely, options specified before are complemented or overwritten.
+
+A JSON file is composed as a list of the desired options written in their full length. For example, `task.json` can be as follows:
+```{.c}
+{
+        "deadline": 1,
+        "period": 1,
+        "core-affinity": 3,
+        "mem-limit": "0",
+        "tasks-number": 15,
+        "log-level": 3,
+        "bmark-args": ".",
+        "memory-profiling-time-bucket": 100000
+}
+```
+In that case, it is fully equivalent to `./disparity -d 1 -p 1 -c 3 -m 0 -t 15 -l 3 -b "." -B 100000`. Note that any invalid or unsupported option will lead to `Invalid/unsupported parameter "X" in configuration file!` being outputed (where X is the first parameter at fault found).
+
+The configuration defined in a JSON file can be complemented or partially overridden by explicitly specifying parameters after the configuration file. Assuming the task.json configuration file, typing `./disparity -g task.json -t 5` will enforce 5 runs instead of 15. Parameters precised before the configuration file file will be overridden if they figure in the JSON configuration file. Note that due to how the option parsin is implemented, `./disparity -t 5 -g task.json` will still perform 15 runs.
+
 ### Period and deadline options
 
 - `-d`, `--deadline=secs`: The benchmark deadline in seconds. Can be an integer,

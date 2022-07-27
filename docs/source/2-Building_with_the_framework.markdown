@@ -13,10 +13,22 @@ dependencies the user has to be aware of:
 - POSIX.4 real-time signals: used to execute the benchmark periodically and to gather stats.
 - Linux scheduler syscalls: Used to change the scheduling policy.
 - Linux Perf: Used to read performance counters (currently only on CORTEX A53)
+- [JSON-C](https://github.com/json-c/json-c): Used to read and parse input JSON configuration files.
 
 Currently RT-Bench targets the following platforms:
 - x86/x86_64
 - ARM64
+
+#### Dependence installation
+  The `json-c` dependence can be installed with the following command:
+- Ubuntu/Debian:  
+```{.sh}
+sudo apt install libjson-c5 libjson-c-dev
+```
+- Arch Linux:  
+```{.sh}
+sudo pacman -S json-c
+```
 
 ## Compiling RT-Bench
 
@@ -25,14 +37,14 @@ Compiling a RT-Bench compliant benchmark (see [benchmark structure](3-Extending_
 The simplest compilation line necessary is as follows:
 
 ```{.sh}
-gcc -O2 -Wall -g -Ipath/to/rt-bench/generator -lrt -lm -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap target.c path/to/rt-bench/generator/*.c -o target
+gcc -O2 -Wall -g -Ipath/to/rt-bench/generator -lrt -lm -ljson-c -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap target.c path/to/rt-bench/generator/*.c -o target
 ```
 
 where:
 
 - `-O2 -Wall -g` are _optional_ but recommended flags
 - `-Ipath/to/rt-bench/generator` is the path to the `generator/` folder located within your local rt-bench repository (_mandatory_)
-- `-lrt -lm -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap` _must_ appear for the correct working of the RT-Bench core mechanics 
+- `-lrt -lm -ljson-c -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap` _must_ appear for the correct working of the RT-Bench core mechanics 
 - `path/to/rt-bench/generator/*.c` is the path to all the components located in the `rt-bench_generator/` folder within your local rt-bench repository 
 - `target` is the name of the benchmark under consideration
 

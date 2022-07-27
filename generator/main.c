@@ -7,6 +7,7 @@
 #include <fenv.h>
 #include "logging.h"
 #include <string.h>
+#include <json-c/json.h>
 #include "sched_attr.h"
 
 #include <inttypes.h>
@@ -158,16 +159,66 @@ static int set_sched_fifo_prio(unsigned int prio)
 	return ret;
 }
 
-/** @brief Parse cli options and arguments via argp.
+/** @brief Convert the long options to their short version.
+ * @param[in] arg The option to shorten.
+ * @returns The shortened option.
+ * @details In case the translation is not available the function will call will use the `exit` syscall to terminate the program with an error.
+ */
+static char field_to_abbrv_mapping(char *arg)
+{
+	if (!strcmp(arg, "deadline"))
+		return 'd';
+	else if (!strcmp(arg, "period"))
+		return 'p';
+	else if (!strcmp(arg, "core-affinity"))
+		return 'c';
+	else if (!strcmp(arg, "mem-limit"))
+		return 'm';
+	else if (!strcmp(arg, "tasks-number"))
+		return 't';
+	else if (!strcmp(arg, "sched-deadline"))
+		return 'D';
+	else if (!strcmp(arg, "fifo"))
+		return 'f';
+	else if (!strcmp(arg, "sched-period"))
+		return 'P';
+	else if (!strcmp(arg, "sched-runtime"))
+		return 'T';
+#ifdef AARCH64
+#ifdef CORTEX_A53
+	else if (!strcmp(arg, "memory-profiling-enable"))
+		return 'M';
+	else if (!strcmp(arg, "memory-profiling-core"))
+		return 'C';
+	else if (!strcmp(arg, "memory-profiling-time-bucket"))
+		return 'B';
+#endif
+#endif
+	else if (!strcmp(arg, "log-level"))
+		return 'l';
+	else if (!strcmp(arg, "output"))
+		return 'o';
+	else if (!strcmp(arg, "bmark-args"))
+		return 'b';
+	else {
+		printf("Invalid/unsupported parameter \"%s\" in configuration file!\n",
+		       arg);
+		exit(0);
+	}
+}
+
+/** @brief Parse cli or JSON options and arguments.
  * @param[in] key The parsed key (e.g. s if the parameters is -s 100) .
  * @param[in] arg The value associated with the parsed key.
  * @param[in,out] state The argp parser state when this function it's called.
  * @returns 0 or an error code.
- * @details This function is invoked every time argp encounters a parameter, and it will identify the parsed parameter and store it accordingly.
+ * @details This function is invoked every time argp encounters a parameter, and it will identify the parsed parameter and store it accordingly, excluding the `-g` option.
+ * This function decouples parsing all the options from handling the `-g` option.
  */
-static int parse_opt(int key, char *arg, struct argp_state *state)
+static int interpret_opt(int key, const char *arg, struct argp_state *state)
 {
-	int res = 0, log_level = LOG_LEVEL_INFO;
+	int res = 0;
+	int log_level = LOG_LEVEL_INFO;
 	double time_spec;
 	long seconds, nanoseconds;
 	struct execution_options *parsed_args = state->input;
@@ -178,29 +229,27 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	unsigned long long tasks = 0;
 	int arg_len = 0;
 	errno = 0;
-	feclearexcept(FE_ALL_EXCEPT);
+
 	switch (key) {
-		//default values for arguments and options
-	case ARGP_KEY_INIT:
-		memset(parsed_args, 0, sizeof(struct execution_options));
-		CPU_ZERO(&parsed_args->core_affinity);
-		parsed_args->prio = 100;
-		parsed_args->runtime = 0;
-		parsed_args->period = 0;
-		parsed_args->deadline = 0;
-		parsed_args->memory_profiling_enable = 0;
-		CPU_ZERO(&parsed_args->memory_profiling_core_affinity);
-		parsed_args->memory_profiling_time_bucket = 10000000;
-		break;
 	case 'b':
-		//we want to directly grab the argument list, after the -b flag
+		arg_len = strlen(arg);
+		// We get the arg, split the string, and rearrange in args
 		if (state->arg_num == 0) {
-			//so we use the index to the next argument to retrieve the position of the next argument in argv after -b
-			parsed_args->args = state->argv + (state->next - 1);
-			//we compute the number of elements in argv from the first argument after -b to the end of the array
-			parsed_args->args_num = state->argc - (state->next - 1);
-			//and we modify the next argument to finish scanning argv
-			state->next = state->argc;
+			parsed_args->args_num = 0;
+			// Overprovision the array size. It cannot be as big as the elemt composing it
+			parsed_args->args =
+				(char **)malloc(sizeof(char *) * arg_len);
+			char sep[] = " ";
+			char *ptr = strtok(arg, sep);
+			while (ptr != NULL) {
+				parsed_args->args[parsed_args->args_num] =
+					(char *)malloc(sizeof(char) *
+						       strlen(ptr));
+				strcpy(parsed_args->args[parsed_args->args_num],
+				       ptr);
+				parsed_args->args_num++;
+				ptr = strtok(NULL, ptr);
+			}
 		} else {
 			argp_error(
 				state,
@@ -209,8 +258,8 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case 'm':
 		/* the argument should contain the number of bytes to preallocate and an order of magnitude
-		 * K for kilobytes, M for megabytes and G for gigabytes
-		 * e.g 1G = 1 gigabyte preallocated.*/
+                 * K for kilobytes, M for megabytes and G for gigabytes
+                 * e.g 1G = 1 gigabyte preallocated.*/
 		res = sscanf(arg, "%zu%1c", &preallocation,
 			     &preallocation_magnitude);
 		if (res < 1 || res == EOF) {
@@ -220,7 +269,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		res = 0;
 		/*we convert the parsed value in bytes save it as an execution option.
-		 * breaks are omitted to obtain a proper conversion in bytes. */
+                 * breaks are omitted to obtain a proper conversion in bytes. */
 		switch (preallocation_magnitude) {
 		case 'g':
 		case 'G':
@@ -348,8 +397,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	case 'P':
 		parsed_args->period = strtoull(arg, NULL, 0);
 		break;
-#ifdef AARCH64AARCH64AARCH64
-
+#ifdef AARCH64
 #ifdef CORTEX_A53
 	case 'M':
 		parsed_args->memory_profiling_enable = strtoul(arg, NULL, 0);
@@ -364,6 +412,55 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 #endif
 #endif
+	default:
+		res = ARGP_ERR_UNKNOWN;
+	}
+	return res;
+}
+
+/** @brief Parse cli/JSON options and arguments via argp.
+ * @param[in] key The parsed key (e.g. s if the parameters is -s 100) .
+ * @param[in] arg The value associated with the parsed key.
+ * @param[in,out] state The argp parser state when this function it's called.
+ * @returns 0 or an error code.
+ * @details This function is invoked every time argp encounters a parameter, and it will identify the parsed parameter and store it accordingly.
+ * This function will rely on `interpret_opt()` to parse all the options. It performs some initialization steps and load the JSON file if necessary.
+ * Integrity checks and scheduler policy changes are also performed here. 
+ */
+static int parse_opt(int key, char *arg, struct argp_state *state)
+{
+	int res = 0;
+	struct execution_options *parsed_args = state->input;
+	errno = 0;
+	feclearexcept(FE_ALL_EXCEPT);
+	switch (key) {
+		//default values for arguments and options
+	case ARGP_KEY_INIT:
+		memset(parsed_args, 0, sizeof(struct execution_options));
+		CPU_ZERO(&parsed_args->core_affinity);
+		parsed_args->prio = 100;
+		parsed_args->runtime = 0;
+		parsed_args->period = 0;
+		parsed_args->deadline = 0;
+		parsed_args->memory_profiling_enable = 0;
+		CPU_ZERO(&parsed_args->memory_profiling_core_affinity);
+		parsed_args->memory_profiling_time_bucket = 10000000;
+		break;
+	case 'g':
+		json_object *root = json_object_from_file(arg);
+		json_object_object_foreach(root, first, second)
+		{
+			res = interpret_opt(field_to_abbrv_mapping(first),
+					    json_object_get_string(second),
+					    state);
+			if (res < 0) {
+				argp_error(state,
+					   "Problem in parsing JSON file.");
+				break;
+			}
+		}
+		json_object_put(root);
+		break;
 	case ARGP_KEY_END:
 		if (parsed_args->deadline_nsec == 0 &&
 		    parsed_args->deadline_sec == 0)
@@ -413,9 +510,8 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		break;
 	default:
-		res = ARGP_ERR_UNKNOWN;
+		res = interpret_opt(key, arg, state);
 	}
-
 	return res;
 }
 
@@ -434,19 +530,22 @@ int main(int argc, char **argv)
 		"Run a benchmark periodically, trying to meet the given deadline.";
 	const char *argp_args_doc = "";
 	struct argp_option argp_options[] = {
-		{ 0, 0, 0, 0, "Period and deadline options:", 1 },
+		{ 0, 0, 0, 0, "Configuration input:", 1 },
+		{ "configuration-file", 'g', "config_path", 0,
+		  "Specify the JSON file describing the configuration to use. Following options complement or override the JSON description. Conversely, options specified before are complemented or overwritten." },
+		{ 0, 0, 0, 0, "Period and deadline options:", 2 },
 		{ "deadline", 'd', "secs", 0,
 		  "The benchmark deadline in seconds. Can be an integer, float or in scientific notation. Required. Must be less or equal than the benchmark period." },
 		{ "period", 'p', "secs", 0,
 		  "The benchmark period, in seconds. Can be an integer, float or in scientific notation. Required." },
-		{ 0, 0, 0, 0, "Execution options:", 2 },
+		{ 0, 0, 0, 0, "Execution options:", 3 },
 		{ "core-affinity", 'c', "core0,core1,...", 0,
 		  "The benchmark core affinity, expressed as a comma separated list. A single core id is also accepted." },
 		{ "mem-limit", 'm', "bytes[GMK]", 0,
 		  "The maximum amount of dynamic memory allocated during the periodic execution. If exceeded, the benchmark will crash. Specified as an integer plus an optional magnitude modifier: K=kilobytes, M=megabytes, G=gigabytes. Without a magnitude modifier specified the value is assumed to be in bytes. 0 Means no limit, and it is the default setting." },
 		{ "tasks-number", 't', "integer>=0", 0,
 		  "The number of tasks to be executed. 0 means until the program receives a SIGINT. Default is 0." },
-		{ 0, 0, 0, 0, "Scheduling options:\n\n", 3 },
+		{ 0, 0, 0, 0, "Scheduling options:\n\n", 4 },
 		{ "fifo", 'f', "0<=prio<=99", 0,
 		  "Set SCHED_FIFO priority with specified priority. Need root." },
 		{ "sched-runtime", 'T', "ns", 0,
@@ -455,7 +554,7 @@ int main(int argc, char **argv)
 		  "Set SCHED_DEADLINE deadline. Alternative to --fifo. Need root." },
 		{ "sched-period", 'P', "ns", 0,
 		  "Set SCHED_DEADLINE period. Alternative to --fifo. Need root. At least --sched-period has to be specified to set sched_deadline params. If deadline is not specified, deadline is set to period. If runtime is not specified, runtime is set to deadline. NOTE: These parameters are different from --period and --deadline used to control the repetitive execution of the thread. To generate valid execution that are not truncated under hard server reservation, period < sched-period and deadline < sched-deadline." },
-		{ 0, 0, 0, 0, "Reporting options:", 4 },
+		{ 0, 0, 0, 0, "Reporting options:", 5 },
 #ifdef AARCH64
 #ifdef CORTEX_A53
 		{ "memory-profiling-enable", 'M', "bool", 0,
@@ -470,7 +569,7 @@ int main(int argc, char **argv)
 		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats to output file.\n3 - Print benchmark stats to stdout.\n4 - Print also informative messages on stderr.\nDefault is 3." },
 		{ "output", 'o', "output_path", 0,
 		  "Where the info on the benchmark execution will be written. If not supplied, \"./timing.csv\" will be used." },
-		{ 0, 0, 0, 0, "Benchmark arguments and options:", 5 },
+		{ 0, 0, 0, 0, "Benchmark arguments and options:", 6 },
 		{ "bmark-args", 'b', "arg opt ...", 0,
 		  "A space-separated list of arguments and options that must be relayed directly to the benchmark. It must be specified after every other option since everything after it will be passed directly to the benchmark routine." },
 		{ 0, 0, 0, 0, "Informational options:\n", -1 },
@@ -521,6 +620,13 @@ int main(int argc, char **argv)
 
 	//benchmark initialization
 	res = periodic_benchmark(&parsed_args);
+
+	// Clean/free buffers
+	for (size_t i = 0; i < parsed_args.args_num; i++)
+		free(parsed_args.args[i]);
+	free(parsed_args.args);
+
+	// return failure if exist
 	if (res < 0) {
 		return EXIT_FAILURE;
 	}

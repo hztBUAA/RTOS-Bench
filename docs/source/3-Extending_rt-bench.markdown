@@ -86,8 +86,18 @@ It is also recommended to create a folder with the benchmark name that will cont
     ```
 	Will revert all the operations done by `benchmark_init` and free allocated memory, to ensure a clean termination of the program. This function is executed only when the program is terminating.
 
-`parameters_num` and `parameters` are initialized by the [RT-Bench Generator](@ref #generator) module with the contents of the `-b` options and can be used like `argc` and `argv`.
-Global variables can be used to maintain data between different calls of these three functions.
+  `parameters_num` and `parameters` are initialized by the [RT-Bench Generator](@ref #generator) module with the contents of the `-b` options and can be used like `argc` and `argv`.
+  Global variables can be used to maintain data between different calls of these three functions.
+
+5. The benchmark files must import the following libraries (provided by the [RT-Bench Generator](@ref #generator)):
+  - The logging library provieded by RT-Bench.
+  ```{.c}
+  #include "logging.h"
+  ```
+  - The header that defines the exported functions along with other macros and dependencies.
+  ```{.c}
+    #include "periodic_benchmark.h"
+  ```
 
 Refer to the [disparity](@ref #disparity) benchmark documentation and source code for a working example.
 

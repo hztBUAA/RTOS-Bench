@@ -4,7 +4,7 @@ BASE_SRC=$(wildcard ../generator/*.c)
 BASE_O=$(patsubst %.c,%.o,$(BASE_SRC))
 CFLAGS=-O2 -Wall -g -I../generator -DGCC
 CXXFLAGS=$(CFLAGS)
-LDFLAGS=-Wl,--no-as-needed -lrt -lm -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap
+LDFLAGS=-Wl,--no-as-needed -lrt -lm -pthread -ljson-c -Wl,--wrap=malloc -Wl,--wrap=mmap
 
 
 ifdef CORE

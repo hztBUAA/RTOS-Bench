@@ -9,3 +9,4 @@ docs/conf/doxygen-awesome
 .clang-format
 .compile_commands.json
 .ctags
+*.o
