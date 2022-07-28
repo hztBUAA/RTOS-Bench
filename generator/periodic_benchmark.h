@@ -57,6 +57,11 @@ int periodic_benchmark(struct execution_options *exec_opts);
 /** @cond SKIP
  * Documentation of the following prototypes is delegated to the benchmark that implements them.
  */
+#ifdef EXTENDED_REPORT
+extern const char* benchmark_log_header();
+
+extern float benchmark_log_data();
+#endif
 
 //The benchmark init function, which will be defined by the benchmark itself
 extern int benchmark_init(int parameters_num, void **parameters);

@@ -95,8 +95,8 @@ void print_timing(FILE *file, unsigned long long period_start_clocks,
 	}
 	double density_clocks = 0;
 	if (deadline_clocks > period_start_clocks) {
-		(elapsed_clocks + 0.0) /
-			(deadline_clocks - period_start_clocks);
+		density_clocks = (elapsed_clocks + 0.0) /
+				 (deadline_clocks - period_start_clocks);
 	}
 	double d = density;
 	if (density <= 0) {
@@ -196,6 +196,23 @@ void print_performance_counters(
 	}
 }
 
+void print_extra_data(FILE *file, float extra_measurement)
+{
+	switch (benchmark_verbosity) {
+	case LOG_LEVEL_TRACE:
+		printf("Extra benchmark metric: %f\n", extra_measurement);
+		break;
+	case LOG_LEVEL_FILE:
+		fprintf(file, ",%f", extra_measurement);
+		break;
+	case LOG_LEVEL_INFO:
+		printf(",%f", extra_measurement);
+		break;
+	case LOG_LEVEL_ERR:
+		break;
+	}
+}
+
 void print_statistics(FILE *file, unsigned long long period_start_clocks,
 		      unsigned long long period_end_clocks,
 		      unsigned long long job_end_clocks,
@@ -207,7 +224,7 @@ void print_statistics(FILE *file, unsigned long long period_start_clocks,
 		      long unsigned inst_retired_start,
 		      long unsigned l1_ref_end, long unsigned l1_miss_end,
 		      long unsigned l2_ref_end, long unsigned l2_miss_end,
-		      long unsigned inst_retired_end)
+		      long unsigned inst_retired_end, float extra_measurement)
 {
 	print_timing(file, period_start_clocks, period_end_clocks,
 		     job_end_clocks, deadline_clocks, period_start, period_end,
@@ -220,6 +237,11 @@ void print_statistics(FILE *file, unsigned long long period_start_clocks,
 				   l2_ref_end, l2_miss_end, inst_retired_end);
 #endif
 #endif
+
+#ifdef EXTENDED_REPORT
+	print_extra_data(file, extra_measurement);
+#endif
+
 	switch (benchmark_verbosity) {
 	case LOG_LEVEL_FILE:
 		fprintf(file, "\n");

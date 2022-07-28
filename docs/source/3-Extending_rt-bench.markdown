@@ -69,7 +69,7 @@ It is also recommended to create a folder with the benchmark name that will cont
     * Benchmark detailed description.
     */
     ```
-4. The benchmark files must export (and document as described in the next section) three functions:
+4. The benchmark files _must_ export (and document as described in the next section) three functions:
 	-
     ```{.c}
     int benchmark_init(int parameters_num, void **parameters)
@@ -98,6 +98,20 @@ It is also recommended to create a folder with the benchmark name that will cont
   ```{.c}
     #include "periodic_benchmark.h"
   ```
+
+6. _Optionally_, the benchmark can export functions for the extending the report interface. For this, only two functions are necessary:
+	-
+    ```{.c}
+    const char* benchmark_log_header()
+    ```
+  	Which returns a constant string to extend the csv header (e.g., ",bandwidth(MB/S)" for isolbench/bandwidth)
+	-
+    ```{.c}
+    float benchmark_log_data()
+    ```
+	  Which returns the benchmark-specific measurement.
+
+  Note that, as indicated in [the building guidelines](2-Building_with_the_framework.markdown), the `-DEXTENDED-REPORT` compilation flag _must_ be used for these functions to be called.
 
 Refer to the [disparity](@ref #disparity) benchmark documentation and source code for a working example.
 

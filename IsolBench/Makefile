@@ -1,8 +1,8 @@
 CC=gcc
-PGMS=latency bandwidth
+PGMS=bandwidth latency
 BASE_SRC=$(wildcard ../generator/*.c)
 BASE_O=$(patsubst %.c,%.o,$(BASE_SRC))
-CFLAGS=-O2 -Wall -g -I../generator -DGCC
+CFLAGS=-O2 -Wall -g -I../generator -DGCC -DEXTENDED_REPORT
 CXXFLAGS=$(CFLAGS)
 LDFLAGS=-Wl,--no-as-needed -lrt -lm -pthread -ljson-c -Wl,--wrap=malloc -Wl,--wrap=mmap
 

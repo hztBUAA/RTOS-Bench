@@ -119,6 +119,9 @@ static struct perf_counters job_perf_counters_start;
 /// Performance counters at the end of the period.
 static struct perf_counters job_perf_counters_end;
 
+/// Extra benchmark dependant measured data.
+static float extra_measurement = 0.0f;
+
 /**
  * @brief Teardown function registered to be called when exit is called.
  * @param[in] status The exit status.
@@ -313,7 +316,8 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 					 job_perf_counters_end.l1_refills,
 					 job_perf_counters_end.l2_references,
 					 job_perf_counters_end.l2_refills,
-					 job_perf_counters_end.inst_retired);
+					 job_perf_counters_end.inst_retired,
+					 extra_measurement);
 
 		}
 #ifdef PRINT_SKIPPED_DEADLINE
@@ -328,7 +332,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 						 last_deadline_timestamp,
 						 job_end_timestamp,
 						 job_deadline_timestamp, 0, 0,
-						 0, 0, 0, 0, 0, 0);
+						 0, 0, 0, 0, 0, 0, 0.0);
 			}
 		}
 #endif /* PRINT_SKIPPED_DEADLINE */
@@ -348,6 +352,9 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 		job_period_end_timestamp = 0;
 		job_end_timestamp = 0;
 		job_deadline_timestamp = 0;
+#ifdef EXTENDED_REPORT
+		extra_measurement = 0.0f;
+#endif
 		// we unlock the semaphore to allow the next job to start
 		res = sem_post(&period_sem);
 		if (res < 0) {
@@ -542,8 +549,13 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			fname = exec_opts->output_path;
 		}
 		filep = fopen(fname, "w+");
-		fprintf(filep,
-			"period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density,job_l1_references,job_l1_misses,job_l1_miss_ratio(%%),job_l2_references,job_l2_misses,job_l2_miss_ratio(%%),instructions_retired\n");
+		char log_header[1024];
+		strcat(log_header, "period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density,job_l1_references,job_l1_misses,ob_l1_miss_ratio(%%),job_l2_references,job_l2_misses,job_l2_miss_ratio(%%),instructions_retired");
+#ifdef EXTENDED_REPORT
+		strcat(log_header, benchmark_log_header());
+#endif
+		strcat(log_header, "\n");
+		fprintf(filep, log_header);
 		if (exec_opts->output_path != NULL) {
 			free(exec_opts->output_path);
 		}
@@ -657,6 +669,9 @@ int periodic_benchmark(struct execution_options *exec_opts)
 #endif
 		job_end_timestamp_clocks = get_rdtsc();
 		job_end_timestamp = get_timestamp();
+#ifdef EXTENDED_REPORT
+		extra_measurement = benchmark_log_data();
+#endif
 		// we update the number of launched benchmarks
 		tasks_launched++;
 	}
