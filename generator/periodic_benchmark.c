@@ -555,7 +555,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		strcat(log_header, benchmark_log_header());
 #endif
 		strcat(log_header, "\n");
-		fprintf(filep, log_header);
+		fprintf(filep, "%s",log_header);
 		if (exec_opts->output_path != NULL) {
 			free(exec_opts->output_path);
 		}
