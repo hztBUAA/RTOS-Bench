@@ -3,7 +3,8 @@ image: alpine
 pages:
     script:
     - apk update && apk add doxygen graphviz make git
-    - make -C docs
+    - make setup
+    - make docs
     - mv docs/html/ public/
     artifacts:
         paths:

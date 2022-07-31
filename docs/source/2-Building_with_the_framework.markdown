@@ -1,4 +1,4 @@
-# Building with the framework
+# Building with the framework {#compilation}
 
 [TOC]
 
@@ -19,6 +19,8 @@ Currently RT-Bench targets the following platforms:
 - x86/x86_64
 - ARM64
 
+For [Nix](https://nixos.org/) users a flake and a [direnv](https://direnv.net/) environment are available to make sure that all the dependencies are satisfied.
+
 #### Dependence installation
   The `json-c` dependence can be installed with the following command:
 - Ubuntu/Debian:  
@@ -34,6 +36,8 @@ sudo pacman -S json-c
 
 Compiling a RT-Bench compliant benchmark (see [benchmark structure](3-Extending_rt-bench.markdown)) with the framework is relatively easy as with GCC only few optional and mandatory flags are required or adviced.
 
+It is suggested to follow each [benchmark set](@ref #benchmarks) compilation instructions for best results.
+
 The simplest compilation line necessary is as follows:
 
 ```{.sh}
@@ -42,11 +46,11 @@ gcc -O2 -Wall -g -Ipath/to/rt-bench/generator -lrt -lm -ljson-c -pthread -Wl,--w
 
 where:
 
-- `-O2 -Wall -g` are _optional_ but recommended flags
-- `-Ipath/to/rt-bench/generator` is the path to the `generator/` folder located within your local rt-bench repository (_mandatory_)
-- `-lrt -lm -ljson-c -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap` _must_ appear for the correct working of the RT-Bench core mechanics 
-- `path/to/rt-bench/generator/*.c` is the path to all the components located in the `rt-bench_generator/` folder within your local rt-bench repository 
-- `target` is the name of the benchmark under consideration
+- `-O2 -Wall -g` are _optional_ but recommended flags.
+- `-Ipath/to/rt-bench/generator` is the path to the `generator/` folder located within your local rt-bench repository (_mandatory_).
+- `-lrt -lm -ljson-c -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap` _must_ appear for the correct working of the RT-Bench core mechanics.
+- `path/to/rt-bench/generator/*.c` is the path to all the components located in the `rt-bench_generator/` folder within your local rt-bench repository.
+- `target` is the name of the benchmark under consideration.
 
 ## Optional RT-Bench specific options
 

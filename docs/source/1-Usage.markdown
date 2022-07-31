@@ -2,6 +2,13 @@
 
 [TOC]
 
+## Initialization
+This project is composed by several submodules, (roughly one per benchmark set) that need to be initialized if the corresponding benchmarks have to be used.
+
+To initialize ALL the benchmarks submodules and the submodules needed to build the documentation, it is enough to issue a `make setup` command from the repo root folder.
+
+Each submodule can be initialized independently by following its instructions, accessible from the [Benchmarks](@ref #benchmarks) section.
+
 ## Compilation
 
 Benchmarks compilation steps are described in the
@@ -16,11 +23,64 @@ the module in the [Benchmarks page](@ref #benchmarks) will provide benchmark-spe
 
 Depending on the benchmark it might be necessary to supply benchmark-specific
 options. The [Benchmark page](@ref #benchmarks) will present the common options that RT-Bench exposes,
-while for the benchmark-specific options and argument the user should refer to
-the specific benchmark set module. 
-### Benchmark execution
+while for the benchmark-specific options and argument the user should refer to the specific benchmark set module.
 
-To execute the benchmark is is sufficient to give the executable the required arguments via CLI.
+## Top-level Makefile
+
+The project has a top level Makefile that can be used to quickly perform certain operations.
+
+### General targets
+
+General targets perform operations on the whole project.
+
+- `all`: a dummy targets that prevents the user to compile the full project.
+- `docs`: Generate this documentation locally. Refer to [Documentation Rules](#docrules) for more precise instructions 
+- `clean`: Removes all non-source code files for the repo and all git submodules.
+- `setup`: Initializes all the git submodules.
+
+### Setup targets
+
+Setup targets are intended to initialize git submodules
+
+- `setup-docs`: Initializes the git submodules needed for building the documentation.
+- `setup-tacle`: Initializes the git submodule for the [TACLeBench](@ref #rt-tacle-bench) suite.
+
+### Compilation targets
+
+Compilation targets are meant to compile all the benchmarks in a [benchmark set](@ref #benchmarks) with a single command. Refer to the [compilation instructions](#compilation) for dependencies.
+
+- `compile-isolbench`: Compiles the [IsolBench](@ref #IsolBench) suite.
+- `compile-vision`: Compiles the [SD-VBS](@ref #SD-VBS) suite.
+- `compile-tacle`: Compiles the [TACLeBench](@ref #rt-tacle-bench) suite.
+
+### Clean targets
+
+Compilation targets are meant to remove most of the non-source code files.
+
+- `clean-isolbench`: Cleans the [IsolBench](@ref #IsolBench) suite.
+- `clean-vision`: Cleans the [SD-VBS](@ref #SD-VBS) suite.
+- `clean-tacle`: Cleans the [TACLeBench](@ref #rt-tacle-bench) suite.
+
+### Benchmark groups
+Benchmark suite are also grouped to facilitate certain types of tests.
+Each group will have a single setup, compilation and clean target.
+
+Available groups are:
+- `group-WCET`: WCET related benchmarks.
+  Includes:
+  - [TACLeBench](@ref #rt-tacle-bench)
+- `group-interf`: Synthetic benchmarks used for system interference.
+  Includes:
+  - [IsolBench](@ref #IsolBench)
+- `group-vision`: Computer vision benchmarks.
+  Includes:
+  - [SD-VBS](@ref #SD-VBS)
+
+To use these grouped targets it is enough to prepend `setup-`, `clean-` or `compile-` before the group name.
+
+## Benchmark execution example
+
+To execute the benchmark is sufficient to give the executable the required arguments via CLI.
 The only parameters required to run a benchmark are period and deadline.
 
 As an example the following commands will be used to run the [disparity](@ref #disparity) benchmark from the [San Diego Vision Benchamrks](@ref #SD-VBS) suite:

@@ -125,5 +125,5 @@ execution in the following way:
 @image latex rt-bench-control-flow.pdf "RT-Bench control flow graph" width=10cm
 
 
-The associated paper, available on [ACM Digital Library](https://dl.acm.org/doi/10.1145/3534879.3534888) 
+The associated paper, available on [ACM Digital Library](https://dl.acm.org/doi/10.1145/3534879.3534888) and [arXiv](https://arxiv.org/abs/2203.11423),
 contains more details on the design and some examples of what can be done with the framework.

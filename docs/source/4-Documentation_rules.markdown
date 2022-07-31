@@ -1,4 +1,4 @@
-# Documentation rules
+# Documentation rules {#docrules}
 
 [TOC]
 
@@ -16,6 +16,8 @@ The documentation is available in pdf and html, and it is generated in the `docs
 - pdflatex (only to generate documentation in pdf format.)
 - [Doxygen Awesome](https://github.com/jothepro/doxygen-awesome-css) (will be set up automatically)
 - A working internet connection
+
+For [Nix](https://nixos.org/) users a flake and a [direnv](https://direnv.net/) environment are available to make sure that all the dependencies are satisfied.
 
 ## Build targets
 
