@@ -21,7 +21,7 @@ To add a new benchmark set and integrate it with the other sets the following st
    - `clean-new_set`: This target has to clean all the compilation and execution byproducts, including data, object files and executables generated.
      `clean-new_set` has also to be included as dependency of the `clean` target.
      
-   Finally the newly created target have to be added to the grouped targets, creating a new group if necessary
+   Finally, the newly created target have to be added to the grouped targets, creating a new group if necessary
 3. The benchmark set is to be described as a module in a .dox or .md file.
 
     All the details of the benchmark set, including submodule setup, compilation, benchmarks general usage have to be described in this file.
@@ -53,15 +53,19 @@ To add a new benchmark set and integrate it with the other sets the following st
 This step will ensure that all be benchmarks are grouped together and a new link will appear in the [Available Benchmarks](@ref #benchmarks) page.
 Furthermore, documentation specific only to the benchmark set can be placed inside the detailed description in Markdown syntax. 
 
-The [SD-VBS](@ref #SD-VBS) module source file (`rt-bench/docs/source/modules/SD-VBS/SD-VBS.dox`) is a working .dox example.
-The [TACLeBench](@ref #rt-tacle-bench) module source file (`rt-bench/rt-tacle-bench/README.md`) is a working markdown example that is converted to .dox for documentation purposes, while doubling as the submodule repository README.
-
-**NOTE**: For markdown files, the extension has to be `.md`, so that they will not be included in doxygen documentation as pages, but can be convert with the aforementioned script.
 
 It also possible and encouraged to create subsets if necessary, documented using the same procedure.
 
 Folders can be excluded from the documentation by editing the `EXCLUDE` tag in the RT-Bench Doxyfile (`rt-bench/docs/conf/Doxyfile`)
 
+### Examples
+
+The [SD-VBS](@ref #SD-VBS) module source file (`rt-bench/docs/source/modules/SD-VBS/SD-VBS.dox`) is a working .dox example.
+The [TACLeBench](@ref #rt-tacle-bench) module source file (`rt-bench/rt-tacle-bench/README.md`) is a working markdown example that is converted to .dox for documentation purposes, while doubling as the submodule repository README.
+
+Refer to the `setup-tacle`, `compile-tacle`, `clean-tacle` targets in the top-level Makefile (`rt-bench/Makefile`) as examples on how to initialize, build and clean the submodule.
+
+**NOTE**: For markdown files, the extension has to be `.md`, so that they will not be included in doxygen documentation as pages, but can be convert with the aforementioned script.
 This example will exclude all file in the RT-Bench documentation config folder and in the TACLeBench `parallel` subfolder from being documented:
 
 ```
@@ -70,6 +74,11 @@ EXCLUDE = ../config \
 ```
 
 **NOTE**: When editing the Doxyfile, paths are relative to the Doxyfile location!
+### Updating a benchmark set submodule
+
+Changes in an RT-Bench submodule are not detected automatically to prevent the submodule breaking when breaking changes are introduced and to make te commit history of RT-Bench always deployable.
+Whenever a submodule is updated and it is judeged compatible to the current version of RT-Bench it is necessary to update the submodule reference SHA-1.
+A quick way to do this is by adding the submodule folder to the repo, committing and pushing the changes.    
 
 ## Add a new benchmark in an existing set {#new-bmark}
 
@@ -152,6 +161,7 @@ When adding and integrating new benchmark in an existing benchmark set the follo
   Note that, as indicated in [the building guidelines](2-Building_with_the_framework.markdown), the `-DEXTENDED-REPORT` compilation flag _must_ be used for these functions to be called.
 
 Refer to the [disparity](@ref #disparity) benchmark documentation and source code for a working example.
+
 
 ## Add scripts and utilities
 

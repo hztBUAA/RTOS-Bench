@@ -11,34 +11,45 @@ setup: setup-docs setup-tacle
 
 #setup targets
 setup-docs:
+	@echo 'Setting up documentation dependencies'
 	make -C ${CURDIR}/docs setup
 
 setup-tacle:
-	git submodule init rt-tacle-bench
-	git submodule update rt-tacle-bench
-	cd rt-tacle-bench && bash ../utils/md2dox.sh README
+	@echo 'Initialize the submodule'
+	@git submodule init rt-tacle-bench
+	@echo 'Fetch the pinned version of the submodule'
+	@git submodule update --recursive rt-tacle-bench
+	@echo 'Convert the submodule README.md to a .dox file that will be included in the documentation.'
+	@cd rt-tacle-bench && bash ../utils/md2dox.sh README
 
 #compilation targets
 compile-isolbench:
+	@echo 'Compiling IsolBench'
 	make -C ${CURDIR}/IsolBench/
 
 compile-tacle: setup-tacle
+	@echo 'Compiling TACLeBench'
 	make -C ${CURDIR}/rt-tacle-bench/
 
 compile-vision:
+	@echo 'Compiling SD-VBS'
 	make -C ${CURDIR}/vision/ compile
 
 #clean targets
 clean-tacle:
+	@echo 'Cleaning TACLeBench'
 	make -C ${CURDIR}/rt-tacle-bench/ clean
 
 clean-vision:
+	@echo 'Cleaning SD-VBS'
 	make -C ${CURDIR}/vision/ clean
 
 clean-isolbench:
+	@echo 'Cleaning IsolBench'
 	make -C ${CURDIR}/IsolBench/ clean
 
 clean-docs:
+	@echo 'Cleaning docs'
 	make -C ${CURDIR}/docs clean
 
 # benchmark suite groups
