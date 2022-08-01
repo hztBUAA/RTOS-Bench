@@ -3,6 +3,16 @@
 * @ingroup IsolBench
 * @brief Latency benchmark.
 *
-* Modified files for the latency benchmark, located in `IsolBench`.
-* Latency is a memory access latency measurement microbenchmark.
+* Latency is a memory access latency measurement microbenchmark, which will allocate a linked list an navigate it.
+* Then the measured system latency will be reported.
+*
+* ## CLI Options
+* These are benchmark-specific options that have to be specified after `-b`, as a single string:
+* - `-h`: Show the benchmark-specific help message.
+* - `-m`: Size of memory in kilobytes. Default is 16MB.
+* - `-s`: Use serial access instead of random access.
+* - `-i`: Number of list walks per job, default is 100.
+*
+* ## Example:
+* `$ latency -p 1 -d 1 -b "-m 8192 -s -i 1"`  <- 8MB, serial access, 1 one iteration. 1 sec deadline and period.
 */

@@ -1,7 +1,10 @@
 /** @file memory_watcher.c
- * @ingroup base
+ * @ingroup generator
  * @brief Implementation of a memory watcher, which will crash the program if it detects and heap extension.
  * @author Mattia Nicolella
+ *
+ * **Dependencies**:
+ * - Glibc.
  *
  * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT

@@ -1,7 +1,7 @@
 /**
  * @file bandwidth.c
- * @ingroup Bandwidth
- * @brief Functions used to run the bandwidth benchmark periodically.
+ * @ingroup bandwidth
+ * @brief RT-Bench-compatible bandwidth benchmark.
  * @details
  * The original script has been broken down in three components:
  * - init: benchmark_init();
@@ -71,6 +71,7 @@ int *g_mem_ptr = 0; /** Pointer to allocated memory region */
 
 volatile uint64_t g_nread = 0; /** Number of bytes read */
 volatile unsigned int g_start; /** Starting time */
+volatile unsigned int g_end;
 /// Memory access type
 int acc_type = READ;
 /// Number of iterations
@@ -225,6 +226,19 @@ int benchmark_init(int parameters_num, void **parameters)
 }
 
 /**
+ * @brief This handler returns the bandwidth as the extra measurement metric.
+ * @details
+ * This function returns a string mentioning the metric of the benchmark 
+ * (here, the bandwidth in MBps). This function is only called if the benchmark has 
+ * been built with the `-DEXTENDED_REPORT`.
+ * @returns a constant string starting with `,` that extends the report header.
+ */
+const char *benchmark_log_header()
+{
+	return ",bandwidth(MB/S)";
+}
+
+/**
  * @brief This handler is where the memory bandwidth will be computed.
  * @param[in] parameters_num Number of passed parameters, ignored.
  * @param[in] parameters The list of passed parameters, ignored.
@@ -253,9 +267,22 @@ void benchmark_execution(int parameters_num, void **parameters)
 		if (iterations > 0 && i + 1 >= iterations)
 			break;
 	}
-	
-	flogf(LOG_LEVEL_FILE, bmark_output, "total sum = %ld\n", (long)sum);
-	print_bandwidth(0);
+	g_end = get_usecs();
+}
+
+/**
+ * @brief This handler returns the bandwidth as the extra measurement.
+ * @details
+ * This function returns the experienced bandwidth (MBps) as a float after 
+ * each execution phase. This function is only called if the benchamrk has 
+ * been built with the `-DEXTENDED_REPORT`.
+ * @returns The measured bandwidth (MBps)
+ */
+float benchmark_log_data()
+{
+	float dur = g_end - g_start;
+	float dur_in_sec = (float)dur / 1000000.0f;
+	return (float)g_nread / dur_in_sec / 1024.0f / 1024.0f;
 }
 
 /**

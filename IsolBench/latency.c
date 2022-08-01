@@ -1,7 +1,7 @@
 /**
  * @file latency.c
  * @ingroup latency
- * @brief Functions used to run the latency benchmark periodically.
+ * @brief RT-Bench-compatible latency benchmark.
  * @details
  * The original script has been broken down in three components:
  * - init: benchmark_init();
@@ -83,6 +83,8 @@ int workingset_size = 1024;
 FILE *bmark_output = NULL;
 /// Sum of the amount of read data.
 uint64_t readsum = 0;
+/// Average measured latency
+double avglat;
 /**************************************************************************
  * Public Function Prototypes
  **************************************************************************/
@@ -113,6 +115,19 @@ void usage(int argc, char *argv[])
 	printf("-i: iterations. default=%d\n", DEFAULT_ITER);
 	printf("-h: help\n");
 	exit(1);
+}
+
+/**
+ * @brief This handler returns the latency as the extra measurement metric.
+ * @details
+ * This function returns a string mentioning the metric of the benchmark
+ * (here, the latency in ns). This function is only called if the benchmark has
+ * been built with the `-DEXTENDED_REPORT`.
+ * @returns a constant string starting with `,` that extends the report header.
+ */
+const char *benchmark_log_header()
+{
+	return ",latency(ns)";
 }
 
 /**
@@ -211,7 +226,6 @@ int benchmark_init(int parameters_num, void **parameters)
 void benchmark_execution(int parameters_num, void **parameters)
 {
 	uint64_t nsdiff;
-	double avglat;
 	int j;
 	struct list_head *pos;
 	int i;
@@ -223,21 +237,25 @@ void benchmark_execution(int parameters_num, void **parameters)
 			struct item *tmp = list_entry(pos, struct item, list);
 			readsum += tmp->data; // READ
 			pos = pos->next;
-			// printf("%d ", tmp->data, &tmp->data);
 		}
 	}
 	clock_gettime(CLOCK_REALTIME, &end);
 
 	nsdiff = get_elapsed(&start, &end);
 	avglat = (double)nsdiff / workingset_size / repeat;
-	flogf(LOG_LEVEL_FILE, bmark_output,
-	      "duration %.0f us\naverage %.2f ns | ", (double)nsdiff / 1000,
-	      avglat);
-	flogf(LOG_LEVEL_FILE, bmark_output, "bandwidth %.2f MB (%.2f MiB)/s\n",
-	      (double)64 * 1000 / avglat,
-	      (double)64 * 1000000000 / avglat / 1024 / 1024);
-	flogf(LOG_LEVEL_FILE, bmark_output, "readsum  %lld\n\n",
-	      (unsigned long long)readsum);
+}
+
+/**
+ * @brief This handler returns the latency as the extra measurement.
+ * @details
+ * This function returns the experienced latency (ns) as a float after
+ * each execution phase. This function is only called if the benchamrk has
+ * been built with the `-DEXTENDED_REPORT`.
+ * @returns The measured latency (ns)
+ */
+float benchmark_log_data()
+{
+	return (float)avglat;
 }
 
 /**
@@ -250,7 +268,6 @@ void benchmark_execution(int parameters_num, void **parameters)
 void benchmark_teardown(int parameters_num, void **parameters)
 {
 	uint64_t nsdiff;
-	double avglat;
 	if (repeat == 0) {
 		clock_gettime(CLOCK_REALTIME, &end);
 

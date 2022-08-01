@@ -1,104 +1,129 @@
-# rt-bench
-
-## Introduction
+RT-Bench
+========
 
 [TOC]
 
-rt-bench is a collection of popular benchmarks for real-time applications which
+RT-Bench is a collection of popular benchmarks for real-time applications which
 have been restructured to be executed periodically.
 
-The available benchmarks sets, documented in the Modules section, are:
+RT-Bench is licensed under [MIT](LICENSES/MIT.txt) license and
+integrates benchmark suites that are licensed according to the information
+contained in the corresponding folders.
 
-- [San Diego Vision Benchmarks](@ref #SD-VBS)
-- [IsolBench Benchmarks](@ref #IsolBench)
+RT-Bench is developed by researchers and collaborators affiliated with the
+Cyber-Physical Systems Lab at [Boston University](https://cs-people.bu.edu/rmancuso/)
+with contributions from the Chair of Cyber-Physical System in Production Engineering at [TUM](https://rtsl.cps.mw.tum.de/).
 
-All available benchmarks share a set of files, described in the [Base](@ref #base) module, that provide some basic but essential facilities,
-such as logging functions and the logic to make execution periodic.
+## How to use the documentation
 
-## Usage
+Navigating the documentation of the project can be counterintuitive at first, so
+this section will guide the user towards making the most of the available documentation.
 
-Each set of benchmarks has specific compilation and usage instructions in the
-module description, refer to these instruction and to the benchmark
-specification for a correct usage.
+All the documentation is accessible from the sidebar, and includes:
+- Tutorials and explanation pages which will cover the framework in general.
+- A todo list
+- A buglist
+- A Modules page, from which the documentation specific to the 
+  [RT-Bench Generator](@ref #generator), the [utilities](@ref #utils) and [benchmarks](@ref #benchmarks) can be accessed.
+- Files and data structures documentation (reachable also from the Modules page).
 
-In addition all the benchmarks take the same input arguments and options (which
-are handled by the [Base](@ref #base) module).
-These arguments and options are described below and in the benchmark help message:
+### Quick links
+- [Available Benchmarks](@ref #benchmarks)
+- [Usage guide](1-Usage.markdown)
+- [Compilation guide](2-Building_with_the_framework.markdown)
+- [Guide on how to add benchmarks](3-Extending_rt-bench.markdown)
+- [Utilities](@ref #utils)
 
-### Period and deadline options
+## Features
 
-- `-d`, `--deadline=secs`: The benchmark deadline in seconds. Can be an integer,
-  float or in scientific notation. Must be less or equal than the benchmark
-  period. **Required**.
-- `-p`, `--period=secs`: The benchmark period, in seconds. Can be an integer,
-  float or in scientific notation. **Required**.
+- Periodic execution of the benchmark with POSIX.4 real-time signals.
+- Statistic gathering for each of the jobs executed, including:
+  - Period start / end timestamps.
+  - Deadline timestamp.
+  - Job end timestamp (job starts at the beginning of the period).
+  - Period Utilization.
+  - Period Density.
+  - Perf counters value, (only for CORTEX_A53).
+- Several log levels, to log statistics in csv files or in a terminal with different levels of detail.
+- Pinning of the process on a single core or set of cores.
+- Scheduling policy change.
+- Constraining dynamic memory allocations during the execution phase.
+- Periodic monitoring of the L2 refills Perf counter (only for CORTEX_A53).
+- Automated scripts to perform the following tests:
+  - Framework overhead.
+  - Empirical minimum working set size.
+  - Empirical worst case execution test.
+  - Empirical schedulability test.
+- Plotting functions for the most common type of graphs, integrated in the test scripts and usable from csv inputs.
 
-### Execution options
+## Design and Principles
 
-- `-t`, `--tasks-number=integer>=0` The number of tasks to be executed. 0 means
-  until the program receives a `SIGINT`. Default is 0.
-- `-c`, `--core-affinity=core1,core2,...`: The benchmark core affinity,
-  expressed as a comma separated list. A
-  single core id is also accepted. If not provided the OS will decide on which
-  core(s) the benchmark can run.
-- `-m`, `--mem-limit=bytes[GMK]`: The maximum amount of dynamic memory allocated
-  during the periodic execution. If exceeded, the benchmark will crash.
-  Specified as an integer plus an optional magnitude modifier:
+This section will explain the reasoning behind RT-Bench and present at a high level
+of abstraction how the framework works.
 
-  - `K`=kilobytes
-  - `M`=megabytes
-  - `G`=gigabytes
+The framework lives fully in userspace and is composed by the [RT-Bench Generator](@ref #generator) and by a collection of scripts that  compose the [Utils](@ref #utils) optional layer.
 
-    Without a magnitude modifier specified the value is assumed to be in bytes.
-    0 means no memory limit, and it is the default setting.
+@image html rt-bench-structure.svg "RT-Bench control flow graph"
+@image latex rt-bench-structure.pdf "RT-Bench control flow graph" width=10cm
 
-### Scheduling options
+### Motivation and Principles
 
-- `-f`, `--fifo=0<=prio<=99`: Set `SCHED_FIFO` priority with specified
-  priority. Needs root.
-- `-T`, `--sched-runtime=ns`: Set `SCHED_DEADLINE` runtime.
-  Alternative to `--fifo`. Needs root.
-- `-D` `--sched-deadline=ns`: Set `SCHED_DEADLINE` deadline.
-  Alternative to `--fifo`. Needs root.
-- `-P` `--sched-period=ns`: Set `SCHED_DEADLINE` period. Alternative to
-  `--fifo.` Need root. At least `--sched-period` has to be specified to
-  set sched_deadline parameters. If deadline is not specified, deadline is
-  set to period. If runtime is not specified, runtime is set to deadline.
+Many popular benchmark suites do not exhibit real-time features and have to be
+restructured to integrate these features.
+RT-Bench is a framework that implements real-time features in a generic fashion, to allow different benchmarks (described in [Available Benchmarks](@ref #benchmarks))
+to have the features out-of-the-box and accessible via CLI.
 
-  **NOTE:** These parameters are different from `--period` and `--deadline`
-  used to control the repetitive execution of the thread.
-  To generate valid execution that are not truncated under hard server
-  reservation ensure that period < sched-period and deadline < sched-deadline.
+To implement the mentioned features, RT-Bench follow some core principles:
 
-### Reporting options
+- Real-time system abstraction
+  Target benchmark is executed periodically and stats are collected for each period.
+- Common interface
+  All the benchmark report the same basic statistics and have the same CLI interface.
+- Extensibility
+  Adding benchmark is easy, more details on how to do this are in [Extending RT-Bench](3-Extending_rt-bench.markdown).
+- Compatibility
+  RT-Bench is designed to be compatible with multiple platforms.
+  Moreover, compatible benchmark do have their execution logic intact,
+  so it's possible to compare their output with the output of their original version.
 
-- `-l`, `--log-level=log-lvl`: Log level, can be one of the following:
+### Benchmark Design
 
-  - `1`: Print only errors.
-  - `2`: Print benchmark stats to output file in csv format.
-  - `3`: Print benchmark stats to `stdout` in csv format.
-  - `4`: Print informative messages on `stdout` and debug messages on `stderr`.
+To adhere to the above-mentioned principles, the benchmarks are required to implement their logic in the following functions:
 
-  Default is 3.
+- `benchmark_init`: Initialization of the benchmark environment, executed only once.
+- `benchmark_execution`: Execution of the benchmark routines, executed periodically. 
+- `benchmark_teardown`: Cleanup of the benchmark environment, executed before exiting.
 
-  See `print_benchmark_timing()` for an explanation on the format used in log
-  level 2 and 3.
+It is thus sufficient to split the benchmark `main` function into these have a compatible benchmark.
+The effort to convert benchmark in this way depends on the benchmark logic, however for the whole
+[San Diego Vision Benchmarks](@ref #SD-VBS) suite the conversion process, took ~300 SLOCs per benchmark.
 
-- `-o`, `--output=output_path`: Where the info on the benchmark execution will
-  be written. If not supplied, `./timing.csv` will be used.
+**Note**: RT-Bench makes no assumption on what is executed by these functions, 
+so individual benchmarks may have additional dependencies or behave in a non-standard way.
+These details will be documented in each the benchmark module page.
 
-### Benchmark arguments and options
+Once the benchmark is converted, compiled and linked against the RT-Bench generator
+the RT-Benchmark generator (specifically `periodic_benchmark.c`) will handle the
+execution in the following way:
 
-- `-b`, `--bmark-args=arg opt ...`: A space-separated list of arguments and
-  options that will be relayed as it is to the benchmark. It must be specified
-  as the last option, since everything after it will be given directly to the
-  benchmark routine.
+1. The RT-Bench environment is initialized, (including timers for the deadline and the period).
+  1. If reading Perf counters is supported in the current platform and the user 
+  enables the counter monitoring, a thread can be created.
+  2. The monitoring thread will continuously check if a `benchmark_execution` is running.
+2. `benchmark_execution` is executed to prepare the benchmark environment.
+3. The period timer is started.
+4. When a new period starts `benchmark_execution` is executed.
+  1. If supported and enabled, the monitoring thread will periodically sample the Perf counters.
+5. Right after the function returns a timestamp is captured.
+  1. The monitoring thread also registers that the benchmark is not running anymore, to separate sampling of different jobs.
+6. If necessary, the process waits for the end of the period.
+7. At the end of the period, the timer handler will take care of collecting and reporting stats
+8. Steps 4 to 7 are repeated until the required number of jobs has been executed or a `SIGINT` is received.
+9. The `benchmark_teardown` function will clear the benchmark environment and allow for a clean exit.
 
-### Informational options
+@image html rt-bench-control-flow.svg "RT-Bench control flow graph"
+@image latex rt-bench-control-flow.pdf "RT-Bench control flow graph" width=10cm
 
-- `-h`, `-?`, `--help`: Give this help list
-- `--usage`: Give a short usage message
 
-### Enabling performance counters
-Counters have been implemented only for Cortex A53 processors.
-Add `CORE=CORTEX_A53` to the make command to enable performance counters.
+The associated paper, available on [ACM Digital Library](https://dl.acm.org/doi/10.1145/3534879.3534888) and [arXiv](https://arxiv.org/abs/2203.11423),
+contains more details on the design and some examples of what can be done with the framework.

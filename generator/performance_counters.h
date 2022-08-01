@@ -1,5 +1,5 @@
 /** @file performance_counters.h
- * @ingroup base
+ * @ingroup rt-bench_generator
  * @author Denis Hoornaert
  * @brief API to extract performance counters (e.g., L1-D refills) for the benchmark under analysis.
  *

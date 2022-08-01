@@ -1,6 +1,7 @@
 #ifndef RTBENCH_SCHED_ATTR_H
 #define RTBENCH_SCHED_ATTR_H
 /** @file sched_attr.h
+ * @ingroup generator
  * @brief sched_{set,get}attr compat layer, inspired by schedutils.
  * @author Andrea Bastoni
  *

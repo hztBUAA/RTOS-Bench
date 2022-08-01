@@ -1,0 +1,8 @@
+/**
+* @defgroup generator RT-Bench Generator
+* @brief The RT-Bench Generator.
+*
+* A set of base files that provide the framework features to to all benchmarks.
+*
+* These files are located in the `generator` folder and have to be compiled and linked to each benchmark.
+*/

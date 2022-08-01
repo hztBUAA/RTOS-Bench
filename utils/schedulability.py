@@ -1,7 +1,7 @@
 #! /bin/python3
 """!
 @file schedulability.py
-@ingroup utils
+@ingroup sched
 @author Mattia Nicolella
 @brief Procedures for a benchmark schedulability test
 
@@ -325,7 +325,6 @@ def draw_graph(data, interference=False, old_graph=None):
         legend,
         graph=old_graph,
     )
-==== BASE ====
     for output in args.output:
         print(output)
         print(sched_graph)
@@ -345,11 +344,10 @@ def draw_graph(data, interference=False, old_graph=None):
     graph.teardown()
     params.update({"res": 0})
     return params
-==== BASE ====
 
 
 if __name__ == "__main__":
-    parser = base.parser_init()
+    parser = base.parser_init("A script to perform a schedulability test")
     params = base.test_init(parser)
     if params["res"] < 0:
         exit(params["res"])

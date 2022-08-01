@@ -1,5 +1,5 @@
 /** @file performance_sampler.c
- * @ingroup base
+ * @ingroup generator
  * @brief Performance sampler implementation.
  * @author Denis Hoornaert
  *

@@ -1,7 +1,7 @@
 #! /bin/python
 """!
 @file graph.py
-@ingroup utils
+@ingroup graph
 @brief Utils to draw graphs with matplotlib.
 @details
 This script contains a collection of methods to draw graphs.
@@ -532,6 +532,7 @@ def violinplot(
 
 
 def test():
+    """! @brief A test function to check if graphs are generated correctly."""
     graph = plot(
         [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],
         [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]],
@@ -608,7 +609,7 @@ def parser_init():
         "-g",
         "--graph",
         metavar="graph",
-        nargs="+",
+        nargs="1",
         type=str,
         help="Which type of graph must be plotted. If repeated plots will stack.",
         choices=[
@@ -750,7 +751,8 @@ def parser_init():
         "-hd",
         "--hist-density",
         type=bool,
-        help="Number of bins for histogram graph",
+        help="To make the the histogram consider the density of samples instead of their number.
+",
         required=False,
         default=False,
         choices=[True, False],

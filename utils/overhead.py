@@ -1,7 +1,7 @@
 #! /bin/python3
 """!
 @file overhead.py
-@ingroup utils
+@ingroup overhead
 @author Mattia Nicolella
 @brief Framework overhead measure.
 @details
@@ -46,7 +46,7 @@ def overhead_test(
     interference,
     bmark_path=os.path.dirname(__file__),
 ):
-    """!  @brief Finds the worst case execution time using only the first core.
+    """!  @brief Finds the framework overhead.
 
     @param[in] bmark_path The path to the rt-bench utils folder.
     @param[in] tests The number of tests to execute for detecting the worst case scenario execution time.
@@ -194,13 +194,13 @@ def execute(params):
         sched_params = params.get("sched_params")
         if sched_params is None:
             print(
-                "ERROR: Missing scheduling parameters to execute the schedulability test!"
+                "ERROR: Missing scheduling parameters to execute the overhead test!"
             )
             params.update({"res": -1})
             return params
         cores = params.get("cores")
         if cores is None:
-            print("ERROR: Missing corelist to execute the WCET test!")
+            print("ERROR: Missing corelist to execute the overhead test!")
             params.update({"res": -1})
             return params
         int_processes = None
@@ -288,7 +288,7 @@ def draw_graph(data, interference=False, old_graph=None):
 
 
 if __name__ == "__main__":
-    parser = base.parser_init()
+    parser = base.parser_init("A script to perform a framework overhead test")
     params = base.test_init(parser)
     execute(params)
     base.test_teardown(params)

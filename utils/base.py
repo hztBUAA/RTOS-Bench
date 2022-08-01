@@ -221,19 +221,19 @@ def handle_bmark_list(bmark_list):
     return new_list
 
 
-def parser_init():
+def parser_init(description="A script to perform various tests"):
     """! @brief Initialize an argument parser with a set of common arguments.
 
     @returns The initialized `ArgumentParser` object.
     """
     # set up the argument parser
-    parser = argparse.ArgumentParser(description="A script to perform a tests")
+    parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
         "-u",
         "--utilization-increase",
         metavar="utilization",
         type=float,
-        help="How much the utilization should increase at each test step.",
+        help="How much the utilization should increase at each test step (only for schedulability) used also the utilization initial value.",
         default=0.05,
         choices=map(lambda x: x / 100.0, range(1, 100)),
         required=False,
@@ -245,7 +245,7 @@ def parser_init():
         "--tasks-number",
         metavar="tasks-num",
         type=int,
-        help="The number of tasks to be executed for each test step.",
+        help="The number of tasks to be executed for each test step. (WCET test excluded)",
         default=100,
         required=False,
         dest="tasks_num",
@@ -413,7 +413,7 @@ def parser_init():
         metavar="graph",
         type=str,
         nargs="?",
-        help="If tests should also draw graphs. Selecting 'only' will make the test only draw graphs from the csv files specified in --graph-inputs",
+        help="If tests should also draw graphs. Choices are 'yes', 'no' (default), 'only'. Selecting 'only' will make the test only draw graphs from the csv files specified in --graph-inputs",
         default="no",
         choices=["no", "yes", "only"],
         required=False,
@@ -426,7 +426,7 @@ def parser_init():
         metavar="file1.csv file2.csv ...",
         type=str,
         nargs="+",
-        help="The source file to use for drawing the graph",
+        help="A space separated list of csv files from a previous test, that will used when '-g only' is specified to create one graph per file",
         default=[],
         required=False,
         dest="graph_inputs",

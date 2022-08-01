@@ -1,10 +1,10 @@
 CC=gcc
-PGMS=latency bandwidth
-BASE_SRC=$(wildcard ../base/*.c)
+PGMS=bandwidth latency
+BASE_SRC=$(wildcard ../generator/*.c)
 BASE_O=$(patsubst %.c,%.o,$(BASE_SRC))
-CFLAGS=-O2 -Wall -g -I../base -DGCC
+CFLAGS=-O2 -Wall -g -I../generator -DGCC -DEXTENDED_REPORT
 CXXFLAGS=$(CFLAGS)
-LDFLAGS=-Wl,--no-as-needed -lrt -lm -pthread -Wl,--wrap=malloc -Wl,--wrap=mmap
+LDFLAGS=-Wl,--no-as-needed -lrt -lm -pthread -ljson-c -Wl,--wrap=malloc -Wl,--wrap=mmap
 
 
 ifdef CORE

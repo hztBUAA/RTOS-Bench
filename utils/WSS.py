@@ -1,6 +1,6 @@
 """!
 @file WSS.py
-@ingroup utils
+@ingroup wss
 @brief Test to compute the minimum working set size
 @details
 
@@ -237,7 +237,7 @@ def wss_test(
 
 
 if __name__ == "__main__":
-    parser = base.parser_init()
+    parser = base.parser_init("A script to perform working set size test")
     params = base.test_init(parser)
     execute(params)
     base.test_teardown(params)
