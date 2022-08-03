@@ -2,7 +2,9 @@
 * @defgroup bandwidth Bandwidth
 * @ingroup IsolBench
 * @brief Bandwidth benchmark.
-*
+* @copyright The current file is under the SPDX-License-Identifier: MIT
+* See `IsolBench/bandwidth.c` for the benchmark license.
+* @details
 * The bandwidth benchmark will evaluate the system memory bandwidth by allocation a chunk of memory.
 * The a user-defined amount of memory accesses will be performed and the the measured bandwidth will be reported.
 *

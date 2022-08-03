@@ -2,6 +2,9 @@
  * @file latency.c
  * @ingroup latency
  * @brief RT-Bench-compatible latency benchmark.
+ * @author Heechul Yun <heechul@illinois.edu>
+ * @copyright (C) 2012 This file is distributed under the University of Illinois Open Source
+ * License. See LICENSE.TXT for details.
  * @details
  * The original script has been broken down in three components:
  * - init: benchmark_init();
@@ -10,10 +13,6 @@
  *
  * This allows the benchmark to be run periodically, by re-running only the
  * execution portion.
- *
- * Copyright (C) 2015 @author  Heechul Yun <heechul.yun@ku.edu>
- * This file is distributed under the University of Illinois Open Source
- * License. See LICENSE.TXT for details.
  */
 
 /**************************************************************************

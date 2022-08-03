@@ -8,7 +8,7 @@
  * @author Mattia Nicolella
  * @brief Implementation of the API to get the CPU timestamp value.
  *
- * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+ * @copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
  */
 

@@ -33,8 +33,7 @@ endif
 
 setup:
 ifeq ("$(wildcard conf/doxygen-awesome/doxygen-awesome.css)", "")
-	@git submodule init docs/conf/doxygen-awesome
-	@git submodule update docs/conf/doxygen-awesome
+	@git submodule update --init --recursive conf/doxygen-awesome
 endif
 
 clean: clean-pdf clean-html

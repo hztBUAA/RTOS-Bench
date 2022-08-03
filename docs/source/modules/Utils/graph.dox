@@ -38,4 +38,7 @@ In addition the utility will take care itself to defentiare groups by color-codi
 
 ## Example:
 `python graph.py -g plot -i data.csv data2.csv` will create a multiline in plot in the current folder.
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
 */

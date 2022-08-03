@@ -127,3 +127,7 @@ execution in the following way:
 
 The associated paper, available on [ACM Digital Library](https://dl.acm.org/doi/10.1145/3534879.3534888) and [arXiv](https://arxiv.org/abs/2203.11423),
 contains more details on the design and some examples of what can be done with the framework.
+
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT

@@ -2,11 +2,12 @@
  * @file overhead.c
  * @ingroup overhead
  * @brief Benchmark to measure the RT-Bench framework overhead.
+ * @author Mattia Nicolella
  * @details
  * The bnchmark is composed by three dummy function, that only have a return statement.
  * This allows to measure the time used by the framework in each period.
  *
- * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+ * @copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
  */
 // Libraries used by rt-bench

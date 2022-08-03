@@ -15,7 +15,7 @@ Dependencies:
 - base.py
 - graph.py optional
 
-Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
 SPDX-License-Identifier: MIT
 """
 

@@ -2,7 +2,9 @@
 * @defgroup mser Mser
 * @ingroup SD-VBS
 * @brief mser benchmark.
-*
+* @copyright See `vision/licenses` and `vision/LICENSE` for licensing information
+* The current file is under the SPDX-License-Identifier: MIT
+* @details
 * Modified files for the mser benchmark, located in `vision/benchmarks/mser`.
 *
 *   From mser.c, written by Sravanthi Kota Venkata:

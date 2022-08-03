@@ -4,7 +4,7 @@
  * @brief A general periodic benchmark using a real time timer.
  * @author Mattia Nicolella
  *
- * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+ * @copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
 */
 #ifndef PERIODIC_BENCHMARK_H

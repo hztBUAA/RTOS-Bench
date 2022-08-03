@@ -2,6 +2,9 @@
  * @file bandwidth.c
  * @ingroup bandwidth
  * @brief RT-Bench-compatible bandwidth benchmark.
+ * @author Heechul Yun <heechul@illinois.edu>, Zheng <zpwu@uwaterloo.ca>
+ * @copyright (C) 2012 This file is distributed under the University of Illinois Open Source
+ * License. See LICENSE.TXT for details.
  * @details
  * The original script has been broken down in three components:
  * - init: benchmark_init();
@@ -10,13 +13,6 @@
  *
  * This allows the benchmark to be run periodically, by re-running only the
  * execution portion.
- *
- * Copyright (C) 2012 @author Heechul Yun <heechul@illinois.edu>
- *               2012 @author Zheng <zpwu@uwaterloo.ca>
- *
- * This file is distributed under the University of Illinois Open Source
- * License. See LICENSE.TXT for details.
- *
  */
 
 /* clang -S -mllvm --x86-asm-syntax=intel ./bandwidth.c */

@@ -3,7 +3,7 @@
  * @brief A simple memory watcher that allows preallocation and checks that the heap will not be expanded.
  * @author Mattia Nicolella
  *
- * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+ * @copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
  */
 #ifndef MEMORY_WATCHER_H

@@ -2,7 +2,9 @@
 * @defgroup latency Latency
 * @ingroup IsolBench
 * @brief Latency benchmark.
-*
+* @copyright The current file is under the SPDX-License-Identifier: MIT
+* See `IsolBench/latency.c` for the benchmark license.
+* @details
 * Latency is a memory access latency measurement microbenchmark, which will allocate a linked list an navigate it.
 * Then the measured system latency will be reported.
 *

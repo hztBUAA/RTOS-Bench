@@ -16,4 +16,7 @@ If a threshold is specified (`-wd`) then the corresponding percentage of met dea
 make the test succed.
 
 The generated graph is a violin plot, to show also the runtimes distribution.
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
 */

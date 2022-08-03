@@ -20,4 +20,7 @@ utilization increase, used also as the initial utilization value
 (5% by default, see `-u` in [Utils](@ref #utils)) can be defined by the user.
 
 The generated graph is a line plot.
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
 */

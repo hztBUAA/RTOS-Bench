@@ -7,11 +7,14 @@
 #include <fenv.h>
 #include "logging.h"
 #include <string.h>
-#include <json-c/json.h>
 #include "sched_attr.h"
 
 #include <inttypes.h>
 #include <sched.h>
+
+#ifdef JSON_SUPPORT
+#include <json-c/json.h>
+#endif
 
 /** @file main.c
  * @ingroup generator
@@ -23,7 +26,7 @@
  * - Glibc.
  * - Linux syscalls, namely `set_schedattr` and `get_schedattr`.
  *
- * Copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+ * @copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
  */
 
@@ -240,7 +243,7 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 			parsed_args->args =
 				(char **)malloc(sizeof(char *) * arg_len);
 			char sep[] = " ";
-			char *ptr = strtok(arg, sep);
+			char *ptr = strtok((char*) arg, sep);
 			while (ptr != NULL) {
 				parsed_args->args[parsed_args->args_num] =
 					(char *)malloc(sizeof(char) *
@@ -346,7 +349,7 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 		break;
 	case 'c':
 		// we create the mask based on what cores the user has specified.
-		affinity_substr = arg;
+		affinity_substr = (char*) arg;
 		//we read one core id at a time and we insert it in the mask
 		while (affinity_substr != NULL) {
 			res = sscanf(affinity_substr, "%d%*s", &affinity_core);
@@ -446,8 +449,16 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		CPU_ZERO(&parsed_args->memory_profiling_core_affinity);
 		parsed_args->memory_profiling_time_bucket = 10000000;
 		break;
+#ifdef JSON_SUPPORT
 	case 'g':
 		json_object *root = json_object_from_file(arg);
+		if(root == NULL){
+			argp_error(
+				state,
+			  "Error: Cannot open JSON configuration file.");
+			break;
+		}
+		printf("%d",root==NULL);
 		json_object_object_foreach(root, first, second)
 		{
 			res = interpret_opt(field_to_abbrv_mapping(first),
@@ -461,6 +472,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		json_object_put(root);
 		break;
+#endif
 	case ARGP_KEY_END:
 		if (parsed_args->deadline_nsec == 0 &&
 		    parsed_args->deadline_sec == 0)
@@ -530,9 +542,11 @@ int main(int argc, char **argv)
 		"Run a benchmark periodically, trying to meet the given deadline.";
 	const char *argp_args_doc = "";
 	struct argp_option argp_options[] = {
+#ifdef JSON_SUPPORT
 		{ 0, 0, 0, 0, "Configuration input:", 1 },
 		{ "configuration-file", 'g', "config_path", 0,
 		  "Specify the JSON file describing the configuration to use. Following options complement or override the JSON description. Conversely, options specified before are complemented or overwritten." },
+#endif
 		{ 0, 0, 0, 0, "Period and deadline options:", 2 },
 		{ "deadline", 'd', "secs", 0,
 		  "The benchmark deadline in seconds. Can be an integer, float or in scientific notation. Required. Must be less or equal than the benchmark period." },

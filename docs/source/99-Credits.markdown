@@ -49,4 +49,8 @@ However individual benchmark suites have a different license, full licensing inf
 
 A non-exhaustive list of licenses used is the following:
 - [MIT](https://spdx.org/licenses/MIT.html) For the rt-bench files and for the doxygen theme in `docs/conf/doxygen-awesome/`.
-- [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html) For files in the `vision` and `cortex` folder.
+- [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html) For files in the `vision` and folder.
+
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT

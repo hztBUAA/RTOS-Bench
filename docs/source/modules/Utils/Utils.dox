@@ -61,4 +61,7 @@ It can also be used to execute the other scripts by using an exclusive argument:
   Choices are: `yes`, `no` (default), `only`. Selecting only will make the script draw the graph from file specified in `--graph-inputs` and not execute the test.
 - `-gi`,`--graph-inputs`: A space separated list of csv files from a previous test, that will used when `-g only` is specified to create one graph per file.
 
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
 */

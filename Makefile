@@ -14,10 +14,8 @@ setup-docs:
 	make -C ${CURDIR}/docs setup
 
 setup-tacle:
-	@echo 'Initialize the submodule'
-	@git submodule init rt-tacle-bench
-	@echo 'Fetch the pinned version of the submodule'
-	@git submodule update --recursive rt-tacle-bench
+	@echo 'Initialize and fetch the pinned version of the submodule'
+	@git submodule update --init --recursive rt-tacle-bench
 	@echo 'Convert the submodule README.md to a .dox file that will be included in the documentation.'
 	@cd rt-tacle-bench && bash ../utils/md2dox.sh README
 

@@ -3,7 +3,7 @@
  * @author Denis Hoornaert
  * @brief API to extract performance counters (e.g., L1-D refills) for the benchmark under analysis.
  *
- * Copyright (C) 2021 - 2022, Denis Hoornaert <denis.hoornaert@tum.de> and the rt-bench contributors.
+ * @copyright (C) 2021 - 2022, Denis Hoornaert <denis.hoornaert@tum.de> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
  */
 #ifndef PERFORMANCE_COUNTERS_H

@@ -1,4 +1,7 @@
 #!/bin/bash
+#Author: Mattia Nicolella
+#copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+#SPDX-License-Identifier: MIT
 # Convert a .md file to a .dox file making it ready to be included in the documentation
 fname=$1
 if [[ $1 == "" ]]; then

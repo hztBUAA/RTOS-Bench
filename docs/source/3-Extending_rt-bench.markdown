@@ -14,15 +14,16 @@ To add a new benchmark set and integrate it with the other sets the following st
 
 1. The new benchmark set must be self contained in a repository. (example: `new_set`).
    The benchmark set repository has to be included in RT-Bench as a git submodule from the repo root.
-2. The makefile in `rt-bench/makefile` has to be updated with new targets that must be documented in the usage page:
+2. The makefile in the repo root has to be updated with new targets that must be documented in the usage page:
    - `setup-new_set`: This target has to initialize the git submodule upon invocation.
      `setup-new_set` must also be included in as a dependency of the `setup` target.
    - `compile-new_set`: This target has to compile all the benchmarks in the set.
    - `clean-new_set`: This target has to clean all the compilation and execution byproducts, including data, object files and executables generated.
      `clean-new_set` has also to be included as dependency of the `clean` target.
      
-   Finally, the newly created target have to be added to the grouped targets, creating a new group if necessary
-3. The benchmark set is to be described as a module in a .dox or .md file.
+   The newly created target have to be added to the grouped targets, creating a new group if necessary
+3. If the benchmark set uses a Makefile to compile there should be a `CFLAGS` variable references in the compilation commanf line. If a `CFLAGS` variable is already in use, it is enough to define it as `override CFLAGS+=[..]`. See `IsolBench/Makefile` for an example.
+4. The benchmark set is to be described as a module in a .dox or .md file.
 
     All the details of the benchmark set, including submodule setup, compilation, benchmarks general usage have to be described in this file.
     It is also possible to indicate TODOs and bugs by using the doxygen `@todo` and `@bug` commands.
@@ -35,6 +36,9 @@ To add a new benchmark set and integrate it with the other sets the following st
    @brief Brief description of the benchmark set.
    @details
    Detailed description of the benchmark set. If there are documents that describe the whole benchmark set they can be referenced here.
+   @author Author
+   @copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+   SPDX-License-Identifier: [SPDX license expression]
    ```
 **NOTE**: Doxygen will raise an error if `@defgroup` is used more than once with the same parameters!
    
@@ -45,7 +49,7 @@ To add a new benchmark set and integrate it with the other sets the following st
     */
    ```
    
-   In case a .md file is used the `rt-bench/utils/md2dox.sh` script should be used to safely convert the markdown file to a .dox file, specifying the filename as first argument.
+   In case a .md file is used the `utils/md2dox.sh` script should be used to safely convert the markdown file to a .dox file, specifying the filename as first argument.
    It is possible to enclose doxygen commands in HTML comments (i.e. `<!-- @bug -->`) for a cleaner rendering of the markdown file. The script will take care to uncomment them during the conversion.
    It is advised to add the resulting .dox file to the repository gitignore.
    This is necessary since currently in doxygen there is no way to avoid having an page for every markdown file. In addition, when defining a group the content of the group description will be removed from the current page. The combination of markdown files that specify groups would then litter the documentation with empty pages.
@@ -56,14 +60,14 @@ Furthermore, documentation specific only to the benchmark set can be placed insi
 
 It also possible and encouraged to create subsets if necessary, documented using the same procedure.
 
-Folders can be excluded from the documentation by editing the `EXCLUDE` tag in the RT-Bench Doxyfile (`rt-bench/docs/conf/Doxyfile`)
+Folders can be excluded from the documentation by editing the `EXCLUDE` tag in the RT-Bench Doxyfile (`docs/conf/Doxyfile`)
 
 ### Examples
 
-The [SD-VBS](@ref #SD-VBS) module source file (`rt-bench/docs/source/modules/SD-VBS/SD-VBS.dox`) is a working .dox example.
-The [TACLeBench](@ref #rt-tacle-bench) module source file (`rt-bench/rt-tacle-bench/README.md`) is a working markdown example that is converted to .dox for documentation purposes, while doubling as the submodule repository README.
+The [SD-VBS](@ref #SD-VBS) module source file (`docs/source/modules/SD-VBS/SD-VBS.dox`) is a working .dox example.
+The [TACLeBench](@ref #rt-tacle-bench) module source file (`rt-tacle-bench/README.md`) is a working markdown example that is converted to .dox for documentation purposes, while doubling as the submodule repository README.
 
-Refer to the `setup-tacle`, `compile-tacle`, `clean-tacle` targets in the top-level Makefile (`rt-bench/Makefile`) as examples on how to initialize, build and clean the submodule.
+Refer to the `setup-tacle`, `compile-tacle`, `clean-tacle` targets in the top-level Makefile as examples on how to initialize, build and clean the submodule.
 
 **NOTE**: For markdown files, the extension has to be `.md`, so that they will not be included in doxygen documentation as pages, but can be convert with the aforementioned script.
 This example will exclude all file in the RT-Bench documentation config folder and in the TACLeBench `parallel` subfolder from being documented:
@@ -100,6 +104,9 @@ When adding and integrating new benchmark in an existing benchmark set the follo
     * - what the benchmark does (a reference/link to another document is sufficient)
     * - how to compile the benchmark (a reference/link to another document is sufficient)
     * - how to execute the benchmark (a reference/link to another document is sufficient)
+    * @author Author
+    * @copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+    * SPDX-License-Identifier: [SPDX license expression]
     */
    ```
 **NOTE**: Doxygen will raise an error if `@defgroup` is used more than once with the same parameters!
@@ -112,6 +119,9 @@ When adding and integrating new benchmark in an existing benchmark set the follo
     * @brief Benchmark brief description
     * @details
     * Benchmark detailed description.
+    * @author Author
+    * @copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+    * SPDX-License-Identifier: [SPDX license expression]
     */
     ```
     It is recommended to document TODOs and bugs can be documents anywhere inside a doxygen comment using the `@todo` and `@bug` commands.
@@ -174,6 +184,9 @@ It is required to add the utility in the utils set, by creating a subset that wi
 * @brief Brief description of the utility script.
 * @details
 * Detailed description of script, including possible quirks and instruction on how to use it. If there are documents that describe the script set they can be referenced here.
+* @author Author
+* @copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+* SPDX-License-Identifier: [SPDX license expression]
 */
 ```
 This will allow the script to be included in the [Utils](@ref #utils) page.
@@ -204,6 +217,9 @@ To add a new module in RT-Bench the following steps are needed:
     * @brief Brief description of the module.
     * @details
     * Detailed description of the module. If there are documents that describe the whole benchmark set they can be referenced here.
+    * @author Author
+    * @copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+    * SPDX-License-Identifier: [SPDX license expression]
     */
    ```
 
@@ -222,8 +238,11 @@ There are no defined rules on how the module folder must be organized, it is suf
     * @defgroup new_submodule
     * @ingroup new_module
     * @brief submodule brief description.
-    *
+    * @details
     * Submodule detailed description
+    * @author Author
+    * @copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+    * SPDX-License-Identifier: [SPDX license expression]
     */
    ```
 
@@ -236,6 +255,9 @@ There are no defined rules on how the module folder must be organized, it is suf
     * @brief Brief description
     * @details
     * Detailed description.
+    * @author Author
+    * @copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+    * SPDX-License-Identifier: [SPDX license expression]
     */
     ```
 
@@ -243,3 +265,7 @@ Files have to be documented according to the [Documentation Rules](#docrules).
 
 Setup, compilation and cleaning scripts for the new module should be included in the top-level makefile if needed.
 Any new target should be documented in the usage page.
+
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Denis Hoornaert <denis.hoornaert@tum.de>, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT

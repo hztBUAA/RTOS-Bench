@@ -19,33 +19,40 @@ a `make` command in the benchmark folder should suffice.
 Reading the documentation of the related benchmark set, available from
 the module in the [Benchmarks page](@ref #benchmarks) will provide benchmark-specific instructions.
 
-## Benchmark executable
-
-Depending on the benchmark it might be necessary to supply benchmark-specific
-options. The [Benchmark page](@ref #benchmarks) will present the common options that RT-Bench exposes,
-while for the benchmark-specific options and argument the user should refer to the specific benchmark set module.
-
-## Top-level Makefile
+### Top-level Makefile
 
 The project has a top level Makefile that can be used to quickly perform certain operations.
 
-### General targets
+#### Custom flags
+
+To enable certain RT-Bench features it is necessary to supply the compiler with additional flags.
+
+To accomodate so in every makefile it is possible to add these flags in the `CFLAGS` variable before invoking the `make` command.
+The example below will include support for JSON configuration files (discussed [here](@ref #benchmarks)) to the default make target:
+
+```{.sh}
+CFLAGS=-DJSON_SUPPORT make
+```
+
+A list of all the targets that can be specified can can be found [here](#compilation).
+
+#### General targets
 
 General targets perform operations on the whole project.
 
 - `all`: a dummy targets that prevents the user to compile the full project.
-- `docs`: Generate this documentation locally. Refer to [Documentation Rules](#docrules) for more precise instructions 
+- `docs`: Generate this documentation locally. Refer to [Documentation Rules](#docrules) for more precise instructions. Additional target are available in the makefile in `docs`.
 - `clean`: Removes all non-source code files for the repo and all git submodules.
 - `setup`: Initializes all the git submodules.
 
-### Setup targets
+#### Setup targets
 
 Setup targets are intended to initialize git submodules
 
 - `setup-docs`: Initializes the git submodules needed for building the documentation.
 - `setup-tacle`: Initializes the git submodule for the [TACLeBench](@ref #rt-tacle-bench) suite.
 
-### Compilation targets
+#### Compilation targets
 
 Compilation targets are meant to compile all the benchmarks in a [benchmark set](@ref #benchmarks) with a single command. Refer to the [compilation instructions](#compilation) for dependencies.
 
@@ -53,7 +60,7 @@ Compilation targets are meant to compile all the benchmarks in a [benchmark set]
 - `compile-vision`: Compiles the [SD-VBS](@ref #SD-VBS) suite.
 - `compile-tacle`: Compiles the [TACLeBench](@ref #rt-tacle-bench) suite.
 
-### Clean targets
+#### Clean targets
 
 Compilation targets are meant to remove most of the non-source code files.
 
@@ -61,7 +68,7 @@ Compilation targets are meant to remove most of the non-source code files.
 - `clean-vision`: Cleans the [SD-VBS](@ref #SD-VBS) suite.
 - `clean-tacle`: Cleans the [TACLeBench](@ref #rt-tacle-bench) suite.
 
-### Benchmark groups
+#### Benchmark groups
 Benchmark suite are also grouped to facilitate certain types of tests.
 Each group will have a single setup, compilation and clean target.
 
@@ -78,7 +85,13 @@ Available groups are:
 
 To use these grouped targets it is enough to prepend `setup-`, `clean-` or `compile-` before the group name.
 
-## Benchmark execution example
+## Benchmark executable
+
+Depending on the benchmark it might be necessary to supply benchmark-specific
+options. The [Benchmark page](@ref #benchmarks) will present the common options that RT-Bench exposes,
+while for the benchmark-specific options and argument the user should refer to the specific benchmark set module.
+
+### Benchmark execution example
 
 To execute the benchmark is sufficient to give the executable the required arguments via CLI.
 The only parameters required to run a benchmark are period and deadline.
@@ -119,3 +132,7 @@ Most of the utility scripts are designed to be modular and feature some common C
 All the script require the user to have already compiled the benchmarks that will be used in the test.
 
 The list of available scripts and their specific documentation is available inside the [Utils](@ref #utils) module.
+
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT

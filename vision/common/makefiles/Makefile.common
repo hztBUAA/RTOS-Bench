@@ -2,20 +2,6 @@
 # Original Author: Sravanthi Kota Venkata
 #################################
 
-# Define MATLAB-PATH with the path to the MATLAB package
-MATLAB_PATH = /pkg/bin/matlab
-ifeq ($(filter matlab-run,$(MAKECMDGOALS)),matlab-run)
-ifneq ($(wildcard $(MATLAB_PATH)),$(MATLAB_PATH))
-$(error Please set the appropriate MATLAB path in MATLAB_PATH variable)
-endif
-endif
-
-ifeq ($(filter mcc-run,$(MAKECMDGOALS)),mcc-run)
-ifneq ($(wildcard $(MATLAB_PATH)),$(MATLAB_PATH))
-$(error Please set the appropriate MATLAB path in MATLAB_PATH variable)
-endif
-endif
-
 CC=gcc
 
 override CFLAGS += -DGCC -D$(INPUT)
@@ -32,10 +18,7 @@ endif
 
 BASE_DIR := $(TOP_DIR)/../generator
 COMMON_DIR := $(TOP_DIR)/common/c
-M_COMMON := $(TOP_DIR)/common/matlab
-M_TOOLBOX=$(TOP_DIR)/common/toolbox
 TIMING_DIR := $(TOP_DIR)/cycles/$(BMARK)
-MTIMING_DIR := $(TOP_DIR)/cycles/$(BMARK)
 BMARK_DIR := $(TOP_DIR)/benchmarks/$(BMARK)
 
 #The options set below and specific to each benchmark. Disparity takes 2 input images, whereas Tracking can take any >1 input images =.
@@ -44,17 +27,11 @@ BMARK_DIR := $(TOP_DIR)/benchmarks/$(BMARK)
 # BMARK
 # INPUT - sqcif/qcif/cif
 
-# Matlab source, data and result directory
-
-M_DIR=$(BMARK_DIR)/src/matlab
-M_DATA=$(BMARK_DIR)/data/$(INPUT)
-M_RESULT=$(BMARK_DIR)/result
-
 # C source, data and result directory
 
 C_DIR=$(BMARK_DIR)/src/c
 DATA_DIR=$(BMARK_DIR)/data/$(INPUT)
-C_RESULT=$(M_RESULT)
+C_RESULT=$(BMARK_DIR)/result
 
 # Source files for C and Common folders
 
@@ -75,27 +52,27 @@ COMPILE_PG = $(COMPILE_G) -pg
 c-run: compile
 	@echo -e "Data set\t\t- $(INPUT)"
 	@mkdir -p $(TIMING_DIR)
-	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) $(C_RESULT) | tee -i $(TIMING_DIR)/C_$(INPUT).txt
+	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) -o $(C_RESULT) | tee -i $(TIMING_DIR)/C_$(INPUT).txt
 
 debug:
 	@echo Running Debug C Version of the benchmark
 	@$(COMPILE_G) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
 
 debug-valgrind: debug
-	@valgrind --leak-check=full -s ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) $(C_RESULT)  -b $(DATA_DIR)
+	@valgrind --leak-check=full -s ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -o $(C_RESULT)  -b $(DATA_DIR)
 
 debug-gdb: debug
-	@gdb --args ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) $(C_RESULT)  -b $(DATA_DIR)
+	@gdb --args ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -o $(C_RESULT)  -b $(DATA_DIR)
 
 debug-asan:
 	@echo Running Debug C Version of the benchmark
 	@$(COMPILE_G) -fsanitize=address $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
-	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) $(C_RESULT)
+	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) -o $(C_RESULT)
 
 
 profile: compile-prof
 	@echo -e "Data set\t\t- $(INPUT)"
-	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) $(C_RESULT)
+	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) -o $(C_RESULT)
 	@gprof $(BMARK)$(EXE)
 
 
@@ -110,17 +87,7 @@ compile-prof: $(C_SRC)
 	@echo -e "Benchmark\t\t- $(BMARK)"
 	@$(COMPILE_PG) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
 
-matlab-run:
-	@echo
-	@echo -e "Benchmark\t\t- $(BMARK)"
-	@echo -e "Data set\t\t- $(INPUT)"
-	@cd $(M_DIR); $(MATLAB_PATH) -glnx86 -nosplash -nodisplay -r "script_run_profile('$(M_DATA)', '$(M_RESULT)', '$(INPUT)', '$(M_COMMON)', '$(M_TOOLBOX)'); quit" | tee $(MTIMING_DIR)/Matlab_$(INPUT).txt
-
-mcc-run:
-	@echo Generating a C standalone application
-	cd $(M_DIR); $(MATLAB_PATH) -nosplash -nodesktop -r "mcc -m -v script_run_profile -d $(M_RESULT); quit"
-
-all: c-run matlab-run mcc-run
+all: c-run
 
 clean:
 	@-rm $(BMARK)

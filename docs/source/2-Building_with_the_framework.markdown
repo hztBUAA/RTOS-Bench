@@ -13,7 +13,7 @@ dependencies the user has to be aware of:
 - POSIX.4 real-time signals: used to execute the benchmark periodically and to gather stats.
 - Linux scheduler syscalls: Used to change the scheduling policy.
 - Linux Perf: Used to read performance counters (currently only on CORTEX A53)
-- [JSON-C](https://github.com/json-c/json-c): Used to read and parse input JSON configuration files.
+- [JSON-C](https://github.com/json-c/json-c) >= 0.15: _Optional._ Used to read and parse input JSON configuration files.
 
 Currently RT-Bench targets the following platforms:
 - x86/x86_64
@@ -23,11 +23,15 @@ For [Nix](https://nixos.org/) users a flake and a [direnv](https://direnv.net/) 
 
 #### Dependence installation
   The `json-c` dependence can be installed with the following command:
-- Ubuntu/Debian:  
+- Ubuntu/Debian:
 ```{.sh}
 sudo apt install libjson-c5 libjson-c-dev
 ```
-- Arch Linux:  
+- Fedora / OpenSuse:
+```{.sh}
+sudo dnf install json-c json-c-devel
+```
+- Arch Linux:
 ```{.sh}
 sudo pacman -S json-c
 ```
@@ -60,7 +64,11 @@ In addition, RT-Bench supports dedicated flags that enable access to further fea
 
 Some benchmark classes (e.g., synthetic workloads) measure specific impact on the platform. RT-Bench offers the possibility to extend the existing `.csv` report interface to include the desired _benchmark-specific_ measurement. Providing the benchmarks follows the rules mentioned in [benchmark structure](3-Extending_rt-bench.markdown), extended reporting can be enabled by adding the `-DEXTENDED_REPORT` flag in the compilation command line.
 
-#### Performance counters and monitoring thread
+#### JSON configuration files support {#json_support}
+To keep the mandatory dependencies to a minimum, the support for parsing JSON configuration files (`-g` option) is disabled.
+To enable parsing of JSON files, the [JSON-C](https://github.com/json-c/json-c) library must be at least at version 0.15 and the `-DJSON_SUPPORT` flag must be added to the compilation command line.
+
+#### Performance counters and monitoring thread {#perf_support}
 
 This set of feature being specific to the core and platform on which the benchmark will be deployed, two parameters must be added in other to enable them: the ISA and the core model. The table below lists of the flags to add and provide examples of compliant platform.
 
@@ -69,3 +77,7 @@ Additionally, there are equivalent Make variables that will enable the correspon
 |    ISA    |     CORE     | Make Variable |   Platform    |
 | :-------: | :----------: | :------------:| :-----------: |
 | `-DAARCH64` | `-DCORTEX_A53` | `CORE=CORTEX_A53` | Xilinx ZCU102 |
+
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Denis Hoornaert <denis.hoornaert@tum.de>, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT

@@ -2,7 +2,7 @@
 * @defgroup SD-VBS San Diego Vision Benchmarks
 * @ingroup benchmarks
 * @brief San Diego Vision Benchmarks (SD-VBS).
-*
+* @details
 * This page contains the [San Diego Vision Benchmarks](http://parallel.ucsd.edu/vision/) documentation.
 * The benchmarks are located in the `vision` folder and have been restructured to be executed periodically.
 * The documentation covers the changes for each benchmark, these changes are explained in each benchmark module.
@@ -26,4 +26,8 @@
 * Detailed information of what each benchmark does can be found in [SD-VBS.pdf](attachments/SD-VBS.pdf) , the document is also available here: http://parallel.ucsd.edu/vision/SD-VBS-Final.pdf.
 *
 * The original version of these benchmarks can be found here: https://bitbucket.org/taylor-bsg/cortexsuite/src/devel/.
+*
+* @author Mattia Nicolella for the current file only.
+* @copyright See `vision/licenses` and `vision/LICENSE` for licensing information
+* The current file is under the SPDX-License-Identifier: MIT
 */

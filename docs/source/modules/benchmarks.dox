@@ -11,9 +11,12 @@ More details on the benchmarks are avaiable in the benchmark-specific modules.
 ## Common CLI options
 All the benchmarks take the same input arguments and options (which
 are handled by the [RT-Bench Generator](@ref #generator) module).
-These arguments and options are described below and in the benchmark help message:
+These arguments and options are described below and in the benchmark help message, where supported:
 
 ### Configuration input
+
+Has to be explicitly enabled, see [here](#json_support) for instructions.
+
 - `-g`,`--configuration-file`: Specify the JSON file describing the configuration to use. Following options complement or override the JSON description. Conversely, options specified before are complemented or overwritten.
 
 A JSON file is composed as a list of the desired options written in their full length. For example, `task.json` can be as follows:
@@ -91,6 +94,12 @@ The configuration defined in a JSON file can be complemented or partially overri
 
   See `print_benchmark_timing()` for an explanation on the format used in log
   level 2 and 3.
+- `-o`, `--output=output_path`: Where the info on the benchmark execution will
+  be written. If not supplied, `./timing.csv` will be used.
+
+#### Profiling options
+
+Have to be explicitly enabled, see [here](#perf_support) for instructions.
 
 - `-M`, `--memory-profiling-enable`: Enables runtime memory profiling. Specify `1` to enable or `0` otherwise.
 - `-C`, `--memory-profiling-core`: Core affinity of the runtime memory profiling thread. If not specified, it matches the 'core-affinity' parameter.
@@ -102,17 +111,19 @@ The configuration defined in a JSON file can be complemented or partially overri
 
  __Warning__: 'memory-profiling-enable' must be asserted for this parameter to take effect. Requires platform-specific compilation parameters described in [Building with the framework](../2-Building_with_the_framework.markdown).
 
-- `-o`, `--output=output_path`: Where the info on the benchmark execution will
-  be written. If not supplied, `./timing.csv` will be used.
-
 ### Benchmark-specific arguments and options
 
 - `-b`, `--bmark-args=arg opt ...`: A space-separated list of arguments and
   options that will be relayed as it is to the benchmark. It should be specified
-  as the last option, preferably as a single string.
+  as the last option, as a single string.
 
 ### Informational options
 
 - `-h`, `-?`, `--help`: Give this help list
 - `--usage`: Give a short usage message
+
+
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
 */

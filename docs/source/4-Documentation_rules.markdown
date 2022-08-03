@@ -59,6 +59,16 @@ You can freely link documents of any type in the documentation, place them in th
 
 In general urls should not be masked and links to documents should contain the document filename or title, to make the documentation readable even if printed.
 
+In each authored file make sure to add the following snippet:
+```
+@author Author
+@copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+SPDX-License-Identifier: [SPDX license expression]
+```
+For `.md`, `.markdown` and `.dox` files the snipped should be at the end of the file, while for all the other file formats the snippet should be in doxygen comment that describes the whole file.
+
+It is possible to claim authorship of any documented piece of code by adding this snippet in any of the doxygen comments.
+
 ## Documenting bugs
 
 One of the great features of doxygen is the automatic creation of a buglist in the documentation.
@@ -84,7 +94,7 @@ Below there is an example of how a file called `new_benchmark.c` should be docum
 * @details
 * Benchmark detailed description.
 *
-* Copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
+* @copyright [year file created] - [last year file modified], [file author] <[author email]> and the [project name] contributors
 * SPDX-License-Identifier: [SPDX license expression]
 */
 ```
@@ -149,3 +159,7 @@ Finally it is a good practice to comment everything that is not obvious to the r
 ## Updating documentation online
 
 Since the project was moved on GitLab, documentation is build automatically with continuous integration, if you are interested in how this is done, check the [GitLab Pages tutorial](https://docs.gitlab.com/ee/user/project/pages/) and this project configuration, stored in `.gitlab-ci.yml`.
+
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT

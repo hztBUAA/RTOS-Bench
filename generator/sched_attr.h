@@ -5,7 +5,7 @@
  * @brief sched_{set,get}attr compat layer, inspired by schedutils.
  * @author Andrea Bastoni
  *
- * Copyright (C) 2021 - 2022, Andrea Bastoni <andrea.bastoni@tum.de> and the rt-bench contributors.
+ * @copyright (C) 2021 - 2022, Andrea Bastoni <andrea.bastoni@tum.de> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
  */
 #include <inttypes.h>
