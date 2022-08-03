@@ -32,9 +32,9 @@ ifeq ("$(wildcard Documentation.html)","")
 endif
 
 setup:
-ifeq ("$(wildcard conf/doxygen-awesome)", "")
-	@echo installing dependencies
-	@git clone https://github.com/jothepro/doxygen-awesome-css.git conf/doxygen-awesome
+ifeq ("$(wildcard conf/doxygen-awesome/doxygen-awesome.css)", "")
+	@git submodule init docs/conf/doxygen-awesome
+	@git submodule update docs/conf/doxygen-awesome
 endif
 
 clean: clean-pdf clean-html

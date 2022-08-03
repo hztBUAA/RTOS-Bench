@@ -1,3 +1,6 @@
 [submodule "rt-tacle-bench"]
 	path = rt-tacle-bench
 	url = https://gitlab.com/denishoornaert/rt-tacle-bench.git
+[submodule "docs/conf/doxygen-awesome"]
+	path = docs/conf/doxygen-awesome
+	url = https://github.com/jothepro/doxygen-awesome-css

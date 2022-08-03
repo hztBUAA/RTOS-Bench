@@ -11,7 +11,6 @@ setup: setup-docs setup-tacle
 
 #setup targets
 setup-docs:
-	@echo 'Setting up documentation dependencies'
 	make -C ${CURDIR}/docs setup
 
 setup-tacle:
