@@ -4,3 +4,6 @@
 [submodule "docs/conf/doxygen-awesome"]
 	path = docs/conf/doxygen-awesome
 	url = https://github.com/jothepro/doxygen-awesome-css
+[submodule "image-filters"]
+	path = image-filters
+	url = https://gitlab.com/rt-bench/image-filters.git
