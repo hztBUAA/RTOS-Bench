@@ -23,7 +23,7 @@ setup-image-filters:
 	@echo 'Initialization and fetching of the pinned version of the submodule...'
 	@git submodule update --init --recursive image-filters
 	@echo 'Fetching and converting input images base...'
-	@bash ${CURDIR}/inputs/init.sh
+	@bash ${CURDIR}/image-filters/inputs/init.sh
 	@echo 'Convert the submodule README.md to a .dox file that will be included in the documentation...'
 	@cd image-filters && bash ../utils/md2dox.sh README
 
