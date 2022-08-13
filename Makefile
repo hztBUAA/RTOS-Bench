@@ -5,19 +5,27 @@ all:
 docs: setup-docs
 	make -C ${CURDIR}/docs
 
-clean: clean-vision clean-cortex clean-isolbench clean-tacle clean-docs
+clean: clean-vision clean-cortex clean-isolbench clean-tacle clean image-filters clean-docs
 
-setup: setup-docs setup-tacle
+setup: setup-docs setup-tacle setup-image-filters
 
 #setup targets
 setup-docs:
 	make -C ${CURDIR}/docs setup
 
 setup-tacle:
-	@echo 'Initialize and fetch the pinned version of the submodule'
+	@echo 'Initialization and fetching of the pinned version of the submodule...'
 	@git submodule update --init --recursive rt-tacle-bench
-	@echo 'Convert the submodule README.md to a .dox file that will be included in the documentation.'
+	@echo 'Convert the submodule README.md to a .dox file that will be included in the documentation...'
 	@cd rt-tacle-bench && bash ../utils/md2dox.sh README
+
+setup-image-filters:
+	@echo 'Initialization and fetching of the pinned version of the submodule...'
+	@git submodule update --init --recursive image-filters
+	@echo 'Fetching and converting input images base...'
+	@bash ${CURDIR}/inputs/init.sh
+	@echo 'Convert the submodule README.md to a .dox file that will be included in the documentation...'
+	@cd image-filters && bash ../utils/md2dox.sh README
 
 #compilation targets
 compile-isolbench:
@@ -32,6 +40,10 @@ compile-vision:
 	@echo 'Compiling SD-VBS'
 	make -C ${CURDIR}/vision/ compile
 
+compile-image-filters:
+	@echo 'Compiling image-filters'
+	make -C ${CURDIR}/image-filters/
+
 #clean targets
 clean-tacle:
 	@echo 'Cleaning TACLeBench'
@@ -44,6 +56,10 @@ clean-vision:
 clean-isolbench:
 	@echo 'Cleaning IsolBench'
 	make -C ${CURDIR}/IsolBench/ clean
+
+clean-image-filters:
+	@echo 'Cleaning image-filters'
+	make -C ${CURDIR}/image-filters/
 
 clean-docs:
 	@echo 'Cleaning docs'
@@ -65,7 +81,7 @@ clean-group-vision: clean-vision
 
 compile-group-vision: compile-vision
 
-# vision group
+# interference group
 setup-group-interf:
 
 clean-group-interf: clean-isolbench
