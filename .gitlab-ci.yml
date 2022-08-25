@@ -1,13 +1,13 @@
 image: alpine
 
 pages:
-    script:
+  script:
     - apk update && apk add doxygen graphviz make git bash sed
-    - make setup
+    - DOCS_ONLY=1 make setup
     - make docs
     - mv docs/html/ public/
-    artifacts:
-        paths:
-            - public
-    only:
+  artifacts:
+    paths:
+      - public
+  only:
     - main

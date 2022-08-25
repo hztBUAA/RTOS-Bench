@@ -9,11 +9,13 @@ This page will guide the user in building benchmarks with RT-Bench.
 In the current implementation the framework has some
 dependencies the user has to be aware of:
 
+- A shell that can run scripts in Bash >= 5.
 - Glibc: Provides primitives used by the memory watcher and the argument parser.
 - POSIX.4 real-time signals: used to execute the benchmark periodically and to gather stats.
 - Linux scheduler syscalls: Used to change the scheduling policy.
 - Linux Perf: Used to read performance counters (currently only on CORTEX A53)
 - [JSON-C](https://github.com/json-c/json-c) >= 0.15: _Optional._ Used to read and parse input JSON configuration files.
+- [imagemagick](https://imagemagick.org/) >= 7.1.0-45 _Optional._ For the [Image Filters](https://rt-bench.gitlab.io/rt-bench/group__image-filters.html) module.
 
 Currently RT-Bench targets the following platforms:
 - x86/x86_64

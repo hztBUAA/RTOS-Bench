@@ -47,10 +47,12 @@ General targets perform operations on the whole project.
 
 #### Setup targets
 
-Setup targets are intended to initialize git submodules
+Setup targets are intended to initialize git submodules and prepare them for usage.
+Since submodule might have dependencies in the setup phase, the `DOCS_ONLY` variable can be used to ignore these dependencies when initializing modules when generating documentation.
 
 - `setup-docs`: Initializes the git submodules needed for building the documentation.
 - `setup-tacle`: Initializes the git submodule for the [TACLeBench](@ref #rt-tacle-bench) suite.
+- `setup-image-filters`: Initializes the git submodule for the [Image Filers](@ref #image-filters) benchmarks.
 
 #### Compilation targets
 
@@ -59,6 +61,7 @@ Compilation targets are meant to compile all the benchmarks in a [benchmark set]
 - `compile-isolbench`: Compiles the [IsolBench](@ref #IsolBench) suite.
 - `compile-vision`: Compiles the [SD-VBS](@ref #SD-VBS) suite.
 - `compile-tacle`: Compiles the [TACLeBench](@ref #rt-tacle-bench) suite.
+- `compile-image-filters`: Compiles the [Image Filers](@ref #image-filters) benchmarks.
 
 #### Clean targets
 
@@ -67,6 +70,7 @@ Compilation targets are meant to remove most of the non-source code files.
 - `clean-isolbench`: Cleans the [IsolBench](@ref #IsolBench) suite.
 - `clean-vision`: Cleans the [SD-VBS](@ref #SD-VBS) suite.
 - `clean-tacle`: Cleans the [TACLeBench](@ref #rt-tacle-bench) suite.
+- `clean-image-filters`: Cleans the [Image Filers](@ref #image-filters) benchmarks.
 
 #### Benchmark groups
 Benchmark suite are also grouped to facilitate certain types of tests.

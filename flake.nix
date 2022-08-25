@@ -23,6 +23,8 @@
             pkgs.git
             pkgs.gnused
             pkgs.json_c
+            pkgs.imagemagick
+            pkgs.bash
           ];
         };
     }

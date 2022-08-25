@@ -5,7 +5,7 @@ all:
 docs: setup-docs
 	make -C ${CURDIR}/docs
 
-clean: clean-vision clean-cortex clean-isolbench clean-tacle clean image-filters clean-docs
+clean: clean-vision clean-cortex clean-isolbench clean-tacle clean clean-image-filters clean-docs
 
 setup: setup-docs setup-tacle setup-image-filters
 
@@ -22,8 +22,10 @@ setup-tacle:
 setup-image-filters:
 	@echo 'Initialization and fetching of the pinned version of the submodule...'
 	@git submodule update --init --recursive image-filters
+ifndef DOCS_ONLY
 	@echo 'Fetching and converting input images base...'
 	@bash ${CURDIR}/image-filters/inputs/init.sh
+endif
 	@echo 'Convert the submodule README.md to a .dox file that will be included in the documentation...'
 	@cd image-filters && bash ../utils/md2dox.sh README
 
@@ -59,7 +61,7 @@ clean-isolbench:
 
 clean-image-filters:
 	@echo 'Cleaning image-filters'
-	make -C ${CURDIR}/image-filters/
+	make -C ${CURDIR}/image-filters/ clean
 
 clean-docs:
 	@echo 'Cleaning docs'

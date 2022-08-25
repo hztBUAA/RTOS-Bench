@@ -17,6 +17,7 @@ To add a new benchmark set and integrate it with the other sets the following st
 2. The makefile in the repo root has to be updated with new targets that must be documented in the usage page:
    - `setup-new_set`: This target has to initialize the git submodule upon invocation.
      `setup-new_set` must also be included in as a dependency of the `setup` target.
+     **NOTE**:The `setup-new_set` target will be used to generate the documentation, so is in this target there are dependecies to specific scripts or executable that do not impact on documentation generation they should be enclosed in a `ifndef DOCS_ONLY` [dependency-specific code] `endif`. See the `setup-image-filters` target for a working example. 
    - `compile-new_set`: This target has to compile all the benchmarks in the set.
    - `clean-new_set`: This target has to clean all the compilation and execution byproducts, including data, object files and executables generated.
      `clean-new_set` has also to be included as dependency of the `clean` target.
