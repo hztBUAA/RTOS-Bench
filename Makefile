@@ -75,11 +75,11 @@ clean-group-WCET: clean-tacle
 compile-group-WCET: setup-bmarks-WCET compile-tacle
 
 # vision group
-setup-group-vision:
+setup-group-vision: setup-image-filters
 
-clean-group-vision: clean-vision
+clean-group-vision: clean-vision clean-image-filters
 
-compile-group-vision: compile-vision
+compile-group-vision: compile-vision compile-image-filters
 
 # interference group
 setup-group-interf:
