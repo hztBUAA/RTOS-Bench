@@ -7,9 +7,9 @@ Documentation can be built and consulted by following [these](docs/source/4-Docu
 
 Online documentation is available [here](https://rt-bench.gitlab.io/rt-bench/).
 
-RT-Bench is licensed under [MIT](LICENSES/MIT.txt) license and
+RT-Bench is licensed under [MIT](LICENSE) license and
 integrates benchmark suites that are licensed according to the information
-contained in the corresponding folders.
+contained in the corresponding folders (see details in LICENSES)
 
 RT-Bench is developed by researchers and collaborators affiliated with the
 Cyber-Physical Systems Lab at Boston University [BU](https://cs-people.bu.edu/rmancuso/)
