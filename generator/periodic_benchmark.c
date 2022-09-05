@@ -312,6 +312,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 					 job_perf_counters_start.l2_references,
 					 job_perf_counters_start.l2_refills,
 					 job_perf_counters_start.inst_retired,
+					 job_perf_counters_start.clock_count,
 					 job_perf_counters_end.l1_references,
 					 job_perf_counters_end.l1_refills,
 					 job_perf_counters_end.l2_references,
@@ -333,7 +334,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 						 last_deadline_timestamp,
 						 job_end_timestamp,
 						 job_deadline_timestamp, 0, 0,
-						 0, 0, 0, 0, 0, 0, 0, 0.0);
+						 0, 0, 0, 0, 0, 0, 0, 0, 0.0);
 			}
 		}
 #endif /* PRINT_SKIPPED_DEADLINE */

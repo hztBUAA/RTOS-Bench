@@ -93,7 +93,8 @@ extern enum log_level benchmark_verbosity;
  * @param[in] l1_miss_end The last value from the L1 cache miss counter.
  * @param[in] inst_retired_start The first value from the instruction retired counter.
  * @param[in] inst_retired_end The last value from the instruction retired counter.
- * @param[in] cpu_clock The effective amount of CPU clock used for executing the task.
+ * @param[in] cpu_clock_end The first effective amount of CPU clock used for executing the task.
+ * @param[in] cpu_clock_end The last effective amount of CPU clock used for executing the task.
  * @param[in] extra_measurement The benchmar-specific measurement return by the benchmark in question.
 */
 void print_statistics(FILE *file, unsigned long long period_start_clocks,
@@ -104,10 +105,10 @@ void print_statistics(FILE *file, unsigned long long period_start_clocks,
 		      long double job_end, long double deadline,
 		      long unsigned l1_ref_start, long unsigned l1_miss_start,
 		      long unsigned l2_ref_start, long unsigned l2_miss_start,
-		      long unsigned inst_retired_start,
+		      long unsigned inst_retired_start, long unsigned clock_count_start,
 		      long unsigned l1_ref_end, long unsigned l1_miss_end,
 		      long unsigned l2_ref_end, long unsigned l2_miss_end,
-		      long unsigned inst_retired_end, long unsigned cpu_clock,
+		      long unsigned inst_retired_end, long unsigned clock_count_end,
 		      float extra_measurement);
 
 /** @brief Open a log file.

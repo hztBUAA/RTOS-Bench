@@ -154,16 +154,17 @@ void print_timing(FILE *file, unsigned long long period_start_clocks,
 void print_performance_counters(
 	FILE *file, long unsigned l1_ref_start, long unsigned l1_miss_start,
 	long unsigned l2_ref_start, long unsigned l2_miss_start,
-	long unsigned inst_retired_start, long unsigned l1_ref_end,
-	long unsigned l1_miss_end, long unsigned l2_ref_end,
-	long unsigned l2_miss_end, long unsigned inst_retired_end,
-	long unsigned clock_count)
+	long unsigned inst_retired_start, long unsigned clock_count_start,
+	long unsigned l1_ref_end, long unsigned l1_miss_end,
+	long unsigned l2_ref_end, long unsigned l2_miss_end,
+	long unsigned inst_retired_end, long unsigned clock_count_end)
 {
 	long unsigned job_l1_ref = l1_ref_end - l1_ref_start;
 	long unsigned job_l1_miss = l1_miss_end - l1_miss_start;
 	long unsigned job_l2_ref = l2_ref_end - l2_ref_start;
 	long unsigned job_l2_miss = l2_miss_end - l2_miss_start;
 	long unsigned job_inst_retired = inst_retired_end - inst_retired_start;
+	long unsigned job_clock_count = clock_count_end - clock_count_start;
 	double job_l1_miss_ratio = ((double)job_l1_miss) / ((double)job_l1_ref);
 	double job_l2_miss_ratio = ((double)job_l2_miss) / ((double)job_l2_ref);
 	switch (benchmark_verbosity) {
@@ -181,17 +182,17 @@ void print_performance_counters(
 		printf("\nCPU\n");
 		printf("Instruction retired (i.e., executed in hardware): %lu\n",
 		       job_inst_retired);
-		printf("CPU clock-cycles: %lu\n", clock_count);
+		printf("CPU clock-cycles: %lu\n", job_clock_count);
 		break;
 	case LOG_LEVEL_FILE:
 		fprintf(file, ",%lu,%lu,%f,%lu,%lu,%f,%lu,%lu", job_l1_ref,
 			job_l1_miss, job_l1_miss_ratio, job_l2_ref, job_l2_miss,
-			job_l2_miss_ratio, job_inst_retired, clock_count);
+			job_l2_miss_ratio, job_inst_retired, job_clock_count);
 		break;
 	case LOG_LEVEL_INFO:
 		printf(",%lu,%lu,%f,%lu,%lu,%f,%lu,%lu", job_l1_ref, job_l1_miss,
 		       job_l1_miss_ratio, job_l2_ref, job_l2_miss,
-		       job_l2_miss_ratio, job_inst_retired, clock_count);
+		       job_l2_miss_ratio, job_inst_retired, job_clock_count);
 		break;
 	case LOG_LEVEL_ERR:
 		break;
@@ -223,10 +224,10 @@ void print_statistics(FILE *file, unsigned long long period_start_clocks,
 		      long double job_end, long double deadline,
 		      long unsigned l1_ref_start, long unsigned l1_miss_start,
 		      long unsigned l2_ref_start, long unsigned l2_miss_start,
-		      long unsigned inst_retired_start,
+		      long unsigned inst_retired_start, long unsigned clock_count_start,
 		      long unsigned l1_ref_end, long unsigned l1_miss_end,
 		      long unsigned l2_ref_end, long unsigned l2_miss_end,
-		      long unsigned inst_retired_end, long unsigned clock_count,
+		      long unsigned inst_retired_end, long unsigned clock_count_end,
 		      float extra_measurement)
 {
 	print_timing(file, period_start_clocks, period_end_clocks,
@@ -235,9 +236,10 @@ void print_statistics(FILE *file, unsigned long long period_start_clocks,
 #if (defined(AARCH64) && defined(CORTEX_A53)) || (defined(X86_64) && defined(CORE_I7))
 	print_performance_counters(file, l1_ref_start, l1_miss_start,
 				   l2_ref_start, l2_miss_start,
-				   inst_retired_start, l1_ref_end, l1_miss_end,
+				   inst_retired_start, clock_count_start,
+				   l1_ref_end, l1_miss_end,
 				   l2_ref_end, l2_miss_end, inst_retired_end,
-				   clock_count);
+				   clock_count_end);
 #endif
 
 #ifdef EXTENDED_REPORT
