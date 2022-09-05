@@ -23,7 +23,13 @@ To add a new benchmark set and integrate it with the other sets the following st
      `clean-new_set` has also to be included as dependency of the `clean` target.
      
    The newly created target have to be added to the grouped targets, creating a new group if necessary
-3. If the benchmark set uses a Makefile to compile there should be a `CFLAGS` variable references in the compilation commanf line. If a `CFLAGS` variable is already in use, it is enough to define it as `override CFLAGS+=[..]`. See `IsolBench/Makefile` for an example.
+3. If the benchmark set uses a Makefile, the Makefile in `generator/Makefile` has to be included as early as possible, since it will define the necessary compilation and linking flags according to the features enabled.
+
+    The `generator/Makefile` will define the `CFLAGS` and `LDFLAGS` variables that have to be used in the compilation command line. 
+    Both `CFLAGS` and `LDFLAGS` can be extended, by using the `override` and `+=` operator.
+
+    See `IsolBench/Makefile` for an example.
+
 4. The benchmark set is to be described as a module in a .dox or .md file.
 
     All the details of the benchmark set, including submodule setup, compilation, benchmarks general usage have to be described in this file.

@@ -41,7 +41,6 @@ clean: clean-pdf clean-html
 clean-html:
 	@echo removing generated documentation pages...
 	@rm -rf html Documentation.html
-	@rm -rf conf/doxygen-awesome
 
 clean-pdf:
 	@rm -rf latex pdf

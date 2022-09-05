@@ -25,13 +25,13 @@ The project has a top level Makefile that can be used to quickly perform certain
 
 #### Custom flags
 
-To enable certain RT-Bench features it is necessary to supply the compiler with additional flags.
+To enable certain RT-Bench features it is necessary to supply the make command with additional variables.
 
-To accomodate so in every makefile it is possible to add these flags in the `CFLAGS` variable before invoking the `make` command.
+To accommodate so it is possible to add these variables before invoking the `make` command.
 The example below will include support for JSON configuration files (discussed [here](@ref #benchmarks)) to the default make target:
 
 ```{.sh}
-CFLAGS=-DJSON_SUPPORT make
+JSON=1 make
 ```
 
 A list of all the targets that can be specified can can be found [here](#compilation).

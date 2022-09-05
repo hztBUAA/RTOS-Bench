@@ -72,8 +72,10 @@ static struct itimerspec deadline_timing;
 /// The file pointer to the timing output file.
 static FILE *filep = NULL;
 
+#if defined(CORTEX_A53) || defined(CORE_I7)
 /// The file pointer to the pruntime performance counter monitoring file.
 static FILE *filep_sampler = NULL;
+#endif
 
 /// Semaphore used to determine if a new job can be started.
 static sem_t period_sem;
@@ -141,8 +143,8 @@ static void stop_benchmark(int status, void *arg)
 			perror("Error during output file close");
 		}
 	}
-#ifdef AARCH64
-#ifdef CORTEX_A53
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
 	if (arg != NULL) {
 		unsigned *memory_profiling_enable = (unsigned *)arg;
 		if (*memory_profiling_enable) {
@@ -161,7 +163,6 @@ static void stop_benchmark(int status, void *arg)
 			}
 		}
 	}
-#endif
 #endif
 	if (deadline_timer != NULL) {
 		elogf(LOG_LEVEL_TRACE, "Deleting deadline timer\n");
@@ -183,13 +184,12 @@ static void stop_benchmark(int status, void *arg)
 	}
 	elogf(LOG_LEVEL_TRACE, "Cleaning up job environment\n");
 	benchmark_teardown(benchmark_param_num, benchmark_params);
-#ifdef AARCH64
-#ifdef CORTEX_A53
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
 	res = teardown_pmcs();
 	if (res < 0) {
 		perror("Error: performance counters file descriptors could not be closed\n");
 	}
-#endif
 #endif
 }
 
@@ -317,6 +317,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 					 job_perf_counters_end.l2_references,
 					 job_perf_counters_end.l2_refills,
 					 job_perf_counters_end.inst_retired,
+					 job_perf_counters_end.clock_count,
 					 extra_measurement);
 
 		}
@@ -332,7 +333,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 						 last_deadline_timestamp,
 						 job_end_timestamp,
 						 job_deadline_timestamp, 0, 0,
-						 0, 0, 0, 0, 0, 0, 0.0);
+						 0, 0, 0, 0, 0, 0, 0, 0.0);
 			}
 		}
 #endif /* PRINT_SKIPPED_DEADLINE */
@@ -487,14 +488,37 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	// status variables
 	int res;
 
-#ifdef AARCH64
-#ifdef CORTEX_A53
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
 	// Initialize the performance sampler thread
 	if (exec_opts->memory_profiling_enable) {
 		elogf(LOG_LEVEL_TRACE,
 		      "Initializing runtime performance sampling\n");
-		filep_sampler = fopen(
-			DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH, "w");
+		char *perf_fname = NULL;
+		const char *perf_fname_postfix = "_perf_profile";
+		int perf_fname_postfix_len, perf_fname_len;
+		char *fname_no_ext;
+		if (exec_opts->output_path != NULL) {
+			// write "_perf" before the .csv extension
+			perf_fname_postfix_len = strlen(perf_fname_postfix);
+			perf_fname_len = strlen(exec_opts->output_path) +
+					 perf_fname_postfix_len + 1;
+			perf_fname = malloc(sizeof(char) * perf_fname_len);
+			memset(perf_fname,0,sizeof(char)*perf_fname_len);
+			fname_no_ext = malloc(sizeof(char) *(
+					    strlen(exec_opts->output_path)-3));
+			snprintf(fname_no_ext,
+				 sizeof(char) * (strlen(exec_opts->output_path) - 3),
+				 "%s",exec_opts->output_path);
+			snprintf(perf_fname,perf_fname_len, "%s%s%s",fname_no_ext,perf_fname_postfix, ".csv");
+			free(fname_no_ext);
+		} else {
+			perf_fname_len=(1+strlen(DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH));
+			perf_fname=malloc(sizeof(char)*perf_fname_len);
+			strcpy(perf_fname,DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH);
+		}
+		filep_sampler = fopen(perf_fname, "w");
+		free(perf_fname);
 		res = setup_perf_sampler(
 			exec_opts->tasks_to_launch,
 			exec_opts->memory_profiling_core_affinity,
@@ -505,7 +529,6 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		}
 	}
 #endif
-#endif
 	elogf(LOG_LEVEL_TRACE, "Starting setup of execution environment\n");
 	// we initialize the period semaphore to 0, to wait for the period end.
 	res = sem_init(&period_sem, 1, 0);
@@ -513,13 +536,10 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		perror("Error during deadline semaphore initialization");
 		return res;
 	}
-#ifdef AARCH64
-#ifdef CORTEX_A53
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
 	res = on_exit(stop_benchmark,
 		      (void *)&(exec_opts->memory_profiling_enable));
-#else
-	res = on_exit(stop_benchmark, NULL);
-#endif
 #else
 	res = on_exit(stop_benchmark, NULL);
 #endif
@@ -550,12 +570,19 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		}
 		filep = fopen(fname, "w+");
 		char log_header[1024];
-		strcat(log_header, "period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density,job_l1_references,job_l1_misses,ob_l1_miss_ratio(%%),job_l2_references,job_l2_misses,job_l2_miss_ratio(%%),instructions_retired");
+		memset(log_header, 0, 1024);
+		strcat(log_header,
+		       "period_start(clock_cycles),period_end(clock_cycles),job_end(clock_cycles),job_deadline(clock_cycles),job_elapsed(clock_cycles),period_start(seconds),period_end(seconds),job_end(seconds),job_deadline(seconds),job_elapsed(seconds),deadline_status(1=met),job_utilization,job_density");
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
+		strcat(log_header,
+		       ",job_l1_references,job_l1_misses,job_l1_miss_ratio(%%),job_l2_references,job_l2_misses,job_l2_miss_ratio(%%),instructions_retired,cpu_clock_count");
+#endif
 #ifdef EXTENDED_REPORT
 		strcat(log_header, benchmark_log_header());
 #endif
 		strcat(log_header, "\n");
-		fprintf(filep, "%s",log_header);
+		fprintf(filep, "%s", log_header);
 		if (exec_opts->output_path != NULL) {
 			free(exec_opts->output_path);
 		}
@@ -598,13 +625,12 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		start_memory_watcher(exec_opts->bytes_to_preallocate);
 	}
 
-#ifdef AARCH64
-#ifdef CORTEX_A53
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
 	res = setup_pmcs();
 	if (res < 0) {
 		return res;
 	}
-#endif
 #endif
 
 	elogf(LOG_LEVEL_TRACE, "Configuring timers...\n");
@@ -650,22 +676,20 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			return res;
 		}
 // we start executing the job
-#ifdef AARCH64
-#ifdef CORTEX_A53
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
 		if (exec_opts->memory_profiling_enable) {
 			start_sampling();
 		}
 		job_perf_counters_start = pmcs_get_value();
 #endif
-#endif
 		benchmark_execution(benchmark_param_num, benchmark_params);
-#ifdef AARCH64
-#ifdef CORTEX_A53
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
 		job_perf_counters_end = pmcs_get_value();
 		if (exec_opts->memory_profiling_enable) {
 			stop_sampling();
 		}
-#endif
 #endif
 		job_end_timestamp_clocks = get_rdtsc();
 		job_end_timestamp = get_timestamp();

@@ -10,3 +10,6 @@ docs/conf/doxygen-awesome
 .compile_commands.json
 .ctags
 *.o
+utils/overhead
+*.csv
+*.log

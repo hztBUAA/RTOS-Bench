@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
+#include <limits.h>
 
 
 #define NANOSECONDS  (1UL)
@@ -27,9 +28,6 @@ static pthread_t sampler_thread;
 static pthread_attr_t attr;
 static struct sched_param params;
 
-static sem_t sampler_sync;
-
-
 static unsigned sampling_alive = 0;
 
 static unsigned sampling_active = 0;
@@ -38,7 +36,7 @@ static struct timespec time_bucket;
 static struct timespec rem;
 
 
-static unsigned long first_l2_refills_sample;
+static struct perf_counters first_sample;
 static unsigned sampling_counter;
 static unsigned expected_samples;
 static struct sampling_data* sampling_data;
@@ -48,17 +46,28 @@ static void* sampling(void* dummy)
 {
 	while (sampling_alive) {
 		if (sampling_active) {
-			if (sampling_data[sampling_counter].len == 0) {
-				first_l2_refills_sample = pmcs_get_value().l2_refills;
-				sampling_data[sampling_counter].samples[sampling_data[sampling_counter].len] = 0;
+			if (sampling_counter == 0) {
+				first_sample = pmcs_get_value();
+				sampling_data[sampling_counter].sum.l1_references = 0;
+				sampling_data[sampling_counter].sum.l1_refills = 0;
+				sampling_data[sampling_counter].sum.l2_references = 0;
+				sampling_data[sampling_counter].sum.l2_refills = 0;
+				sampling_data[sampling_counter].sum.inst_retired = 0;
 			}
 			else {
-				sampling_data[sampling_counter].samples[sampling_data[sampling_counter].len] = pmcs_get_value().l2_refills-first_l2_refills_sample;
+				struct perf_counters diff = pmcs_get_value();
+				sampling_data[sampling_counter].sum.l1_references += diff.l1_references-first_sample.l1_references;
+				sampling_data[sampling_counter].sum.l1_refills += diff.l1_refills-first_sample.l1_refills;
+				sampling_data[sampling_counter].sum.l2_references += diff.l2_references-first_sample.l2_references;
+				sampling_data[sampling_counter].sum.l2_refills += diff.l2_refills-first_sample.l2_refills;
+				sampling_data[sampling_counter].sum.inst_retired += diff.inst_retired-first_sample.inst_retired;
 			}
-			sampling_data[sampling_counter].len++;
+			sampling_data[sampling_counter].samples++;
 		}
+		sampling_counter++;
 		nanosleep(&time_bucket, &rem);
 	}
+	pthread_exit(NULL);
 }
 
 
@@ -69,12 +78,8 @@ int setup_perf_sampler(unsigned iterations, cpu_set_t core_affinity, long unsign
 	time_bucket.tv_sec = 0;
 	time_bucket.tv_nsec = input_time_bucket;
 	// setup sampling struct
-	sampling_counter = 0;
-	sampling_data = (struct sampling_data*)malloc(iterations*sizeof(struct sampling_data));
-	for (unsigned i = 0; i < iterations; i++) {
-		sampling_data[i].len = 0;
-		sampling_data[i].samples = (long unsigned*)malloc(5*SECONDS/input_time_bucket*sizeof(long unsigned));
-	}
+	sampling_data = (struct sampling_data*)malloc(5*SECONDS/input_time_bucket*sizeof(struct sampling_data));
+	// @todo: memset the array
 	// pthread_attr
 	int res = pthread_attr_init(&attr);
 	if (res != 0) {
@@ -116,9 +121,6 @@ int teardown_perf_sampler(void)
 {
 	sampling_alive = 0;
 	int res = pthread_join(sampler_thread, NULL);
-	for (unsigned i = 0; i < expected_samples; i++) {
-		free(sampling_data[i].samples);
-	}
 	free(sampling_data);
 	return res;
 }
@@ -126,20 +128,21 @@ int teardown_perf_sampler(void)
 void start_sampling(void)
 {
 	sampling_active = 1;
+	sampling_counter = 0;
 }
 
 void stop_sampling(void)
 {
 	sampling_active = 0;
-	sampling_counter++;
+	sampling_counter = 0;
 }
 
 void log_samples(FILE* filep)
 {
-	for (unsigned i = 0; i < expected_samples; i++) {
-		for (int j = 0; j < sampling_data[i].len; j++) {
-			fprintf(filep, "%lu,", sampling_data[i].samples[j]);
-		}
-		fprintf(filep, "\n");
+	// Print header
+	fprintf(filep, "samples,l1_references,l1_refills,l2_references,l2_refills,inst_retired\n");
+	// @todo and max allocated slots
+	for (int j = 0; sampling_data[j].samples > 0; j++) {
+		fprintf(filep, "%lu, %lu, %lu, %lu, %lu, %lu\n", sampling_data[j].samples, sampling_data[j].sum.l1_references, sampling_data[j].sum.l1_refills, sampling_data[j].sum.l2_references, sampling_data[j].sum.l2_refills, sampling_data[j].sum.inst_retired);
 	}
 }

@@ -162,6 +162,7 @@ static int set_sched_fifo_prio(unsigned int prio)
 	return ret;
 }
 
+#ifdef JSON_SUPPORT
 /** @brief Convert the long options to their short version.
  * @param[in] arg The option to shorten.
  * @returns The shortened option.
@@ -187,15 +188,14 @@ static char field_to_abbrv_mapping(char *arg)
 		return 'P';
 	else if (!strcmp(arg, "sched-runtime"))
 		return 'T';
-#ifdef AARCH64
-#ifdef CORTEX_A53
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
 	else if (!strcmp(arg, "memory-profiling-enable"))
 		return 'M';
 	else if (!strcmp(arg, "memory-profiling-core"))
 		return 'C';
 	else if (!strcmp(arg, "memory-profiling-time-bucket"))
 		return 'B';
-#endif
 #endif
 	else if (!strcmp(arg, "log-level"))
 		return 'l';
@@ -209,6 +209,7 @@ static char field_to_abbrv_mapping(char *arg)
 		exit(0);
 	}
 }
+#endif
 
 /** @brief Parse cli or JSON options and arguments.
  * @param[in] key The parsed key (e.g. s if the parameters is -s 100) .
@@ -230,8 +231,13 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 	int affinity_core;
 	char *affinity_substr = NULL;
 	unsigned long long tasks = 0;
+	char *output_extension = "";
 	int arg_len = 0;
 	errno = 0;
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
+	unsigned long long memory_profiling_core_affinity;
+#endif
 
 	switch (key) {
 	case 'b':
@@ -243,7 +249,7 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 			parsed_args->args =
 				(char **)malloc(sizeof(char *) * arg_len);
 			char sep[] = " ";
-			char *ptr = strtok((char*) arg, sep);
+			char *ptr = strtok((char *)arg, sep);
 			while (ptr != NULL) {
 				parsed_args->args[parsed_args->args_num] =
 					(char *)malloc(sizeof(char) *
@@ -329,14 +335,26 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 		break;
 	case 'o':
 		arg_len = strlen(arg);
-		parsed_args->output_path = malloc(sizeof(char) * arg_len + 1);
+		int path_len=0;
+		//add csv extension if needed
+		if (strcmp(arg+(arg_len-4),".csv")==0) {
+			parsed_args->output_path =
+				malloc(sizeof(char) * arg_len+1);
+			path_len = arg_len+1;
+			output_extension = "";
+		} else {
+			output_extension = ".csv";
+			parsed_args->output_path = malloc(
+				sizeof(char) *
+				(arg_len + strlen(output_extension)+1));
+				path_len=arg_len+strlen(output_extension)+1;
+		}
 		if (parsed_args->output_path == NULL) {
 			argp_failure(
 				state, EXIT_FAILURE, errno,
 				"Can't allocate memory for output filename.");
 		}
-		strncpy(parsed_args->output_path, arg,
-			sizeof(char) * arg_len + 1);
+		snprintf(parsed_args->output_path, path_len,"%s%s", arg,output_extension);
 		break;
 	case 'l':
 		log_level = atoi(arg);
@@ -349,7 +367,7 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 		break;
 	case 'c':
 		// we create the mask based on what cores the user has specified.
-		affinity_substr = (char*) arg;
+		affinity_substr = (char *)arg;
 		//we read one core id at a time and we insert it in the mask
 		while (affinity_substr != NULL) {
 			res = sscanf(affinity_substr, "%d%*s", &affinity_core);
@@ -400,8 +418,8 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 	case 'P':
 		parsed_args->period = strtoull(arg, NULL, 0);
 		break;
-#ifdef AARCH64
-#ifdef CORTEX_A53
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
 	case 'M':
 		parsed_args->memory_profiling_enable = strtoul(arg, NULL, 0);
 		break;
@@ -411,9 +429,9 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 			&parsed_args->memory_profiling_core_affinity);
 		break;
 	case 'B':
-		memory_profiling_time_bucket = strtoul(arg, NULL, 0);
+		parsed_args->memory_profiling_time_bucket =
+			strtoul(arg, NULL, 0);
 		break;
-#endif
 #endif
 	default:
 		res = ARGP_ERR_UNKNOWN;
@@ -448,17 +466,18 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		parsed_args->memory_profiling_enable = 0;
 		CPU_ZERO(&parsed_args->memory_profiling_core_affinity);
 		parsed_args->memory_profiling_time_bucket = 10000000;
+		parsed_args->output_path = NULL;
 		break;
 #ifdef JSON_SUPPORT
 	case 'g':
 		json_object *root = json_object_from_file(arg);
-		if(root == NULL){
+		if (root == NULL) {
 			argp_error(
 				state,
-			  "Error: Cannot open JSON configuration file.");
+				"Error: Cannot open JSON configuration file.");
 			break;
 		}
-		printf("%d",root==NULL);
+		printf("%d", root == NULL);
 		json_object_object_foreach(root, first, second)
 		{
 			res = interpret_opt(field_to_abbrv_mapping(first),
@@ -569,15 +588,14 @@ int main(int argc, char **argv)
 		{ "sched-period", 'P', "ns", 0,
 		  "Set SCHED_DEADLINE period. Alternative to --fifo. Need root. At least --sched-period has to be specified to set sched_deadline params. If deadline is not specified, deadline is set to period. If runtime is not specified, runtime is set to deadline. NOTE: These parameters are different from --period and --deadline used to control the repetitive execution of the thread. To generate valid execution that are not truncated under hard server reservation, period < sched-period and deadline < sched-deadline." },
 		{ 0, 0, 0, 0, "Reporting options:", 5 },
-#ifdef AARCH64
-#ifdef CORTEX_A53
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
 		{ "memory-profiling-enable", 'M', "bool", 0,
 		  "Enables runtime memory profiling. Specify '1' to enable or '0' otherwise." },
 		{ "memory-profiling-core", 'C', "core0, core1,...", 0,
 		  "Core affinity of the runtime memory profiling thread. If not specified, it matches the 'core-affinity' parameter. Warning: 'memory-profiling-enable' must be asserted for this parameter to take effect." },
 		{ "memory-profiling-time-bucket", 'B', "ns", 0,
 		  "Period between measurements performed by the runtime memory profiler. If not specified, time bucket of 10ms is set. Warning: 'memory-profiling-enable' must be asserted for this parameter to take effect." },
-#endif
 #endif
 		{ "log-level", 'l', "log-lvl", 0,
 		  "Log level, can be one of the following:\n1 - Print only errors.\n2 - Print benchmark stats to output file.\n3 - Print benchmark stats to stdout.\n4 - Print also informative messages on stderr.\nDefault is 3." },

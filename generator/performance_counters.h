@@ -20,6 +20,7 @@ struct perf_counters {
         long unsigned l2_references; ///< L2 accesses
         long unsigned l2_refills; ///< L2 misses
 	long unsigned inst_retired; ///< Instructions retired
+	long unsigned clock_count; ///< Clock cycles count
 };
 
 /** @brief Enable user-space access to performance counters.

@@ -2,15 +2,11 @@
 # Original Author: Sravanthi Kota Venkata
 #################################
 
+include ../../../../../generator/Makefile
+
 CC=gcc
 
 override CFLAGS += -DGCC -D$(INPUT)
-
-ifdef CORE
-ifeq ($(CORE),CORTEX_A53)
-override CFLAGS +=-DAARCH64 -DCORTEX_A53
-endif
-endif
 
 ifdef CHECK_OUTPUT
 override CFLAGS+= -DCHECK
@@ -42,10 +38,10 @@ COMMON_SRC := $(wildcard $(COMMON_DIR)/*.c)
 # RULES
 EXE =
 INCLUDES = -I$(COMMON_DIR) -I$(C_DIR) -I$(BASE_DIR)
-COMPILE_C = $(CC) $(CFLAGS) -O2 $(INCLUDES) -Wl,--wrap=malloc -Wl,--wrap=mmap
-C_LIBS = -lrt -lm -pthread -ljson-c
-#COMPILE_C = $(CC) $(CFLAGS) -DGENERATE_OUTPUT -lm -O2 $(INCLUDES) -Wl,--wrap=malloc -Wl,--wrap=mmap
-COMPILE_G = $(CC) $(CFLAGS) -g -lrt -lm -pthread $(INCLUDES) -Wl,--wrap=malloc -Wl,--wrap=mmap
+COMPILE_C = $(CC) $(CFLAGS) -O2 $(INCLUDES)
+C_LIBS = $(LDFLAGS)
+#COMPILE_C = $(CC) $(CFLAGS) -DGENERATE_OUTPUT -O2 $(INCLUDES)
+COMPILE_G = $(CC) $(CFLAGS) -g $(INCLUDES)
 COMPILE_PG = $(COMPILE_G) -pg
 
 
@@ -56,7 +52,7 @@ c-run: compile
 
 debug:
 	@echo Running Debug C Version of the benchmark
-	@$(COMPILE_G) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
+	@$(COMPILE_G) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE) $(C_LIBS)
 
 debug-valgrind: debug
 	@valgrind --leak-check=full -s ./$(BMARK)$(EXE) $(BMARK_OPTIONS) -o $(C_RESULT)  -b $(DATA_DIR)
@@ -66,7 +62,7 @@ debug-gdb: debug
 
 debug-asan:
 	@echo Running Debug C Version of the benchmark
-	@$(COMPILE_G) -fsanitize=address $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
+	@$(COMPILE_G) -fsanitize=address $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE) $(CLIBS)
 	@./$(BMARK)$(EXE) $(BMARK_OPTIONS) -b $(DATA_DIR) -o $(C_RESULT)
 
 
@@ -85,7 +81,7 @@ compile: $(C_SRC)
 compile-prof: $(C_SRC)
 	@echo
 	@echo -e "Benchmark\t\t- $(BMARK)"
-	@$(COMPILE_PG) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE)
+	@$(COMPILE_PG) $(BASE_SRC) $(COMMON_SRC) $(C_SRC) -o $(BMARK)$(EXE) $(C_LIBS)
 
 all: c-run
 

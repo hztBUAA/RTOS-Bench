@@ -5,7 +5,7 @@ all:
 docs: setup-docs
 	make -C ${CURDIR}/docs
 
-clean: clean-vision clean-cortex clean-isolbench clean-tacle clean clean-image-filters clean-docs
+clean: clean-vision clean-isolbench clean-docs clean-tacle clean-image-filters
 
 setup: setup-docs setup-tacle setup-image-filters
 
