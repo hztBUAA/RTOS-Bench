@@ -454,6 +454,9 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	struct execution_options *parsed_args = state->input;
 	errno = 0;
 	feclearexcept(FE_ALL_EXCEPT);
+#ifdef JSON_SUPPORT
+		json_object *root;
+#endif
 	switch (key) {
 		//default values for arguments and options
 	case ARGP_KEY_INIT:
@@ -470,7 +473,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 #ifdef JSON_SUPPORT
 	case 'g':
-		json_object *root = json_object_from_file(arg);
+		root = json_object_from_file(arg);
 		if (root == NULL) {
 			argp_error(
 				state,
