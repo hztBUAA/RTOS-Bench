@@ -6,6 +6,7 @@ import sys
 if (__name__ == "__main__"):
     # read file
     data = pd.read_csv(sys.argv[1])
+    data = data[data["samples"] == 50]
     # extract column
     l2_references = np.divide(data["l2_references"], data["samples"])
     l2_references = np.divide(l2_references, l2_references.iloc[-1]).values
@@ -19,12 +20,11 @@ if (__name__ == "__main__"):
     inst_retired = np.divide(inst_retired, inst_retired.iloc[-1]).values
     # plot
     x = np.arange(len(inst_retired))
-    plt.title(sys.argv[2])
     plt.plot(x, l1_references, label="L1 References")
     plt.plot(x, l1_refills, label="L1 Refills")
     plt.plot(x, l2_references, label="LLC References")
     plt.plot(x, l2_refills, label="LLC Refills")
-    plt.xlabel("Time")
+    plt.xlabel("Time (10ms)")
     plt.plot(x, inst_retired, label="Inst. Retired")
     plt.ylabel("Normalized cumulative distribution")
     plt.legend()
