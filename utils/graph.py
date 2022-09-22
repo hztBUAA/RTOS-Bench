@@ -609,7 +609,7 @@ def parser_init():
         "-g",
         "--graph",
         metavar="graph",
-        nargs="1",
+        nargs="+",
         type=str,
         help="Which type of graph must be plotted. If repeated plots will stack.",
         choices=[
@@ -676,7 +676,7 @@ def parser_init():
         nargs="+",
         type=str,
         help="CSV column that contain the data to plot on the x axis. Can be repeated (one for each graph type).",
-        required=False,
+        required=True,
         dest="x_cols",
     )
 
@@ -687,7 +687,7 @@ def parser_init():
         nargs="+",
         type=str,
         help="CSV column that contain the data to plot on the y axis. Can be repeated (one for each graph type).",
-        required=False,
+        required=True,
         default=None,
         dest="y_cols",
     )
@@ -751,8 +751,7 @@ def parser_init():
         "-hd",
         "--hist-density",
         type=bool,
-        help="To make the the histogram consider the density of samples instead of their number.
-",
+        help="To make the the histogram consider the density of samples instead of their number.",
         required=False,
         default=False,
         choices=[True, False],
