@@ -175,7 +175,7 @@ When adding and integrating new benchmark in an existing benchmark set the follo
     ```
 	  Which returns the benchmark-specific measurement.
 
-  Note that, as indicated in [the building guidelines](2-Building_with_the_framework.markdown), the `-DEXTENDED-REPORT` compilation flag _must_ be used for these functions to be called.
+  Note that, as indicated in [the building guidelines](2-Building_with_the_framework.markdown), the `-DEXTENDED_REPORT` compilation flag _must_ be used for these functions to be called.
 
 Refer to the [disparity](@ref #disparity) benchmark documentation and source code for a working example.
 
