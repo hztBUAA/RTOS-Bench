@@ -102,26 +102,27 @@ def start_interfering(deadline, bmarks, num_cpus, target_core, system_core, fifo
     bmark_processes = []
     for i in range(0, len(bmarks)):
         if bmarks[i][1] != []:
-            interf_args = ["-b"] + bmarks[i][1]
-        else:
-            interf_args = []
+            interf_args = [
+                bmarks[i][0],
+                "-d",
+                str(deadline),
+                "-p",
+                str(deadline),
+                "-l",
+                "1",
+                "-c",
+                cores[i],
+                "-f",
+                str(fifo_prio),
+                "-b",
+                f'"{" ".join(bmarks[i][1])}"',
+            ]
+            interf_args = " ".join(interf_args)
         try:
             bmark_processes.append(
                 subprocess.Popen(
-                    [
-                        bmarks[i][0],
-                        "-d",
-                        str(deadline),
-                        "-p",
-                        str(deadline),
-                        "-l",
-                        "1",
-                        "-c",
-                        cores[i],
-                        "-f",
-                        str(fifo_prio),
-                    ]
-                    + interf_args
+                    interf_args,
+                    shell=True,
                 )
             )
         except Exception as e:
@@ -265,7 +266,7 @@ def parser_init(description="A script to perform various tests"):
     parser.add_argument(
         "-wd",
         "--worst-case-threshold",
-        metavar="tests-num",
+        metavar="0.0-1.0",
         type=float,
         help="The percentage of missed deadlines that can be allowed when searching for the worst case execution time.",
         default=0,
@@ -273,6 +274,16 @@ def parser_init(description="A script to perform various tests"):
         dest="worst_case_threshold",
     )
 
+    parser.add_argument(
+        "-wdline",
+        "--worst-case-deadline",
+        metavar=">0.0",
+        type=float,
+        help="The minumum deadline for the worst case execution time.",
+        default=0.001,
+        required=False,
+        dest="worst_case_deadline",
+    )
     parser.add_argument(
         "-i",
         "--interfering-bmarks",
@@ -647,7 +658,7 @@ def draw_and_save_graph(draw_function, params, data_dict_key, name, fields, conv
 
     @param[in] draw_function the function that draws a graph.
     @param[in] params The parameters dictionary.
-    @param[in] data_dict_key The strin that represents the dicitonary with the test data inside params.
+    @param[in] data_dict_key The string that represents the dictionary with the test data inside params.
     @param[in] name The graph name.
     @param[in] fields the fields to read from the csv files.
     @param[in] conv The list containing the convertion function for each field.

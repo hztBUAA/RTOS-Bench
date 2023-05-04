@@ -245,15 +245,15 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 		// We get the arg, split the string, and rearrange in args
 		if (state->arg_num == 0) {
 			parsed_args->args_num = 0;
-			// Overprovision the array size. It cannot be as big as the elemt composing it
+			// Overprovision the array size. It cannot be as big as the element composing it
 			parsed_args->args =
-				(char **)malloc(sizeof(char *) * arg_len);
+				(char **)malloc(sizeof(char *) * (arg_len + 1));
 			char sep[] = " ";
 			char *ptr = strtok((char *)arg, sep);
 			while (ptr != NULL) {
 				parsed_args->args[parsed_args->args_num] =
 					(char *)malloc(sizeof(char) *
-						       strlen(ptr));
+						       (strlen(ptr) + 1));
 				strcpy(parsed_args->args[parsed_args->args_num],
 				       ptr);
 				parsed_args->args_num++;
@@ -335,26 +335,27 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 		break;
 	case 'o':
 		arg_len = strlen(arg);
-		int path_len=0;
+		int path_len = 0;
 		//add csv extension if needed
-		if (strcmp(arg+(arg_len-4),".csv")==0) {
+		if (strcmp(arg + (arg_len - 4), ".csv") == 0) {
 			parsed_args->output_path =
-				malloc(sizeof(char) * arg_len+1);
-			path_len = arg_len+1;
+				malloc(sizeof(char) * arg_len + 1);
+			path_len = arg_len + 1;
 			output_extension = "";
 		} else {
 			output_extension = ".csv";
 			parsed_args->output_path = malloc(
 				sizeof(char) *
-				(arg_len + strlen(output_extension)+1));
-				path_len=arg_len+strlen(output_extension)+1;
+				(arg_len + strlen(output_extension) + 1));
+			path_len = arg_len + strlen(output_extension) + 1;
 		}
 		if (parsed_args->output_path == NULL) {
 			argp_failure(
 				state, EXIT_FAILURE, errno,
 				"Can't allocate memory for output filename.");
 		}
-		snprintf(parsed_args->output_path, path_len,"%s%s", arg,output_extension);
+		snprintf(parsed_args->output_path, path_len, "%s%s", arg,
+			 output_extension);
 		break;
 	case 'l':
 		log_level = atoi(arg);
@@ -455,7 +456,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	errno = 0;
 	feclearexcept(FE_ALL_EXCEPT);
 #ifdef JSON_SUPPORT
-		json_object *root;
+	json_object *root;
 #endif
 	switch (key) {
 		//default values for arguments and options
@@ -664,5 +665,7 @@ int main(int argc, char **argv)
 	// return failure if exist
 	if (res < 0) {
 		return EXIT_FAILURE;
+	} else {
+		return EXIT_SUCCESS;
 	}
 }

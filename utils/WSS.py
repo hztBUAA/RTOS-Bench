@@ -1,3 +1,4 @@
+#!/bin/python3
 """!
 @file WSS.py
 @ingroup wss
@@ -184,32 +185,33 @@ def wss_test(
             f"\n\n{bmark_name} {bmark_args} current wss:{current_wss}, last wss:{last_wss}"
         )
         failed_tests = 0
+        bmark_cmdline = (
+            [
+                bmark,
+                "-d",
+                "1",
+                "-p",
+                "1",
+                "-l",
+                "1",
+                "-c",
+                str(core),
+                "-t",
+                str(tests),
+                "-m",
+                str(current_wss),
+            ]
+            + sched_params
+            + ["-b", f'"{" ".join(bmark_args)}"']
+        )
+        bmark_cmdline = " ".join(bmark_cmdline)
         try:
-            subprocess.run(
-                [
-                    bmark,
-                    "-d",
-                    "1",
-                    "-p",
-                    "1",
-                    "-l",
-                    "1",
-                    "-c",
-                    str(core),
-                    "-t",
-                    str(tests),
-                    "-m",
-                    str(current_wss),
-                ]
-                + sched_params
-                + ["-b"]
-                + bmark_args,
-                check=True,
-            )
+            subprocess.run(bmark_cmdline, check=True, shell=True)
         except subprocess.CalledProcessError as e:
             # we failed at least one test
             failed_tests += 1
             wss_lower_bound = current_wss
+            print(f"Cannot run WSS test {e}")
         else:
             # all tests succeeded, so we can save this upper bound
             wss_upper_bound = current_wss

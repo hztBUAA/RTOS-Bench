@@ -95,27 +95,26 @@ def overhead_test(
             ]
         )
     print("\nstarting overhead test")
-    subprocess.run(
-        [
-            bmark,
-            "-d",
-            str(deadline),
-            "-p",
-            str(deadline),
-            "-l",
-            "2",
-            "-c",
-            str(last_core),
-            "-t",
-            str(tests),
-            "-o",
-            os.path.join(
-                output,
-                test_fname,
-            ),
-        ]
-        + sched_params
-    )
+    cmdline = [
+        bmark,
+        "-d",
+        str(deadline),
+        "-p",
+        str(deadline),
+        "-l",
+        "2",
+        "-c",
+        str(last_core),
+        "-t",
+        str(tests),
+        "-o",
+        os.path.join(
+            output,
+            test_fname,
+        ),
+    ] + sched_params
+    cmdline = " ".join(cmdline)
+    subprocess.run(cmdline, shell=True, check=True)
     try:
         test_file = open(
             os.path.join(
@@ -193,9 +192,7 @@ def execute(params):
             return params
         sched_params = params.get("sched_params")
         if sched_params is None:
-            print(
-                "ERROR: Missing scheduling parameters to execute the overhead test!"
-            )
+            print("ERROR: Missing scheduling parameters to execute the overhead test!")
             params.update({"res": -1})
             return params
         cores = params.get("cores")
@@ -274,7 +271,6 @@ def draw_graph(data, interference=False, old_graph=None):
                 tmp_list.append(elem[0])
                 runtimes = tmp_list
     log_scale = False
-    bmarks = []
     if runtimes is None:
         print("ERROR: Not enough data to plot a WCET graph")
         return None

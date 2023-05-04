@@ -47,6 +47,7 @@ def worst_case_exec_test(
     timestamp,
     interference,
     threshold=0,
+    deadline=0.001,
 ):
     """!  @brief Finds the worst case execution time using only the first core.
 
@@ -60,7 +61,8 @@ def worst_case_exec_test(
     @param[in] sched_params Parameters that tune the benchmark scheduling attributes (a list with CLI options and it's attributes).
     @param[in] timestamp The timestamp of the test.
     @param[in] interference If the test has interference, this will change the csv filename, adding `interfering`.
-    @param[in] threshold The percentage of missed deadline that can make te test still succeed.
+    @param[in] threshold The percentage of missed deadline that can make the test still succeed.
+    @param[in] deadline The minimum deadline for the WCET test.
     @details
     The worst case execution time will be the longest time a single task has run without missing the deadline.
     To do so a number of tasks (`worst_case_tests`) is run and if at least one misses the deadline then the deadline be increased and the test restarted.
@@ -77,7 +79,10 @@ def worst_case_exec_test(
     if threshold > 1:
         print("ERROR: The threshold for failed tests is greater than 100%")
         return -1
-    deadline = 0.001
+    if deadline < 0:
+        print("ERROR: The  deadline for failed tests is less than 0")
+        return -1
+
     fails_count = worst_case_tests * threshold + 1
     bmark_name = os.path.basename(bmark)
     runtimes = []
@@ -114,9 +119,9 @@ def worst_case_exec_test(
         )
         fails_count = 0
         runtimes = []
-        subprocess.run(
+        bmark_cmdline = (
             [
-                bmark,
+                os.path.abspath(bmark),
                 "-d",
                 str(deadline),
                 "-p",
@@ -128,16 +133,20 @@ def worst_case_exec_test(
                 "-t",
                 str(worst_case_tests),
                 "-o",
-                os.path.join(
-                    output,
-                    test_fname,
+                os.path.abspath(
+                    os.path.join(
+                        output,
+                        test_fname,
+                    )
                 ),
             ]
             + sched_params
             + ["-b"]
-            + bmark_args
+            + [f'"{" ".join(bmark_args)}"']
         )
+        bmark_cmdline = " ".join(bmark_cmdline)
         try:
+            subprocess.run(bmark_cmdline, check=True, shell=True)
             test_file = open(
                 os.path.join(
                     output,
@@ -147,6 +156,7 @@ def worst_case_exec_test(
             )
         except Exception as e:
             print("Error opening worst case execution test report file", e)
+            return -1, -1
         reader = csv.DictReader(test_file, delimiter=",")
         worst_time = 0
         for row in reader:
@@ -185,9 +195,11 @@ def worst_case_exec_test(
 
 
 def execute(params):
-    """! @brief Execute the WCET test on the given benchmarks
+    """! @brief Execute the WCET test on the given benchmarks.
 
-    @param[in,out] params The parameter dictionary provided by `base.test_init()`.
+    @param[in,out] params The parameter dictionary provided by
+    `base.test_init()`.
+
     @details
 
     In case of success, the `params` dictionary will be updated with a new key, `worst_runtimes`, which will contain the list of
@@ -196,6 +208,7 @@ def execute(params):
     A graph of all the test will be produced in each output folder in png and svg formats.
 
     @returns The updated `params` dictionary with `{"res":0}` on success, or `{"res":-1}` on failure.
+
     """
     args = params.get("args")
     if args is None:
@@ -253,6 +266,7 @@ def execute(params):
                 timestamp,
                 len(args["interfering"]) > 0,
                 args["worst_case_threshold"],
+                args["worst_case_deadline"],
             )
             if WCET < 0:
                 params.update({"res:": WCET})

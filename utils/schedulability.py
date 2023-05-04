@@ -119,27 +119,28 @@ def sched_test(
         log_fname = os.path.join(
             output, f"{prefix}sched_test_{utilization:.3g}{postfix}.csv"
         )
+        bmark_cmdline = (
+            [
+                bmark,
+                "-d",
+                str(deadline),
+                "-p",
+                str(deadline),
+                "-l",
+                "2",
+                "-c",
+                str(last_core),
+                "-t",
+                str(tasks_num),
+                "-o",
+                log_fname,
+            ]
+            + sched_params
+            + ["-b", f'"{" ".join(bmark_args)}"']
+        )
+        bmark_cmdline = " ".join(bmark_cmdline)
         try:
-            subprocess.run(
-                [
-                    bmark,
-                    "-d",
-                    str(deadline),
-                    "-p",
-                    str(deadline),
-                    "-l",
-                    "2",
-                    "-c",
-                    str(last_core),
-                    "-t",
-                    str(tasks_num),
-                    "-o",
-                    log_fname,
-                ]
-                + sched_params
-                + ["-b"]
-                + bmark_args
-            )
+            subprocess.run(bmark_cmdline, shell=True, check=True)
         except Exception as e:
             print("Error during schedulability test ", e)
             return None
@@ -325,25 +326,7 @@ def draw_graph(data, interference=False, old_graph=None):
         legend,
         graph=old_graph,
     )
-    for output in args.output:
-        print(output)
-        print(sched_graph)
-        graph.export_graph(
-            sched_graph,
-            os.path.join(
-                output,
-                args.prefix
-                + os.path.basename(
-                    args.benchmarks[i][0] + "_sched"
-                    if len(args.interfering) == 0
-                    else "_sched_inter"
-                )
-                + args.postfix,
-            ),
-        )
-    graph.teardown()
-    params.update({"res": 0})
-    return params
+    return sched_graph
 
 
 if __name__ == "__main__":

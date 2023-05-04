@@ -505,18 +505,24 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			perf_fname_len = strlen(exec_opts->output_path) +
 					 perf_fname_postfix_len + 1;
 			perf_fname = malloc(sizeof(char) * perf_fname_len);
-			memset(perf_fname,0,sizeof(char)*perf_fname_len);
-			fname_no_ext = malloc(sizeof(char) *(
-					    strlen(exec_opts->output_path)-3));
+			memset(perf_fname, 0, sizeof(char) * perf_fname_len);
+			fname_no_ext =
+				malloc(sizeof(char) *
+				       (strlen(exec_opts->output_path) - 3));
 			snprintf(fname_no_ext,
-				 sizeof(char) * (strlen(exec_opts->output_path) - 3),
-				 "%s",exec_opts->output_path);
-			snprintf(perf_fname,perf_fname_len, "%s%s%s",fname_no_ext,perf_fname_postfix, ".csv");
+				 sizeof(char) *
+					 (strlen(exec_opts->output_path) - 3),
+				 "%s", exec_opts->output_path);
+			snprintf(perf_fname, perf_fname_len, "%s%s%s",
+				 fname_no_ext, perf_fname_postfix, ".csv");
 			free(fname_no_ext);
 		} else {
-			perf_fname_len=(1+strlen(DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH));
-			perf_fname=malloc(sizeof(char)*perf_fname_len);
-			strcpy(perf_fname,DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH);
+			perf_fname_len =
+				(1 +
+				 strlen(DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH));
+			perf_fname = malloc(sizeof(char) * perf_fname_len);
+			strcpy(perf_fname,
+			       DEFAULT_PERFORMANCE_COUNTER_SAMPLING_OUTPUT_PATH);
 		}
 		filep_sampler = fopen(perf_fname, "w");
 		free(perf_fname);
@@ -704,5 +710,5 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	do {
 		res = sem_wait(&period_sem);
 	} while (res < 0 && errno == EINTR);
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
