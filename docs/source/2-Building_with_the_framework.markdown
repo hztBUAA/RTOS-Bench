@@ -25,7 +25,7 @@ Currently RT-Bench targets the following platforms:
 
 For [Nix](https://nixos.org/) users a flake and a [direnv](https://direnv.net/) environment are available to make sure that all the dependencies are satisfied.
 
-#### Dependence installation
+### Dependencies installation
   The `json-c` dependence can be installed with the following command:
 - Ubuntu/Debian:
 ```{.sh}
@@ -64,17 +64,17 @@ where:
 
 In addition, RT-Bench supports dedicated flags that enable access to further features. These features are not part of the default set of features as they depend on the benchmark nature itself or on the platform on which the benchmarks will be deployed.
 
-#### Extended Reporting (Benchmark Specific Measurement Reporting)
+### Extended Reporting (Benchmark Specific Measurement Reporting)
 
 Some benchmark classes (e.g., synthetic workloads) measure specific impact on the platform. RT-Bench offers the possibility to extend the existing `.csv` report interface to include the desired _benchmark-specific_ measurement. Providing the benchmarks follows the rules mentioned in [benchmark structure](3-Extending_rt-bench.markdown), extended reporting can be enabled by adding the `-DEXTENDED_REPORT` flag in the compilation command line.
 
-#### JSON configuration files support {#json_support}
+### JSON configuration files support {#json_support}
 To keep the mandatory dependencies to a minimum, the support for parsing JSON configuration files (`-g` option) is disabled.
 To enable parsing of JSON files, the [JSON-C](https://github.com/json-c/json-c) library must be at least at version 0.15 and the `-DJSON_SUPPORT` flag must be added to the compilation command line.
 
 This feature can be enabled on-the-fly while issuing a make commad by defining the `JSON=1` variable.
 
-#### Performance counters and monitoring thread {#perf_support}
+### Performance counters and monitoring thread {#perf_support}
 
 This set of feature being specific to the core and platform on which the benchmark will be deployed, two parameters must be added in other to enable them: the ISA and the core model. The table below lists of the flags to add and provide examples of compliant/tested platforms and CPU models.
 
