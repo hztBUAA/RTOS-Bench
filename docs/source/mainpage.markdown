@@ -6,6 +6,8 @@ RT-Bench
 RT-Bench is a collection of popular benchmarks for real-time applications which
 have been restructured to be executed periodically.
 
+Code is available [here](https://gitlab.com/rt-bench/rt-bench).
+
 RT-Bench is licensed under [MIT](LICENSES/MIT.txt) license and
 integrates benchmark suites that are licensed according to the information
 contained in the corresponding folders.
