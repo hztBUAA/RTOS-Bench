@@ -2,7 +2,7 @@ image: ubuntu:rolling
 
 pages:
   script:
-    - apk update && apk add doxygen graphviz make git bash sed
+    - apt-get -yq update && apt-get install -yq doxygen graphviz make git bash sed
     - DOCS_ONLY=1 make setup
     - make docs
     - mv docs/html/ public/
