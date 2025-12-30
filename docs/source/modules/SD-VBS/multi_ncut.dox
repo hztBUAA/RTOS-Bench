@@ -1,0 +1,11 @@
+/**
+* @defgroup multi_ncut Multi n-cut
+* @ingroup SD-VBS
+* @brief multi_ncut benchmark.
+* @copyright See `vision/licenses` and `vision/LICENSE` for licensing information
+* The current file is under the SPDX-License-Identifier: MIT
+* @details
+* Modified files for the multi_ncut benchmark, located in `vision/benchmarks/multi_ncut`.
+*
+* Description of the benchmark is available in [SD-VBS.pdf](attachments/SD-VBS.pdf) section II.B under "Image Segmentation".
+*/

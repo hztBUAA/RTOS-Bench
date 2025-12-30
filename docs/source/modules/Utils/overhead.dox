@@ -1,0 +1,16 @@
+/**
+@defgroup overhead Overhead
+@ingroup utils
+@brief Script to execute a framework test.
+@details
+This module contains a script that will empyrically determine the framework overhead.
+
+The framework overhead can be estimated by using the `overhead.c`, which is an empty benchmark.
+The test will execute the benchmark with a user-defined amount of jobs (100 by default) and report
+the minimum, maximum and average overhead, along with the distribution standard deviation.
+
+The generated graph is a violin plot.
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
+*/

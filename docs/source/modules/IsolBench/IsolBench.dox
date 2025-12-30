@@ -1,0 +1,27 @@
+/**
+* @defgroup IsolBench IsolBench Benchmarks
+* @ingroup benchmarks
+* @brief A set of micro-benchmarks that are designed to quantify the quality of isolation of multicore systems.
+* @details
+* This page contains the [IsolBench Benchmarks](https://github.com/CSL-KU/IsolBench) documentation.
+* The benchmarks are located in the `IsolBench` folder and have been integrated in the exisiting benchmark suite.
+*
+* IsolBench is a set of micro-benchmarks that are designed to
+* quantify the quality of isolation of multicore systems.
+* Only the `latency` and the  `bandwidth` benchmarks have been integrated.
+*
+* Accepted and required parameters can vary between benchmarks and are described in details for each benchmark.
+* Each benchmark also provides an help function (`-h` or `--help`) that documents common accepted parameters.
+*
+* The original version of these benchmarks can be found here: https://github.com/CSL-KU/IsolBench.
+*
+* ## Compilation
+* To compile the benchmarks there are several options:
+* - Manual compilation according to [Building with the framework](../../2-Building_with_the_framework.markdown).
+* - Issuing a single `make` command to compile both benchmarks.
+* - Compiling one benchmark at a time with `make latency` and/or `make bandwidth`.
+*
+* @author Mattia Nicolella for the current file only.
+* @copyright The current file is under the SPDX-License-Identifier: MIT
+* See individual files for benchmark license.
+*/

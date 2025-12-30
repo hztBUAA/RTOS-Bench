@@ -1,0 +1,12 @@
+/**
+* @defgroup generator RT-Bench Generator
+* @brief The RT-Bench Generator.
+* @details
+* A set of base files that provide the framework features to to all benchmarks.
+*
+* These files are located in the `generator` folder and have to be compiled and linked to each benchmark.
+*
+* @author Mattia Nicolella
+* @copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+* SPDX-License-Identifier: MIT
+*/

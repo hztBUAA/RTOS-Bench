@@ -1,0 +1,20 @@
+/**
+* @defgroup latency Latency
+* @ingroup IsolBench
+* @brief Latency benchmark.
+* @copyright The current file is under the SPDX-License-Identifier: MIT
+* See `IsolBench/latency.c` for the benchmark license.
+* @details
+* Latency is a memory access latency measurement microbenchmark, which will allocate a linked list an navigate it.
+* Then the measured system latency will be reported.
+*
+* ## CLI Options
+* These are benchmark-specific options that have to be specified after `-b`, as a single string:
+* - `-h`: Show the benchmark-specific help message.
+* - `-m`: Size of memory in kilobytes. Default is 16MB.
+* - `-s`: Use serial access instead of random access.
+* - `-i`: Number of list walks per job, default is 100.
+*
+* ## Example:
+* `$ latency -p 1 -d 1 -b "-m 8192 -s -i 1"`  <- 8MB, serial access, 1 one iteration. 1 sec deadline and period.
+*/

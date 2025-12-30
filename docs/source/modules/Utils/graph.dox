@@ -1,0 +1,44 @@
+/**
+@defgroup graph Graph Generation
+@ingroup utils
+@brief Graph generation scripts.
+@details
+This module contains a script that will generate a graph from a csv file.
+
+This script is integrated in most of the other test scripts in [Utils](@ref #utils), but it can also be used as a standalone.
+
+Graphs have several output formats: PDF, svg and png.
+
+In addition the utility will take care itself to defentiare groups by color-coding and drawing styles.
+
+## CLI Options
+- `-h`,`--help`: Show the help message
+- `-g`,`--graph`: The type of graph to be plotted which can be:
+
+  - `plot`: line or multiline plot
+  - `bar`: bar plot
+  - `hist`: histogram
+  - `scatter`: scatterplot
+  - `boxplot`: boxplot
+  - `violin`: violin plot
+  - test`: A test routine that generates all the above graphs from fake data.
+
+- `-i`,`--input`: The input path of the csv file, if repeated it will group inputs by file and generate a grouped graph.
+- `-o`,`--output`: The output path of the graph, if it is a path to a directory the output file will be named `graph`.
+- `-pre`,`-prefix`: The prefix to add to the output filename.
+- `-post`,`-postfix`: The postfix to add to the output filename.
+- `-xc`,`--x-column`: The csv column of each file specified in `-g` to use for the x axis.
+- `-yc`,`--y-column`: The csv column of each file specified in `-g` to use for the y axis.
+- `-lc`,`--labels`: The labels for each group of data.
+- `-t`,`--title`: The graph title.
+- `-xlbl`,`-xlabel`: The label for the x axis.
+- `-ylbl`,`-ylabel`: The label for the y axis.
+- `-hb`,`--hist-bins`: The number of bins for the histogram graph.
+- `-hd`,`--hist-density`: To make the histogram consider the density of samples instead of their number.
+
+## Example:
+`python graph.py -g plot -i data.csv data2.csv` will create a multiline in plot in the current folder.
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
+*/

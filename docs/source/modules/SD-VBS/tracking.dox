@@ -1,0 +1,11 @@
+/**
+* @defgroup tracking Tracking
+* @ingroup SD-VBS
+* @brief tracking benchmark.
+* @copyright See `vision/licenses` and `vision/LICENSE` for licensing information
+* The current file is under the SPDX-License-Identifier: MIT
+* @details
+* Modified files for the tracking benchmark, located in `vision/benchmarks/tracking`.
+*
+* Description of the benchmark is available in [SD-VBS.pdf](attachments/SD-VBS.pdf) section II.B under "Feature Tracking".
+*/

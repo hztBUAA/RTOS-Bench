@@ -1,0 +1,11 @@
+/**
+* @defgroup disparity Disparity
+* @ingroup SD-VBS
+* @brief disparity benchmark.
+* @copyright See `vision/licenses` and `vision/LICENSE` for licensing information
+* The current file is under the SPDX-License-Identifier: MIT
+* @details
+* Modified files for the disparity benchmark, located in `vision/benchmarks/disparity`.
+*
+* Description of the benchmark is available in [SD-VBS.pdf](attachments/SD-VBS.pdf) section II.B under "Disparity Map".
+*/

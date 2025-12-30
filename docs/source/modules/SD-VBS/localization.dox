@@ -1,0 +1,11 @@
+/**
+* @defgroup localization Localization
+* @ingroup SD-VBS
+* @brief localization benchmark.
+* @copyright See `vision/licenses` and `vision/LICENSE` for licensing information
+* The current file is under the SPDX-License-Identifier: MIT
+* @details
+* Modified files for the localization benchmark, located in `vision/benchmarks/localization`.
+*
+* Description of the benchmark is available in [SD-VBS.pdf](attachments/SD-VBS.pdf) section II.B under "Robot Localization".
+*/

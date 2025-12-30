@@ -1,0 +1,22 @@
+/**
+@defgroup wcet WCET
+@ingroup utils
+@brief Script to execute an empirical worst case execution test.
+@details
+This module contains a script that will empyrically determine a benchmark's worst case execution time.
+
+The test will execute the target benchmark specifiyng a user-defined amount of jobs (1000 by default,
+see `-wt` in [Utils](@ref #utils)) and a deadline.
+If at least one of the jobs doesn't meet the deadline the deadline (and the period is has the same value)
+doubled.
+
+When all the jobs have me the deadline the worst runtime and each job individual runtime are reported.
+
+If a threshold is specified (`-wd`) then the corresponding percentage of met deadlines is enough
+make the test succed.
+
+The generated graph is a violin plot, to show also the runtimes distribution.
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
+*/

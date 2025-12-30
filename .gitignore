@@ -1,0 +1,15 @@
+.*
+!.gitattributes
+!.gitignore
+!.gitlab-ci.yml
+docs/*pdf
+docs/latex/*
+docs/*html
+docs/conf/doxygen-awesome
+.clang-format
+.compile_commands.json
+.ctags
+*.o
+utils/overhead
+*.csv
+*.log

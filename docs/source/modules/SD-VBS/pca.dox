@@ -1,0 +1,16 @@
+/**
+* @defgroup PCA PCA
+* @ingroup SD-VBS
+* @brief PCA benchmark.
+* @copyright See `vision/licenses` and `vision/LICENSE` for licensing information
+* The current file is under the SPDX-License-Identifier: MIT
+* @details
+* Modified files for the PCA benchmark, located in `vision/benchmarks/pca`.
+*
+* From pca.c, written by F. Murtagh:
+*
+* Principal Components Analysis or the Karhunen-Loeve expansion is a
+* classical method for dimensionality reduction or exploratory data
+* analysis.  One reference among many is: F. Murtagh and A. Heck,
+* Multivariate Data Analysis, Kluwer Academic, Dordrecht, 1987.
+*/

@@ -1,0 +1,12 @@
+/**
+* @defgroup SVM SVM
+* @ingroup SD-VBS
+* @brief SVM benchmark.
+* @copyright See `vision/licenses` and `vision/LICENSE` for licensing information
+* The current file is under the SPDX-License-Identifier: MIT
+* @details
+* Modified files for the SVM benchmark, located in `vision/benchmarks/svm`.
+*
+* Description of the benchmark is available in [SD-VBS.pdf](attachments/SD-VBS.pdf) in section II.B under "SVM".
+*
+*/

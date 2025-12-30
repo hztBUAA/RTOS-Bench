@@ -1,0 +1,33 @@
+/**
+* @defgroup SD-VBS San Diego Vision Benchmarks
+* @ingroup benchmarks
+* @brief San Diego Vision Benchmarks (SD-VBS).
+* @details
+* This page contains the [San Diego Vision Benchmarks](http://parallel.ucsd.edu/vision/) documentation.
+* The benchmarks are located in the `vision` folder and have been restructured to be executed periodically.
+* The documentation covers the changes for each benchmark, these changes are explained in each benchmark module.
+*
+*
+* Accepted and required parameters can vary between benchmarks and are described in details for each benchmark.
+* Each benchmark also provides an help function (`-h` or `--help`) that documents common accepted parameters.
+*
+* Please refer to [SD-VBS-instructions.pdf](attachments/SD-VBS-instructions.pdf), or its .doc version, for detailed information on how the `vision` folder is organized.
+*
+* The compilation and execution options are slightly different from the one provided in [SD-VBS-instructions.pdf](attachments/SD-VBS-instructions.pdf):
+* - Benchmark data directory and result file path are supplied in the makefile in this order as benchmarks parameters (after the -b option).
+* - Parameters can be passed to each benchmark using the make scaffolding by defining the `BMARK_OPTIONS` variable  (e.g. `BMARK_OPTIONS="-d 1 -p 0.5" make c-run`). Note that at least the deadline and period options *must* be supplied.
+* - The `debug` target will only compile the benchmark with debug symbols.
+* - Several debug targets have been added:
+*	- `debug-asan`: Runs the benchmark with [ASAN](https://github.com/google/sanitizers/wiki/AddressSanitizer).
+*	- `debug-valgrind`: Runs the benchmark with [Valgrind](https://valgrind.org/).
+*	- `debug-gdb`: Runs the benchmark with [GDB](https://www.gnu.org/software/gdb/).
+* - The original `compile` target has been modified to include RT-Bench files and flags, so it is possible to build a benchmark by navigating to its data directory, choosing the folder according to the desired input size and issuin a `make compile`.
+*
+* Detailed information of what each benchmark does can be found in [SD-VBS.pdf](attachments/SD-VBS.pdf) , the document is also available here: http://parallel.ucsd.edu/vision/SD-VBS-Final.pdf.
+*
+* The original version of these benchmarks can be found here: https://bitbucket.org/taylor-bsg/cortexsuite/src/devel/.
+*
+* @author Mattia Nicolella for the current file only.
+* @copyright See `vision/licenses` and `vision/LICENSE` for licensing information
+* The current file is under the SPDX-License-Identifier: MIT
+*/

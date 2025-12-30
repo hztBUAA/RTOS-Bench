@@ -1,0 +1,18 @@
+/**
+@defgroup wss WSS
+@ingroup utils
+@brief Script to execute an empirical mininum working set size test.
+@author Mattia Nicolella
+@details
+This module contains a script that will empyrically determine a benchmark's working set size.
+
+The test consist in leveraging the memory whatcher feature of the framework to figure out, via a
+binary search the minum working set size of a benchmark. (i.e. The minumum amount of memory that
+doesn't trigger the memory watcher).
+
+__Note__: The working set size includes only the heap memory allocated from the `benchmark_execution` function.
+
+The generated graph is a bar plot.
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
+*/

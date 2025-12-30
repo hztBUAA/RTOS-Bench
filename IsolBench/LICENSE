@@ -1,0 +1,7 @@
+This is a clone of https://github.com/CSL-KU/IsolBench/tree/master/bench and ports
+the original benchmark to the rt-bench convention:
+- init: *_init();
+- execution: *_execution();
+- cleanup: *_teardown();
+
+Refer to https://github.com/CSL-KU/IsolBench for the full licenses.

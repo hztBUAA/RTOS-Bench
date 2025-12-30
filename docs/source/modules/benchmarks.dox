@@ -1,0 +1,129 @@
+/**
+ @defgroup benchmarks Benchmarks
+ @brief Available benchmarks.
+ @details
+ [TOC]
+ All available benchmarks share a set of files, described in the [RT-Bench Generator](@ref #generator) module, that provide some basic but essential facilities,
+ such as logging functions and the logic to make execution periodic.
+
+More details on the benchmarks are avaiable in the benchmark-specific modules.
+
+## Common CLI options
+All the benchmarks take the same input arguments and options (which
+are handled by the [RT-Bench Generator](@ref #generator) module).
+These arguments and options are described below and in the benchmark help message, where supported:
+
+### Configuration input
+
+Has to be explicitly enabled, see [here](#json_support) for instructions.
+
+- `-g`,`--configuration-file`: Specify the JSON file describing the configuration to use. Following options complement or override the JSON description. Conversely, options specified before are complemented or overwritten.
+
+A JSON file is composed as a list of the desired options written in their full length. For example, `task.json` can be as follows:
+```{.c}
+{
+        "deadline": 1,
+        "period": 1,
+        "core-affinity": 3,
+        "mem-limit": "0",
+        "tasks-number": 15,
+        "log-level": 3,
+        "bmark-args": ".",
+        "memory-profiling-time-bucket": 100000
+}
+```
+In that case, it is fully equivalent to `./disparity -d 1 -p 1 -c 3 -m 0 -t 15 -l 3 -b "." -B 100000`. Note that any invalid or unsupported option will lead to `Invalid/unsupported parameter "X" in configuration file!` being outputed (where X is the first parameter at fault found).
+
+The configuration defined in a JSON file can be complemented or partially overridden by explicitly specifying parameters after the configuration file. Assuming the task.json configuration file, typing `./disparity -g task.json -t 5` will enforce 5 runs instead of 15. Parameters precised before the configuration file file will be overridden if they figure in the JSON configuration file. Note that due to how the option parsin is implemented, `./disparity -t 5 -g task.json` will still perform 15 runs.
+
+### Period and deadline options
+
+- `-d`, `--deadline=secs`: The benchmark deadline in seconds. Can be an integer,
+  float or in scientific notation. Must be less or equal than the benchmark
+  period.__Required__.
+- `-p`, `--period=secs`: The benchmark period, in seconds. Can be an integer,
+  float or in scientific notation.__Required__.
+
+### Execution options
+
+- `-c`, `--core-affinity=core1,core2,...`: The benchmark core affinity,
+  expressed as a comma separated list. A
+  single core id is also accepted. If not provided the OS will decide on which
+  core(s) the benchmark can run.
+- `-m`, `--mem-limit=bytes[GMK]`: The maximum amount of dynamic memory allocated
+  during the periodic execution. If exceeded, the benchmark will crash.
+  Specified as an integer plus an optional magnitude modifier:
+
+  - `K`=kilobytes
+  - `M`=megabytes
+  - `G`=gigabytes
+
+    Without a magnitude modifier specified the value is assumed to be in bytes.
+    0 means no memory limit, and it is the default setting.
+- `-t`, `--tasks-number=integer>=0` The number of tasks to be executed. 0 means
+  until the program receives a `SIGINT`. Default is 0.
+
+### Scheduling options
+
+- `-f`, `--fifo=0<=prio<=99`: Set `SCHED_FIFO` priority with specified
+  priority. Needs root.
+- `-T`, `--sched-runtime=ns`: Set `SCHED_DEADLINE` runtime.
+  Alternative to `--fifo`. Needs root.
+- `-D` `--sched-deadline=ns`: Set `SCHED_DEADLINE` deadline.
+  Alternative to `--fifo`. Needs root.
+- `-P` `--sched-period=ns`: Set `SCHED_DEADLINE` period. Alternative to
+  `--fifo.` Need root. At least `--sched-period` has to be specified to
+  set sched_deadline parameters. If deadline is not specified, deadline is
+  set to period. If runtime is not specified, runtime is set to deadline.
+
+ __NOTE:__ These parameters are different from `--period` and `--deadline`
+  used to control the repetitive execution of the thread.
+  To generate valid execution that are not truncated under hard server
+  reservation ensure that period < sched-period and deadline < sched-deadline.
+
+### Reporting options
+
+- `-l`, `--log-level=log-lvl`: Log level, can be one of the following:
+
+  - `1`: Print only errors.
+  - `2`: Print benchmark stats to output file in csv format.
+  - `3`: Print benchmark stats to `stdout` in csv format.
+  - `4`: Print informative messages on `stdout` and debug messages on `stderr`.
+
+  Default is 3.
+
+  See `print_benchmark_timing()` for an explanation on the format used in log
+  level 2 and 3.
+- `-o`, `--output=output_path`: Where the info on the benchmark execution will
+  be written. If not supplied, `./timing.csv` will be used.
+
+#### Profiling options
+
+Have to be explicitly enabled, see [here](#perf_support) for instructions.
+
+- `-M`, `--memory-profiling-enable`: Enables runtime memory profiling. Specify `1` to enable or `0` otherwise.
+- `-C`, `--memory-profiling-core`: Core affinity of the runtime memory profiling thread. If not specified, it matches the 'core-affinity' parameter.
+
+ __Warning__: `memory-profiling-enable`: must be asserted for this parameter to take effect. Requires platform-specific compilation parameters described in [Building with the framework](../2-Building_with_the_framework.markdown).
+
+
+- `-B`,`--memory-profiling-time-bucket`: Period between measurements performed by the runtime memory profiler. If not specified, time bucket of 10ms is set.
+
+ __Warning__: 'memory-profiling-enable' must be asserted for this parameter to take effect. Requires platform-specific compilation parameters described in [Building with the framework](../2-Building_with_the_framework.markdown).
+
+### Benchmark-specific arguments and options
+
+- `-b`, `--bmark-args=arg opt ...`: A space-separated list of arguments and
+  options that will be relayed as it is to the benchmark. It should be specified
+  as the last option, as a single string.
+
+### Informational options
+
+- `-h`, `-?`, `--help`: Give this help list
+- `--usage`: Give a short usage message
+
+
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
+*/

@@ -1,0 +1,20 @@
+/**
+* @defgroup bandwidth Bandwidth
+* @ingroup IsolBench
+* @brief Bandwidth benchmark.
+* @copyright The current file is under the SPDX-License-Identifier: MIT
+* See `IsolBench/bandwidth.c` for the benchmark license.
+* @details
+* The bandwidth benchmark will evaluate the system memory bandwidth by allocation a chunk of memory.
+* The a user-defined amount of memory accesses will be performed and the the measured bandwidth will be reported.
+*
+* ## CLI Options
+* These are benchmark-specific options that have to be specified after `-b`, as a single string:
+* - `-h`: Show the benchmark-specific help message.
+* - `-m`: Size of memory in kilobytes. Default is 16MB.
+* - `-a`: Memory access type, can be either `read` (default) or `write`.
+* - `-i`: Number of accesses per job, default is 5.
+*
+* ## Example:
+* `$ bandwidth -p 1 -d 1 - b "-m 8192 -a read -i 1"`  <- 8MB read, 1 one iteration. 1 sec deadline and period.
+*/

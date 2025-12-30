@@ -1,0 +1,26 @@
+/**
+@defgroup sched Schedulability
+@ingroup utils
+@brief Script to execute an empirical schedulability test.
+@details
+This module contains a script that will empyrically determine when a benchmark is schedulable.
+
+This test requires to specify interfering benchmarks, otherwise the benchmark will always be schedulable.
+
+To determine a benchmark scehdulability, a preliminary [WCET test](@ref #wcet) is performed without
+any interfering benchmarks.
+Then the interfering benchmarks are started and the target benchmark is executed with a deadline
+computed as @f$ \frac{WCET}{utilization} @f$ and a specified number of jobs.
+The schedulability is computed as the number of jobs that can meet the deadline with the specified utilization.
+
+The test is then repeated by increasing the utilization, until its value reaches @f$ 100\% @f$.
+
+The number of jobs (100 by default, see `-tn` in [Utils](@ref #utils)) and
+utilization increase, used also as the initial utilization value
+(5% by default, see `-u` in [Utils](@ref #utils)) can be defined by the user.
+
+The generated graph is a line plot.
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
+*/

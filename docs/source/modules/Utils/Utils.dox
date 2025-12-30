@@ -1,0 +1,67 @@
+/**
+@defgroup utils Utils
+@brief A collection of useful scripts.
+@details
+The utils module is composed by scripts that provide useful features, for example to automate data collection or processing.
+More information on each script can be found in each script module.
+
+
+
+## Dependencies
+Each scripts has their own dependencies, which are documented on each script page.
+The python dependencies to be able to execute all the scripts are the following:
+
+- matplotlib
+- numpy
+
+There are also dependencies from system packages, to prepare the testbed:
+- Python 3.5+
+- lscpu
+- grep
+- sort
+- wc
+- ps
+- taskset
+- mkdir
+
+Each script standalone, but it might depend on some of the other scripts, these dependencies are documented in each file.
+
+## Base layer
+
+The base.py script contains the common routines of every scripts.
+It can also be used to execute the other scripts by using an exclusive argument:
+- `-tt`,`--test-type`: The test that has to be executed choices are:
+  - `all`: execute all tests.
+  - `WCET`: [Worst case execution test](@ref #wcet).
+  - `sched`: [Schedulability test](@ref #sched).
+  - `WSS`: [Working set size test](@ref #wss).
+  - `overhead`: [Framework overhead test](@ref #overhead).
+
+## Common CLI options
+
+- `-h`,`--help`: Show the help message.
+- `-tn`,`--tasks-number`: Number of tasks to be executed at each test step ([WCET test](@ref #wcet) excluded, see `-wt`).
+- `-u`,`--utilization-increase`: How much the utilization should increase at each test step (only for schedulability) used also the utilization initial value.
+- `-wt`,`--worst-case-tests`: Number of tests to execute for the worst case execution test (only for the [schedulability](@ref #sched) and [WCET](@ref #wcet) tests).
+- `-wd`,`--worst-case-threshold`: A percentage of missed deadlines that will still allow the WCET test to succeed.
+- `-i`,`--interfering-bmarks`: The list of benchmark executables that will create interference, expressed as `path-to-exec:arg1,arg2,...`.
+- `-b`,`--bmarks`: The list of target benchmark executables for the test, expressed as `path-to-exec:arg1,arg2,...`.
+  The test will be repeated for all the executables in the list.
+- `-o`,`--output`: The output path for the generated files.
+- `-pre`,`--prefix`: The prefix to the output filenames.
+- `-post`,`--postfix`: The postfix to the output filenames.
+- `-c`,`--target_core`: The core or set of cores, on which the target benchmark will be executed. Interfering benchmarks will be on the other cores.
+- `-sc`,`--system_core`: The core of set of core where to move all processes other than the target benchmark and the interfering benchmarks.
+- `-fi`,`--fifo-interfering`: The FIFO priority for the interfering benchmarks.
+- `-f`,`--fifo`: The FIFO priority for the target benchmarks.
+- `-D`,`--sched_deadline`: The target benchmark deadline for the deadline scheduler.
+- `-T`,`--sched_runtime`: The target benchmark runtime for the deadline scheduler.
+- `-P`,`--sched_period`: The target benchmark period for the deadline scheduler.
+- `-g`, `--draw-graph`: Whether the test should also draw a graph of the output.
+  Choices are: `yes`, `no` (default), `only`. Selecting only will make the script draw the graph from file specified in `--graph-inputs` and not execute the test.
+- `-gi`,`--graph-inputs`: A space separated list of csv files from a previous test, that will used when `-g only` is specified to create one graph per file.
+
+@author Mattia Nicolella
+@copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
+SPDX-License-Identifier: MIT
+*/
