@@ -1,0 +1,79 @@
+/**
+ * @file timestamp.c
+ * @brief RT-Thread timestamp implementation for rt-bench
+ * @details This is an example implementation showing how to get timestamps
+ *          on RT-Thread platform.
+ * 
+ * NOTE: This is a template file. You need to:
+ * 1. Rename this file to timestamp.c
+ * 2. Implement the functions according to your hardware and RT-Thread version
+ * 3. Adjust based on available hardware timers
+ */
+
+#include "platform_abstraction.h"
+
+#ifdef RTBENCH_PLATFORM_RTTHREAD
+
+#include <rtthread.h>
+
+/**
+ * @brief Get CPU timestamp counter (in clock cycles)
+ * @details This function should return a high-precision timestamp.
+ *          The implementation depends on your hardware:
+ *          - ARM Cortex-M: Use DWT cycle counter
+ *          - ARM Cortex-A: Use CNTVCT_EL0 (if available)
+ *          - x86: Use RDTSC instruction
+ *          - Other: Use system tick counter (less precise)
+ */
+unsigned long long rtbench_get_rdtsc(void)
+{
+    /* Option 1: Use RT-Thread system tick (less precise) */
+    /* This is a fallback if hardware cycle counter is not available */
+    rt_tick_t tick = rt_tick_get();
+    /* Convert to approximate cycles (adjust based on CPU frequency) */
+    /* Example: if CPU is 100MHz and RT_TICK_PER_SECOND is 1000 */
+    unsigned long long cycles = (unsigned long long)tick * 
+                                (100000000ULL / RT_TICK_PER_SECOND);
+    return cycles;
+    
+    /* Option 2: Use hardware cycle counter (if available) */
+    /* For ARM Cortex-M with DWT: */
+    /*
+    #ifdef __ARM_ARCH
+        uint32_t cycle_count;
+        __asm volatile("MRC p15, 0, %0, c9, c13, 0" : "=r"(cycle_count));
+        return (unsigned long long)cycle_count;
+    #endif
+    */
+    
+    /* Option 3: Use RT-Thread high-resolution timer (if available) */
+    /* Check RT-Thread documentation for high-resolution timer API */
+}
+
+/**
+ * @brief Get timestamp in seconds
+ * @details Returns a timestamp in seconds with high precision.
+ *          Uses RT-Thread's system tick converted to seconds.
+ */
+long double rtbench_get_timestamp(void)
+{
+    rt_tick_t tick = rt_tick_get();
+    long double seconds = (long double)tick / (long double)RT_TICK_PER_SECOND;
+    return seconds;
+    
+    /* Alternative: If RT-Thread provides high-resolution time API */
+    /*
+    rt_uint64_t ns;
+    rt_uint32_t count;
+    rt_device_t device;
+    
+    device = rt_device_find("hwtimer");
+    if (device) {
+        rt_device_control(device, RT_DEVICE_CTRL_RTC_GET_TIMEVAL, &ns);
+        return (long double)ns / 1000000000.0;
+    }
+    */
+}
+
+#endif /* RTBENCH_PLATFORM_RTTHREAD */
+
