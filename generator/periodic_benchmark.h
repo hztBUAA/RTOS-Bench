@@ -10,9 +10,19 @@
 #ifndef PERIODIC_BENCHMARK_H
 #define PERIODIC_BENCHMARK_H
 #define _GNU_SOURCE
-#include <sched.h>
-#include <stdlib.h>
 #include <inttypes.h>
+#include <stdlib.h>
+
+#ifdef RT_THREAD_PLATFORM
+#include <stdint.h>
+typedef uint32_t cpu_set_t;
+#define CPU_ZERO(set) (*(set) = 0)
+#define CPU_SET(cpu, set) (*(set) |= (1u << (cpu)))
+#define CPU_ISSET(cpu, set) ((*(set) & (1u << (cpu))) != 0)
+#define CPU_COUNT(set) __builtin_popcount(*(set))
+#else
+#include <sched.h>
+#endif
 
 /** @brief Struct used to hold the parsed arguments and options.
  * @details

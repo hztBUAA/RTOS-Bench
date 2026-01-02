@@ -1,12 +1,12 @@
 /** @file periodic_benchmark.c
  * @ingroup generator
  * @brief Implementation of a general periodic benchmark using real time timers.
- * @details Timer expiration triggers a real time POSIX signal and `SIGINT` is
- * used to stop the benchmark and terminate the program.
+ * @details Timer expiration triggers platform callbacks and `SIGINT` is used
+ * to stop the benchmark and terminate the program on POSIX platforms.
  * @author Mattia Nicolella
  *
  * **Dependencies**:
- * - POSIX.4 real-time signals.
+ * - Platform timers and synchronization primitives.
  *
  * @copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
@@ -15,28 +15,17 @@
 #include "periodic_benchmark.h"
 #include "performance_counters.h"
 #include "performance_sampler.h"
-#include "get_cpu_timestamp.h"
+#include "platform_abstraction.h"
 #include "logging.h"
 #include "memory_watcher.h"
-#include <bits/types/siginfo_t.h>
-#include <bits/types/struct_itimerspec.h>
 #include <errno.h>
-#include <semaphore.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 /// This value in `::deadline_timer_status` determines that the deadline timer
 /// must be used
 #define DEADLINE_TIMER_IN_USE 1
-
-/// The real-time signal that identifies the deadline occurrence.
-#define SIGNAL_DEADLINE SIGRTMIN
-
-/// The real-time signal that identifies the end of the period.
-#define SIGNAL_END_PERIOD SIGRTMIN + 1
 
 /// Default output path and filename for timing information.
 #define DEFAULT_OUTPUT_PATH "./timing.csv"
@@ -54,7 +43,7 @@ static int benchmark_param_num = 0;
 static void **benchmark_params = NULL;
 
 /// Real time timer, used to notify when the deadline is reached.
-static timer_t deadline_timer = NULL;
+static rtbench_timer_t deadline_timer = NULL;
 
 /** @brief If the deadline timer must be used.
  * @details Possible values should be only `::DEADLINE_TIMER_IN_USE` when a
@@ -64,10 +53,11 @@ static timer_t deadline_timer = NULL;
 static int deadline_timer_status;
 
 /// Real time timer, used to notify when the period end is reached.
-static timer_t period_timer;
+static rtbench_timer_t period_timer = NULL;
 
 /// The timing interval of a deadline, used to rearm the deadline timer.
-static struct itimerspec deadline_timing;
+static long deadline_timer_sec = 0;
+static long deadline_timer_nsec = 0;
 
 /// The file pointer to the timing output file.
 static FILE *filep = NULL;
@@ -77,8 +67,10 @@ static FILE *filep = NULL;
 static FILE *filep_sampler = NULL;
 #endif
 
+static unsigned memory_profiling_enabled = 0;
+
 /// Semaphore used to determine if a new job can be started.
-static sem_t period_sem;
+static rtbench_sem_t period_sem = NULL;
 
 /// Timestamp in clock cycles of when the last job ended, it can be 0 if the job has not
 /// finished yet.
@@ -145,42 +137,47 @@ static void stop_benchmark(int status, void *arg)
 	}
 #if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
 	(defined(X86_64) && defined(CORE_I7))
-	if (arg != NULL) {
-		unsigned *memory_profiling_enable = (unsigned *)arg;
-		if (*memory_profiling_enable) {
-			log_samples(filep_sampler);
-			if (filep_sampler != NULL) {
-				elogf(LOG_LEVEL_TRACE,
-				      "Closing performance counter monitoring file\n");
-				res = teardown_perf_sampler();
-				if (res != 0) {
-					perror("Error during the closing of the performance sampler thread\n");
-				}
-				res = fclose(filep_sampler);
-				if (res == EOF) {
-					perror("Error during the closing of the performance counter monitoring output file\n");
-				}
+	unsigned *memory_profiling_enable = (unsigned *)arg;
+
+	if (memory_profiling_enable == NULL) {
+		memory_profiling_enable = &memory_profiling_enabled;
+	}
+
+	if (*memory_profiling_enable) {
+		log_samples(filep_sampler);
+		if (filep_sampler != NULL) {
+			elogf(LOG_LEVEL_TRACE,
+			      "Closing performance counter monitoring file\n");
+			res = teardown_perf_sampler();
+			if (res != 0) {
+				perror("Error during the closing of the performance sampler thread\n");
+			}
+			res = fclose(filep_sampler);
+			if (res == EOF) {
+				perror("Error during the closing of the performance counter monitoring output file\n");
 			}
 		}
 	}
 #endif
 	if (deadline_timer != NULL) {
 		elogf(LOG_LEVEL_TRACE, "Deleting deadline timer\n");
-		res = timer_delete(deadline_timer);
+		res = rtbench_timer_delete(deadline_timer);
 		if (res < 0) {
 			perror("Error during deadline timer deletion");
 		}
 	}
 	if (period_timer != NULL) {
 		elogf(LOG_LEVEL_TRACE, "Deleting period timer\n");
-		res = timer_delete(period_timer);
+		res = rtbench_timer_delete(period_timer);
 		if (res < 0) {
 			perror("Error during period timer deletion");
 		}
 	}
-	res = sem_destroy(&period_sem);
-	if (res < 0) {
-		perror("Error during period semaphore destruction");
+	if (period_sem != NULL) {
+		res = rtbench_sem_destroy(period_sem);
+		if (res < 0) {
+			perror("Error during period semaphore destruction");
+		}
 	}
 	elogf(LOG_LEVEL_TRACE, "Cleaning up job environment\n");
 	benchmark_teardown(benchmark_param_num, benchmark_params);
@@ -193,16 +190,22 @@ static void stop_benchmark(int status, void *arg)
 #endif
 }
 
+static void stop_benchmark_wrapper(void)
+{
+	stop_benchmark(EXIT_SUCCESS, &memory_profiling_enabled);
+}
+
 /**
- * @brief SIGINT handler, causes the program to terminate in a clean way.
- * @param signo Ignored.
- * @param info Ignored.
+ * @brief Quit handler, causes the program to terminate in a clean way.
+ * @param sig Ignored.
  * @param context Ignored.
- * @details Will call the exit function, it's invoked when a `SIGINT` is
+ * @details Will call the exit function, it's invoked when a quit signal is
  * received.
  */
-static void quit_handler(int signo, siginfo_t *info, void *context)
+static void quit_handler(rtbench_signal_t sig, void *context)
 {
+	(void)sig;
+	(void)context;
 	exit(EXIT_SUCCESS);
 }
 
@@ -216,13 +219,13 @@ static void quit_handler(int signo, siginfo_t *info, void *context)
  * `::last_deadline_timestamp`, If this if the first deadline expiration since
  * the period start, then the timestamp values is also copied in
  * `::job_deadline_timestamp`.
- * Both `get_rdtsc()` and `get_timestamp()` are used, to be safe in case only one of these methods is working.
+ * Both `rtbench_get_rdtsc()` and `rtbench_get_timestamp()` are used, to be safe in case only one of these methods is working.
  */
-static void deadline_handler(int signo, siginfo_t *info, void *context)
+static void handle_deadline(void)
 {
 	// we save the current deadline
-	last_deadline_timestamp_clocks = get_rdtsc();
-	last_deadline_timestamp = get_timestamp();
+	last_deadline_timestamp_clocks = rtbench_get_rdtsc();
+	last_deadline_timestamp = rtbench_get_timestamp();
 	// the current deadline could be the job deadline
 	if (job_deadline_timestamp_clocks == 0) {
 		job_deadline_timestamp_clocks = last_deadline_timestamp_clocks;
@@ -255,15 +258,15 @@ static void deadline_handler(int signo, siginfo_t *info, void *context)
  * perform the same operations as `deadline_handler()`, but will use the
  * timestamp of the period end.
  *
- * Both `get_rdtsc()` and `get_timestamp()` are used, to be safe in case only one of these methods is working.
+ * Both `rtbench_get_rdtsc()` and `rtbench_get_timestamp()` are used, to be safe in case only one of these methods is working.
  *
  * Reporting is done using `print_statistics()`.
  */
-static void period_handler(int signo, siginfo_t *info, void *context)
+static void handle_period(void)
 {
 	int res;
-	unsigned long long period_end_timestamp_clocks = get_rdtsc();
-	long double period_end_timestamp = get_timestamp();
+	unsigned long long period_end_timestamp_clocks = rtbench_get_rdtsc();
+	long double period_end_timestamp = rtbench_get_timestamp();
 	//
 	if (job_period_end_timestamp_clocks == 0) {
 		job_period_end_timestamp_clocks = period_end_timestamp_clocks;
@@ -275,7 +278,8 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 	// timer and handler
 	if (deadline_timer_status == DEADLINE_TIMER_IN_USE) {
 		// we rearm the deadline timer
-		res = timer_settime(deadline_timer, 0, &deadline_timing, NULL);
+		res = rtbench_timer_settime(deadline_timer, deadline_timer_sec,
+					    deadline_timer_nsec);
 		if (res < 0) {
 			perror("Cannot rearm the deadline timer");
 			exit(EXIT_FAILURE);
@@ -358,7 +362,7 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 		extra_measurement = 0.0f;
 #endif
 		// we unlock the semaphore to allow the next job to start
-		res = sem_post(&period_sem);
+		res = rtbench_sem_post(period_sem);
 		if (res < 0) {
 			perror("Cannot post on period semaphore");
 			exit(EXIT_FAILURE);
@@ -366,88 +370,29 @@ static void period_handler(int signo, siginfo_t *info, void *context)
 	}
 }
 
-/**
- * @brief A simple function that is used to install a signal handler.
- * @param[in] handled_signal The signal that is to be associated to the handler.
- * @param[in] handler The handler that is to be associated to the signal.
- * @param[in] masked_signals An array, containing the signals that must be
- * masked during the handler execution.
- * @param[in] masked_signals_num The number of element of `masked_signals`.
- */
-static int setup_signal(int handled_signal,
-			void (*handler)(int, siginfo_t *, void *),
-			int *masked_signals, int masked_signals_num)
+static void deadline_timer_callback(void *user_data)
 {
-	struct sigaction sa;
-	int res = 0, i;
-	// we set the signals to ignore while handling the specified signal
-	res = sigemptyset(&sa.sa_mask);
-	if (res == -1) {
-		perror("Error during sigemptyset for signal handler");
-		return res;
-	}
-	// we mask the requested signals
-	for (i = 0; i < masked_signals_num; i++) {
-		res = sigaddset(&sa.sa_mask, masked_signals[i]);
-		if (res == -1) {
-			perror("Error during sigaddset for signal handler");
-			return res;
-		}
-	}
-	// install the signal handler.
-	sa.sa_flags = SA_SIGINFO;
-	sa.sa_sigaction = handler;
-	res = sigaction(handled_signal, &sa, NULL);
-	if (res == -1) {
-		perror("Error during signal handler installation");
-		return res;
-	}
-	return 0;
+	(void)user_data;
+	handle_deadline();
 }
 
-/** @brief A function that creates and arms a real-time timer.
- * @param[out] timer The pointer that will contain the created timer.
- * @param[in] signal_generated The signal that the timer must generated when it
- * expires.
- * @param[in] interval_sec The seconds after which the timer will expire.
- * @param[in] interval_nsec The nanoseconds after which the timer will expire.
- * @details
- * The function will create and arm the timer for a periodic execution, with the
- * specified timing. The timer will be armed immediately after creation.\n
- * `interval_sec` and `interval_nsec` can be used in conjunction to specify when
- * the timer must expire and if they are both set to `0` the timer will not be
- * armed.
- */
-static int setup_timer(timer_t *timer, int signal_generated, long interval_sec,
-		       long interval_nsec)
+static void period_timer_callback(void *user_data)
 {
-	struct sigevent event;
-	struct itimerspec timer_spec;
-	int res = 0;
-	memset(&event, 0, sizeof(event));
-	// the timer will generate a signal
-	event.sigev_notify = SIGEV_SIGNAL;
-	// the signal generated by the timer
-	event.sigev_signo = signal_generated;
-	// creation of the timer
-	res = timer_create(CLOCK_REALTIME, &event, timer);
-	if (res != 0) {
-		perror("Error during HR timer creation");
-		return res;
+	(void)user_data;
+	handle_period();
+}
+
+static uint32_t cpu_set_to_mask(const cpu_set_t *set)
+{
+	uint32_t mask = 0;
+
+	for (int cpu = 0; cpu < 32; cpu++) {
+		if (CPU_ISSET(cpu, set)) {
+			mask |= (1u << cpu);
+		}
 	}
-	// setting when the timer must be fired, using the provided deadline
-	// parameters
-	timer_spec.it_interval.tv_sec = interval_sec;
-	timer_spec.it_interval.tv_nsec = interval_nsec;
-	// the timer will start according to the setup deadline
-	timer_spec.it_value.tv_sec = interval_sec;
-	timer_spec.it_value.tv_nsec = interval_nsec;
-	res = timer_settime(*timer, 0, &timer_spec, NULL);
-	if (res < 0) {
-		perror("Error during timer setup");
-		return res;
-	}
-	return 0;
+
+	return mask;
 }
 
 /** @details
@@ -458,32 +403,25 @@ static int setup_timer(timer_t *timer, int signal_generated, long interval_sec,
  * the periodic benchmark is initialized, the benchmark will be periodically
  * executed.
  *
- * To execute the benchmark periodically we use two timers that fire different
- * real time signals:
- * - `::SIGNAL_DEADLINE` which will be fired when the deadline occurs, if the
- * deadline is less than the period.
- * - `::SIGNAL_END_PERIOD` which will be fired when the period ends.
+ * To execute the benchmark periodically we use two timers that invoke
+ * callbacks:
+ * - a deadline timer which triggers when the deadline occurs, if the deadline
+ *   is less than the period.
+ * - a period timer which triggers when the period ends.
  *
- * After the setup, the periodic benchmark will start after a
- * `::SIGNAL_END_PERIOD` is received, to allow a start with reduced delay.
+ * After the setup, the periodic benchmark will start after the first period
+ * timer callback, to allow a start with reduced delay.
  *
- * When a `SIGINT` is received, the timer will be destroyed and the environment
- * for the job execution will be cleaned.
+ * When a quit signal is received, the timer will be destroyed and the
+ * environment for the job execution will be cleaned.
  *
  * The environment for the job execution is handled by calling the
  * `benchmark_init()` and `benchmark_teardown()` functions.
  *
- * Both `get_rdtsc()` and `get_timestamp()` are used, to be safe in case only one of these methods is working.
+ * Both `rtbench_get_rdtsc()` and `rtbench_get_timestamp()` are used, to be safe in case only one of these methods is working.
  */
 int periodic_benchmark(struct execution_options *exec_opts)
 {
-	// variables used to handle signals
-	int job_masked_signals_num = 2;
-	int job_masked_signals[] = { SIGNAL_DEADLINE, SIGNAL_END_PERIOD };
-	int quit_masked_signals_num = 3;
-	int quit_masked_signals[] = { SIGNAL_DEADLINE, SIGNAL_END_PERIOD,
-				      SIGINT };
-	// variables to handle timers
 	// variables used to handle the output file
 	char *fname;
 	// status variables
@@ -538,17 +476,16 @@ int periodic_benchmark(struct execution_options *exec_opts)
 #endif
 	elogf(LOG_LEVEL_TRACE, "Starting setup of execution environment\n");
 	// we initialize the period semaphore to 0, to wait for the period end.
-	res = sem_init(&period_sem, 1, 0);
-	if (res < 0) {
+	period_sem = rtbench_sem_create(0);
+	if (period_sem == NULL) {
 		perror("Error during deadline semaphore initialization");
-		return res;
+		return -1;
 	}
-#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
-	(defined(X86_64) && defined(CORE_I7))
-	res = on_exit(stop_benchmark,
-		      (void *)&(exec_opts->memory_profiling_enable));
+	memory_profiling_enabled = exec_opts->memory_profiling_enable;
+#ifdef RT_THREAD_PLATFORM
+	res = atexit(stop_benchmark_wrapper);
 #else
-	res = on_exit(stop_benchmark, NULL);
+	res = on_exit(stop_benchmark, &memory_profiling_enabled);
 #endif
 	if (res != 0) {
 		elogf(LOG_LEVEL_ERR,
@@ -559,8 +496,9 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	benchmark_params = (void **)exec_opts->args;
 	// we set the core affinity if we were not provided an empty mask
 	if (CPU_COUNT(&exec_opts->core_affinity)) {
-		res = sched_setaffinity(0, sizeof(cpu_set_t),
-					&exec_opts->core_affinity);
+		uint32_t cpu_mask = cpu_set_to_mask(&exec_opts->core_affinity);
+
+		res = rtbench_set_affinity(cpu_mask);
 		if (res < 0) {
 			elogf(LOG_LEVEL_ERR,
 			      "Error during core affinity setup.\n");
@@ -608,24 +546,13 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	elogf(LOG_LEVEL_TRACE, "Job environment initialization complete\n");
 
 	elogf(LOG_LEVEL_TRACE, "Starting signal handlers setup...\n");
-	res = setup_signal(SIGNAL_DEADLINE, deadline_handler,
-			   job_masked_signals, job_masked_signals_num);
+	res = rtbench_signal_register(RTBENCH_SIG_QUIT, quit_handler);
 	if (res < 0) {
-		return res;
+		elogf(LOG_LEVEL_TRACE,
+		      "Quit handler registration skipped on this platform.\n");
+	} else {
+		elogf(LOG_LEVEL_TRACE, "Quit handler setup completed.\n");
 	}
-	elogf(LOG_LEVEL_TRACE, "Deadline handler setup completed.\n");
-	res = setup_signal(SIGNAL_END_PERIOD, period_handler,
-			   job_masked_signals, job_masked_signals_num);
-	if (res < 0) {
-		return res;
-	}
-	elogf(LOG_LEVEL_TRACE, "Period handler setup completed.\n");
-	res = setup_signal(SIGINT, quit_handler, quit_masked_signals,
-			   quit_masked_signals_num);
-	if (res < 0) {
-		return res;
-	}
-	elogf(LOG_LEVEL_TRACE, "Quit handler setup completed.\n");
 	elogf(LOG_LEVEL_TRACE, "Signal handlers installed.\n");
 
 	if (exec_opts->bytes_to_preallocate > 0) {
@@ -644,24 +571,26 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	// the deadline timer is created only if deadline and period differ
 	if (exec_opts->parsed_deadline != exec_opts->parsed_period) {
 		deadline_timer_status = DEADLINE_TIMER_IN_USE;
-		// the deadline timer is setup with 0 interval since it will be armed once a
-		// period starts
-		res = setup_timer(&deadline_timer, SIGNAL_DEADLINE, 0, 0);
-		if (res < 0) {
-			return res;
+		deadline_timer = rtbench_timer_create(RTBENCH_TIMER_DEADLINE,
+						      deadline_timer_callback,
+						      NULL);
+		if (deadline_timer == NULL) {
+			return -1;
 		}
-		// we setup the itimerspec struct to be used by the period handler
-		deadline_timing.it_value.tv_nsec = exec_opts->deadline_nsec;
-		deadline_timing.it_value.tv_sec = exec_opts->deadline_sec;
-		deadline_timing.it_interval.tv_sec = 0;
-		deadline_timing.it_interval.tv_nsec = 0;
+		deadline_timer_sec = exec_opts->deadline_sec;
+		deadline_timer_nsec = exec_opts->deadline_nsec;
 		elogf(LOG_LEVEL_TRACE, "Deadline timer setup complete\n");
 	} else {
 		deadline_timer_status = !DEADLINE_TIMER_IN_USE;
 	}
 
-	res = setup_timer(&period_timer, SIGNAL_END_PERIOD,
-			  exec_opts->period_sec, exec_opts->period_nsec);
+	period_timer = rtbench_timer_create(RTBENCH_TIMER_PERIOD,
+					    period_timer_callback, NULL);
+	if (period_timer == NULL) {
+		return -1;
+	}
+	res = rtbench_timer_settime(period_timer, exec_opts->period_sec,
+				    exec_opts->period_nsec);
 	if (res < 0) {
 		return res;
 	}
@@ -674,7 +603,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	       exec_opts->tasks_to_launch == 0) {
 		// we wait for the period to finish
 		do {
-			res = sem_wait(&period_sem);
+			res = rtbench_sem_wait(period_sem);
 
 		} while (res < 0 && errno == EINTR);
 
@@ -698,8 +627,8 @@ int periodic_benchmark(struct execution_options *exec_opts)
 			stop_sampling();
 		}
 #endif
-		job_end_timestamp_clocks = get_rdtsc();
-		job_end_timestamp = get_timestamp();
+		job_end_timestamp_clocks = rtbench_get_rdtsc();
+		job_end_timestamp = rtbench_get_timestamp();
 #ifdef EXTENDED_REPORT
 		extra_measurement = benchmark_log_data();
 #endif
@@ -708,7 +637,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	}
 	// we wait for the last period to finish before exiting.
 	do {
-		res = sem_wait(&period_sem);
+		res = rtbench_sem_wait(period_sem);
 	} while (res < 0 && errno == EINTR);
 	return EXIT_SUCCESS;
 }

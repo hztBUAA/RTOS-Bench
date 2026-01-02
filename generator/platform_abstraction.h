@@ -14,7 +14,7 @@
 #if defined(RT_THREAD_PLATFORM)
     #include <rtthread.h>
     #define RTBENCH_PLATFORM_RTTHREAD
-#elif defined(__linux__)
+#elif defined(LINUX_PLATFORM) || defined(__linux__)
     #define RTBENCH_PLATFORM_LINUX
 #else
     #error "Unsupported platform. Please define RT_THREAD_PLATFORM or use Linux."
@@ -185,4 +185,3 @@ int rtbench_signal_register(rtbench_signal_t signal,
                             rtbench_signal_handler_t handler);
 
 #endif /* PLATFORM_ABSTRACTION_H */
-
