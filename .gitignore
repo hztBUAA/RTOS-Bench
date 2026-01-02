@@ -13,3 +13,6 @@ docs/conf/doxygen-awesome
 utils/overhead
 *.csv
 *.log
+
+# RT-Thread QEMU
+extern/

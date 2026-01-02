@@ -12,6 +12,27 @@
 
 /* Platform detection */
 #if defined(RT_THREAD_PLATFORM)
+    /* Provide POSIX-ish typedef guards for toolchains that hide them */
+    #ifndef _CLOCK_T_DECLARED
+    typedef unsigned long clock_t;
+    #define _CLOCK_T_DECLARED
+    #endif
+    #ifndef _SUSECONDS_T_DECLARED
+    typedef long suseconds_t;
+    #define _SUSECONDS_T_DECLARED
+    #endif
+    #ifndef _CLOCKID_T_DECLARED
+    typedef unsigned long clockid_t;
+    #define _CLOCKID_T_DECLARED
+    #endif
+    #ifndef _TIMER_T_DECLARED
+    typedef unsigned long timer_t;
+    #define _TIMER_T_DECLARED
+    #endif
+    #ifndef _PID_T_DECLARED
+    typedef int pid_t;
+    #define _PID_T_DECLARED
+    #endif
     #include <rtthread.h>
     #define RTBENCH_PLATFORM_RTTHREAD
 #elif defined(LINUX_PLATFORM) || defined(__linux__)
