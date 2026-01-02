@@ -36,7 +36,8 @@ PLATFORM_SRC := $(PLATFORM_DIR)/timer.c \
 
 COMMON_SRC := $(GENERATOR_DIR)/periodic_benchmark.c \
 	$(GENERATOR_DIR)/logging.c \
-	$(GENERATOR_DIR)/memory_watcher.c
+	$(GENERATOR_DIR)/memory_watcher.c \
+	$(GENERATOR_DIR)/benchmark_registry.c
 
 LINUX_ONLY_SRC := $(GENERATOR_DIR)/main.c \
 	$(GENERATOR_DIR)/get_cpu_timestamp.c \
@@ -44,7 +45,8 @@ LINUX_ONLY_SRC := $(GENERATOR_DIR)/main.c \
 	$(GENERATOR_DIR)/performance_sampler.c
 
 RTTHREAD_ONLY_SRC := $(GENERATOR_DIR)/rtthread_entry.c \
-	$(GENERATOR_DIR)/benchmark_stub.c
+	$(GENERATOR_DIR)/benchmark_stub.c \
+	$(GENERATOR_DIR)/benchmark_busywait.c
 
 ifeq ($(PLATFORM),rt-thread)
 GENERATOR_SRC := $(COMMON_SRC) $(RTTHREAD_ONLY_SRC) $(PLATFORM_SRC)
