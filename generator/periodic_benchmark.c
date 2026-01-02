@@ -13,15 +13,23 @@
  */
 
 #include "periodic_benchmark.h"
-#include "performance_counters.h"
-#include "performance_sampler.h"
 #include "platform_abstraction.h"
 #include "logging.h"
 #include "memory_watcher.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <string.h>
+
+#if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
+	(defined(X86_64) && defined(CORE_I7))
+#include "performance_counters.h"
+#include "performance_sampler.h"
+#define RTBENCH_PERF_SUPPORT 1
+#else
+#define RTBENCH_PERF_SUPPORT 0
+#endif
 
 /// This value in `::deadline_timer_status` determines that the deadline timer
 /// must be used
@@ -107,11 +115,13 @@ static long double job_period_start_timestamp = 0;
 /// Number of tasks launched.
 static unsigned long long tasks_launched = 0;
 
+#if RTBENCH_PERF_SUPPORT
 /// Performance counters at the start of the period.
 static struct perf_counters job_perf_counters_start;
 
 /// Performance counters at the end of the period.
 static struct perf_counters job_perf_counters_end;
+#endif
 
 /// Extra benchmark dependant measured data.
 static float extra_measurement = 0.0f;
@@ -302,29 +312,43 @@ static void handle_period(void)
 	    job_period_start_timestamp > 0) {
 		// we report a job completion
 		if (job_end_timestamp_clocks > 0 || job_end_timestamp > 0) {
-			print_statistics(filep,
-					 job_period_start_timestamp_clocks,
-					 job_period_end_timestamp_clocks,
-					 job_end_timestamp_clocks,
-					 job_deadline_timestamp_clocks,
-					 job_period_start_timestamp,
-					 job_period_end_timestamp,
-					 job_end_timestamp,
-					 job_deadline_timestamp,
-					 job_perf_counters_start.l1_references,
-					 job_perf_counters_start.l1_refills,
-					 job_perf_counters_start.l2_references,
-					 job_perf_counters_start.l2_refills,
-					 job_perf_counters_start.inst_retired,
-					 job_perf_counters_start.clock_count,
-					 job_perf_counters_end.l1_references,
-					 job_perf_counters_end.l1_refills,
-					 job_perf_counters_end.l2_references,
-					 job_perf_counters_end.l2_refills,
-					 job_perf_counters_end.inst_retired,
-					 job_perf_counters_end.clock_count,
-					 extra_measurement);
-
+#if RTBENCH_PERF_SUPPORT
+			if (memory_profiling_enabled) {
+				print_statistics(
+					filep, job_period_start_timestamp_clocks,
+					job_period_end_timestamp_clocks,
+					job_end_timestamp_clocks,
+					job_deadline_timestamp_clocks,
+					job_period_start_timestamp,
+					job_period_end_timestamp,
+					job_end_timestamp, job_deadline_timestamp,
+					job_perf_counters_start.l1_references,
+					job_perf_counters_start.l1_refills,
+					job_perf_counters_start.l2_references,
+					job_perf_counters_start.l2_refills,
+					job_perf_counters_start.inst_retired,
+					job_perf_counters_start.clock_count,
+					job_perf_counters_end.l1_references,
+					job_perf_counters_end.l1_refills,
+					job_perf_counters_end.l2_references,
+					job_perf_counters_end.l2_refills,
+					job_perf_counters_end.inst_retired,
+					job_perf_counters_end.clock_count,
+					extra_measurement);
+			} else
+#endif
+			{
+				print_statistics(
+					filep, job_period_start_timestamp_clocks,
+					job_period_end_timestamp_clocks,
+					job_end_timestamp_clocks,
+					job_deadline_timestamp_clocks,
+					job_period_start_timestamp,
+					job_period_end_timestamp,
+					job_end_timestamp, job_deadline_timestamp,
+					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					extra_measurement);
+			}
 		}
 #ifdef PRINT_SKIPPED_DEADLINE
 		// or the skipped deadline

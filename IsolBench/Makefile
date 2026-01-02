@@ -1,7 +1,7 @@
 include ../generator/Makefile
 CC=gcc
 PGMS=bandwidth latency
-BASE_SRC=$(wildcard ../generator/*.c) $(PLATFORM_SRC)
+BASE_SRC=$(GENERATOR_SRC)
 BASE_O=$(patsubst %.c,%.o,$(BASE_SRC))
 override CFLAGS+=-O2 -Wall -g -I../generator -DGCC -DEXTENDED_REPORT
 CXXFLAGS=$(CFLAGS)
