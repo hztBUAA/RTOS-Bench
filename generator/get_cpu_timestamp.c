@@ -1,7 +1,12 @@
 #include "get_cpu_timestamp.h"
+
+#ifdef RT_THREAD_PLATFORM
+#include <rtthread.h>
+#else
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
+#endif
 
 /** @file get_cpu_timestamp.c
  * @ingroup generator
@@ -16,11 +21,17 @@
  * Uses the `rdtsc` assembly primitive via the magic_timing_begin() macro.
  */
 unsigned long long get_rdtsc() {
+#ifdef RT_THREAD_PLATFORM
+  rt_tick_t tick = rt_tick_get();
+  return (unsigned long long)tick *
+         (100000000ULL / RT_TICK_PER_SECOND);
+#else
   unsigned long long timing = 0;
   unsigned long timeHigh = 0, timeLow = 0;
   magic_timing_begin(timeLow, timeHigh);
   timing = (((unsigned long long)0x0) | timeHigh) << 32 | timeLow;
   return timing;
+#endif
 }
 
 /** @details
@@ -30,6 +41,10 @@ unsigned long long get_rdtsc() {
  * this also fails then 0 is returned.
  */
 long double get_timestamp() {
+#ifdef RT_THREAD_PLATFORM
+  rt_tick_t tick = rt_tick_get();
+  return (long double)tick / (long double)RT_TICK_PER_SECOND;
+#else
 #ifdef _SC_MONOTONIC_CLOCK
   if (sysconf(_SC_MONOTONIC_CLOCK) > 0) {
     /* monotonic clock present */
@@ -46,4 +61,5 @@ long double get_timestamp() {
   } else {
     return 0;
   }
+#endif
 }

@@ -6,11 +6,10 @@
 #include <math.h>
 #include <fenv.h>
 #include "logging.h"
+#include "platform_abstraction.h"
 #include <string.h>
-#include "sched_attr.h"
 
 #include <inttypes.h>
-#include <sched.h>
 
 #ifdef JSON_SUPPORT
 #include <json-c/json.h>
@@ -29,138 +28,6 @@
  * @copyright (C) 2021 - 2022, Mattia Nicolella <mnico@bu.edu> and the rt-bench contributors.
  * SPDX-License-Identifier: MIT
  */
-
-/**
- * @brief Set sched_deadline policy for current thread.
- * @returns 0 on success, < 0 on failure
- *
- * @details
- * @note `sched_setattr()` is not provided as wrapper in most glibc.
- *
- * @note  When using the sched_deadline policy, the task/thread is descheduled
- * as soon as the deadline is reached (hard reservation). This might impact
- * the performance/possibly correctness of the computation. For example,
- * consider disparity with a scheduling policy FIFO at rt-prio 50. Disparity
- * will run to completion (within the "soft reservation" enforced by the -d 1,
- * -p 1 seconds of rt-bench).
- * 
- * @note `# ./disparity -d 1 -p 1 -f 50 -b . .`
- * `5211492644212,5213189418717,5211566941556,5213189418717,74297344,3050.207200004,3051.207129868,3050.250938539,3051.207129868,0.043738535,1,0.0437,0.0437`
- *
- * @note When giving a combination of parameters period = 500us, deadline = 400 us,
- * expected runtime 300us, the results might be considerably different.
- *
- * @note `# ./disparity -d 1 -p 1 -P 500000 -D 400000 -T 300000 -b . .`
- * `5108693043772,5110389822935,5109043819868,5110389822935,350776096,2989.623136457,2990.623058494,2989.829806155,2990.623058494,0.206669698,1,0.207,0.207`
- */
-static int set_sched_deadline(
-	/* IN: period (see chrt or include/linux/sched/types.h */
-	uint64_t period,
-	/* IN: deadline (see chrt or include/linux/sched/types.h */
-	uint64_t deadline,
-	/* IN: runtime (see chrt or include/linux/sched/types.h */
-	uint64_t runtime)
-{
-	int ret;
-	struct rtbench_sched_attr attr = { 0 };
-
-	/* Keep compatibility with chrt, at least the period must be != 0 */
-	if (period == 0) {
-		return -1;
-	}
-
-	if (deadline == 0) {
-		deadline = period;
-	}
-
-	if (runtime == 0) {
-		runtime = deadline;
-	}
-
-	attr.size = sizeof(struct rtbench_sched_attr);
-	attr.sched_policy = SCHED_DEADLINE;
-	attr.sched_runtime = runtime;
-	attr.sched_deadline = deadline;
-	attr.sched_period = period;
-
-	/* NOTE: sched_setattr() is not provided as wrapper in most glibc */
-	ret = sched_setattr(0, &attr, 0);
-	if (ret != 0) {
-		return ret;
-	}
-
-	/* Try to read the info back */
-	attr.size = sizeof(attr);
-	attr.sched_policy = 0;
-	attr.sched_runtime = 0;
-	attr.sched_deadline = 0;
-	attr.sched_period = 0;
-
-	ret = sched_getattr(0, &attr, sizeof(attr), 0);
-	if (ret != 0) {
-		return ret;
-	}
-
-	elogf(LOG_LEVEL_INFO,
-	      "\nsize: %u, policy: %u, flags: %lu, prio: %u"
-	      "\nT: %lu, D: %lu, P: %lu\n",
-	      attr.size, attr.sched_policy, attr.sched_flags,
-	      attr.sched_priority, attr.sched_runtime, attr.sched_deadline,
-	      attr.sched_period);
-
-	return ret;
-}
-
-/**
- * @brief Set sched_fifo as scheduling policy.
- * @param[in] prio The priority of this benchmark (see `chrt` or `include/linux/sched/types`).
- * @returns
- *   0 on success
- *   < 0 on failure
-
- * @note If this function fails when the program is run by the root user try `ulimit -r unlimited` and 
- * `echo $$ > /sys/fs/cgroup/cpu/tasks` from the shell that will run the program. See [this stackoverflow question](https://stackoverflow.com/questions/9313428/getting-eperm-when-calling-pthread-create-for-sched-fifo-thread-as-root-on-lin) for details  
- */
-static int set_sched_fifo_prio(unsigned int prio)
-{
-	int ret;
-	struct rtbench_sched_attr attr = { 0 };
-
-	/* cap prio to max */
-	if (prio > sched_get_priority_max(SCHED_FIFO)) {
-		prio = sched_get_priority_max(SCHED_FIFO);
-	}
-
-	attr.sched_policy = SCHED_FIFO;
-	attr.sched_priority = prio;
-
-	/* NOTE: sched_setattr() is not provided as wrapper in most glibc */
-	ret = sched_setattr(0, &attr, 0);
-	if (ret != 0) {
-		return ret;
-	}
-
-	/* Try to read the info back */
-	attr.size = sizeof(attr);
-	attr.sched_policy = 0;
-	attr.sched_runtime = 0;
-	attr.sched_deadline = 0;
-	attr.sched_period = 0;
-
-	ret = sched_getattr(0, &attr, sizeof(attr), 0);
-	if (ret != 0) {
-		return ret;
-	}
-
-	elogf(LOG_LEVEL_INFO,
-	      "\nsize: %u, policy: %u, flags: %lu, prio: %u"
-	      "\nT: %lu, D: %lu, P: %lu\n",
-	      attr.size, attr.sched_policy, attr.sched_flags,
-	      attr.sched_priority, attr.sched_runtime, attr.sched_deadline,
-	      attr.sched_period);
-
-	return ret;
-}
 
 #ifdef JSON_SUPPORT
 /** @brief Convert the long options to their short version.
@@ -525,7 +392,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 
 		/* setup scheduling policies */
 		if (parsed_args->prio != 100) {
-			res = set_sched_fifo_prio(parsed_args->prio);
+			res = rtbench_set_priority(parsed_args->prio);
 			if (res < 0) {
 				argp_error(
 					state,
@@ -534,9 +401,9 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		}
 
 		if (parsed_args->period > 0) {
-			res = set_sched_deadline(parsed_args->period,
-						 parsed_args->deadline,
-						 parsed_args->runtime);
+			res = rtbench_set_deadline(parsed_args->runtime,
+						   parsed_args->deadline,
+						   parsed_args->period);
 			if (res < 0) {
 				argp_error(
 					state,
