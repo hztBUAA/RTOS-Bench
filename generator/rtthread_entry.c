@@ -2,6 +2,7 @@
 
 #include "periodic_benchmark.h"
 #include "logging.h"
+#include "benchmark_registry.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -51,6 +52,8 @@ static void parse_rtthread_args(int argc, char **argv,
 			}
 		} else if (!strcmp(argv[i], "-q")) {
 			benchmark_verbosity = LOG_LEVEL_INFO;
+		} else if (!strcmp(argv[i], "-b") && (i + 1 < argc)) {
+			rtbench_select_benchmark(argv[++i]);
 		}
 	}
 }
