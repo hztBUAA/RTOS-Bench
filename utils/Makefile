@@ -1,7 +1,7 @@
 include ../generator/Makefile
 CC=gcc
 PGMS=overhead
-BASE_SRC=$(wildcard ../generator/*.c)
+BASE_SRC=$(wildcard ../generator/*.c) $(PLATFORM_SRC)
 BASE_O=$(patsubst %.c,%.o,$(BASE_SRC))
 override CFLAGS+=-O2 -Wall -g -I../generator -DGCC
 CXXFLAGS=$(CFLAGS)
