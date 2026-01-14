@@ -46,7 +46,8 @@ LINUX_ONLY_SRC := $(GENERATOR_DIR)/main.c \
 
 RTTHREAD_ONLY_SRC := $(GENERATOR_DIR)/rtthread_entry.c \
 	$(GENERATOR_DIR)/benchmark_stub.c \
-	$(GENERATOR_DIR)/benchmark_busywait.c
+	$(GENERATOR_DIR)/benchmark_busywait.c \
+	$(GENERATOR_DIR)/rtthread_fini_stub.c
 
 ifeq ($(PLATFORM),rt-thread)
 GENERATOR_SRC := $(COMMON_SRC) $(RTTHREAD_ONLY_SRC) $(PLATFORM_SRC)
