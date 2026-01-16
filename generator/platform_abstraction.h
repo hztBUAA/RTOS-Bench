@@ -11,7 +11,15 @@
 #include <inttypes.h>
 
 /* Platform detection */
-#if defined(RT_THREAD_PLATFORM)
+#if defined(SYLIXOS_PLATFORM)
+    /* SylixOS is POSIX-compatible; SylixOS.h is optional and only needed
+     * for SylixOS-specific extensions. The platform layer uses standard
+     * POSIX APIs (timer_create, sem_init, pthread, clock_gettime, sigaction). */
+    #ifdef SYLIXOS_ROOT
+        #include <SylixOS.h>
+    #endif
+    #define RTBENCH_PLATFORM_SYLIXOS
+#elif defined(RT_THREAD_PLATFORM)
     /* Provide POSIX-ish typedef guards for toolchains that hide them */
     #ifndef _CLOCK_T_DECLARED
     typedef unsigned long clock_t;
@@ -38,7 +46,7 @@
 #elif defined(LINUX_PLATFORM) || defined(__linux__)
     #define RTBENCH_PLATFORM_LINUX
 #else
-    #error "Unsupported platform. Please define RT_THREAD_PLATFORM or use Linux."
+    #error "Unsupported platform. Define SYLIXOS_PLATFORM, RT_THREAD_PLATFORM, or use Linux."
 #endif
 
 /* ============================================================================
