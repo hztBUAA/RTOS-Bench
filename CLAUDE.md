@@ -4,9 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-RT-Bench is a collection of real-time benchmarks restructured for periodic execution. It supports multiple platforms (Linux, RT-Thread) through a platform abstraction layer.
+RT-Bench is a collection of real-time benchmarks restructured for periodic execution. It supports multiple platforms (Linux, RT-Thread, SylixOS) through a platform abstraction layer.
 
-**Current Status**: RT-Thread support is complete and tested on QEMU (vexpress-a9, qemu-virt64-aarch64). Future goal: add 翼辉 (SylixOS) platform support.
+**Current Status**: RT-Thread support complete and tested on QEMU. SylixOS platform code complete (POSIX-based), verified via Docker compilation.
+
+## Quick Start - One-Click Testing
+
+```bash
+# RT-Thread (qemu-virt64-aarch64)
+./run-rtthread.sh        # Build and run interactively
+./run-rtthread.sh -r     # Run only (skip build)
+./run-rtthread.sh -b     # Build only
+./run-rtthread.sh -t     # Run with auto-test
+
+# SylixOS (qemu-x86_64)
+./run-sylixos.sh -n      # Run in nographic mode
+./run-sylixos.sh         # Run with GUI (if available)
+
+# SylixOS compilation (via Docker)
+docker run --rm -v "$(pwd):/work" -w /work gcc:13 bash -c "cd IsolBench && make PLATFORM=sylixos"
+```
 
 ## Build Commands
 
@@ -45,6 +62,9 @@ make PLATFORM=linux
 
 # RT-Thread
 make PLATFORM=rt-thread RT_THREAD_ROOT=/path/to/rtthread
+
+# SylixOS
+make PLATFORM=sylixos
 ```
 
 ### RT-Thread Build Example (qemu-virt64-aarch64)
@@ -93,7 +113,7 @@ Each platform implements these interfaces in separate files:
 | `timestamp.c` | `rtbench_get_rdtsc/timestamp` |
 | `signal.c` | `rtbench_signal_register` |
 
-Platform directories: `linux/`, `rt-thread/`, `freertos/`
+Platform directories: `linux/`, `rt-thread/`, `sylixos/`, `freertos/`
 
 ### Benchmark Interface
 
@@ -138,7 +158,9 @@ float benchmark_log_data();
 ### Platform Detection
 
 ```c
-#if defined(RT_THREAD_PLATFORM)
+#if defined(SYLIXOS_PLATFORM)
+    #define RTBENCH_PLATFORM_SYLIXOS
+#elif defined(RT_THREAD_PLATFORM)
     #define RTBENCH_PLATFORM_RTTHREAD
 #elif defined(LINUX_PLATFORM) || defined(__linux__)
     #define RTBENCH_PLATFORM_LINUX
@@ -168,6 +190,7 @@ Built-in workloads: `stub`, `busywait`
   - `xpack-arm-none-eabi-gcc-12.2.1-1.2/` - ARM32
   - `xpack-aarch64-none-elf-gcc-14.2.1-1.1/` - ARM64
 - `extern/qemu/` - QEMU source/packages (mainly use system brew QEMU)
+- `extern/yihui/` - SylixOS IDE and VMware image
 
 ## RT-Thread Integration Notes
 
@@ -180,7 +203,47 @@ Key implementation details:
 - **BSP integration**: Each BSP's `applications/SConscript` imports rt-bench source and adds `rtbench_entry.c` to export the command
 - **Linker fix**: `rtthread_fini_stub.c` resolves `_fini` symbol issues
 
-## Adding New Platform Support (e.g., 翼辉/SylixOS)
+## SylixOS Integration Notes
+
+SylixOS supports full POSIX API, so the implementation reuses Linux code with minimal changes.
+
+**Platform Code Status**: Complete. The SylixOS platform layer (`generator/platform/sylixos/`) implements POSIX-based timer, sync, scheduler, timestamp, and signal APIs identical to Linux.
+
+**Toolchain Limitation**: The VMware image does not include gcc/make. Compilation requires either:
+1. **RealEvo-IDE (Windows)**: Use the official SylixOS IDE with embedded cross-compiler
+2. **Install gcc in SylixOS**: Download and install gcc toolchain into the running system
+3. **Cross-compile from Linux**: Use a SylixOS-compatible x86 gcc toolchain
+
+**Quick Start (QEMU):**
+```bash
+# Start SylixOS in QEMU
+./run-sylixos.sh -n
+
+# Or manually:
+cd extern/yihui/SylixOS\ IDE\ 6.5.0_professional/VMware/SylixOSx86
+qemu-system-x86_64 -m 512M -hda sylixos_boot.qcow2 -hdb sylixos_main.qcow2 \
+  -net nic -net user,hostfwd=tcp::2222-:22 -nographic
+# Exit: Ctrl+A X
+```
+
+**If gcc is available in SylixOS:**
+```bash
+# Transfer files via SCP (if SSH is enabled)
+scp -P 2222 -r /path/to/rt-bench root@localhost:/tmp/
+
+# In SylixOS shell
+cd /tmp/rt-bench/IsolBench
+make PLATFORM=sylixos
+./bandwidth -p 0.5 -t 5
+```
+
+**Key differences from Linux:**
+- No `SCHED_DEADLINE` support (returns -1)
+- Uses POSIX `pthread_setschedparam` for priority
+- CPU affinity via `pthread_setaffinity_np` (if available)
+- `SylixOS.h` include is optional (only needed for SylixOS-specific extensions)
+
+## Adding New Platform Support (e.g., FreeRTOS)
 
 Follow the RT-Thread pattern:
 
@@ -192,5 +255,6 @@ Follow the RT-Thread pattern:
 5. Integrate in BSP build scripts, define platform macro, import rt-bench sources
 
 Reference implementations:
-- `platform/rt-thread/*` - RT-Thread platform
-- `platform/linux/*` - Linux platform
+- `platform/linux/*` - Linux platform (full POSIX)
+- `platform/sylixos/*` - SylixOS platform (POSIX-based)
+- `platform/rt-thread/*` - RT-Thread platform (native API)

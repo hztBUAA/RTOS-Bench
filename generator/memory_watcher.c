@@ -1,25 +1,25 @@
 /** @file memory_watcher.c
  * @ingroup generator
- * @brief Memory watcher (Linux) with RT-Thread stubs.
+ * @brief Memory watcher (Linux) with RT-Thread/SylixOS stubs.
  */
 
 #include "logging.h"
 
-#ifdef RT_THREAD_PLATFORM
+#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM)
 
-/* RT-Thread stub: not supported, keep no-op to satisfy links. */
+/* RT-Thread/SylixOS stub: not supported, keep no-op to satisfy links. */
 void start_memory_watcher(size_t bytes_to_preallocate)
 {
 	(void)bytes_to_preallocate;
 	elogf(LOG_LEVEL_TRACE,
-	      "Memory watcher is not supported on RT-Thread, skipping.\n");
+	      "Memory watcher is not supported on this platform, skipping.\n");
 }
 
 void stop_memory_watcher(void)
 {
 }
 
-#else /* Linux/Posix implementation */
+#else /* Linux/Posix implementation with --wrap support */
 
 #include <malloc.h>
 #include <unistd.h>
@@ -160,4 +160,4 @@ void *__wrap_mmap(void *addr, size_t len, int prot, int flags, int fildes,
 	}
 }
 
-#endif /* RT_THREAD_PLATFORM */
+#endif /* RT_THREAD_PLATFORM || SYLIXOS_PLATFORM */
