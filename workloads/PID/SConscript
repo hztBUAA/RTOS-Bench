@@ -1,0 +1,10 @@
+from building import *
+
+cwd = GetCurrentDir()
+src = Glob('*.cpp') + Glob('*.c')
+path = [cwd]
+
+# 增加对 C++ 的支持定义
+group = DefineGroup('PID', src, depend = ['RT_USING_CPLUSPLUS'], CPPPATH = path)
+
+Return('group')

@@ -159,7 +159,7 @@ float workload_log_data(void);
 #define rtbench_current_benchmark rtosbench_current_workload
 #define rtbench_list_benchmarks(cb) rtosbench_list_workloads((void(*)(const char*,const char*))(cb))
 
-/* Legacy function names (will call workload_* internally) */
+/* Legacy function names（始终调用 workload_*，不再允许覆盖） */
 int benchmark_init(int parameters_num, void **parameters);
 void benchmark_execution(int parameters_num, void **parameters);
 void benchmark_teardown(int parameters_num, void **parameters);
