@@ -11,6 +11,9 @@
  * Defaults: period 1s, run until SIGINT, skip priority/affinity changes.
  */
 
+/* Register packaged workloads (must be linked in) */
+void rtosbench_register_rtos_workloads(void);
+
 static void set_default_exec_opts(struct execution_options *opts)
 {
 	memset(opts, 0, sizeof(*opts));
@@ -70,6 +73,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 	struct execution_options opts;
 
 	set_default_exec_opts(&opts);
+	rtosbench_register_rtos_workloads();
 	parse_rtthread_args(argc, argv, &opts);
 	return periodic_benchmark(&opts);
 }

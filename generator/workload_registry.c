@@ -149,21 +149,12 @@ float workload_log_data(void)
 #endif
 
 /* ============================================================================
- * Legacy API Compatibility (only when using MULTI_WORKLOAD mode)
+ * Legacy API Compatibility
  *
- * On platforms that link external benchmarks (Linux/SylixOS), these are weak
- * symbols that can be overridden by benchmark-specific implementations.
- * On RT-Thread (where all workloads are built-in), these are strong symbols.
+ * The benchmark_* names are kept for existing code and always route through the
+ * workload registry (no overrides), ensuring a single maintenance path.
  * ============================================================================ */
-
-#ifdef MULTI_WORKLOAD
-
-/* Use weak symbols on POSIX platforms to allow override, strong on RT-Thread */
-#if defined(LINUX_PLATFORM) || defined(SYLIXOS_PLATFORM)
-#define RTOSBENCH_WEAK __attribute__((weak))
-#else
 #define RTOSBENCH_WEAK
-#endif
 
 RTOSBENCH_WEAK
 int benchmark_init(int parameters_num, void **parameters)
@@ -196,4 +187,3 @@ float benchmark_log_data(void)
 	return workload_log_data();
 }
 #endif
-#endif /* MULTI_WORKLOAD */
