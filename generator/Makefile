@@ -42,33 +42,44 @@ PLATFORM_SRC := $(PLATFORM_DIR)/timer.c \
 		$(PLATFORM_DIR)/scheduler.c \
 		$(PLATFORM_DIR)/signal.c
 
-# Common source files for all platforms
-BASE_SRC := $(GENERATOR_DIR)/periodic_benchmark.c \
+# Core source files for all platforms
+CORE_SRC := $(GENERATOR_DIR)/periodic_benchmark.c \
 	$(GENERATOR_DIR)/logging.c \
 	$(GENERATOR_DIR)/memory_watcher.c
 
-# RT-Thread needs benchmark_registry for multi-workload support
-RTTHREAD_COMMON_SRC := $(BASE_SRC) \
-	$(GENERATOR_DIR)/benchmark_registry.c
+# Workload registry (unified for all platforms)
+WORKLOAD_REGISTRY_SRC := $(GENERATOR_DIR)/workload_registry.c \
+	$(GENERATOR_DIR)/workload_stub.c \
+	$(GENERATOR_DIR)/workload_busywait.c
 
-# Linux/SylixOS use single benchmark per executable
-POSIX_COMMON_SRC := $(BASE_SRC)
-
-LINUX_ONLY_SRC := $(GENERATOR_DIR)/main.c \
+# Linux/SylixOS specific sources
+POSIX_ENTRY_SRC := $(GENERATOR_DIR)/main.c \
 	$(GENERATOR_DIR)/get_cpu_timestamp.c \
 	$(GENERATOR_DIR)/performance_counters.c \
 	$(GENERATOR_DIR)/performance_sampler.c
 
-RTTHREAD_ONLY_SRC := $(GENERATOR_DIR)/rtthread_entry.c \
-	$(GENERATOR_DIR)/benchmark_stub.c \
-	$(GENERATOR_DIR)/benchmark_busywait.c \
+# RT-Thread specific sources
+RTTHREAD_ENTRY_SRC := $(GENERATOR_DIR)/rtthread_entry.c \
 	$(GENERATOR_DIR)/rtthread_fini_stub.c
 
+# Build mode: MULTI_WORKLOAD=1 enables workload registry for Linux/SylixOS
+# RT-Thread always uses workload registry (built-in workloads selected via -b)
+ifdef MULTI_WORKLOAD
+WORKLOAD_SRC := $(WORKLOAD_REGISTRY_SRC)
+override CFLAGS += -DMULTI_WORKLOAD
+else
+WORKLOAD_SRC :=
+endif
+
 ifeq ($(PLATFORM),rt-thread)
-GENERATOR_SRC := $(RTTHREAD_COMMON_SRC) $(RTTHREAD_ONLY_SRC) $(PLATFORM_SRC)
+# RT-Thread always uses workload registry with built-in workloads
+# Note: RT-Thread defines benchmark_* via workload_registry, not from individual benchmark files
+override CFLAGS += -DMULTI_WORKLOAD
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_REGISTRY_SRC) $(RTTHREAD_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),sylixos)
 # SylixOS uses Linux-style entry (main.c with argp)
-GENERATOR_SRC := $(POSIX_COMMON_SRC) $(LINUX_ONLY_SRC) $(PLATFORM_SRC)
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIX_ENTRY_SRC) $(PLATFORM_SRC)
 else
-GENERATOR_SRC := $(POSIX_COMMON_SRC) $(LINUX_ONLY_SRC) $(PLATFORM_SRC)
+# Linux default
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIX_ENTRY_SRC) $(PLATFORM_SRC)
 endif

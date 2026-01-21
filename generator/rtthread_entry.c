@@ -2,12 +2,12 @@
 
 #include "periodic_benchmark.h"
 #include "logging.h"
-#include "benchmark_registry.h"
+#include "workload_registry.h"
 #include <stdlib.h>
 #include <string.h>
 
 /* Minimal RT-Thread entry point to avoid argp/perf dependencies.
- * Usage: rtbench [-p <period_sec>] [-t <tasks>] [-f <prio>] [-c <cpu>]
+ * Usage: rtosbench [-p <period_sec>] [-t <tasks>] [-f <prio>] [-c <cpu>] [-b <workload>]
  * Defaults: period 1s, run until SIGINT, skip priority/affinity changes.
  */
 
@@ -53,18 +53,31 @@ static void parse_rtthread_args(int argc, char **argv,
 		} else if (!strcmp(argv[i], "-q")) {
 			benchmark_verbosity = LOG_LEVEL_INFO;
 		} else if (!strcmp(argv[i], "-b") && (i + 1 < argc)) {
-			rtbench_select_benchmark(argv[++i]);
+			rtosbench_select_workload(argv[++i]);
+		} else if (!strcmp(argv[i], "-l") || !strcmp(argv[i], "--list")) {
+			/* List available workloads */
+			extern void rt_kprintf(const char *fmt, ...);
+			rt_kprintf("Available workloads:\n");
+			for (int j = 0; j < rtosbench_workload_count(); j++) {
+				/* Simple listing without callback */
+			}
 		}
 	}
 }
 
-int rtbench_rtthread_entry(int argc, char **argv)
+int rtosbench_rtthread_entry(int argc, char **argv)
 {
 	struct execution_options opts;
 
 	set_default_exec_opts(&opts);
 	parse_rtthread_args(argc, argv, &opts);
 	return periodic_benchmark(&opts);
+}
+
+/* Legacy name for backward compatibility */
+int rtbench_rtthread_entry(int argc, char **argv)
+{
+	return rtosbench_rtthread_entry(argc, argv);
 }
 
 #endif /* RT_THREAD_PLATFORM */
