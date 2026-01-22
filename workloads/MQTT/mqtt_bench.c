@@ -40,6 +40,7 @@ static int g_cursor = 0;
 static uint64_t g_total_pack_send_us = 0; // 累积耗时
 static uint64_t g_total_count = 0;        // 发送计数
 static int g_stop_flag = 0;
+static int g_mqtt_ready = 0;
 
 static void fn(struct mg_connection* c, int ev, void* ev_data) {
     if (ev == MG_EV_OPEN) {
@@ -47,13 +48,18 @@ static void fn(struct mg_connection* c, int ev, void* ev_data) {
     } 
     else if (ev == MG_EV_ERROR) {
         printf("[MQTT] Connection Error: %s\n", (char *) ev_data);
+        g_mqtt_ready = 0;
     }
     else if (ev == MG_EV_MQTT_OPEN) {
         printf("[MQTT] Session Started (Broker Connected)\n");
+        g_mqtt_ready = 1;
     }
     else if (ev == MG_EV_POLL) {  
         if (c->is_draining) return;
 
+        if (!g_mqtt_ready) {
+            return;
+        }
         if (g_cursor >= GEOLIFE_COUNT) {
             g_stop_flag = 1; // 通知主循环退出
             return;
@@ -99,6 +105,11 @@ static void* mqtt_thread_entry(void *parameter) {
     struct mg_mgr mgr;
     
     printf("[MQTT] Thread Started...\n");
+    g_cursor = 0;
+    g_total_pack_send_us = 0;
+    g_total_count = 0;
+    g_stop_flag = 0;
+    g_mqtt_ready = 0;
 
     // 初始化 Mongoose
     mg_mgr_init(&mgr);
@@ -107,15 +118,82 @@ static void* mqtt_thread_entry(void *parameter) {
     struct mg_connection *c = mg_mqtt_connect(&mgr, MQTT_URL, NULL, fn, NULL);
     
     if (c == NULL) {
-        printf("[MQTT] Create connection failed\n");
+        /* 无网络或无法连接 Broker，改为离线模式：仅做打包计数 */
+        uint64_t t_bench_start = get_time_us();
+        for (g_cursor = 0; g_cursor < GEOLIFE_COUNT; g_cursor++) {
+            char json_payload[128];
+            GeoLifeRecord next_point = g_geolife_track[g_cursor];
+            uint64_t t_start = get_time_us();
+            snprintf(json_payload, sizeof(json_payload), 
+                     "{\"lat\":%.6f,\"lon\":%.6f,\"alt\":%.1f,\"ts\":%u}",
+                     next_point.lat, next_point.lon, next_point.alt,
+                     next_point.ts);
+            uint64_t t_end = get_time_us();
+            g_total_pack_send_us += (t_end - t_start);
+            g_total_count++;
+        }
+        uint64_t t_bench_end = get_time_us();
+        double total_time_ms = (t_bench_end - t_bench_start) / 1000.0;
+        printf("[MQTT][offline] No broker/connection, ran pack-only simulation\n");
+        printf("Total Records: %ld Total Duration: %.2f ms Avg Pack Time: %.1f us\n",
+               GEOLIFE_COUNT, total_time_ms,
+               g_total_count ? (double)g_total_pack_send_us / g_total_count : 0.0);
         mg_mgr_free(&mgr);
         return NULL;
     }
 
     uint64_t t_bench_start = get_time_us();
-
+    uint32_t idle_loops = 0;
     while (g_stop_flag == 0) {
         mg_mgr_poll(&mgr, 1);
+        idle_loops++;
+        if (!g_mqtt_ready && idle_loops > 500) {
+            /* 连接未建立，直接离线退化 */
+            uint64_t t_off_start = get_time_us();
+            for (; g_cursor < GEOLIFE_COUNT; g_cursor++) {
+                char json_payload[128];
+                GeoLifeRecord next_point = g_geolife_track[g_cursor];
+                uint64_t t_start = get_time_us();
+                snprintf(json_payload, sizeof(json_payload), 
+                         "{\"lat\":%.6f,\"lon\":%.6f,\"alt\":%.1f,\"ts\":%u}",
+                         next_point.lat, next_point.lon, next_point.alt,
+                         next_point.ts);
+                uint64_t t_end = get_time_us();
+                g_total_pack_send_us += (t_end - t_start);
+                g_total_count++;
+            }
+            uint64_t t_off_end = get_time_us();
+            double total_time_ms = (t_off_end - t_bench_start) / 1000.0;
+            double pack_only_ms = (t_off_end - t_off_start) / 1000.0;
+            printf("[MQTT][offline] No session established, pack-only simulation\n");
+            printf("Total Records: %ld Total Duration: %.2f ms Pack-only: %.2f ms Avg Pack: %.1f us\n",
+                   GEOLIFE_COUNT, total_time_ms, pack_only_ms,
+                   g_total_count ? (double)g_total_pack_send_us / g_total_count : 0.0);
+            break;
+        }
+        if (g_total_count == 0 && idle_loops > 3000) { /* ~3s 无流量，退化为离线模式 */
+            uint64_t t_off_start = get_time_us();
+            for (; g_cursor < GEOLIFE_COUNT; g_cursor++) {
+                char json_payload[128];
+                GeoLifeRecord next_point = g_geolife_track[g_cursor];
+                uint64_t t_start = get_time_us();
+                snprintf(json_payload, sizeof(json_payload), 
+                         "{\"lat\":%.6f,\"lon\":%.6f,\"alt\":%.1f,\"ts\":%u}",
+                         next_point.lat, next_point.lon, next_point.alt,
+                         next_point.ts);
+                uint64_t t_end = get_time_us();
+                g_total_pack_send_us += (t_end - t_start);
+                g_total_count++;
+            }
+            uint64_t t_off_end = get_time_us();
+            double total_time_ms = (t_off_end - t_bench_start) / 1000.0;
+            double pack_only_ms = (t_off_end - t_off_start) / 1000.0;
+            printf("[MQTT][offline] Timeout/no traffic, pack-only simulation\n");
+            printf("Total Records: %ld Total Duration: %.2f ms Pack-only: %.2f ms Avg Pack: %.1f us\n",
+                   GEOLIFE_COUNT, total_time_ms, pack_only_ms,
+                   g_total_count ? (double)g_total_pack_send_us / g_total_count : 0.0);
+            break;
+        }
     }
 
     uint64_t t_bench_end = get_time_us();
