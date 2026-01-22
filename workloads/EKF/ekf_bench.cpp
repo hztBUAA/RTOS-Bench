@@ -1,11 +1,15 @@
 #ifdef RT_THREAD_PLATFORM
 #include <rtthread.h>
 #include <finsh.h>
+#define EKF_HAVE_PTHREAD 0
 #else
 #define MSH_CMD_EXPORT(cmd, desc)
+#define EKF_HAVE_PTHREAD 1
 #endif
 #include <cstdio>
+#if EKF_HAVE_PTHREAD
 #include <pthread.h>
+#endif
 #include "EKF/ekf.h"
 #include "iris_gps.h"
 
@@ -20,7 +24,7 @@ void print_quat(const Quatf& q, uint64_t time) {
     printf("T: %.3fs | R: %.2f P: %.2f Y: %.2f\n", t, roll, pitch, yaw);
 }
 
-int ekf_bench_run(void) {
+extern "C" int ekf_bench_run(void) {
     printf("--- EKF Benchmark Test Start ---\n");
 
     Ekf _ekf;
@@ -122,37 +126,29 @@ static void* ekf_thread_entry(void *parameter) {
 }
 
 
-/* 导出命令到 RT-Thread MSH 终端 */
+#if EKF_HAVE_PTHREAD
+/* 导出命令到 MSH（仅在具备 pthread 的主机侧调试时使用） */
 int ekf_test(int argc, char **argv) {
     pthread_t tid;
     pthread_attr_t attr;
     struct sched_param param;
     int ret;
 
-    /* 2. 初始化线程属性 */
     pthread_attr_init(&attr);
-
-    /* 3. 设置栈大小 (32KB) */
     pthread_attr_setstacksize(&attr, 32 * 1024);
-
-    /* 4. 设置优先级和调度策略 */
-    pthread_attr_setschedpolicy(&attr, SCHED_FIFO); // 设置为实时先进先出策略
+    pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
     param.sched_priority = 25;
     pthread_attr_setschedparam(&attr, &param);
-
-    // 显式声明继承属性，确保优先级设置生效
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
-    /* 5. 创建线程 */
     ret = pthread_create(&tid, &attr, ekf_thread_entry, NULL);
-
     if (ret == 0) {
         pthread_detach(tid); 
         printf("EKF simulation thread created successfully (pthread).\n");
     } else {
-        printf("Failed to create PID simulation thread! Error code: %d\n", ret);
+        printf("Failed to create EKF simulation thread! Error code: %d\n", ret);
     }
-    
     return 0;
 }
 MSH_CMD_EXPORT(ekf_test, Run EKF benchmark);
+#endif

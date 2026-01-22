@@ -42,7 +42,7 @@ int fast_bench_run_once(int loops) {
     unsigned char* img_buffer = (unsigned char*)malloc(max_buffer_size);
     if (!img_buffer) {
         printf("Error: Failed to allocate RAM buffer (OOM).\n");
-        return;
+        return -1;
     }
 
     // 打印表头

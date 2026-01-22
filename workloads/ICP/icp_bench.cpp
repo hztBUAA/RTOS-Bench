@@ -25,7 +25,7 @@ static double diff_timespec_us(const struct timespec *start, const struct timesp
     return end_us - start_us;
 }
 
-int icp_bench_run(void) {
+extern "C" int icp_bench_run(void) {
     struct timespec start_time, end_time;
 
     int32_t num = bench_num; 

@@ -6,8 +6,8 @@
 - `epnp`：Perspective-n-Point 求解（C++/Eigen）
 - `ekf`：飞行数据集 EKF 重放（C++）
 - `icp`：点云 ICP 对齐（C++）
-- `modbus`：本地 Modbus TCP 回环（C）
-- `mqtt`：GeoLife 轨迹 MQTT 发布（C）
+- `modbus`：本地 Modbus TCP 回环（C）（当前在 RT-Thread 未启用，需 POSIX socket/pthread 支持）
+- `mqtt`：GeoLife 轨迹 MQTT 发布（C）（当前在 RT-Thread 未启用，需 POSIX socket/pthread 支持）
 - `pid`：PID 控制器合成数据基准（C++）
 
 ## 运行方式（统一）
@@ -37,9 +37,9 @@ rtbench -p 1 -t 1 -b <workload>
   - 推荐：`-p 1 -t 1 -b ekf`
 - `icp`：点云对齐一次性运行；依赖内置 suzanne 模型。
   - 推荐：`-p 1 -t 1 -b icp`
-- `modbus`：本地服务+客户端回环，使用 127.0.0.1:5020；需要网络栈。
+- `modbus`：本地服务+客户端回环，使用 127.0.0.1:5020；需要网络栈（未在 RT-Thread/SylixOS 打包）。
   - 推荐：`-p 1 -t 1 -b modbus`
-- `mqtt`：向 `broker.emqx.io:1883` 发布 GeoLife 轨迹；需要可访问公网的网络。
+- `mqtt`：向 `broker.emqx.io:1883` 发布 GeoLife 轨迹；需要可访问公网的网络（未在 RT-Thread/SylixOS 打包）。
   - 推荐：`-p 1 -t 1 -b mqtt`（若离线环境请跳过或改用本地 broker）
 - `pid`：合成数据 100000 次循环；CPU 计算型。
   - 推荐：`-p 1 -t 1 -b pid`

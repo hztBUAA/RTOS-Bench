@@ -1,15 +1,21 @@
 #ifdef RT_THREAD_PLATFORM
 #include <rtthread.h>
 #include <finsh.h>
+#define MQTT_HAVE_PTHREAD 0
+#define MQTT_HAVE_SOCKETS 0
 #else
 #define MSH_CMD_EXPORT(cmd, desc)
+#define MQTT_HAVE_PTHREAD 1
+#define MQTT_HAVE_SOCKETS 1
 #endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#if MQTT_HAVE_PTHREAD
 #include <pthread.h>
 #include <sched.h>
+#endif
 
 #include "mongoose.h"
 #include "geolife.h"
@@ -132,6 +138,10 @@ static void* mqtt_thread_entry(void *parameter) {
 }
 
 int mqtt_test(int argc, char** argv) {
+#if !(MQTT_HAVE_PTHREAD && MQTT_HAVE_SOCKETS)
+    printf("mqtt benchmark not supported on this platform (missing pthread/socket)\n");
+    return -1;
+#else
     pthread_t tid;
     pthread_attr_t attr;
     struct sched_param param;
@@ -158,6 +168,7 @@ int mqtt_test(int argc, char** argv) {
     }
     
     return 0;
+#endif
 }
 
 MSH_CMD_EXPORT(mqtt_test, run MQTT benchmark);

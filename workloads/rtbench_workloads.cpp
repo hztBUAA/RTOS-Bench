@@ -243,7 +243,7 @@ static void auto_register_workloads(void)
 }
 #endif
 
-void rtosbench_register_rtos_workloads(void)
+extern "C" void rtosbench_register_rtos_workloads(void)
 {
 	register_all_workloads();
 }
