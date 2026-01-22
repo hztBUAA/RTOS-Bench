@@ -1,311 +1,83 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
-
-RTOS-Bench is a collection of real-time benchmarks restructured for periodic execution. It supports multiple platforms (Linux, RT-Thread, SylixOS) through a platform abstraction layer.
-
-**Current Status**: RT-Thread support complete and tested on QEMU. SylixOS platform code complete (POSIX-based), verified via Docker compilation.
-
-## Production TODO - 待补齐功能
-
-以下功能目前为空实现或残缺，需要在生产环境前补齐：
-
-### 高优先级 (P0) - 核心功能缺失
-
-| 功能 | 平台 | 现状 | 改进方案 |
-|------|------|------|----------|
-| **Memory Watcher** | RT-Thread | stub (空实现) | 使用 `rt_memory_info()` 监控堆内存 |
-| **Memory Watcher** | SylixOS | stub (空实现) | 使用 `sbrk()` 或 SylixOS 内存 API |
-| **Signal Handler** | RT-Thread | 返回 -1 | 使用 RT-Thread 软件定时器或事件机制 |
-| **Performance Counters** | RT-Thread/SylixOS | 未实现 | 需要平台特定的 PMU 访问方式 |
-| **Performance Sampler** | RT-Thread/SylixOS | 未实现 | 依赖 Performance Counters |
-
-### 中优先级 (P1) - 功能增强
-
-| 功能 | 现状 | 改进方案 |
-|------|------|----------|
-| **Workload Registry** | 仅 RT-Thread 支持 | 统一为所有平台提供多 workload 打包能力 |
-| **Timestamp 精度** | RT-Thread 仅 tick 级别 | 使用硬件定时器获取更高精度时间戳 |
-| **SCHED_DEADLINE** | RT-Thread/SylixOS 不支持 | 考虑软件模拟或明确标注为不支持 |
-| **CPU Affinity** | RT-Thread 需条件编译 | 运行时检测 SMP 支持 |
-
-### 低优先级 (P2) - 完善性
-
-| 功能 | 现状 | 改进方案 |
-|------|------|----------|
-| **项目重命名** | rtos-bench | 重命名为 rtos-bench |
-| **代码签名** | rtos-bench/rtosbench | 统一为 rtos-bench/rtosbench |
-| **SylixOS 真机验证** | 仅 Docker 编译 | 需要 Windows IDE 或 SylixOS 工具链 |
-
-### 各平台实现状态总览
-
-```
-功能                    Linux    RT-Thread   SylixOS
-─────────────────────────────────────────────────────
-timer                   ✅        ✅          ✅
-sync (semaphore)        ✅        ✅          ✅
-timestamp               ✅        ⚠️ tick级    ✅
-scheduler/priority      ✅        ✅          ✅
-scheduler/deadline      ✅        ❌          ❌
-scheduler/affinity      ✅        ⚠️ 条件编译   ⚠️ 可选
-signal                  ✅        ❌          ✅
-memory_watcher          ✅        ❌ stub     ❌ stub
-performance_counters    ✅        ❌          ❌
-performance_sampler     ✅        ❌          ❌
-workload_registry       ❌        ✅          ❌
-─────────────────────────────────────────────────────
-✅ = 完整实现  ⚠️ = 部分实现  ❌ = 未实现/stub
-```
-
-## Quick Start - One-Click Testing
-
-```bash
-# RT-Thread (qemu-virt64-aarch64)
-./run-rtthread.sh        # Build and run interactively
-./run-rtthread.sh -r     # Run only (skip build)
-./run-rtthread.sh -b     # Build only
-./run-rtthread.sh -t     # Run with auto-test
-
-# SylixOS (qemu-x86_64)
-./run-sylixos.sh -n      # Run in nographic mode
-./run-sylixos.sh         # Run with GUI (if available)
-
-# SylixOS compilation (via Docker)
-docker run --rm -v "$(pwd):/work" -w /work gcc:13 bash -c "cd IsolBench && make PLATFORM=sylixos"
-```
-
-## Build Commands
-
-```bash
-# Build documentation
-make docs
-
-# Build benchmark suites
-make compile-isolbench      # IsolBench (bandwidth/latency)
-make compile-tacle          # TACLeBench (WCET)
-make compile-vision         # SD-VBS vision benchmarks
-make compile-image-filters  # Image filter benchmarks
-
-# Setup submodules
-make setup-tacle
-make setup-image-filters
-
-# Clean
-make clean
-```
-
-### Building Individual Benchmarks
-
-Benchmarks link against the generator framework. Example for IsolBench:
-
-```bash
-cd IsolBench
-make              # Builds bandwidth and latency
-```
-
-### Platform-Specific Build
-
-```bash
-# Linux (default)
-make PLATFORM=linux
-
-# RT-Thread
-make PLATFORM=rt-thread RT_THREAD_ROOT=/path/to/rtthread
-
-# SylixOS
-make PLATFORM=sylixos
-```
-
-### RT-Thread Build Example (qemu-virt64-aarch64)
-
-```bash
-export RTT_EXEC_PATH=$PWD/extern/toolchains/xpack-aarch64-none-elf-gcc-14.2.1-1.1/bin
-export PATH=$RTT_EXEC_PATH:$PATH
-source extern/.venv/bin/activate
-cd extern/rt-thread/bsp/qemu-virt64-aarch64
-scons -j4  # Generates rtthread.elf/bin
-```
-
-### Running on QEMU (RT-Thread)
-
-```bash
-/usr/local/bin/qemu-system-aarch64 -M virt,gic-version=2 -cpu cortex-a53 -m 128M -smp 4 -kernel rtthread.bin -nographic
-
-# In msh shell:
-rtosbench -p 0.5 -b busywait -t 1
-```
-
-## Architecture
-
-### Generator Framework (`generator/`)
-
-Core periodic execution framework that benchmarks link against:
-
-- `periodic_benchmark.c/.h` - Main periodic execution loop with timer-based scheduling
-- `platform_abstraction.h` - Platform abstraction interface
-- `benchmark_registry.c/.h` - Runtime benchmark selection for multi-workload support
-- `main.c` - Linux entry point with argp CLI parsing
-- `rtthread_entry.c` - RT-Thread entry point (simplified CLI)
-- `logging.c/.h` - Logging utilities
-- `benchmark_stub.c` / `benchmark_busywait.c` - Built-in test workloads
-- `rtthread_fini_stub.c` - Linker symbol fix for RT-Thread
-
-### Platform Abstraction (`generator/platform/`)
-
-Each platform implements these interfaces in separate files:
-
-| File | Provides |
-|------|----------|
-| `timer.c` | `rtosbench_timer_create/settime/delete` |
-| `sync.c` | `rtosbench_sem_create/wait/post/destroy` |
-| `scheduler.c` | `rtosbench_set_priority/deadline/affinity` |
-| `timestamp.c` | `rtosbench_get_rdtsc/timestamp` |
-| `signal.c` | `rtosbench_signal_register` |
-
-Platform directories: `linux/`, `rt-thread/`, `sylixos/`, `freertos/`
-
-### Benchmark Interface
-
-Each benchmark must implement:
-
-```c
-int benchmark_init(int parameters_num, void **parameters);
-void benchmark_execution(int parameters_num, void **parameters);
-void benchmark_teardown(int parameters_num, void **parameters);
-
-// Optional (with EXTENDED_REPORT):
-const char* benchmark_log_header();
-float benchmark_log_data();
-```
-
-### Benchmark Suites
-
-- `IsolBench/` - Memory interference benchmarks (bandwidth, latency)
-- `vision/benchmarks/` - SD-VBS computer vision (disparity, sift, tracking, etc.)
-- `rt-tacle-bench/` - WCET benchmarks (git submodule)
-- `image-filters/` - Image processing (git submodule)
-
-## Running Benchmarks
-
-```bash
-# Example: run bandwidth benchmark
-./IsolBench/bandwidth -p 1.0 -d 0.5 -t 10 -c 0 -l 2
-
-# Options:
-# -p <sec>    Period
-# -d <sec>    Deadline
-# -t <count>  Number of tasks/iterations
-# -c <cpu>    CPU affinity
-# -l <level>  Log level (0=debug, 1=info, 2=warn, 3=error)
-# -f <prio>   FIFO priority
-# -o <path>   Output file
-# -b <name>   Select benchmark (RT-Thread only, e.g., stub, busywait)
-```
-
-## Key Patterns
-
-### Platform Detection
-
-```c
-#if defined(SYLIXOS_PLATFORM)
-    #define RTBENCH_PLATFORM_SYLIXOS
-#elif defined(RT_THREAD_PLATFORM)
-    #define RTBENCH_PLATFORM_RTTHREAD
-#elif defined(LINUX_PLATFORM) || defined(__linux__)
-    #define RTBENCH_PLATFORM_LINUX
-#endif
-```
-
-### Adding RT-Thread Support
-
-1. Copy `platform/rt-thread/*.c.example` to `*.c`
-2. Implement platform-specific functions
-3. Build with `PLATFORM=rt-thread`
-
-### Multi-Workload Support
-
-Use `benchmark_registry.h` to register multiple benchmarks in one binary:
-
-```c
-rtosbench_select_benchmark("benchmark_name");
-```
-
-Built-in workloads: `stub`, `busywait`
-
-## External Dependencies
-
-- `extern/rt-thread/` - RT-Thread v5.0.2 source with BSPs
-- `extern/toolchains/` - Cross-compilation toolchains
-  - `xpack-arm-none-eabi-gcc-12.2.1-1.2/` - ARM32
-  - `xpack-aarch64-none-elf-gcc-14.2.1-1.1/` - ARM64
-- `extern/qemu/` - QEMU source/packages (mainly use system brew QEMU)
-- `extern/yihui/` - SylixOS IDE and VMware image
-
-## RT-Thread Integration Notes
-
-Key implementation details:
-
-- **Platform trimming**: When `RT_THREAD_PLATFORM` is defined, only core/platform layer/lightweight entry are compiled; argp/perf/sbrk are excluded
-- **Entry point**: `generator/rtthread_entry.c`, exports msh command `rtosbench`
-- **Timer**: `platform/rt-thread/timer.c` uses thread-driven approach (avoids ISR assertions)
-- **Workload switching**: `benchmark_registry` with built-in `stub`/`busywait`, use `-b <name>` parameter
-- **BSP integration**: Each BSP's `applications/SConscript` imports rtos-bench source and adds `rtosbench_entry.c` to export the command
-- **Linker fix**: `rtthread_fini_stub.c` resolves `_fini` symbol issues
-
-## SylixOS Integration Notes
-
-SylixOS supports full POSIX API, so the implementation reuses Linux code with minimal changes.
-
-**Platform Code Status**: Complete. The SylixOS platform layer (`generator/platform/sylixos/`) implements POSIX-based timer, sync, scheduler, timestamp, and signal APIs identical to Linux.
-
-**Toolchain Limitation**: The VMware image does not include gcc/make. Compilation requires either:
-1. **RealEvo-IDE (Windows)**: Use the official SylixOS IDE with embedded cross-compiler
-2. **Install gcc in SylixOS**: Download and install gcc toolchain into the running system
-3. **Cross-compile from Linux**: Use a SylixOS-compatible x86 gcc toolchain
-
-**Quick Start (QEMU):**
-```bash
-# Start SylixOS in QEMU
-./run-sylixos.sh -n
-
-# Or manually:
-cd extern/yihui/SylixOS\ IDE\ 6.5.0_professional/VMware/SylixOSx86
-qemu-system-x86_64 -m 512M -hda sylixos_boot.qcow2 -hdb sylixos_main.qcow2 \
-  -net nic -net user,hostfwd=tcp::2222-:22 -nographic
-# Exit: Ctrl+A X
-```
-
-**If gcc is available in SylixOS:**
-```bash
-# Transfer files via SCP (if SSH is enabled)
-scp -P 2222 -r /path/to/rtos-bench root@localhost:/tmp/
-
-# In SylixOS shell
-cd /tmp/rtos-bench/IsolBench
-make PLATFORM=sylixos
-./bandwidth -p 0.5 -t 5
-```
-
-**Key differences from Linux:**
-- No `SCHED_DEADLINE` support (returns -1)
-- Uses POSIX `pthread_setschedparam` for priority
-- CPU affinity via `pthread_setaffinity_np` (if available)
-- `SylixOS.h` include is optional (only needed for SylixOS-specific extensions)
-
-## Adding New Platform Support (e.g., FreeRTOS)
-
-Follow the RT-Thread pattern:
-
-1. Add `PLATFORM=<name>` support in `generator/Makefile`
-2. Create `platform/<name>/` directory with:
-   - `timer.c`, `sync.c`, `scheduler.c`, `timestamp.c`, `signal.c`
-3. Define `<NAME>_PLATFORM` macro and add detection in `platform_abstraction.h`
-4. If toolchain lacks symbols/types, use typedef guards (see `platform_abstraction.h`) and stub files (see `rtthread_fini_stub.c`)
-5. Integrate in BSP build scripts, define platform macro, import rtos-bench sources
-
-Reference implementations:
-- `platform/linux/*` - Linux platform (full POSIX)
-- `platform/sylixos/*` - SylixOS platform (POSIX-based)
-- `platform/rt-thread/*` - RT-Thread platform (native API)
+本文件用于指导后续在本仓库内集成/扩展 rt-bench，重点面向新增 RTOS 平台和新的 workload 打包。
+
+## 当前整体约定
+- **统一入口**：仅使用 workload registry（`generator/workload_registry.*`），强符号禁用 benchmark_* 覆盖。新增负载必须通过 `rtosbench_register_workload()`。
+- **打包开关**：`generator/Makefile` 默认 `RTOS_WORKLOADS=1`，自动把 `workloads/` 下所有源码编入 Linux/SylixOS；RT-Thread 由 BSP SConscript 引用。
+- **工作目录**：所有可复用负载放在 `workloads/`，不再依赖外部子目录（如 hsw）。`workloads/rtbench_workloads.cpp` 统一注册表。
+- **入口 CLI**：
+  - Linux/SylixOS：`rtbench -p <period_sec> -t <tasks> -b <workload> [-q]`
+  - RT-Thread：同上，通过 `rtosbench`/`rtbench` msh 命令；默认 TRACE，可用 `-q` 降噪。
+- **内置工作负载**：busywait, stub, fast, epnp, ekf, icp, pid, modbus, mqtt。网络类在无网络时自动进入离线仿真（modbus/mqtt 会打印 offline 提示）。
+
+## 脚本与命令
+- RT-Thread(QEMU aarch64)：`./run-rtthread.sh`
+  - `-b` 仅编译；`-r` 仅运行；交互模式可在 msh 输入 `rtbench -b <name> -p <sec> -t 1 -q`
+  - QEMU 默认 4 核 128M，无网络；如需网络可自行添加 `-netdev user ...`，但 BSP 未保证稳定。
+- SylixOS：`./run-sylixos.sh`（默认 qemu-x86_64，支持 `-n` 无图形）。
+- 手工 QEMU（RT-Thread）：  
+  ```bash
+  /usr/local/bin/qemu-system-aarch64 -M virt,gic-version=2 -cpu cortex-a53 -m 128M -smp 4 \
+    -kernel extern/rt-thread/bsp/qemu-virt64-aarch64/rtthread.bin -nographic
+  # msh:
+  rtbench -b busywait -p 0.5 -t 1 -q
+  ```
+
+## 新增工作负载指南
+1. 在 `workloads/<NAME>/` 放源代码；提供可调用的 `*_bench_run()` 入口（C 或 `extern "C"`）。
+2. 在 `workloads/rtbench_workloads.cpp` 增加对应的 `rtosbench_workload` 并注册：
+   ```c
+   const struct rtosbench_workload rtosbench_foo = {
+     .name = "foo",
+     .description = "...",
+     .init = foo_init,
+     .exec = foo_exec,
+     .teardown = foo_teardown,
+   };
+   // 在 register_all_workloads() 中调用 rtosbench_register_workload(&rtosbench_foo);
+   ```
+3. 若需要特定参数/循环次数，请在 README 或 workload 代码内打印提示；RT-Thread 默认 `-t 1`、`-p 1s`。
+4. 不要定义 `benchmark_init/benchmark_execution` 等旧接口；统一通过 registry。
+
+## 新增 RTOS 平台步骤
+1. 在 `generator/platform/<new-rtos>/` 实现以下最小接口：
+   - `timer.c`：`rtbench_timer_create/settime/delete`（推荐使用本 RTOS 内建定时器/软定时器）。
+   - `sync.c`：`rtbench_sem_*`。
+   - `scheduler.c`：`rtbench_set_priority/deadline/affinity`（不支持可返回 -1）。
+   - `timestamp.c`：`rtbench_get_rdtsc/timestamp`（尽量高精度）。
+   - `signal.c`：若无信号支持返回 -1。
+2. 在 `generator/Makefile` 增加 `ifeq ($(PLATFORM),<new-rtos>)` 分支，设置 `PLATFORM_DIR` 和必要的 CFLAGS/LDFLAGS。
+3. 提供入口（参考 `generator/rtthread_entry.c`）：解析少量参数，调用 `rtosbench_register_rtos_workloads()` 和 `periodic_benchmark()`.
+4. 平台 BSP 侧（如 RT-Thread SConscript）包含生成的 .c/.cpp 并链接 `workloads/rtbench_workloads.cpp`。
+
+## RT-Thread 集成要点
+- BSP 已开启 POSIX/pthread/SAL/LWIP/virtio 配置（见 `extern/rt-thread/bsp/qemu-virt64-aarch64/.config`）；如需网络真实可用，需在 QEMU 侧配置网卡并确保 DHCP/静态地址匹配，否则 modbus/mqtt 会走离线模式。
+- C++ workload（epnp/ekf/icp/pid）已用 `extern "C"` 暴露；链接脚本已包含 .ctors。
+- 定时器实现使用软定时器（非自建线程），避免早期调度崩溃；日志默认 TRACE，可用 `-q`。
+
+## 已验证命令示例（无网络环境）
+- 计算类：
+  - `rtbench -b busywait -p 0.5 -t 1 -q`
+  - `rtbench -b fast -p 1 -t 1 -q`
+  - `rtbench -b epnp -p 1 -t 1 -q`
+  - `rtbench -b ekf -p 2 -t 1 -q`
+  - `rtbench -b icp -p 5 -t 1 -q`
+  - `rtbench -b pid -p 0.5 -t 1 -q`
+- 网络类（离线降级）：
+  - `rtbench -b modbus -p 2 -t 1 -q`  => offline 仿真，打印 TPS
+  - `rtbench -b mqtt -p 2 -t 1 -q`    => 无会话则 pack-only 并打印统计
+
+## 迁移/调试提示
+- 若周期输出大量 CSV，可用 `-q` 或调整 `benchmark_verbosity`。
+- RT-Thread 若遇定时器/线程问题，先检查是否用软定时器实现，避免手工线程 + `rt_cpus_unlock` 空指针。
+- 新 workload 如需网络，优先提供离线 fallback，保证在无网场景也能运行。
+- 不再使用旧的 `benchmark_registry`；删除或忽略任何单负载强符号覆盖的实现。
+
+## 目录速览
+- `generator/`：核心框架 + 平台抽象 + 入口（Linux/SylixOS/RT-Thread）。
+- `workloads/`：全部打包的负载与注册表。
+- `run-rtthread.sh` / `run-sylixos.sh`：一键构建/运行脚本。
+- `extern/rt-thread/bsp/qemu-virt64-aarch64/`：RT-Thread BSP 与 `.config`。
+
+以上约定若有更新，请同步修改本文件。***
