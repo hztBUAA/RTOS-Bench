@@ -84,7 +84,7 @@ static void* pid_thread_entry(void *parameter) {
     return NULL;
 }
 
-int pid_bench_run(void)
+extern "C" int pid_bench_run(void)
 {
     return pid_thread_entry(NULL) == NULL ? 0 : 0;
 }

@@ -41,7 +41,7 @@ static double diff_timespec_us(const struct timespec *start, const struct timesp
     return end_us - start_us;
 }
 
-int epnp_bench_run(size_t iterations) {
+extern "C" int epnp_bench_run(size_t iterations) {
     std::cout << "[POSIX] Starting ePnP Benchmark..." << std::endl;
 
     // 1. 初始化随机种子
@@ -53,7 +53,7 @@ int epnp_bench_run(size_t iterations) {
 
     // 2. 设置实验参数
     size_t numberPoints = 100;
-    const size_t iterations = 1000;
+    if (iterations == 0) iterations = 1000;
 
     // 噪声与外点：设为0，专注于纯粹的算力测试
     double noise = 0.0;

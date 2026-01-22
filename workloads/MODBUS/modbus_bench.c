@@ -1,9 +1,13 @@
 #ifdef RT_THREAD_PLATFORM
 #include <rtthread.h>
 #include <finsh.h>
+#define MDB_HAVE_PTHREAD 1
+#define MDB_HAVE_SOCKETS 1
 #else
 #define MSH_CMD_EXPORT(cmd, desc)
 typedef unsigned int rt_uint32_t;
+#define MDB_HAVE_PTHREAD 1
+#define MDB_HAVE_SOCKETS 1
 #endif
 #include <stdbool.h>
 #include <stdio.h>
@@ -11,16 +15,21 @@ typedef unsigned int rt_uint32_t;
 #include <string.h>
 #include <errno.h>
 
+#if MDB_HAVE_PTHREAD
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/time.h>     
 #include <time.h>          
 #include <sched.h>         
+#endif
+
+#if MDB_HAVE_SOCKETS
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#endif
 
 #define NANOMODBUS_IMPLEMENTATION
 #include "nanomodbus.h"
@@ -58,6 +67,7 @@ static void print_nmbs_error(nmbs_error err) {
     }
 }
 
+#if MDB_HAVE_SOCKETS
 // ==========================================
 // 传输层
 // ==========================================
@@ -91,7 +101,9 @@ int32_t transport_write(const uint8_t* buf, uint16_t count, int32_t timeout_ms, 
     
     return (int32_t)n;
 }
+#endif
 
+#if MDB_HAVE_PTHREAD && MDB_HAVE_SOCKETS
 static void* server_thread_entry(void* parameter) {
     int server_fd, client_fd;
     struct sockaddr_in address;
@@ -290,8 +302,13 @@ static void* client_thread_entry(void* parameter) {
     printf("[Client] Finished\n");
     return NULL;
 }
+#endif
 
 int modbus_test(int argc, char** argv) {
+#if !(MDB_HAVE_PTHREAD && MDB_HAVE_SOCKETS)
+    printf("modbus benchmark not supported on this platform (missing pthread/socket)\n");
+    return -1;
+#else
     pthread_t s_tid, c_tid;
     pthread_attr_t attr;
     int ret;
@@ -323,6 +340,7 @@ int modbus_test(int argc, char** argv) {
     pthread_attr_destroy(&attr);
     return 0;
 }
+#endif
 
 MSH_CMD_EXPORT(modbus_test, Modbus TCP Benchmark);
 
