@@ -2,19 +2,20 @@
 
 本文件用于指导后续在本仓库内集成/扩展 rt-bench，重点面向新增 RTOS 平台和新的 workload 打包。
 
-## 当前整体约定
-- **统一入口**：仅使用 workload registry（`generator/workload_registry.*`），强符号禁用 benchmark_* 覆盖。新增负载必须通过 `rtosbench_register_workload()`。
-- **打包开关**：`generator/Makefile` 默认 `RTOS_WORKLOADS=1`，自动把 `workloads/` 下所有源码编入 Linux/SylixOS；RT-Thread 由 BSP SConscript 引用。
-- **工作目录**：所有可复用负载放在 `workloads/`，不再依赖外部子目录（如 hsw）。`workloads/rtbench_workloads.cpp` 统一注册表。
-- **入口 CLI**：
-  - Linux/SylixOS：`rtbench -p <period_sec> -t <tasks> -b <workload> [-q]`
-  - RT-Thread：同上，通过 `rtosbench`/`rtbench` msh 命令；默认 TRACE，可用 `-q` 降噪。
-- **内置工作负载**：busywait, stub, fast, epnp, ekf, icp, pid, modbus, mqtt。网络类在无网络时自动进入离线仿真（modbus/mqtt 会打印 offline 提示）。
+## 核心约定（统一入口 + POSIX 合同）
+- 仅使用 workload registry（`generator/workload_registry.*`），强符号禁用 benchmark_* 覆盖；新增负载必须注册 `rtosbench_register_workload()`。
+- 默认 POSIX 契约（pthread/clock/socket/sem）；Linux/SylixOS 直接使用，RTOS 若 POSIX 不完备则在各自平台目录做最小垫片。
+- 打包开关：`generator/Makefile` 默认 `RTOS_WORKLOADS=1`，自动把 `workloads/` 下源码编入 Linux/SylixOS；RT-Thread 由 BSP SConscript 引用。
+- 工作目录：`workloads/` 集中存放所有负载；`workloads/rtbench_workloads.cpp` 统一注册和 `register_all_workloads()`。
+- 入口 CLI：
+  - Linux/SylixOS：`rtbench -p <period_sec> -t <tasks> -b <workload> [-q] [-d <deadline>]`
+  - RT-Thread：`rtosbench`/`rtbench` msh，同参数；默认 TRACE，可用 `-q` 降噪（RT-Thread 目前未实现 -d，需要扩展）。
+- 内置工作负载：busywait, stub, fast, epnp, ekf, icp, pid, modbus, mqtt。网络类在无网络时自动离线仿真/pack-only，并打印 offline 提示。
 
 ## 脚本与命令
 - RT-Thread(QEMU aarch64)：`./run-rtthread.sh`
-  - `-b` 仅编译；`-r` 仅运行；交互模式可在 msh 输入 `rtbench -b <name> -p <sec> -t 1 -q`
-  - QEMU 默认 4 核 128M，无网络；如需网络可自行添加 `-netdev user ...`，但 BSP 未保证稳定。
+  - `-b` 仅编译；`-r` 仅运行；交互：`rtbench -b <name> -p <sec> -t 1 -q`
+  - 默认 4 核 128M，无网；如需网络自行加 QEMU 网卡，但 BSP 未保证；网络类已有离线兜底。
 - SylixOS：`./run-sylixos.sh`（默认 qemu-x86_64，支持 `-n` 无图形）。
 - 手工 QEMU（RT-Thread）：  
   ```bash
@@ -40,16 +41,14 @@
 3. 若需要特定参数/循环次数，请在 README 或 workload 代码内打印提示；RT-Thread 默认 `-t 1`、`-p 1s`。
 4. 不要定义 `benchmark_init/benchmark_execution` 等旧接口；统一通过 registry。
 
-## 新增 RTOS 平台步骤
-1. 在 `generator/platform/<new-rtos>/` 实现以下最小接口：
-   - `timer.c`：`rtbench_timer_create/settime/delete`（推荐使用本 RTOS 内建定时器/软定时器）。
-   - `sync.c`：`rtbench_sem_*`。
-   - `scheduler.c`：`rtbench_set_priority/deadline/affinity`（不支持可返回 -1）。
-   - `timestamp.c`：`rtbench_get_rdtsc/timestamp`（尽量高精度）。
-   - `signal.c`：若无信号支持返回 -1。
-2. 在 `generator/Makefile` 增加 `ifeq ($(PLATFORM),<new-rtos>)` 分支，设置 `PLATFORM_DIR` 和必要的 CFLAGS/LDFLAGS。
-3. 提供入口（参考 `generator/rtthread_entry.c`）：解析少量参数，调用 `rtosbench_register_rtos_workloads()` 和 `periodic_benchmark()`.
-4. 平台 BSP 侧（如 RT-Thread SConscript）包含生成的 .c/.cpp 并链接 `workloads/rtbench_workloads.cpp`。
+## 新增 RTOS 平台步骤（若非纯 POSIX）
+1. 在 `generator/platform/<new-rtos>/` 实现：
+   - `timer.c`（优先内置/软定时器，避免线程早期崩溃）
+   - `sync.c`
+   - `scheduler.c`（priority/affinity；deadline 不支持可返回 -1 并提示）
+   - `timestamp.c`（尽量高精度）
+   - `signal.c`（不支持则返回 -1）
+2. `generator/Makefile` 添加平台分支；BSP 侧链接平台源码与 `workloads/rtbench_workloads.cpp`。
 
 ## RT-Thread 集成要点
 - BSP 已开启 POSIX/pthread/SAL/LWIP/virtio 配置（见 `extern/rt-thread/bsp/qemu-virt64-aarch64/.config`）；如需网络真实可用，需在 QEMU 侧配置网卡并确保 DHCP/静态地址匹配，否则 modbus/mqtt 会走离线模式。
@@ -69,10 +68,11 @@
   - `rtbench -b mqtt -p 2 -t 1 -q`    => 无会话则 pack-only 并打印统计
 
 ## 迁移/调试提示
-- 若周期输出大量 CSV，可用 `-q` 或调整 `benchmark_verbosity`。
-- RT-Thread 若遇定时器/线程问题，先检查是否用软定时器实现，避免手工线程 + `rt_cpus_unlock` 空指针。
-- 新 workload 如需网络，优先提供离线 fallback，保证在无网场景也能运行。
-- 不再使用旧的 `benchmark_registry`；删除或忽略任何单负载强符号覆盖的实现。
+- Deadline：Linux 支持 SCHED_DEADLINE；RTOS 不支持时 `rtbench_set_deadline` 应返回 -1 并提示，统计层仍可用 deadline 判定 miss（需入口支持 -d）。
+- 时间戳：RT-Thread 目前 tick 级，可扩展硬件计时；大量 CSV 可用 `-q` 减噪。
+- 定时器：RT-Thread 使用软定时器，避免自建线程 + `rt_cpus_unlock` 空指针。
+- 网络：提供离线 fallback（modbus 仿真、mqtt pack-only），即便无网也能跑；有网需正确配置网卡/IP/DNS。
+- 禁用旧 benchmark_registry；一切通过 workload registry。
 
 ## 目录速览
 - `generator/`：核心框架 + 平台抽象 + 入口（Linux/SylixOS/RT-Thread）。
