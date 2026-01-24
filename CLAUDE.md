@@ -79,5 +79,39 @@
 - `workloads/`：全部打包的负载与注册表。
 - `run-rtthread.sh` / `run-sylixos.sh`：一键构建/运行脚本。
 - `extern/rt-thread/bsp/qemu-virt64-aarch64/`：RT-Thread BSP 与 `.config`。
+- `docs/BUILD_GUIDE.md`：详细构建与部署指南（新人必读）。
 
-以上约定若有更新，请同步修改本文件。***
+## 工具链说明
+
+### RT-Thread (aarch64)
+| 项目 | 说明 |
+|------|------|
+| 工具链 | xpack-aarch64-none-elf-gcc-14.2.1-1.1 |
+| 位置 | `extern/toolchains/` |
+| 构建系统 | SCons (`extern/.venv/bin/scons`) |
+| 构建命令 | `./run-rtthread.sh -b` |
+
+### SylixOS (x86_64)
+| 项目 | 说明 |
+|------|------|
+| 运行镜像 | qcow2 格式，位于 `extern/yihui/...` |
+| 开发工具 | RealEvo IDE 6.5.0 (Windows) |
+| 运行命令 | `./run-sylixos.sh` |
+| 编译方式 | 见 `docs/BUILD_GUIDE.md` |
+
+**SylixOS 编译和运行（2026-01-24 完整验证）**：
+- 默认镜像**没有 GCC**
+- **不支持 9p 文件共享**（No driver）
+- SSH 默认未启动
+- **QEMU user mode 网络不兼容**（SylixOS 使用 10.4.x 网段）
+- **Linux GCC 编译的二进制不兼容 SylixOS**（即使静态编译也报 `Invalid format!`）
+- **必须使用 RealEvo IDE (Windows) 编译**
+- VMware Fusion 可运行 SylixOS 镜像，支持 vmhgfs 共享文件夹
+- QEMU 磁盘扩展受限：只支持原有 2 个 IDE 设备（额外 IDE/AHCI/virtio/USB 均不支持）
+
+## 跨平台架构
+- **平台抽象层**：`generator/platform/<platform>/` 提供 timer/sync/scheduler/timestamp/signal
+- **对 workload 开发者透明**：只需关心业务逻辑，不同架构由工具链处理，不同 RTOS API 由抽象层处理
+- **POSIX 契约**：Linux/SylixOS 完整支持，RT-Thread 通过适配层支持
+
+以上约定若有更新，请同步修改本文件。

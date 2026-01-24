@@ -1,6 +1,6 @@
-# RT-Bench（精简版总览）
+# RTOS-Bench（精简版总览）
 
-rt-bench 是一套周期性实时基准框架，已统一为“多 workload 注册表”模式，支持 Linux / RT-Thread / SylixOS，默认以 POSIX 风格为合同（pthread/clock/socket 等）。本仓库将所有打包负载集中在 `workloads/`，不再依赖外部子目录。
+RTOS-Bench（rtbench CLI）是一套周期性实时基准框架，已统一为“多 workload 注册表”模式，支持 Linux / RT-Thread / SylixOS，默认以 POSIX 风格为合同（pthread/clock/socket 等）。本仓库将所有打包负载集中在 `workloads/`，不再依赖外部子目录。
 
 ## 快速使用
 - RT-Thread（QEMU aarch64，交互）：
@@ -59,7 +59,7 @@ rtbench -b mqtt     -p 2   -t 1 -q   # 无网则 pack-only
 - 时间戳精度：RT-Thread 目前 tick 级，需硬件计时可自行扩展。
 
 ## 许可证
-RT-Bench 基于 MIT 许可证（见 LICENSE），子基准套件遵循各自目录下的 LICENSES。
+RTOS-Bench 基于 MIT 许可证（见 LICENSE），子基准套件遵循各自目录下的 LICENSES。
 
 ## 参考论文
 Nicolella et al., “RT-Bench: An Extensible Benchmark Framework for the Analysis and Management of Real-Time Applications,” RTNS 2022. DOI: 10.1145/3534879.3534888
