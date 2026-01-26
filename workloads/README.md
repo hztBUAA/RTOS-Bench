@@ -9,6 +9,8 @@
 - `modbus`：本地 Modbus TCP 回环（C）（当前在 RT-Thread 未启用，需 POSIX socket/pthread 支持）
 - `mqtt`：GeoLife 轨迹 MQTT 发布（C）（当前在 RT-Thread 未启用，需 POSIX socket/pthread 支持）
 - `pid`：PID 控制器合成数据基准（C++）
+- `cusum`：CUSUM 均值漂移/台阶检测（C）
+- `ewma`：EWMA 平滑与残差阈值告警（C）
 
 ## 运行方式（统一）
 
@@ -24,7 +26,7 @@ rtbench -p 1 -t 1 -b <workload>
 
 - `-p`：周期（秒，浮点），建议 0.5~1s。
 - `-t`：迭代次数，测试用 1 先确认可运行，再增大。
-- `-b`：负载名称：`fast|epnp|ekf|icp|modbus|mqtt|pid`。
+- `-b`：负载名称：`fast|epnp|ekf|icp|modbus|mqtt|pid|cusum|ewma`。
 - 可按需添加 `-c` 绑定核心，`-f` 设置优先级（RT-Thread SCHED_FIFO）。
 
 ## 各负载备注与推荐参数
@@ -43,6 +45,10 @@ rtbench -p 1 -t 1 -b <workload>
   - 推荐：`-p 1 -t 1 -b mqtt`（若离线环境请跳过或改用本地 broker）
 - `pid`：合成数据 100000 次循环；CPU 计算型。
   - 推荐：`-p 1 -t 1 -b pid`
+- `cusum`：合成 6000 点序列，t=2000 处均值台阶，t≥4000 线性漂移；累积和越阈值计为告警。
+  - 推荐：`-p 0.5 -t 1 -b cusum`
+- `ewma`：合成正弦基线+噪声，t=1200/2500 注入尖峰，t=3600 起 40 点掉线置零；|残差| 超阈值计数。
+  - 推荐：`-p 0.5 -t 1 -b ewma`
 
 ## 构建与平台差异
 
@@ -52,6 +58,6 @@ rtbench -p 1 -t 1 -b <workload>
 
 ## 测试建议（待执行）
 
-- Linux 快速冒烟：`make -C generator PLATFORM=linux` 后，分别运行 `-b fast/epnp/ekf/icp/modbus/pid`，MQTT 需联网。
+- Linux 快速冒烟：`make -C generator PLATFORM=linux` 后，分别运行 `-b fast/epnp/ekf/icp/modbus/pid/cusum/ewma`，MQTT 需联网。
 - RT-Thread：`run-rtthread.sh -b` 编译后，msh 中 `rtbench -p 1 -t 1 -b fast` 等逐一验证。
 - 记录性能：每个负载至少跑一次，保留 `timing.csv`，并注明参数、平台、核心配置。

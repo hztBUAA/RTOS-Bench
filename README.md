@@ -15,7 +15,7 @@ RTOS-Bench（rtbench CLI）是一套周期性实时基准框架，已统一为�
 - 手动 QEMU（RT-Thread）：`qemu-system-aarch64 -M virt,gic-version=2 -cpu cortex-a53 -m 128M -smp 4 -kernel extern/rt-thread/bsp/qemu-virt64-aarch64/rtthread.bin -nographic`
 
 ### 已内置工作负载
-- 计算类：busywait, stub, fast, epnp, ekf, icp, pid
+- 计算类：busywait, stub, fast, epnp, ekf, icp, pid, cusum, ewma
 - 网络类：modbus, mqtt（无网络时自动离线仿真/pack-only，并打印 offline 提示）
 
 ### 常用命令示例（无网环境）
@@ -26,6 +26,8 @@ rtbench -b epnp     -p 1   -t 1 -q
 rtbench -b ekf      -p 2   -t 1 -q
 rtbench -b icp      -p 5   -t 1 -q
 rtbench -b pid      -p 0.5 -t 1 -q
+rtbench -b cusum    -p 0.5 -t 1 -q
+rtbench -b ewma     -p 0.5 -t 1 -q
 rtbench -b modbus   -p 2   -t 1 -q   # 无网则离线仿真
 rtbench -b mqtt     -p 2   -t 1 -q   # 无网则 pack-only
 ```
