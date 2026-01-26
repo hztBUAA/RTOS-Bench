@@ -29,6 +29,7 @@ static void stub_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_stub_workload = {
 	.name = "stub",
 	.description = "No-op stub workload for testing",
+	.category = "utility",
 	.init = stub_init,
 	.exec = stub_exec,
 	.teardown = stub_teardown,

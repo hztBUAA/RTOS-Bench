@@ -18,6 +18,7 @@ typedef int clockid_t;
 #include "workload_registry.h"
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <rtthread.h>
 
 /* Minimal RT-Thread entry point to avoid argp/perf dependencies.
@@ -43,6 +44,10 @@ static void set_default_exec_opts(struct execution_options *opts)
 	opts->memory_profiling_enable = 0;
 	CPU_ZERO(&opts->core_affinity);
 	CPU_ZERO(&opts->memory_profiling_core_affinity);
+	opts->workload_name = NULL;
+	opts->category_filter = NULL;
+	opts->run_all_workloads = 0;
+	opts->list_only = 0;
 	/* 默认打开 TRACE，定位问题；若要安静可通过 -q 下调 */
 	benchmark_verbosity = LOG_LEVEL_TRACE;
 }
@@ -70,13 +75,13 @@ static void parse_rtthread_args(int argc, char **argv,
 		} else if (!strcmp(argv[i], "-q")) {
 			benchmark_verbosity = LOG_LEVEL_INFO;
 		} else if (!strcmp(argv[i], "-b") && (i + 1 < argc)) {
-			rtosbench_select_workload(argv[++i]);
+			opts->workload_name = argv[++i];
+		} else if (!strcmp(argv[i], "-A")) {
+			opts->run_all_workloads = 1;
+		} else if (!strcmp(argv[i], "-G") && (i + 1 < argc)) {
+			opts->category_filter = argv[++i];
 		} else if (!strcmp(argv[i], "-l") || !strcmp(argv[i], "--list")) {
-			/* List available workloads */
-			rt_kprintf("Available workloads:\n");
-			for (int j = 0; j < rtosbench_workload_count(); j++) {
-				/* Simple listing without callback */
-			}
+			opts->list_only = 1;
 		}
 	}
 }
@@ -105,8 +110,93 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 	set_default_exec_opts(&opts);
 	rtosbench_register_rtos_workloads();
 	parse_rtthread_args(argc, argv, &opts);
-	debug_print_context(&opts);
-	return periodic_benchmark(&opts);
+	if (opts.list_only) {
+		rt_kprintf("Available workloads:\n");
+		for (int j = 0; j < rtosbench_workload_count(); j++) {
+			const struct rtosbench_workload *wl =
+				rtosbench_get_workload(j);
+			rt_kprintf("  %s [%s] - %s\n",
+				   wl && wl->name ? wl->name : "(null)",
+				   (wl && wl->category) ? wl->category : "-",
+				   (wl && wl->description) ? wl->description : "");
+		}
+		return 0;
+	}
+
+	/* Build selection list */
+	const struct rtosbench_workload *selected[RTOSBENCH_MAX_WORKLOADS];
+	int selected_num = 0;
+
+	if (opts.workload_name && (opts.run_all_workloads || opts.category_filter)) {
+		rt_kprintf("Cannot mix -b with -A/-G\n");
+		return -1;
+	}
+
+	if (opts.run_all_workloads || opts.category_filter) {
+		char *cats_buf = NULL;
+		char *cats[RTOSBENCH_MAX_WORKLOADS];
+		int cat_count = 0;
+		if (opts.category_filter) {
+			cats_buf = strdup(opts.category_filter);
+			char *tok = strtok(cats_buf, ",");
+			while (tok && cat_count < RTOSBENCH_MAX_WORKLOADS) {
+				cats[cat_count++] = tok;
+				tok = strtok(NULL, ",");
+			}
+		}
+		for (int j = 0; j < rtosbench_workload_count(); j++) {
+			const struct rtosbench_workload *wl =
+				rtosbench_get_workload(j);
+			if (wl == NULL) {
+				continue;
+			}
+			if (opts.run_all_workloads) {
+				selected[selected_num++] = wl;
+			} else if (cat_count > 0 && wl->category) {
+				for (int k = 0; k < cat_count; k++) {
+					if (strcasecmp(wl->category, cats[k]) == 0) {
+						selected[selected_num++] = wl;
+						break;
+					}
+				}
+			}
+		}
+		if (cats_buf) {
+			free(cats_buf);
+		}
+	} else if (opts.workload_name) {
+		for (int j = 0; j < rtosbench_workload_count(); j++) {
+			const struct rtosbench_workload *wl =
+				rtosbench_get_workload(j);
+			if (wl && wl->name &&
+			    strcmp(wl->name, opts.workload_name) == 0) {
+				selected[selected_num++] = wl;
+				break;
+			}
+		}
+	} else {
+		selected[selected_num++] = rtosbench_get_workload(0);
+	}
+
+	if (selected_num == 0) {
+		rt_kprintf("No workload selected.\n");
+		return -1;
+	}
+
+	int ret = 0;
+	for (int i = 0; i < selected_num; i++) {
+		const struct rtosbench_workload *wl = selected[i];
+		if (!wl || !wl->name) {
+			continue;
+		}
+		rtosbench_select_workload(wl->name);
+		debug_print_context(&opts);
+		ret = periodic_benchmark(&opts);
+		if (ret != 0) {
+			break;
+		}
+	}
+	return ret;
 }
 
 /* Legacy name for backward compatibility */

@@ -8,6 +8,8 @@
 #include "logging.h"
 #include "platform_abstraction.h"
 #include <string.h>
+#include <strings.h>
+#include "workload_registry.h"
 
 #include <inttypes.h>
 
@@ -70,6 +72,14 @@ static char field_to_abbrv_mapping(char *arg)
 		return 'o';
 	else if (!strcmp(arg, "bmark-args"))
 		return 'b';
+	else if (!strcmp(arg, "workload"))
+		return 'w';
+	else if (!strcmp(arg, "category"))
+		return 'G';
+	else if (!strcmp(arg, "all-workloads"))
+		return 'A';
+	else if (!strcmp(arg, "list"))
+		return 'L';
 	else {
 		printf("Invalid/unsupported parameter \"%s\" in configuration file!\n",
 		       arg);
@@ -131,6 +141,18 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 				state,
 				"Error parsing benchmark arguments and options");
 		}
+		break;
+	case 'w':
+		parsed_args->workload_name = arg;
+		break;
+	case 'G':
+		parsed_args->category_filter = arg;
+		break;
+	case 'A':
+		parsed_args->run_all_workloads = 1;
+		break;
+	case 'L':
+		parsed_args->list_only = 1;
 		break;
 	case 'm':
 		/* the argument should contain the number of bytes to preallocate and an order of magnitude
@@ -338,6 +360,10 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		CPU_ZERO(&parsed_args->memory_profiling_core_affinity);
 		parsed_args->memory_profiling_time_bucket = 10000000;
 		parsed_args->output_path = NULL;
+		parsed_args->workload_name = NULL;
+		parsed_args->category_filter = NULL;
+		parsed_args->run_all_workloads = 0;
+		parsed_args->list_only = 0;
 		break;
 #ifdef JSON_SUPPORT
 	case 'g':
@@ -417,6 +443,53 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	return res;
 }
 
+static void print_workloads(void)
+{
+	printf("Available workloads:\n");
+	for (int i = 0; i < rtosbench_workload_count(); i++) {
+		const struct rtosbench_workload *wl =
+			rtosbench_get_workload(i);
+		printf("  %s [%s] - %s\n",
+		       wl && wl->name ? wl->name : "(null)",
+		       (wl && wl->category) ? wl->category : "-",
+		       (wl && wl->description) ? wl->description : "");
+	}
+}
+
+struct category_list {
+	char *buf;
+	char *items[RTOSBENCH_MAX_WORKLOADS];
+	int count;
+};
+
+static void parse_category_csv(const char *csv, struct category_list *out)
+{
+	memset(out, 0, sizeof(*out));
+	if (csv == NULL) {
+		return;
+	}
+	out->buf = strdup(csv);
+	char *tok = strtok(out->buf, ",");
+	while (tok && out->count < RTOSBENCH_MAX_WORKLOADS) {
+		out->items[out->count++] = tok;
+		tok = strtok(NULL, ",");
+	}
+}
+
+static int category_matches(const struct rtosbench_workload *wl,
+			    const struct category_list *cats)
+{
+	if (wl == NULL || wl->category == NULL || cats->count == 0) {
+		return 0;
+	}
+	for (int i = 0; i < cats->count; i++) {
+		if (strcasecmp(wl->category, cats->items[i]) == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 /** @brief The program entry point, which will parse the given parameters and start the benchmark.
  * @param[in] argc Number of given parameters.
  * @param[in] argv given parameters array.
@@ -449,6 +522,12 @@ int main(int argc, char **argv)
 		  "The maximum amount of dynamic memory allocated during the periodic execution. If exceeded, the benchmark will crash. Specified as an integer plus an optional magnitude modifier: K=kilobytes, M=megabytes, G=gigabytes. Without a magnitude modifier specified the value is assumed to be in bytes. 0 Means no limit, and it is the default setting." },
 		{ "tasks-number", 't', "integer>=0", 0,
 		  "The number of tasks to be executed. 0 means until the program receives a SIGINT. Default is 0." },
+		{ "workload", 'w', "name", 0,
+		  "Select a single workload to run (default: first registered)." },
+		{ "all-workloads", 'A', 0, 0,
+		  "Run all registered workloads sequentially." },
+		{ "category", 'G', "cat[,cat2,...]", 0,
+		  "Run all workloads whose category matches any of the given comma-separated names." },
 		{ 0, 0, 0, 0, "Scheduling options:\n\n", 4 },
 		{ "fifo", 'f', "0<=prio<=99", 0,
 		  "Set SCHED_FIFO priority with specified priority. Need root." },
@@ -475,6 +554,8 @@ int main(int argc, char **argv)
 		{ 0, 0, 0, 0, "Benchmark arguments and options:", 6 },
 		{ "bmark-args", 'b', "arg opt ...", 0,
 		  "A space-separated list of arguments and options that must be relayed directly to the benchmark. It must be specified after every other option since everything after it will be passed directly to the benchmark routine." },
+		{ "list", 'L', 0, 0,
+		  "List workloads (name/category/description) and exit." },
 		{ 0, 0, 0, 0, "Informational options:\n", -1 },
 		{ NULL, 'h', NULL, 0, NULL },
 		{ 0, 0, 0, 0, 0, 0 }
@@ -490,6 +571,25 @@ int main(int argc, char **argv)
 	res = argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &parsed_args);
 	if (res != 0) {
 		perror("Error during argument parsing");
+		return EXIT_FAILURE;
+	}
+
+	/* Keep a pristine copy of user-specified output path; periodic_benchmark frees its own copy */
+	char *user_output_path = NULL;
+	if (parsed_args.output_path != NULL) {
+		user_output_path = strdup(parsed_args.output_path);
+		free(parsed_args.output_path);
+		parsed_args.output_path = NULL;
+	}
+
+	if (parsed_args.list_only) {
+		print_workloads();
+		return 0;
+	}
+
+	if ((parsed_args.workload_name != NULL) &&
+	    (parsed_args.run_all_workloads || parsed_args.category_filter)) {
+		fprintf(stderr, "Cannot mix --workload with --all-workloads/--category\n");
 		return EXIT_FAILURE;
 	}
 
@@ -521,16 +621,94 @@ int main(int argc, char **argv)
 		      parsed_args.bytes_to_preallocate);
 	}
 
-	//benchmark initialization
-	res = periodic_benchmark(&parsed_args);
+	/* Build workload selection list */
+	const struct rtosbench_workload *selected[RTOSBENCH_MAX_WORKLOADS];
+	int selected_num = 0;
+	struct category_list cats;
+	parse_category_csv(parsed_args.category_filter, &cats);
+
+	if (parsed_args.run_all_workloads || cats.count > 0) {
+		for (int j = 0; j < rtosbench_workload_count(); j++) {
+			const struct rtosbench_workload *wl =
+				rtosbench_get_workload(j);
+			if (wl == NULL) {
+				continue;
+			}
+			if (parsed_args.run_all_workloads || category_matches(wl, &cats)) {
+				selected[selected_num++] = wl;
+			}
+		}
+	} else if (parsed_args.workload_name) {
+		for (int j = 0; j < rtosbench_workload_count(); j++) {
+			const struct rtosbench_workload *wl =
+				rtosbench_get_workload(j);
+			if (wl && wl->name &&
+			    strcmp(wl->name, parsed_args.workload_name) == 0) {
+				selected[selected_num++] = wl;
+				break;
+			}
+		}
+	} else {
+		/* Default: first registered */
+		selected[selected_num++] = rtosbench_get_workload(0);
+	}
+
+	if (cats.buf) {
+		free(cats.buf);
+	}
+
+	if (selected_num == 0) {
+		fprintf(stderr, "No workload selected.\n");
+		return EXIT_FAILURE;
+	}
+
+	if (user_output_path && selected_num > 1) {
+		fprintf(stderr,
+			"Warning: output path '%s' will be reused for multiple workloads (overwritten). "
+			"Specify distinct paths if needed.\n",
+			user_output_path);
+	}
+
+	/* Run selected workloads sequentially */
+	int first_error = 0;
+	for (int idx = 0; idx < selected_num; idx++) {
+		const struct rtosbench_workload *wl = selected[idx];
+		if (!wl || !wl->name) {
+			continue;
+		}
+		struct execution_options run_opts = parsed_args;
+		/* assign output_path per run */
+		if (user_output_path) {
+			run_opts.output_path = strdup(user_output_path);
+		} else {
+			const char *prefix = "timing_";
+			size_t len = strlen(prefix) + strlen(wl->name) + 4 + 1;
+			run_opts.output_path = (char *)malloc(len);
+			snprintf(run_opts.output_path, len, "%s%s.csv", prefix, wl->name);
+		}
+		run_opts.workload_name = wl->name;
+		run_opts.category_filter = NULL;
+		run_opts.run_all_workloads = 0;
+		run_opts.list_only = 0;
+
+		rtosbench_select_workload(wl->name);
+		if (selected_num > 1) {
+			printf("\n=== Running workload: %s [%s] ===\n",
+			       wl->name, wl->category ? wl->category : "-");
+		}
+		res = periodic_benchmark(&run_opts);
+		if (res != 0 && first_error == 0) {
+			first_error = res;
+		}
+	}
 
 	// Clean/free buffers
 	for (size_t i = 0; i < parsed_args.args_num; i++)
 		free(parsed_args.args[i]);
 	free(parsed_args.args);
 
-	// return failure if exist
-	if (res < 0) {
+	// return failure if any run failed
+	if (first_error < 0) {
 		return EXIT_FAILURE;
 	} else {
 		return EXIT_SUCCESS;

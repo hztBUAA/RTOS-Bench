@@ -44,6 +44,7 @@ static void fast_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_fast_workload = {
 	.name = "fast",
 	.description = "FAST corner detection benchmark",
+	.category = "vision",
 	.init = fast_init,
 	.exec = fast_exec,
 	.teardown = fast_teardown,
@@ -73,6 +74,7 @@ static void epnp_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_epnp_workload = {
 	.name = "epnp",
 	.description = "Perspective-n-Point solver benchmark",
+	.category = "vision",
 	.init = epnp_init,
 	.exec = epnp_exec,
 	.teardown = epnp_teardown,
@@ -102,6 +104,7 @@ static void ekf_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_ekf_workload = {
 	.name = "ekf",
 	.description = "Extended Kalman Filter flight dataset replay",
+	.category = "estimation",
 	.init = ekf_init,
 	.exec = ekf_exec,
 	.teardown = ekf_teardown,
@@ -131,6 +134,7 @@ static void icp_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_icp_workload = {
 	.name = "icp",
 	.description = "Iterative Closest Point alignment",
+	.category = "vision",
 	.init = icp_init,
 	.exec = icp_exec,
 	.teardown = icp_teardown,
@@ -160,6 +164,7 @@ static void modbus_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_modbus_workload = {
 	.name = "modbus",
 	.description = "Modbus TCP server/client round-trip benchmark",
+	.category = "network",
 	.init = modbus_init,
 	.exec = modbus_exec,
 	.teardown = modbus_teardown,
@@ -189,6 +194,7 @@ static void mqtt_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_mqtt_workload = {
 	.name = "mqtt",
 	.description = "MQTT publish benchmark (GeoLife trace)",
+	.category = "network",
 	.init = mqtt_init,
 	.exec = mqtt_exec,
 	.teardown = mqtt_teardown,
@@ -218,6 +224,7 @@ static void pid_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_pid_workload = {
 	.name = "pid",
 	.description = "PID controller synthetic dataset benchmark",
+	.category = "control",
 	.init = pid_init,
 	.exec = pid_exec,
 	.teardown = pid_teardown,
@@ -247,6 +254,7 @@ static void cusum_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_cusum_workload = {
 	.name = "cusum",
 	.description = "CUSUM mean-shift detector (step/drift)",
+	.category = "detection",
 	.init = cusum_init,
 	.exec = cusum_exec,
 	.teardown = cusum_teardown,
@@ -276,6 +284,7 @@ static void ewma_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_ewma_workload = {
 	.name = "ewma",
 	.description = "EWMA residual thresholding (spike/drop)",
+	.category = "detection",
 	.init = ewma_init,
 	.exec = ewma_exec,
 	.teardown = ewma_teardown,
