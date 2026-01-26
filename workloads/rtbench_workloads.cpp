@@ -16,6 +16,8 @@ int epnp_bench_run(size_t iterations);
 int ekf_bench_run(void);
 int icp_bench_run(void);
 int pid_bench_run(void);
+int cusum_bench_run(void);
+int ewma_bench_run(void);
 }
 
 /* FAST */
@@ -221,6 +223,64 @@ const struct rtosbench_workload rtosbench_pid_workload = {
 	.teardown = pid_teardown,
 };
 
+/* CUSUM */
+static int cusum_init(int parameters_num, void **parameters)
+{
+	(void)parameters_num;
+	(void)parameters;
+	return 0;
+}
+
+static void cusum_exec(int parameters_num, void **parameters)
+{
+	(void)parameters_num;
+	(void)parameters;
+	cusum_bench_run();
+}
+
+static void cusum_teardown(int parameters_num, void **parameters)
+{
+	(void)parameters_num;
+	(void)parameters;
+}
+
+const struct rtosbench_workload rtosbench_cusum_workload = {
+	.name = "cusum",
+	.description = "CUSUM mean-shift detector (step/drift)",
+	.init = cusum_init,
+	.exec = cusum_exec,
+	.teardown = cusum_teardown,
+};
+
+/* EWMA */
+static int ewma_init(int parameters_num, void **parameters)
+{
+	(void)parameters_num;
+	(void)parameters;
+	return 0;
+}
+
+static void ewma_exec(int parameters_num, void **parameters)
+{
+	(void)parameters_num;
+	(void)parameters;
+	ewma_bench_run();
+}
+
+static void ewma_teardown(int parameters_num, void **parameters)
+{
+	(void)parameters_num;
+	(void)parameters;
+}
+
+const struct rtosbench_workload rtosbench_ewma_workload = {
+	.name = "ewma",
+	.description = "EWMA residual thresholding (spike/drop)",
+	.init = ewma_init,
+	.exec = ewma_exec,
+	.teardown = ewma_teardown,
+};
+
 /* Registration helpers */
 static void register_all_workloads(void)
 {
@@ -233,6 +293,8 @@ static void register_all_workloads(void)
 	rtosbench_register_workload(&rtosbench_modbus_workload);
 	rtosbench_register_workload(&rtosbench_mqtt_workload);
 	rtosbench_register_workload(&rtosbench_pid_workload);
+	rtosbench_register_workload(&rtosbench_cusum_workload);
+	rtosbench_register_workload(&rtosbench_ewma_workload);
 }
 
 #if defined(__GNUC__) && !defined(RT_THREAD_PLATFORM)
