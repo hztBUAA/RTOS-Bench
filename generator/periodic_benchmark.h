@@ -54,6 +54,11 @@ struct execution_options {
 	unsigned memory_profiling_enable;
 	cpu_set_t memory_profiling_core_affinity;
 	long unsigned memory_profiling_time_bucket;
+	/* Workload selection helpers (multi-run orchestrated in entry points) */
+	const char *workload_name;   ///< single workload name (optional)
+	const char *category_filter; ///< comma-separated categories (optional)
+	unsigned run_all_workloads;  ///< run every registered workload
+	unsigned list_only;          ///< only list workloads and exit
 };
 
 /**

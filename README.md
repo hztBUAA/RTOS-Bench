@@ -32,6 +32,13 @@ rtbench -b modbus   -p 2   -t 1 -q   # 无网则离线仿真
 rtbench -b mqtt     -p 2   -t 1 -q   # 无网则 pack-only
 ```
 
+### 新的工作负载调度选项（Linux/SylixOS 入口）
+- `-w, --workload <name>`：只跑单个 workload（默认是注册表首个）。
+- `-A, --all-workloads`：顺序跑完所有已注册 workload。
+- `-G, --category <cat[,cat2]>`：按类别过滤运行（例如 `detection,network`）。
+- `-L, --list`：列出名称/类别/描述并退出。
+RT-Thread 路径同样支持 `-A/-G/-L`，但仍由 BSP 的 SCons 构建。
+
 ## 架构要点
 - **Workload registry**：`workloads/rtbench_workloads.cpp` 注册全部负载，强符号禁用旧 benchmark_* 覆盖。
 - **平台抽象**：`generator/platform/<platform>/` 提供 timer/sync/scheduler/timestamp/signal。POSIX 完整平台可直接复用 Linux 实现；其他平台用最小垫片兜底。

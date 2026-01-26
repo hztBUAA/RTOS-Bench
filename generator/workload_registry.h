@@ -33,6 +33,7 @@ extern "C" {
 struct rtosbench_workload {
 	const char *name;        /**< Workload name (used for selection) */
 	const char *description; /**< Human-readable description */
+	const char *category;    /**< Optional category tag for grouping/listing */
 
 	/** Initialize the workload (called once before execution loop) */
 	int (*init)(int parameters_num, void **parameters);
@@ -88,6 +89,13 @@ void rtosbench_list_workloads(void (*cb)(const char *name, const char *desc));
  * @return Number of registered workloads
  */
 int rtosbench_workload_count(void);
+
+/**
+ * @brief Get workload by index (0-based)
+ * @param idx Index in registration order
+ * @return Pointer to workload or NULL if out of range
+ */
+const struct rtosbench_workload *rtosbench_get_workload(int idx);
 
 /* ============================================================================
  * Workload Registration Macros

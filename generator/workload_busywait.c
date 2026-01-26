@@ -35,6 +35,7 @@ static void busywait_teardown(int parameters_num, void **parameters)
 const struct rtosbench_workload rtosbench_busywait_workload = {
 	.name = "busywait",
 	.description = "CPU busy-wait workload",
+	.category = "utility",
 	.init = busywait_init,
 	.exec = busywait_exec,
 	.teardown = busywait_teardown,

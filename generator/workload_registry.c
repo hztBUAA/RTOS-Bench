@@ -104,6 +104,14 @@ int rtosbench_workload_count(void)
 	return workload_count;
 }
 
+const struct rtosbench_workload *rtosbench_get_workload(int idx)
+{
+	if (idx < 0 || idx >= workload_count) {
+		return NULL;
+	}
+	return registered_workloads[idx];
+}
+
 /* ============================================================================
  * Workload Execution Interface
  * ============================================================================ */
