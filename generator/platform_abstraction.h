@@ -19,6 +19,76 @@
         #include <SylixOS.h>
     #endif
     #define RTBENCH_PLATFORM_SYLIXOS
+#elif defined(ONEOS_PLATFORM)
+    /* OneOS: POSIX-lite profile; prefer POSIX APIs when available */
+    #define RTBENCH_PLATFORM_ONEOS
+    /* Provide minimal typedef guards in case libc omits them */
+    #ifndef _CLOCK_T_DECLARED
+    typedef unsigned long clock_t;
+    #define _CLOCK_T_DECLARED
+    #endif
+    #ifndef _SUSECONDS_T_DECLARED
+    typedef long suseconds_t;
+    #define _SUSECONDS_T_DECLARED
+    #endif
+    #ifndef _CLOCKID_T_DECLARED
+    typedef unsigned long clockid_t;
+    #define _CLOCKID_T_DECLARED
+    #endif
+    #ifndef _TIMER_T_DECLARED
+    typedef unsigned long timer_t;
+    #define _TIMER_T_DECLARED
+    #endif
+    #ifndef _PID_T_DECLARED
+    typedef int pid_t;
+    #define _PID_T_DECLARED
+    #endif
+#elif defined(DONGTU_PLATFORM)
+    /* Dongtu Intewell/DTOS family: treat as POSIX-compatible where provided */
+    #define RTBENCH_PLATFORM_DONGTU
+    #ifndef _CLOCK_T_DECLARED
+    typedef unsigned long clock_t;
+    #define _CLOCK_T_DECLARED
+    #endif
+    #ifndef _SUSECONDS_T_DECLARED
+    typedef long suseconds_t;
+    #define _SUSECONDS_T_DECLARED
+    #endif
+    #ifndef _CLOCKID_T_DECLARED
+    typedef unsigned long clockid_t;
+    #define _CLOCKID_T_DECLARED
+    #endif
+    #ifndef _TIMER_T_DECLARED
+    typedef unsigned long timer_t;
+    #define _TIMER_T_DECLARED
+    #endif
+    #ifndef _PID_T_DECLARED
+    typedef int pid_t;
+    #define _PID_T_DECLARED
+    #endif
+#elif defined(RUIHUA_PLATFORM)
+    /* Ruihua RTOS (RHRTOS/RHOS): POSIX extensions assumed when building rt-bench */
+    #define RTBENCH_PLATFORM_RUIHUA
+    #ifndef _CLOCK_T_DECLARED
+    typedef unsigned long clock_t;
+    #define _CLOCK_T_DECLARED
+    #endif
+    #ifndef _SUSECONDS_T_DECLARED
+    typedef long suseconds_t;
+    #define _SUSECONDS_T_DECLARED
+    #endif
+    #ifndef _CLOCKID_T_DECLARED
+    typedef unsigned long clockid_t;
+    #define _CLOCKID_T_DECLARED
+    #endif
+    #ifndef _TIMER_T_DECLARED
+    typedef unsigned long timer_t;
+    #define _TIMER_T_DECLARED
+    #endif
+    #ifndef _PID_T_DECLARED
+    typedef int pid_t;
+    #define _PID_T_DECLARED
+    #endif
 #elif defined(RT_THREAD_PLATFORM)
     /* Provide POSIX-ish typedef guards for toolchains that hide them */
     #ifndef _CLOCK_T_DECLARED
@@ -46,7 +116,7 @@
 #elif defined(LINUX_PLATFORM) || defined(__linux__)
     #define RTBENCH_PLATFORM_LINUX
 #else
-    #error "Unsupported platform. Define SYLIXOS_PLATFORM, RT_THREAD_PLATFORM, or use Linux."
+    #error "Unsupported platform. Define SYLIXOS_PLATFORM, ONEOS_PLATFORM, DONGTU_PLATFORM, RUIHUA_PLATFORM, RT_THREAD_PLATFORM, or use Linux."
 #endif
 
 /* ============================================================================

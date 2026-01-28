@@ -34,6 +34,19 @@ endif
 PLATFORM_DIR := $(GENERATOR_DIR)/platform/sylixos
 # SylixOS is POSIX-compatible but doesn't need --wrap for memory_watcher
 override LDFLAGS += -lrt -lm -pthread -Wl,--no-as-needed
+else ifeq ($(PLATFORM),oneos)
+override CFLAGS += -DONEOS_PLATFORM
+PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
+# POSIX-lite: keep link flags minimal to ease cross toolchains
+override LDFLAGS += -lm -pthread
+else ifeq ($(PLATFORM),dongtu)
+override CFLAGS += -DDONGTU_PLATFORM
+PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
+override LDFLAGS += -lm -pthread
+else ifeq ($(PLATFORM),ruihua)
+override CFLAGS += -DRUIHUA_PLATFORM
+PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
+override LDFLAGS += -lm -pthread
 else ifeq ($(PLATFORM),rt-thread)
 override CFLAGS += -DRT_THREAD_PLATFORM
 ifdef RT_THREAD_ROOT
@@ -68,6 +81,9 @@ POSIX_ENTRY_SRC := $(GENERATOR_DIR)/main.c \
 	$(GENERATOR_DIR)/performance_counters.c \
 	$(GENERATOR_DIR)/performance_sampler.c
 
+# POSIX-lite entry (no argp/perf) for lightweight RTOS ports
+POSIXLITE_ENTRY_SRC := $(GENERATOR_DIR)/posixlite_entry.c
+
 # RT-Thread specific sources
 RTTHREAD_ENTRY_SRC := $(GENERATOR_DIR)/rtthread_entry.c \
 	$(GENERATOR_DIR)/rtthread_fini_stub.c
@@ -83,6 +99,13 @@ ifeq ($(PLATFORM),rt-thread)
 # RT-Thread always uses workload registry with built-in workloads
 # Note: RT-Thread defines benchmark_* via workload_registry, not from individual benchmark files
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_REGISTRY_SRC) $(RTTHREAD_ENTRY_SRC) $(PLATFORM_SRC)
+else ifeq ($(PLATFORM),oneos)
+# POSIX-lite entry avoids argp/perf for minimal libc toolchains
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
+else ifeq ($(PLATFORM),dongtu)
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
+else ifeq ($(PLATFORM),ruihua)
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),sylixos)
 # SylixOS uses Linux-style entry (main.c with argp)
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIX_ENTRY_SRC) $(PLATFORM_SRC)

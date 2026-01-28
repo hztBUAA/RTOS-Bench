@@ -5,7 +5,9 @@
 
 #include "logging.h"
 
-#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM)
+#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM) ||               \
+	defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM) ||                    \
+	defined(RUIHUA_PLATFORM)
 
 /* RT-Thread/SylixOS stub: not supported, keep no-op to satisfy links. */
 void start_memory_watcher(size_t bytes_to_preallocate)
@@ -160,4 +162,4 @@ void *__wrap_mmap(void *addr, size_t len, int prot, int flags, int fildes,
 	}
 }
 
-#endif /* RT_THREAD_PLATFORM || SYLIXOS_PLATFORM */
+#endif /* RT_THREAD_PLATFORM || SYLIXOS_PLATFORM || ONEOS_PLATFORM || DONGTU_PLATFORM || RUIHUA_PLATFORM */

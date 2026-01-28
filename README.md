@@ -12,6 +12,7 @@ RTOS-Bench（rtbench CLI）是一套周期性实时基准框架，已统一为�
   rtbench -b <workload> -p <period_sec> -t 1 -q
   ```
 - SylixOS：`./run-sylixos.sh`（默认 qemu-x86_64，可用 `-n` 无图形）。
+- OneOS / 东土 / 锐华（POSIX-lite 口径）：交叉编译时指定 `PLATFORM=oneos|dongtu|ruihua`，入口为 `generator/posixlite_entry.c`，支持 `-b/-p/-t/-f/-c/-A/-G/-L/-q`。
 - 手动 QEMU（RT-Thread）：`qemu-system-aarch64 -M virt,gic-version=2 -cpu cortex-a53 -m 128M -smp 4 -kernel extern/rt-thread/bsp/qemu-virt64-aarch64/rtthread.bin -nographic`
 
 ### 已内置工作负载
@@ -44,6 +45,7 @@ RT-Thread 路径同样支持 `-A/-G/-L`，但仍由 BSP 的 SCons 构建。
 - **平台抽象**：`generator/platform/<platform>/` 提供 timer/sync/scheduler/timestamp/signal。POSIX 完整平台可直接复用 Linux 实现；其他平台用最小垫片兜底。
 - **入口**：
   - Linux/SylixOS：`generator/main.c`（argp，全量参数、可写 CSV）。
+  - OneOS/东土/锐华（POSIX-lite）：`generator/posixlite_entry.c`（精简 CLI，无 argp/perf 依赖）。
   - RT-Thread：`generator/rtthread_entry.c`（精简 CLI，默认 TRACE，可 `-q` 降噪）。
 - **定时器**：RT-Thread 使用软定时器避免早期调度崩溃；Linux/SylixOS 用 POSIX timer。
 
