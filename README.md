@@ -69,6 +69,91 @@ RT-Thread 路径同样支持 `-A/-G/-L`，但仍由 BSP 的 SCons 构建。
 - RT-Thread 入口未完整支持 JSON/文件输出；若需 CSV 落盘需扩展入口或在 workload 内输出。
 - 时间戳精度：RT-Thread 目前 tick 级，需硬件计时可自行扩展。
 
+## OneOS 平台集成指南
+
+### 概述
+OneOS（中国移动物联网操作系统）平台使用原生API实现，经过 OneOS Studio IDE (SCons) 编译验证。
+
+### 支持的 Workloads
+| Workload | 状态 | 备注 |
+|----------|------|------|
+| stub | ✅ | 基础测试 |
+| busywait | ✅ | CPU 负载测试 |
+| CUSUM | ✅ | 变化检测算法 |
+| EWMA | ✅ | 指数加权移动平均 |
+| FAST | ✅ | 特征检测（含 benchmark） |
+| PID | ✅ | PID 控制器（含 benchmark） |
+| MODBUS | ❌ | 需要 socket |
+| MQTT | ❌ | 需要 socket |
+| EKF/EPNP/ICP | ❌ | 需要 C++11 / Eigen |
+
+### 平台抽象层实现
+
+| 组件 | 文件 | 实现方式 |
+|------|------|----------|
+| 定时器 | timer.c | OneOS 原生 `os_timer_t` |
+| 信号量 | sync.c | OneOS 原生 `os_sem_t` |
+| 时间戳 | timestamp.c | OneOS 原生 `os_tick_get()` |
+| 调度器 | scheduler.c | OneOS 原生 `os_task_set_priority()` |
+| 信号 | signal.c | 空实现（RTOS 无信号机制） |
+
+### POSIX 兼容性适配
+
+OneOS 提供了部分 POSIX 支持，但有以下缺口需要适配：
+
+**1. pthread_attr_setinheritsched() 缺失**
+- OneOS 的 `pthread.h` 定义了 `PTHREAD_EXPLICIT_SCHED` 常量
+- 但未实现 `pthread_attr_setinheritsched()` 函数
+- 解决方案：`posix_sched_adapter.c` 提供实现
+
+**2. CLOCK_MONOTONIC 未实现**
+- OneOS 的 `clock_time.h` 定义了 `CLOCK_MONOTONIC=4`
+- 但 `clock_gettime()` 只处理 `CLOCK_REALTIME`
+- 解决方案：`include/time.h` 影子头文件将 `CLOCK_MONOTONIC` 映射到 `CLOCK_REALTIME`
+
+### 集成步骤
+
+1. **添加为 Git Submodule**
+   ```bash
+   cd your_oneos_project
+   git submodule add https://github.com/user/RTOS-Bench.git rtos-bench-src
+   ```
+
+2. **复制 SConscript**
+   ```bash
+   cp rtos-bench-src/generator/platform/oneos/SConscript.example rtos-bench-src/SConscript
+   ```
+
+3. **配置 OneOS**
+   - 在 menuconfig 中启用 `OS_USING_PTHREADS`
+   - 确保 `OS_USING_SEMAPHORE` 和 `OS_USING_TIMER` 已启用
+
+4. **编译**
+   ```bash
+   scons -j4
+   ```
+
+### OneOS POSIX 支持情况检查方法
+
+```bash
+# 查看 POSIX 头文件
+ls oneos/osal/posix/include/
+
+# 查看 POSIX 实现
+ls oneos/osal/posix/source/
+
+# 搜索特定函数声明
+grep -r "clock_gettime" oneos/osal/posix/
+
+# 查看 Kconfig 配置选项
+grep -r "POSIX\|pthread" oneos/Kconfig*
+```
+
+### 已知限制
+- 时间精度受限于 `OS_TICK_PER_SECOND`（通常 100-1000 Hz）
+- 无真正的 CLOCK_MONOTONIC（使用 CLOCK_REALTIME 替代）
+- 无 deadline 调度支持
+
 ## 许可证
 RTOS-Bench 基于 MIT 许可证（见 LICENSE），子基准套件遵循各自目录下的 LICENSES。
 

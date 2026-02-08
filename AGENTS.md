@@ -99,6 +99,16 @@
 | 运行命令 | `./run-sylixos.sh` |
 | 编译方式 | 见 `docs/BUILD_GUIDE.md` |
 
+### OneOS (ARM Cortex-M)
+| 项目 | 说明 |
+|------|------|
+| 开发工具 | OneOS Studio IDE (基于 Eclipse) |
+| 工具链 | arm-none-eabi-gcc (内置于 OneOS Studio) |
+| 构建系统 | SCons (内置于 OneOS Cube) |
+| 平台层 | `generator/platform/oneos/` |
+| 入口文件 | `generator/oneos_entry.c` |
+| 集成方式 | Git submodule + SConscript |
+
 **SylixOS 编译和运行（2026-01-24 完整验证）**：
 - 默认镜像**没有 GCC**
 - **不支持 9p 文件共享**（No driver）
@@ -112,6 +122,64 @@
 ## 跨平台架构
 - **平台抽象层**：`generator/platform/<platform>/` 提供 timer/sync/scheduler/timestamp/signal
 - **对 workload 开发者透明**：只需关心业务逻辑，不同架构由工具链处理，不同 RTOS API 由抽象层处理
-- **POSIX 契约**：Linux/SylixOS 完整支持，RT-Thread 通过适配层支持
+- **POSIX 契约**：Linux/SylixOS 完整支持，RT-Thread 通过适配层支持，OneOS 通过原生 API + POSIX 补丁支持
+
+## OneOS 集成经验（2026-02-09 验证）
+
+### 编译验证结果
+- **成功编译**：stub, busywait, CUSUM, EWMA, FAST(含benchmark), PID(含benchmark)
+- **无法编译**：MODBUS/MQTT(需socket)、EKF/EPNP/ICP(需C++11/Eigen)
+
+### OneOS POSIX 支持情况
+OneOS 提供了较完整的 POSIX 支持，但有以下缺口：
+
+| POSIX 功能 | OneOS 状态 | 解决方案 |
+|------------|------------|----------|
+| pthread 基础 | ✅ 完整支持 | 直接使用 |
+| semaphore | ✅ 完整支持 | 平台层用原生 API 更稳定 |
+| clock_gettime | ⚠️ 仅 CLOCK_REALTIME | shadow time.h 映射 CLOCK_MONOTONIC |
+| pthread_attr_setinheritsched | ❌ 未实现 | posix_sched_adapter.c 补充 |
+| mqueue | ✅ 完整支持 | 直接使用 |
+
+### 关键技术点
+
+**1. 影子头文件技术 (Shadow Header)**
+```
+include/time.h:
+  - 使用 #include_next 包含真正的 time.h
+  - 重定义 CLOCK_MONOTONIC 为 CLOCK_REALTIME
+  - 提供 clock_gettime 声明
+```
+
+**2. LOCAL_CCFLAGS 注入**
+```python
+# SConscript 中使用 LOCAL_CCFLAGS 只影响本代码组
+LOCAL_CCFLAGS = ' -include ' + sched_adapter_h
+group = AddCodeGroup(..., LOCAL_CCFLAGS=LOCAL_CCFLAGS)
+```
+
+**3. 平台层选择策略**
+- 优先使用 OneOS 原生 API（os_sem_t, os_timer_t）而非 POSIX wrapper
+- 原生 API 更稳定，避免 POSIX 层的额外抽象开销
+
+### 快速检查 RTOS POSIX 支持的方法
+```bash
+# 1. 查看 POSIX 头文件结构
+ls <rtos>/osal/posix/include/
+
+# 2. 搜索函数声明
+grep -r "^extern\|^int " <rtos>/osal/posix/include/
+
+# 3. 搜索函数实现
+grep -r "EXPORT_SYMBOL" <rtos>/osal/posix/source/
+
+# 4. 检查 switch 语句了解实际支持的选项
+grep -A10 "switch.*clockid" <rtos>/osal/posix/source/
+```
+
+### 常见问题
+1. **"implicit declaration" 警告**：C 代码可继续链接，C++ 会报错
+2. **"multiple definition" 错误**：检查是否与 RTOS 内置实现冲突
+3. **影子头文件影响全局**：使用 LOCAL_CPPPATH 或 LOCAL_CCFLAGS 限制作用域
 
 以上约定若有更新，请同步修改本文件。

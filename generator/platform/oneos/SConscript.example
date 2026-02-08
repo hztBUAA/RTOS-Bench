@@ -1,0 +1,114 @@
+# RTOS-Bench SConscript for OneOS
+#
+# This file integrates RTOS-Bench into OneOS build system (SCons-based).
+# Place this file in your RTOS-Bench source directory within your OneOS project.
+#
+# Directory structure example:
+#   your_project/
+#   ├── oneos/                    # OneOS kernel
+#   ├── rtos-bench-src/           # RTOS-Bench source (git submodule)
+#   │   ├── SConscript            # This file
+#   │   ├── generator/
+#   │   └── workloads/
+#   └── oneos_config.h
+#
+# POSIX Compatibility Notes:
+# - Uses shadow time.h to map CLOCK_MONOTONIC to CLOCK_REALTIME
+#   (OneOS defines CLOCK_MONOTONIC but doesn't implement it in clock_gettime)
+# - Provides pthread_attr_setinheritsched() via posix_sched_adapter.c
+#   (missing from OneOS's POSIX layer)
+# - Uses LOCAL_CCFLAGS to inject declarations without modifying workload code
+
+Import('OS_ROOT')
+Import('osconfig')
+from build_tools import *
+import os
+
+pwd = PresentDir()
+
+# Source directories
+generator_dir = pwd + '/generator'
+workloads_dir = pwd + '/workloads'
+platform_dir = generator_dir + '/platform/oneos'
+include_dir = platform_dir + '/include'
+
+# Include paths - shadow include MUST be first to override system time.h
+path = [
+    include_dir,   # Shadow headers (time.h maps CLOCK_MONOTONIC)
+    generator_dir,
+    workloads_dir,
+    workloads_dir + '/PID',
+    workloads_dir + '/FAST',
+    workloads_dir + '/FAST/include_imgs',
+]
+
+# Platform definition
+CPPDEFINES = ['ONEOS_PLATFORM']
+
+# Force include the posix_sched_adapter.h for missing pthread declarations
+# Use absolute path to avoid path resolution issues
+sched_adapter_h = os.path.abspath(include_dir + '/posix_sched_adapter.h')
+LOCAL_CCFLAGS = ' -include ' + sched_adapter_h
+
+# ============================================================================
+# Core source files
+# ============================================================================
+src = [
+    generator_dir + '/workload_registry.c',
+    generator_dir + '/workload_stub.c',
+    generator_dir + '/workload_busywait.c',
+    generator_dir + '/oneos_entry.c',
+]
+
+# OneOS platform layer
+src += [
+    platform_dir + '/timer.c',
+    platform_dir + '/sync.c',
+    platform_dir + '/timestamp.c',
+    platform_dir + '/scheduler.c',
+    platform_dir + '/signal.c',
+    platform_dir + '/posix_sched_adapter.c',  # Provides pthread_attr_setinheritsched()
+]
+
+# ============================================================================
+# C Workloads
+# ============================================================================
+
+# CUSUM - Change detection algorithm
+src += [workloads_dir + '/CUSUM/cusum_bench.c']
+
+# EWMA - Exponentially weighted moving average
+src += [workloads_dir + '/EWMA/ewma_bench.c']
+
+# FAST - Feature detection (uses clock_gettime via shadow time.h)
+src += [
+    workloads_dir + '/FAST/fast.c',
+    workloads_dir + '/FAST/fast_9.c',
+    workloads_dir + '/FAST/fast_bench.c',
+]
+
+# ============================================================================
+# C++ Workloads
+# ============================================================================
+cxx_src = []
+
+# PID - Controller (uses clock_gettime via shadow time.h)
+cxx_src += [
+    workloads_dir + '/PID/PID_v1.cpp',
+    workloads_dir + '/PID/pid_bench.cpp',
+]
+
+# ============================================================================
+# NOT included (require sockets or C++11):
+# - MODBUS (sockets)
+# - MQTT (sockets)
+# - EKF/EPNP/ICP (C++11 / Eigen library)
+# ============================================================================
+
+src_all = src + cxx_src
+group = AddCodeGroup('rtos-bench', src_all, depend = [''],
+                     CPPPATH = path,
+                     CPPDEFINES = CPPDEFINES,
+                     LOCAL_CCFLAGS = LOCAL_CCFLAGS)
+
+Return('group')
