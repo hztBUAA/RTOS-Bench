@@ -35,10 +35,16 @@ PLATFORM_DIR := $(GENERATOR_DIR)/platform/sylixos
 # SylixOS is POSIX-compatible but doesn't need --wrap for memory_watcher
 override LDFLAGS += -lrt -lm -pthread -Wl,--no-as-needed
 else ifeq ($(PLATFORM),oneos)
+# OneOS: native platform layer using OneOS kernel APIs (os_timer, os_sem, etc.)
+# For SCons-based builds, use the SConscript in project root.
+# For Makefile cross-compile, set ONEOS_ROOT to the OneOS SDK path.
 override CFLAGS += -DONEOS_PLATFORM
-PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
-# POSIX-lite: keep link flags minimal to ease cross toolchains
-override LDFLAGS += -lm -pthread
+ifdef ONEOS_ROOT
+override CFLAGS += -I$(ONEOS_ROOT)/kernel/include -I$(ONEOS_ROOT)/arch/arm/armv7m
+endif
+PLATFORM_DIR := $(GENERATOR_DIR)/platform/oneos
+# OneOS: minimal link flags for embedded targets
+override LDFLAGS += -lm
 else ifeq ($(PLATFORM),dongtu)
 override CFLAGS += -DDONGTU_PLATFORM
 PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
@@ -88,6 +94,9 @@ POSIXLITE_ENTRY_SRC := $(GENERATOR_DIR)/posixlite_entry.c
 RTTHREAD_ENTRY_SRC := $(GENERATOR_DIR)/rtthread_entry.c \
 	$(GENERATOR_DIR)/rtthread_fini_stub.c
 
+# OneOS specific sources (shell command interface)
+ONEOS_ENTRY_SRC := $(GENERATOR_DIR)/oneos_entry.c
+
 # Build mode: MULTI_WORKLOAD=1 enables workload registry for Linux/SylixOS
 # RT-Thread always uses workload registry (built-in workloads selected via -b)
 # Linux/SylixOS now also always include workload registry (weak symbols allow
@@ -100,8 +109,9 @@ ifeq ($(PLATFORM),rt-thread)
 # Note: RT-Thread defines benchmark_* via workload_registry, not from individual benchmark files
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_REGISTRY_SRC) $(RTTHREAD_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),oneos)
-# POSIX-lite entry avoids argp/perf for minimal libc toolchains
-GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
+# OneOS uses native platform layer and shell command entry
+# Note: For SCons builds, oneos_entry.c provides shell integration
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(ONEOS_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),dongtu)
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),ruihua)
