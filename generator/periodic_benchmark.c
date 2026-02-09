@@ -663,5 +663,8 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	do {
 		res = rtbench_sem_wait(period_sem);
 	} while (res < 0 && errno == EINTR);
+	// Cleanup timers before returning (important for RTOS platforms where
+	// atexit may not be called when thread exits)
+	stop_benchmark_wrapper();
 	return EXIT_SUCCESS;
 }
