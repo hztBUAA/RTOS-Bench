@@ -454,6 +454,112 @@ SCons：v4.10.1
 结论：必须使用 SylixOS 工具链 (RealEvo IDE) 编译
 ```
 
+### SylixOS RealEvo IDE 编译验证（2026-02-10）✅
+
+**环境配置**：
+```
+IDE: RealEvo-IDE 6.1.0 Ultimate (Windows)
+工具链: aarch64-sylixos-elf-gcc
+目标架构: AArch64
+Base工程: SylixOS 基础库 (libsylixos, libvpmpdm)
+```
+
+**项目结构**：
+```
+yihui-workspace/rtos-bench/
+├── RTOS-Bench/              # Git submodule (本仓库)
+├── src/
+│   └── cusum_workload.c     # Workload 注册包装器
+├── rtos-bench.mk            # 源文件配置
+├── .reproject               # IDE 配置 (关键!)
+└── Makefile                 # 顶层构建入口
+```
+
+**关键配置 - `.reproject`**：
+```xml
+<BuildSetting CoustomCfgMakefile="false" NotScanSourceFile="true"/>
+```
+> ⚠️ `NotScanSourceFile="true"` 是关键！防止 IDE 自动扫描所有源文件，只使用 rtos-bench.mk 中手动指定的文件。
+
+**关键配置 - `rtos-bench.mk`**：
+```makefile
+LOCAL_SRCS := \
+RTOS-Bench/generator/posixlite_entry.c \
+RTOS-Bench/generator/periodic_benchmark.c \
+RTOS-Bench/generator/workload_registry.c \
+RTOS-Bench/generator/workload_stub.c \
+RTOS-Bench/generator/workload_busywait.c \
+RTOS-Bench/generator/logging.c \
+RTOS-Bench/generator/memory_watcher.c \
+RTOS-Bench/generator/platform/sylixos/timer.c \
+RTOS-Bench/generator/platform/sylixos/sync.c \
+RTOS-Bench/generator/platform/sylixos/scheduler.c \
+RTOS-Bench/generator/platform/sylixos/timestamp.c \
+RTOS-Bench/generator/platform/sylixos/signal.c \
+RTOS-Bench/workloads/CUSUM/cusum_bench.c \
+src/cusum_workload.c
+
+LOCAL_INC_PATH := \
+-I"./RTOS-Bench/generator" \
+-I"./RTOS-Bench/workloads/CUSUM"
+
+LOCAL_DSYMBOL := \
+-DSYLIXOS_PLATFORM \
+-D_GNU_SOURCE
+
+LOCAL_DEPEND_LIB := -lm
+```
+
+**Workload 注册包装器 - `src/cusum_workload.c`**：
+```c
+#include "workload_registry.h"
+
+extern int cusum_bench_run(void);
+
+static int cusum_init(int parameters_num, void **parameters) {
+    (void)parameters_num; (void)parameters;
+    return 0;
+}
+
+static void cusum_exec(int parameters_num, void **parameters) {
+    (void)parameters_num; (void)parameters;
+    cusum_bench_run();
+}
+
+static void cusum_teardown(int parameters_num, void **parameters) {
+    (void)parameters_num; (void)parameters;
+}
+
+static const struct rtosbench_workload cusum_workload = {
+    .name = "cusum",
+    .description = "CUSUM change-point detection benchmark",
+    .category = "signal",
+    .init = cusum_init,
+    .exec = cusum_exec,
+    .teardown = cusum_teardown,
+};
+
+RTOSBENCH_REGISTER_WORKLOAD(cusum_workload);
+```
+
+**编译结果**：
+```
+编译命令: make (通过 IDE 或命令行)
+编译文件: 14 个 .c 文件 (仅 SylixOS 平台)
+产物: Debug/rtos-bench (352KB)
+状态: ✅ 成功 (0 errors, 5 warnings)
+
+警告说明:
+- _GNU_SOURCE 重复定义 (无影响)
+- on_exit/CPU_COUNT 隐式声明 (SylixOS POSIX 扩展差异)
+```
+
+**验证要点**：
+1. 必须先编译 `base` 工程生成 `libvpmpdm.a`
+2. 设置 `NotScanSourceFile="true"` 避免 IDE 扫描错误平台文件
+3. 只编译 `platform/sylixos/` 目录下的平台实现
+4. 使用 `posixlite_entry.c` 作为程序入口（不是 main.c）
+
 ### SylixOS 磁盘扩展限制
 
 ```
