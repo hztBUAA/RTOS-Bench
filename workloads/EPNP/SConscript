@@ -3,48 +3,30 @@ import os
 
 cwd = GetCurrentDir()
 
-# 1. 收集源文件
 src = Glob('*.cpp')
-# 2. 头文件路径
+
 CPPPATH = [
     cwd,
     os.path.join(cwd, 'opengv'),
-    os.path.join(cwd, 'EIGEN'), 
+    os.path.join(cwd, 'Eigen'),
 ]
 
-# 3. 宏定义
 CPPDEFINES = [
     'ECL_STANDALONE',
     '__STDC_FORMAT_MACROS',
     '__STDC_LIMIT_MACROS',
-    '_GLIBCXX_USE_C99',
-    '_GLIBCXX_USE_C99_MATH',
-    
-    # [新增] 修复 'M_PI' was not declared
     '_USE_MATH_DEFINES',
-    
-    # 禁用 Eigen 向量化
-    'EIGEN_DONT_VECTORIZE', 
+    'EIGEN_DONT_VECTORIZE',
     'EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT',
 ]
 
-# 4. 构造局部编译标志
 path_to_fix_header = os.path.join(cwd, 'fix_opengv.h')
-
-# -std=c++14: 解决 constexpr
-# -Wno-error: 忽略 OpenGV 内部警告
-# -Wno-literal-suffix: 忽略 cpuport.h 的字符串拼接警告
-# -include ...: 强制引入补丁
-LOCAL_CXXFLAGS = ' -O3 -std=c++14 -Wno-error -Wno-literal-suffix -Wno-cpp -include ' + path_to_fix_header
+LOCAL_CXXFLAGS = ' -O3 -std=c++14 -Wno-error -Wno-literal-suffix -include ' + path_to_fix_header
 
 LIBS = ['m']
 
-# 5. 定义构建组
-group = DefineGroup('EPNP', src,
-                    depend = [''],
-                    CPPPATH = CPPPATH,
-                    CPPDEFINES = CPPDEFINES,
-                    LOCAL_CXXFLAGS = LOCAL_CXXFLAGS,
-                    LIBS = LIBS)
+group = DefineGroup('EPNP', src, depend=['RT_USING_CPLUSPLUS'],
+                    CPPPATH=CPPPATH, CPPDEFINES=CPPDEFINES,
+                    LOCAL_CXXFLAGS=LOCAL_CXXFLAGS, LIBS=LIBS)
 
 Return('group')

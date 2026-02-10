@@ -1,0 +1,15 @@
+# RTOS-Bench Workloads SConscript
+from building import *
+import os
+
+cwd = GetCurrentDir()
+objs = []
+
+# Auto-discover workload subdirectories with SConscript
+for item in os.listdir(cwd):
+    path = os.path.join(cwd, item)
+    sconscript = os.path.join(path, 'SConscript')
+    if os.path.isdir(path) and os.path.isfile(sconscript):
+        objs = objs + SConscript(os.path.join(item, 'SConscript'))
+
+Return('objs')

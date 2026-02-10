@@ -1,0 +1,33 @@
+# RTOS-Bench Generator SConscript
+from building import *
+import os
+
+cwd = GetCurrentDir()
+
+# 检测平台
+if GetDepend(['ONEOS_PLATFORM']):
+    platform = 'oneos'
+elif GetDepend(['RT_USING_LIBC']):
+    platform = 'rt-thread'
+else:
+    platform = 'posix-lite'
+
+src = Glob('*.c')
+src += Glob('platform/' + platform + '/*.c')
+
+CPPPATH = [cwd]
+
+# OneOS 平台特殊处理
+LOCAL_CCFLAGS = ''
+if platform == 'oneos':
+    include_dir = os.path.join(cwd, 'platform', 'oneos', 'include')
+    CPPPATH.insert(0, include_dir)  # Shadow headers must be first
+    sched_adapter_h = os.path.join(include_dir, 'posix_sched_adapter.h')
+    LOCAL_CCFLAGS = ' -include ' + sched_adapter_h
+
+group = DefineGroup('rtbench_generator', src,
+                    depend=[''],
+                    CPPPATH=CPPPATH,
+                    LOCAL_CCFLAGS=LOCAL_CCFLAGS)
+
+Return('group')

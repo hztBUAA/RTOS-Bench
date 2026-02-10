@@ -1,10 +1,9 @@
 from building import *
 
 cwd = GetCurrentDir()
-src = Glob('*.cpp') + Glob('*.c')
-path = [cwd]
+src = Glob('*.cpp')
+CPPPATH = [cwd]
 
-# 增加对 C++ 的支持定义
-group = DefineGroup('PID', src, depend = ['RT_USING_CPLUSPLUS'], CPPPATH = path)
+group = DefineGroup('PID', src, depend=['RT_USING_CPLUSPLUS'], CPPPATH=CPPPATH)
 
 Return('group')
