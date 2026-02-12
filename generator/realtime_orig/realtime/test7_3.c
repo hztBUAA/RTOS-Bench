@@ -12,6 +12,7 @@
 #include <mqueue.h>
 #include <fcntl.h>
 #include <semaphore.h>
+#include <rtthread.h>
 
 #include "les.h"
 
@@ -24,6 +25,21 @@ static volatile uint64_t total_cycles;
 
 static const char* msg = "Hi";
 
+/* Helper: send with retry for RT-Thread mqueue bug workaround */
+static int mq_send_retry(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
+{
+	int ret;
+	int retry = 0;
+	do {
+		ret = mq_send(mqdes, msg_ptr, msg_len, msg_prio);
+		if (ret != 0) {
+			retry++;
+			rt_thread_mdelay(1);
+		}
+	} while (ret != 0 && retry < 50);
+	return ret;
+}
+
 
 static void *assist_thread(void *parameter) {
 	for (int i = 0; i < TEST_ITERATION; i++) {
@@ -35,9 +51,9 @@ static void *assist_thread(void *parameter) {
 
 static void *send_thread(void *parameter) {
 	for (int i = 0; i < TEST_ITERATION; i++) {
-		mq_send(mq, msg, strlen(msg) + 1, 0);
+		mq_send_retry(mq, msg, strlen(msg) + 1, 0);
     }
-    
+
     return NULL;
 }
 

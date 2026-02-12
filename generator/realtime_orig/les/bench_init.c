@@ -69,17 +69,21 @@ static void realtime_init(void) {
 	test6_4(&realtime_service_cost[2][3], &realtime_service_cost[3][1]);
 	printf("Finish test 6_4, 7_2.\n");
 
-	/* Note: Complex mqueue tests (6_2, 7_3) require mqueue to block on full.
-	 * TODO: Enable after fixing RT-Thread POSIX mqueue priority handling.
-	 */
-
+	/* Test 6_0: check mqueue blocking behavior (informational only) */
 	message_queue_filled_behavior = test6_0();
 	if (message_queue_filled_behavior == 0) {
-		printf("Test message queue filled behavior is ok.\n");
-		printf("Skip test 6_2, 7_3, 7_4 (mqueue priority scheduling issue on RT-Thread).\n");
+		printf("mqueue supports blocking on full queue.\n");
 	} else {
-		printf("Skip test 6_2, 7_3, 7_4.\n");
+		printf("mqueue does NOT block on full queue (using retry workaround).\n");
 	}
+
+	/* Run test 6_2, 7_3, 7_4 with retry workaround regardless of test6_0 result */
+	printf("Running test 6_2, 7_4...\n");
+	test6_2(&realtime_service_cost[2][1], &realtime_service_cost[3][3]);
+	printf("Finish test 6_2, 7_4.\n");
+	printf("Running test 7_3...\n");
+	test7_3(&realtime_service_cost[3][2]);
+	printf("Finish test 7_3.\n");
 
 
 	test8_1(&realtime_service_cost[4][0], &realtime_service_cost[5][0]);
