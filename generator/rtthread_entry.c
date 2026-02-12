@@ -17,6 +17,7 @@ typedef int clockid_t;
 #include "logging.h"
 #include "workload_registry.h"
 #include "test_schedule.h"
+#include "test_realtime.h"
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -110,7 +111,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 {
 	struct execution_options opts;
 
-	/* Check for test-schedule subcommand first */
+	/* Check for test-schedule subcommand */
 	if (argc >= 2 && strcmp(argv[1], "test-schedule") == 0) {
 		int cycles = TEST_SCHEDULE_CYCLES;
 		int util_start = TEST_SCHEDULE_UTIL_START;
@@ -140,6 +141,28 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 			   cycles, util_start, util_end, util_step);
 
 		return test_schedule_run_custom(cycles, util_start, util_end, util_step);
+	}
+
+	/* Check for test-realtime subcommand */
+	if (argc >= 2 && strcmp(argv[1], "test-realtime") == 0) {
+		int run_multicore = 0;
+
+		/* Parse optional test-realtime arguments */
+		for (int i = 2; i < argc; i++) {
+			if (strcmp(argv[i], "--multicore") == 0 ||
+			    strcmp(argv[i], "-m") == 0) {
+				run_multicore = 1;
+			} else if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+
+		rt_kprintf("[test-realtime] Starting realtime performance test\n");
+		if (run_multicore) {
+			rt_kprintf("  Multicore tests: enabled\n");
+		}
+
+		return test_realtime_run(run_multicore);
 	}
 
 	set_default_exec_opts(&opts);

@@ -25,6 +25,7 @@ src_files = [
     'workload_busywait.c',
     'uunifast.c',
     'test_schedule.c',
+    'test_realtime.c',
 ]
 
 # Add platform-specific entry and sources
