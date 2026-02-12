@@ -9,8 +9,10 @@ extern const struct rtosbench_workload rtosbench_busywait_workload;
 
 extern "C" {
 int fast_bench_run_once(int loops);
+#ifdef SAL_USING_POSIX
 int modbus_bench_run(void);
 int mqtt_bench_run(void);
+#endif
 // C++ workloads exposed as C for simplicity
 int epnp_bench_run(size_t iterations);
 int ekf_bench_run(void);
@@ -140,6 +142,7 @@ const struct rtosbench_workload rtosbench_icp_workload = {
 	.teardown = icp_teardown,
 };
 
+#ifdef SAL_USING_POSIX
 /* MODBUS */
 static int modbus_init(int parameters_num, void **parameters)
 {
@@ -199,6 +202,7 @@ const struct rtosbench_workload rtosbench_mqtt_workload = {
 	.exec = mqtt_exec,
 	.teardown = mqtt_teardown,
 };
+#endif /* SAL_USING_POSIX */
 
 /* PID */
 static int pid_init(int parameters_num, void **parameters)
@@ -299,8 +303,10 @@ static void register_all_workloads(void)
 	rtosbench_register_workload(&rtosbench_epnp_workload);
 	rtosbench_register_workload(&rtosbench_ekf_workload);
 	rtosbench_register_workload(&rtosbench_icp_workload);
+#ifdef SAL_USING_POSIX
 	rtosbench_register_workload(&rtosbench_modbus_workload);
 	rtosbench_register_workload(&rtosbench_mqtt_workload);
+#endif
 	rtosbench_register_workload(&rtosbench_pid_workload);
 	rtosbench_register_workload(&rtosbench_cusum_workload);
 	rtosbench_register_workload(&rtosbench_ewma_workload);
