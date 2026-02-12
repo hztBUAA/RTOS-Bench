@@ -23,6 +23,11 @@
  * - test8_2, test9_4: Mutex lock (suspend), unlock (high prio resume)
  * - test9_3: Mutex unlock (low prio ready)
  * - test10_1, test11_1: Memory alloc/free
+ *
+ * Multicore tests (multicore_init):
+ * - test_ipc_bw: IPC bandwidth between cores
+ * - test_mem_bw: Memory bandwidth with various patterns
+ * - test_task_lat: Task create/delete latency
  */
 
 #include "test_realtime.h"
@@ -41,10 +46,11 @@
 #include <mqueue.h>
 #define rt_printf rt_kprintf
 
-/* Priority levels for RT-Thread (lower number = higher priority) */
-#define BENCHMARK_HIGH_PRIO   10
+/* Priority levels - use POSIX style (higher number = higher priority)
+ * RT-Thread's POSIX layer will convert these internally */
+#define BENCHMARK_HIGH_PRIO   14
 #define BENCHMARK_MIDDLE_PRIO 15
-#define BENCHMARK_LOW_PRIO    20
+#define BENCHMARK_LOW_PRIO    16
 
 #else /* POSIX platforms */
 
@@ -64,6 +70,60 @@
 
 /* Test iteration count */
 #define TEST_ITERATION 1000
+
+/* ============================================================================
+ * Multicore Test Configuration
+ * ============================================================================ */
+
+/* Number of processors to use for multicore tests */
+#ifndef USE_PROCESSORS
+#define USE_PROCESSORS 2
+#endif
+
+/* Multicore test parameters */
+#define MULTICORE_TASK_REPETITION    500
+#define MULTICORE_IPC_REPETITION     1000
+#define MULTICORE_MEM_SIZE           (2 * 1024 * 1024)  /* 2MB per thread */
+#define MULTICORE_MEM_REPETITION     1024
+#define MULTICORE_IPC_MESSAGE_SIZE   (32 * 1024)        /* 32KB messages */
+#define MULTICORE_MAX_WORKERS        8
+
+/* CPU affinity compatibility layer */
+#ifdef RT_THREAD_PLATFORM
+/* RT-Thread: Use custom implementation since cpu_set_t may not be available */
+typedef unsigned long multicore_cpu_set_t;
+#define MULTICORE_CPU_ZERO(cpusetp)       (*(cpusetp) = 0)
+#define MULTICORE_CPU_SET(cpu, cpusetp)   (*(cpusetp) |= (1UL << (cpu)))
+#define MULTICORE_CPU_ISSET(cpu, cpusetp) (*(cpusetp) & (1UL << (cpu)))
+
+static inline int multicore_pthread_setaffinity_np(pthread_t thread,
+                                                    size_t cpusetsize,
+                                                    const multicore_cpu_set_t *cpuset)
+{
+	(void)thread;
+	(void)cpusetsize;
+	(void)cpuset;
+	/* RT-Thread: CPU affinity may require rt_thread_control with RT_THREAD_CTRL_BIND_CPU */
+	return 0;
+}
+#else /* POSIX platforms (Linux, etc.) */
+/* Use simple no-op implementation to avoid _GNU_SOURCE requirement */
+typedef unsigned long multicore_cpu_set_t;
+#define MULTICORE_CPU_ZERO(cpusetp)       (*(cpusetp) = 0)
+#define MULTICORE_CPU_SET(cpu, cpusetp)   (*(cpusetp) |= (1UL << (cpu)))
+#define MULTICORE_CPU_ISSET(cpu, cpusetp) (*(cpusetp) & (1UL << (cpu)))
+
+static inline int multicore_pthread_setaffinity_np(pthread_t thread,
+                                                    size_t cpusetsize,
+                                                    const multicore_cpu_set_t *cpuset)
+{
+	(void)thread;
+	(void)cpusetsize;
+	(void)cpuset;
+	/* No-op: CPU affinity not used in portable mode */
+	return 0;
+}
+#endif
 
 /* ============================================================================
  * Static Result Storage
@@ -638,6 +698,7 @@ static void *mq63_assist_thread(void *arg)
 		sem_wait(&mq63_to_assist);
 		sem_post(&mq63_to_high);
 	}
+	rt_printf("    [6_3] assist_thread done\n");
 	return NULL;
 }
 
@@ -648,6 +709,7 @@ static void *mq63_recv_thread(void *arg)
 	for (int i = 0; i < TEST_ITERATION; i++) {
 		mq_receive(mq63, buffer, 8, NULL);
 	}
+	rt_printf("    [6_3] recv_thread done\n");
 	return NULL;
 }
 
@@ -673,6 +735,7 @@ static void *mq63_send_thread(void *arg)
 	pthread_attr_setschedparam(&attr, &param);
 	pthread_create(&assist_tid, &attr, mq63_assist_thread, NULL);
 
+	rt_printf("    [6_3] send_thread starting main loop...\n");
 	uint64_t t0, t1;
 	uint64_t total = 0;
 	for (int i = 0; i < TEST_ITERATION; i++) {
@@ -685,11 +748,13 @@ static void *mq63_send_thread(void *arg)
 		total += t1 - t0;
 	}
 
+	rt_printf("    [6_3] send_thread main loop done, joining...\n");
 	pthread_join(recv_tid, NULL);
 	pthread_join(assist_tid, NULL);
 	pthread_attr_destroy(&attr);
 
 	mq63_send_cycles = total;
+	rt_printf("    [6_3] send_thread done\n");
 	return NULL;
 }
 
@@ -752,14 +817,18 @@ static void *mq64_send_thread(void *arg)
 	uint64_t t0, t1;
 	uint64_t total = 0;
 
+	rt_printf("    [6_4] send_thread: warmup send 1\n");
 	mq_send(mq64, mq64_msg, strlen(mq64_msg) + 1, 0);
 
+	rt_printf("    [6_4] send_thread: warmup loop %d\n", TEST_ITERATION);
 	for (int i = 0; i < TEST_ITERATION; i++) {
 		mq_send(mq64, mq64_msg, strlen(mq64_msg) + 1, 0);
 	}
 
+	rt_printf("    [6_4] send_thread: sync send 1\n");
 	mq_send(mq64, mq64_msg, strlen(mq64_msg) + 1, 0);
 
+	rt_printf("    [6_4] send_thread: measured loop %d\n", TEST_ITERATION);
 	/* Measured: mq_send waking high prio (test 6_4) */
 	for (int i = 0; i < TEST_ITERATION; i++) {
 		t0 = timeGet();
@@ -769,6 +838,7 @@ static void *mq64_send_thread(void *arg)
 	}
 
 	mq64_send_cycles = total;
+	rt_printf("    [6_4] send_thread done\n");
 	return NULL;
 }
 
@@ -789,10 +859,13 @@ static void *mq64_recv_thread(void *arg)
 	param.sched_priority = BENCHMARK_LOW_PRIO;
 	pthread_attr_setschedparam(&attr, &param);
 	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+	rt_printf("    [6_4] recv_thread: creating send_thread...\n");
 	pthread_create(&send_tid, &attr, mq64_send_thread, NULL);
 
+	rt_printf("    [6_4] recv_thread: warmup recv 1\n");
 	mq_receive(mq64, buffer, 8, NULL);
 
+	rt_printf("    [6_4] recv_thread: measured loop %d\n", TEST_ITERATION);
 	/* Measured: mq_receive (high prio) resuming from low prio send (test 7_2) */
 	for (int i = 0; i < TEST_ITERATION; i++) {
 		t0 = timeGet();
@@ -801,8 +874,10 @@ static void *mq64_recv_thread(void *arg)
 		total += t1 - t0;
 	}
 
+	rt_printf("    [6_4] recv_thread: sync recv 1\n");
 	mq_receive(mq64, buffer, 8, NULL);
 
+	rt_printf("    [6_4] recv_thread: unmeasured loop %d\n", TEST_ITERATION);
 	for (int i = 0; i < TEST_ITERATION; i++) {
 		mq_receive(mq64, buffer, 8, NULL);
 	}
@@ -811,6 +886,7 @@ static void *mq64_recv_thread(void *arg)
 	pthread_attr_destroy(&attr);
 
 	mq64_recv_cycles = total;
+	rt_printf("    [6_4] recv_thread done\n");
 	return NULL;
 }
 
@@ -1427,13 +1503,40 @@ int test_realtime_singlecore(struct realtime_singlecore_result *result)
 	test6_1(&result->service_cost[2][0], &result->service_cost[3][0]);
 	rt_printf("Finish test 6_1, 7_1.\n");
 
-	/* Note: Complex mqueue tests (6_3, 6_4, 6_2, 7_3) require specific mqueue
-	 * behaviors that may not work correctly on all platforms. These tests are
-	 * skipped by default. When the vendor has completed kernel instrumentation,
-	 * these tests can be enabled.
-	 */
-	rt_printf("Skip test 6_3, 6_4, 7_2 (mqueue complex scenarios - requires vendor tuning).\n");
-	rt_printf("Skip test 6_2, 7_3, 7_4 (mqueue complex scenarios - requires vendor tuning).\n");
+	/* Test 6_0: Check if mqueue blocks on full queue */
+	rt_printf("Running test 6_0 (mqueue blocking check)...\n");
+	message_queue_filled_behavior = test6_0();
+	if (message_queue_filled_behavior == 0) {
+		rt_printf("  mqueue supports blocking on full queue.\n");
+	} else {
+		rt_printf("  mqueue does NOT block on full queue (ret=%d).\n",
+			  message_queue_filled_behavior);
+	}
+
+	/* Test 6_3: Message send (low priority ready) */
+	rt_printf("Running test 6_3...\n");
+	test6_3(&result->service_cost[2][2]);
+	rt_printf("Finish test 6_3.\n");
+
+	/* Test 6_4 / 7_2: Message send (high prio resume) / receive (suspend) */
+	rt_printf("Running test 6_4, 7_2...\n");
+	test6_4(&result->service_cost[2][3], &result->service_cost[3][1]);
+	rt_printf("Finish test 6_4, 7_2.\n");
+
+	/* Test 6_2 / 7_4: Message send (suspend) / receive (high prio resume)
+	 * These tests require mqueue to block on full queue */
+	if (message_queue_filled_behavior == 0) {
+		rt_printf("Running test 6_2, 7_4...\n");
+		test6_2(&result->service_cost[2][1], &result->service_cost[3][3]);
+		rt_printf("Finish test 6_2, 7_4.\n");
+
+		/* Test 7_3: Message receive (low priority ready) */
+		rt_printf("Running test 7_3...\n");
+		test7_3(&result->service_cost[3][2]);
+		rt_printf("Finish test 7_3.\n");
+	} else {
+		rt_printf("Skip test 6_2, 7_3, 7_4 (mqueue does not block on full).\n");
+	}
 
 	/* Test 8_1 / 9_1: Mutex immediate */
 	test8_1(&result->service_cost[4][0], &result->service_cost[5][0]);
@@ -1455,7 +1558,599 @@ int test_realtime_singlecore(struct realtime_singlecore_result *result)
 }
 
 /* ============================================================================
- * Multicore Test Runner (Placeholder)
+ * Multicore Test: Task Create/Delete Latency
+ * ============================================================================ */
+
+static sem_t mc_task_father_to_son;
+static sem_t mc_task_son_to_father;
+static volatile uint64_t mc_task_cycles;
+
+static void *mc_task_tmp_thread(void *arg)
+{
+	(void)arg;
+	return NULL;
+}
+
+static void *mc_task_son_thread(void *arg)
+{
+	int number = (int)(long)arg;
+	pthread_t tid;
+	pthread_attr_t attr;
+	struct sched_param param;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, 8192);
+	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+	param.sched_priority = BENCHMARK_LOW_PRIO;
+	pthread_attr_setschedparam(&attr, &param);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+	/* Signal ready */
+	sem_post(&mc_task_son_to_father);
+	sem_wait(&mc_task_father_to_son);
+
+	/* Main work: create threads */
+	for (int i = 0; i < MULTICORE_TASK_REPETITION; i++) {
+		if (pthread_create(&tid, &attr, mc_task_tmp_thread, (void *)(long)number) != 0) {
+			sem_post(&mc_task_son_to_father);
+			rt_printf("mc_task: tmp thread create fail.\n");
+			pthread_attr_destroy(&attr);
+			return NULL;
+		}
+		pthread_join(tid, NULL);
+	}
+
+	pthread_attr_destroy(&attr);
+	sem_post(&mc_task_son_to_father);
+	return NULL;
+}
+
+static void *mc_task_father_thread(void *arg)
+{
+	int pair_count = (int)(long)arg;
+	pthread_t tid[MULTICORE_MAX_WORKERS];
+	pthread_attr_t attr;
+	struct sched_param param;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, 8192);
+	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+	param.sched_priority = BENCHMARK_MIDDLE_PRIO;
+	pthread_attr_setschedparam(&attr, &param);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+	for (int i = 0; i < pair_count; i++) {
+		if (pthread_create(&tid[i], &attr, mc_task_son_thread, (void *)(long)i) != 0) {
+			pthread_attr_destroy(&attr);
+			return NULL;
+		}
+		/* Set CPU affinity */
+		multicore_cpu_set_t cpuset;
+		MULTICORE_CPU_ZERO(&cpuset);
+		MULTICORE_CPU_SET(i % USE_PROCESSORS, &cpuset);
+		multicore_pthread_setaffinity_np(tid[i], sizeof(cpuset), &cpuset);
+	}
+
+	/* Wait for sons to be ready */
+	for (int i = 0; i < pair_count; i++) {
+		sem_wait(&mc_task_son_to_father);
+	}
+
+	uint64_t t0 = timeGet();
+
+	/* Notify all */
+	for (int i = 0; i < pair_count; i++) {
+		sem_post(&mc_task_father_to_son);
+	}
+
+	/* Wait for all to complete */
+	for (int i = 0; i < pair_count; i++) {
+		sem_wait(&mc_task_son_to_father);
+	}
+
+	uint64_t t1 = timeGet();
+
+	/* Cleanup */
+	for (int i = 0; i < pair_count; i++) {
+		pthread_join(tid[i], NULL);
+	}
+
+	pthread_attr_destroy(&attr);
+	mc_task_cycles = t1 - t0;
+	return NULL;
+}
+
+static uint64_t multicore_task_lat(int pair_count)
+{
+	if (pair_count < 1) pair_count = 1;
+	if (pair_count > MULTICORE_MAX_WORKERS) pair_count = MULTICORE_MAX_WORKERS;
+
+	sem_init(&mc_task_father_to_son, 0, 0);
+	sem_init(&mc_task_son_to_father, 0, 0);
+
+	pthread_t tid;
+	pthread_attr_t attr;
+	struct sched_param param;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, 8192);
+	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+	param.sched_priority = BENCHMARK_HIGH_PRIO;
+	pthread_attr_setschedparam(&attr, &param);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+	if (pthread_create(&tid, &attr, mc_task_father_thread, (void *)(long)pair_count) != 0) {
+		pthread_attr_destroy(&attr);
+		sem_destroy(&mc_task_father_to_son);
+		sem_destroy(&mc_task_son_to_father);
+		return 0;
+	}
+
+	pthread_join(tid, NULL);
+	pthread_attr_destroy(&attr);
+	sem_destroy(&mc_task_father_to_son);
+	sem_destroy(&mc_task_son_to_father);
+
+	return cycles_to_ns(mc_task_cycles) / MULTICORE_TASK_REPETITION / pair_count;
+}
+
+/* ============================================================================
+ * Multicore Test: IPC Bandwidth
+ * ============================================================================ */
+
+static mqd_t mc_ipc_mq[MULTICORE_MAX_WORKERS];
+static sem_t mc_ipc_father_to_son;
+static sem_t mc_ipc_son_to_tmp[MULTICORE_MAX_WORKERS];
+static sem_t mc_ipc_tmp_to_son[MULTICORE_MAX_WORKERS];
+static sem_t mc_ipc_son_to_father;
+static int mc_ipc_mode = 0;
+static volatile uint64_t mc_ipc_cycles;
+
+static void *mc_ipc_tmp_thread(void *arg)
+{
+	int number = (int)(long)arg;
+	char *buffer1 = (char *)malloc(MULTICORE_IPC_MESSAGE_SIZE);
+	char *buffer2 = (char *)malloc(MULTICORE_IPC_MESSAGE_SIZE);
+
+	if (!buffer1 || !buffer2) {
+		if (buffer1) free(buffer1);
+		if (buffer2) free(buffer2);
+		return NULL;
+	}
+
+	for (int i = 0; i < MULTICORE_IPC_REPETITION; i++) {
+		sem_wait(&mc_ipc_son_to_tmp[number]);
+		mq_receive(mc_ipc_mq[number], buffer1, MULTICORE_IPC_MESSAGE_SIZE, NULL);
+		mq_receive(mc_ipc_mq[number], buffer2, MULTICORE_IPC_MESSAGE_SIZE, NULL);
+		sem_post(&mc_ipc_tmp_to_son[number]);
+	}
+
+	free(buffer1);
+	free(buffer2);
+	return NULL;
+}
+
+static void *mc_ipc_son_thread(void *arg)
+{
+	int number = (int)(long)arg;
+	char *buffer1 = (char *)malloc(MULTICORE_IPC_MESSAGE_SIZE);
+	char *buffer2 = (char *)malloc(MULTICORE_IPC_MESSAGE_SIZE);
+
+	if (!buffer1 || !buffer2) {
+		sem_post(&mc_ipc_son_to_father);
+		if (buffer1) free(buffer1);
+		if (buffer2) free(buffer2);
+		return NULL;
+	}
+
+	memset(buffer1, 'A', MULTICORE_IPC_MESSAGE_SIZE);
+	memset(buffer2, 'B', MULTICORE_IPC_MESSAGE_SIZE);
+
+	pthread_t tid;
+	pthread_attr_t attr;
+	struct sched_param param;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, 8192);
+	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+	param.sched_priority = BENCHMARK_LOW_PRIO;
+	pthread_attr_setschedparam(&attr, &param);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+	if (pthread_create(&tid, &attr, mc_ipc_tmp_thread, (void *)(long)number) != 0) {
+		sem_post(&mc_ipc_son_to_father);
+		pthread_attr_destroy(&attr);
+		free(buffer1);
+		free(buffer2);
+		return NULL;
+	}
+
+	/* Set CPU affinity based on mode */
+	multicore_cpu_set_t cpuset;
+	MULTICORE_CPU_ZERO(&cpuset);
+	if (mc_ipc_mode == 1) {
+		/* Different core */
+		MULTICORE_CPU_SET((number + 1) % USE_PROCESSORS, &cpuset);
+	} else {
+		/* Same core */
+		MULTICORE_CPU_SET(number % USE_PROCESSORS, &cpuset);
+	}
+	multicore_pthread_setaffinity_np(tid, sizeof(cpuset), &cpuset);
+
+	pthread_attr_destroy(&attr);
+
+	/* Signal ready */
+	sem_post(&mc_ipc_son_to_father);
+	sem_wait(&mc_ipc_father_to_son);
+
+	/* Main work: send messages */
+	for (int i = 0; i < MULTICORE_IPC_REPETITION; i++) {
+		mq_send(mc_ipc_mq[number], buffer1, MULTICORE_IPC_MESSAGE_SIZE, 0);
+		mq_send(mc_ipc_mq[number], buffer2, MULTICORE_IPC_MESSAGE_SIZE, 0);
+		sem_post(&mc_ipc_son_to_tmp[number]);
+		sem_wait(&mc_ipc_tmp_to_son[number]);
+	}
+
+	pthread_join(tid, NULL);
+	sem_post(&mc_ipc_son_to_father);
+	free(buffer1);
+	free(buffer2);
+	return NULL;
+}
+
+static void *mc_ipc_father_thread(void *arg)
+{
+	int pair_count = (int)(long)arg;
+	pthread_t tid[MULTICORE_MAX_WORKERS];
+	pthread_attr_t attr;
+	struct sched_param param;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, 8192);
+	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+	param.sched_priority = BENCHMARK_LOW_PRIO;
+	pthread_attr_setschedparam(&attr, &param);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+	for (int i = 0; i < pair_count; i++) {
+		if (pthread_create(&tid[i], &attr, mc_ipc_son_thread, (void *)(long)i) != 0) {
+			pthread_attr_destroy(&attr);
+			return NULL;
+		}
+		if (mc_ipc_mode == 0 || mc_ipc_mode == 1 || mc_ipc_mode == 2) {
+			multicore_cpu_set_t cpuset;
+			MULTICORE_CPU_ZERO(&cpuset);
+			MULTICORE_CPU_SET(i % USE_PROCESSORS, &cpuset);
+			multicore_pthread_setaffinity_np(tid[i], sizeof(cpuset), &cpuset);
+		}
+	}
+
+	/* Wait for sons to be ready */
+	for (int i = 0; i < pair_count; i++) {
+		sem_wait(&mc_ipc_son_to_father);
+	}
+
+	uint64_t t0 = timeGet();
+
+	/* Notify all */
+	for (int i = 0; i < pair_count; i++) {
+		sem_post(&mc_ipc_father_to_son);
+	}
+
+	/* Wait for all to complete */
+	for (int i = 0; i < pair_count; i++) {
+		sem_wait(&mc_ipc_son_to_father);
+	}
+
+	uint64_t t1 = timeGet();
+
+	/* Cleanup */
+	for (int i = 0; i < pair_count; i++) {
+		pthread_join(tid[i], NULL);
+	}
+
+	pthread_attr_destroy(&attr);
+	mc_ipc_cycles = t1 - t0;
+	return NULL;
+}
+
+static uint64_t multicore_ipc_bw(int mode, int pair_count)
+{
+	if (pair_count < 1) pair_count = 1;
+	if (pair_count > MULTICORE_MAX_WORKERS) pair_count = MULTICORE_MAX_WORKERS;
+
+	static const char *mq_name[MULTICORE_MAX_WORKERS] = {
+		"/mc_ipc_q0", "/mc_ipc_q1", "/mc_ipc_q2", "/mc_ipc_q3",
+		"/mc_ipc_q4", "/mc_ipc_q5", "/mc_ipc_q6", "/mc_ipc_q7"
+	};
+	struct mq_attr attr_m;
+
+	attr_m.mq_flags = 0;
+	attr_m.mq_maxmsg = 2;
+	attr_m.mq_msgsize = MULTICORE_IPC_MESSAGE_SIZE;
+	attr_m.mq_curmsgs = 0;
+
+	for (int i = 0; i < pair_count; i++) {
+		mq_unlink(mq_name[i]);
+		mc_ipc_mq[i] = mq_open(mq_name[i], O_CREAT | O_RDWR | O_EXCL, 0644, &attr_m);
+		if (mc_ipc_mq[i] == (mqd_t)-1) {
+			rt_printf("multicore_ipc_bw: mq_open failed for queue %d\n", i);
+			/* Cleanup already created queues */
+			for (int j = 0; j < i; j++) {
+				mq_close(mc_ipc_mq[j]);
+				mq_unlink(mq_name[j]);
+			}
+			return 0;
+		}
+	}
+
+	for (int i = 0; i < pair_count; i++) {
+		sem_init(&mc_ipc_son_to_tmp[i], 0, 0);
+		sem_init(&mc_ipc_tmp_to_son[i], 0, 0);
+	}
+	sem_init(&mc_ipc_father_to_son, 0, 0);
+	sem_init(&mc_ipc_son_to_father, 0, 0);
+
+	mc_ipc_mode = mode;
+
+	pthread_t tid;
+	pthread_attr_t attr;
+	struct sched_param param;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, 8192);
+	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+	param.sched_priority = BENCHMARK_HIGH_PRIO;
+	pthread_attr_setschedparam(&attr, &param);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+	if (pthread_create(&tid, &attr, mc_ipc_father_thread, (void *)(long)pair_count) != 0) {
+		pthread_attr_destroy(&attr);
+		for (int i = 0; i < pair_count; i++) {
+			mq_close(mc_ipc_mq[i]);
+			mq_unlink(mq_name[i]);
+			sem_destroy(&mc_ipc_son_to_tmp[i]);
+			sem_destroy(&mc_ipc_tmp_to_son[i]);
+		}
+		sem_destroy(&mc_ipc_father_to_son);
+		sem_destroy(&mc_ipc_son_to_father);
+		return 0;
+	}
+
+	pthread_join(tid, NULL);
+	pthread_attr_destroy(&attr);
+
+	for (int i = 0; i < pair_count; i++) {
+		sem_destroy(&mc_ipc_son_to_tmp[i]);
+		sem_destroy(&mc_ipc_tmp_to_son[i]);
+		mq_close(mc_ipc_mq[i]);
+		mq_unlink(mq_name[i]);
+	}
+	sem_destroy(&mc_ipc_father_to_son);
+	sem_destroy(&mc_ipc_son_to_father);
+
+	/* Calculate bandwidth: 32KB * 2 * repetitions * pairs / time = KB/s */
+	uint64_t ns = cycles_to_ns(mc_ipc_cycles);
+	if (ns == 0) return 0;
+	return (uint64_t)32 * MULTICORE_IPC_REPETITION * pair_count * 1000000000ULL / ns / 1024;
+}
+
+/* ============================================================================
+ * Multicore Test: Memory Bandwidth
+ * ============================================================================ */
+
+#define MC_MEM_NUM (MULTICORE_MEM_SIZE / sizeof(int))
+
+/* Memory test modes */
+enum mc_mem_mode {
+	MC_MODE_RD = 0,    /* Sparse read */
+	MC_MODE_WR,        /* Sparse write */
+	MC_MODE_CP,        /* Sparse copy */
+	MC_MODE_FRD,       /* Full read */
+	MC_MODE_FWR,       /* Full write */
+	MC_MODE_FCP,       /* Full copy */
+	MC_MODE_MSET,      /* memset */
+	MC_MODE_MCPY       /* memcpy */
+};
+
+static sem_t mc_mem_order[MULTICORE_MAX_WORKERS];
+static sem_t mc_mem_response[MULTICORE_MAX_WORKERS];
+static pthread_t mc_mem_tids[MULTICORE_MAX_WORKERS];
+static int *mc_mem_src = NULL;
+static int *mc_mem_dst[MULTICORE_MAX_WORKERS];
+static int mc_mem_mode;
+
+/* Prevent compiler optimization */
+static volatile unsigned long long mc_mem_dummy = 0;
+static void mc_mem_use(int result) { mc_mem_dummy += result; }
+
+static void mc_mem_rd(int *buf)
+{
+	int i, sum = 0, *p, *lastone = buf + MC_MEM_NUM;
+	for (i = 0; i < MULTICORE_MEM_REPETITION; i++) {
+		p = buf;
+		while (p < lastone) {
+			sum += p[0] + p[8] + p[16] + p[24] + p[32] + p[40] + p[48] + p[56]
+			     + p[64] + p[72] + p[80] + p[88] + p[96] + p[104] + p[112] + p[120];
+			p += 128;
+		}
+	}
+	mc_mem_use(sum);
+}
+
+static void mc_mem_wr(int *buf)
+{
+	int i, *p, *lastone = buf + MC_MEM_NUM;
+	for (i = 0; i < MULTICORE_MEM_REPETITION; i++) {
+		p = buf;
+		while (p < lastone) {
+			p[0]=1; p[8]=1; p[16]=1; p[24]=1; p[32]=1; p[40]=1; p[48]=1; p[56]=1;
+			p[64]=1; p[72]=1; p[80]=1; p[88]=1; p[96]=1; p[104]=1; p[112]=1; p[120]=1;
+			p += 128;
+		}
+	}
+}
+
+static void mc_mem_cp(int *dst, int *src)
+{
+	int i, *pd, *ps, *lastone = dst + MC_MEM_NUM;
+	for (i = 0; i < MULTICORE_MEM_REPETITION; i++) {
+		pd = dst; ps = src;
+		while (pd < lastone) {
+			pd[0]=ps[0]; pd[8]=ps[8]; pd[16]=ps[16]; pd[24]=ps[24];
+			pd[32]=ps[32]; pd[40]=ps[40]; pd[48]=ps[48]; pd[56]=ps[56];
+			pd[64]=ps[64]; pd[72]=ps[72]; pd[80]=ps[80]; pd[88]=ps[88];
+			pd[96]=ps[96]; pd[104]=ps[104]; pd[112]=ps[112]; pd[120]=ps[120];
+			pd += 128; ps += 128;
+		}
+	}
+}
+
+static void mc_mem_frd(int *buf)
+{
+	int i, sum = 0, *p, *lastone = buf + MC_MEM_NUM;
+	for (i = 0; i < MULTICORE_MEM_REPETITION; i++) {
+		p = buf;
+		while (p < lastone) {
+			for (int j = 0; j < 128; j++) sum += p[j];
+			p += 128;
+		}
+	}
+	mc_mem_use(sum);
+}
+
+static void mc_mem_fwr(int *buf)
+{
+	int i, *p, *lastone = buf + MC_MEM_NUM;
+	for (i = 0; i < MULTICORE_MEM_REPETITION; i++) {
+		p = buf;
+		while (p < lastone) {
+			for (int j = 0; j < 128; j++) p[j] = 1;
+			p += 128;
+		}
+	}
+}
+
+static void mc_mem_fcp(int *dst, int *src)
+{
+	int i, *pd, *ps, *lastone = dst + MC_MEM_NUM;
+	for (i = 0; i < MULTICORE_MEM_REPETITION; i++) {
+		pd = dst; ps = src;
+		while (pd < lastone) {
+			for (int j = 0; j < 128; j++) pd[j] = ps[j];
+			pd += 128; ps += 128;
+		}
+	}
+}
+
+static void mc_mem_mset(int *buf)
+{
+	for (int i = 0; i < MULTICORE_MEM_REPETITION; i++)
+		memset(buf, 0, MULTICORE_MEM_SIZE);
+}
+
+static void mc_mem_mcpy(int *dst, int *src)
+{
+	for (int i = 0; i < MULTICORE_MEM_REPETITION; i++)
+		memcpy(dst, src, MULTICORE_MEM_SIZE);
+}
+
+static void *mc_mem_worker(void *arg)
+{
+	int pid = (int)(long)arg;
+	mc_mem_dst[pid] = (int *)malloc(MULTICORE_MEM_SIZE);
+	if (!mc_mem_dst[pid]) {
+		sem_post(&mc_mem_response[pid]);
+		return NULL;
+	}
+
+	sem_post(&mc_mem_response[pid]); /* Ready */
+	sem_wait(&mc_mem_order[pid]);    /* Wait for start */
+
+	switch (mc_mem_mode) {
+	case MC_MODE_RD:   mc_mem_rd(mc_mem_src); break;
+	case MC_MODE_WR:   mc_mem_wr(mc_mem_dst[pid]); break;
+	case MC_MODE_CP:   mc_mem_cp(mc_mem_dst[pid], mc_mem_src); break;
+	case MC_MODE_FRD:  mc_mem_frd(mc_mem_src); break;
+	case MC_MODE_FWR:  mc_mem_fwr(mc_mem_dst[pid]); break;
+	case MC_MODE_FCP:  mc_mem_fcp(mc_mem_dst[pid], mc_mem_src); break;
+	case MC_MODE_MSET: mc_mem_mset(mc_mem_dst[pid]); break;
+	case MC_MODE_MCPY: mc_mem_mcpy(mc_mem_dst[pid], mc_mem_src); break;
+	default: break;
+	}
+
+	sem_post(&mc_mem_response[pid]); /* Done */
+	return NULL;
+}
+
+static uint64_t multicore_mem_bw(int mode, int worker_count)
+{
+	if (mode < 0 || mode > 7 || worker_count <= 0) return 0;
+	if (worker_count > MULTICORE_MAX_WORKERS) worker_count = MULTICORE_MAX_WORKERS;
+
+	mc_mem_mode = mode;
+	mc_mem_src = (int *)malloc(MULTICORE_MEM_SIZE);
+	if (mc_mem_src) memset(mc_mem_src, 0x55, MULTICORE_MEM_SIZE);
+
+	for (int i = 0; i < worker_count; i++) {
+		mc_mem_dst[i] = NULL;
+		sem_init(&mc_mem_order[i], 0, 0);
+		sem_init(&mc_mem_response[i], 0, 0);
+		if (pthread_create(&mc_mem_tids[i], NULL, mc_mem_worker, (void *)(long)i) == 0) {
+			multicore_cpu_set_t cpuset;
+			MULTICORE_CPU_ZERO(&cpuset);
+			MULTICORE_CPU_SET(i % USE_PROCESSORS, &cpuset);
+			multicore_pthread_setaffinity_np(mc_mem_tids[i], sizeof(cpuset), &cpuset);
+		}
+	}
+
+	/* Wait for all workers to be ready */
+	for (int i = 0; i < worker_count; i++)
+		sem_wait(&mc_mem_response[i]);
+
+	uint64_t t_start = timeGet();
+
+	/* Start all workers */
+	for (int i = 0; i < worker_count; i++)
+		sem_post(&mc_mem_order[i]);
+
+	/* Wait for all workers to complete */
+	for (int i = 0; i < worker_count; i++)
+		sem_wait(&mc_mem_response[i]);
+
+	uint64_t t_end = timeGet();
+
+	/* Cleanup */
+	for (int i = 0; i < worker_count; i++) {
+		pthread_join(mc_mem_tids[i], NULL);
+		sem_destroy(&mc_mem_order[i]);
+		sem_destroy(&mc_mem_response[i]);
+		if (mc_mem_dst[i]) free(mc_mem_dst[i]);
+	}
+	if (mc_mem_src) free(mc_mem_src);
+
+	uint64_t dur = cycles_to_ns(t_end - t_start);
+	if (dur == 0) return 0;
+
+	uint64_t data_per_worker;
+	if (mode == MC_MODE_RD || mode == MC_MODE_WR) {
+		data_per_worker = MULTICORE_MEM_SIZE / 8; /* Sparse: 1/8 effective */
+	} else if (mode == MC_MODE_CP) {
+		data_per_worker = (MULTICORE_MEM_SIZE / 8) * 2; /* Read + write */
+	} else if (mode == MC_MODE_FCP || mode == MC_MODE_MCPY) {
+		data_per_worker = (uint64_t)MULTICORE_MEM_SIZE * 2; /* Full read + write */
+	} else {
+		data_per_worker = (uint64_t)MULTICORE_MEM_SIZE;
+	}
+
+	uint64_t total_bytes = data_per_worker * MULTICORE_MEM_REPETITION * worker_count;
+	uint64_t bandwidth_mb_s = total_bytes * 1000000000ULL / (dur * 1048576ULL);
+
+	return bandwidth_mb_s;
+}
+
+/* ============================================================================
+ * Multicore Test Runner
  * ============================================================================ */
 
 int test_realtime_multicore(struct realtime_multicore_result *result)
@@ -1464,7 +2159,50 @@ int test_realtime_multicore(struct realtime_multicore_result *result)
 		return -1;
 
 	memset(result, 0, sizeof(*result));
-	rt_printf("Multicore tests not yet implemented.\n");
+	realtime_timer_start();
+
+	rt_printf("Running IPC bandwidth tests...\n");
+
+	/* IPC bandwidth tests with different concurrency levels */
+	for (int i = 0; i < 4; i++) {
+		int concurrency = 1 << i;  /* 1, 2, 4, 8 */
+		result->ipc_bandwidth[i] = multicore_ipc_bw(2, concurrency);
+		rt_printf("  IPC bandwidth (concurrency %d): %" PRIu64 " GB/s\n",
+			  concurrency, result->ipc_bandwidth[i]);
+	}
+
+	/* Same-core vs different-core IPC comparison */
+	result->ipc_same_core = multicore_ipc_bw(0, 1);
+	rt_printf("  IPC same-core: %" PRIu64 " GB/s\n", result->ipc_same_core);
+
+	result->ipc_diff_core = multicore_ipc_bw(1, 1);
+	rt_printf("  IPC diff-core: %" PRIu64 " GB/s\n", result->ipc_diff_core);
+
+	rt_printf("Running memory bandwidth tests...\n");
+
+	/* Memory bandwidth tests */
+	static const char *mem_mode_names[8] = {
+		"rd", "wr", "cp", "frd", "fwr", "fcp", "memset", "memcpy"
+	};
+	for (int mode = 0; mode < 8; mode++) {
+		for (int c = 0; c < 4; c++) {
+			int concurrency = 1 << c;  /* 1, 2, 4, 8 */
+			result->mem_bandwidth[mode][c] = multicore_mem_bw(mode, concurrency);
+			rt_printf("  Memory %s (concurrency %d): %" PRIu64 " MB/s\n",
+				  mem_mode_names[mode], concurrency, result->mem_bandwidth[mode][c]);
+		}
+	}
+
+	rt_printf("Running task create/delete latency tests...\n");
+
+	/* Task create/delete latency */
+	for (int i = 0; i < 4; i++) {
+		int concurrency = 1 << i;  /* 1, 2, 4, 8 */
+		result->task_latency[i] = multicore_task_lat(concurrency);
+		rt_printf("  Task latency (concurrency %d): %" PRIu64 " us\n",
+			  concurrency, result->task_latency[i] / 1000);
+	}
+
 	return 0;
 }
 
@@ -1551,8 +2289,44 @@ void test_realtime_print_singlecore(const struct realtime_singlecore_result *r)
 
 void test_realtime_print_multicore(const struct realtime_multicore_result *r)
 {
-	(void)r;
-	rt_printf("\n多核测试结果打印尚未实现\n");
+	static const char *mem_mode_names[8] = {
+		"rd    ", "wr    ", "cp    ", "frd   ", "fwr   ", "fcp   ", "memset", "memcpy"
+	};
+
+	rt_printf("\n多核存取性能 (单位: MB/s):\n");
+	rt_printf("%-10s | %-10s | %-10s | %-10s | %-10s\n",
+		  "模式/并发", "1", "2", "4", "8");
+	rt_printf("----------------------------------------------------------------------\n");
+
+	for (int i = 0; i < 8; i++) {
+		rt_printf("%-10s", mem_mode_names[i]);
+		for (int j = 0; j < 4; j++) {
+			rt_printf(" | %-10" PRIu64, r->mem_bandwidth[i][j]);
+		}
+		rt_printf("\n");
+	}
+
+	rt_printf("\n多核系统服务:\n");
+	rt_printf("%-10s | %-10s | %-10s | %-10s | %-10s\n",
+		  "指标/并发", "1", "2", "4", "8");
+	rt_printf("----------------------------------------------------------------------\n");
+
+	rt_printf("任务间通信");
+	for (int j = 0; j < 4; j++) {
+		rt_printf(" | %-10" PRIu64, r->ipc_bandwidth[j]);
+	}
+	rt_printf(" (GB/s)\n");
+
+	rt_printf("创建与删除");
+	for (int j = 0; j < 4; j++) {
+		uint64_t us = r->task_latency[j] / 1000;
+		rt_printf(" | %-10" PRIu64, us);
+	}
+	rt_printf(" (us)\n");
+
+	rt_printf("\n任务在同核与异核上通信比较:\n");
+	rt_printf("  同核通信: %" PRIu64 " GB/s\n", r->ipc_same_core);
+	rt_printf("  异核通信: %" PRIu64 " GB/s\n", r->ipc_diff_core);
 }
 
 /* ============================================================================
