@@ -60,11 +60,15 @@ static void realtime_init(void) {
 
 	test6_1(&realtime_service_cost[2][0], &realtime_service_cost[3][0]);		printf("Finish test 6_1, 7_1.\n");
 
-	/* Note: Complex mqueue tests (6_3, 6_4, 6_2, 7_3) hang on RT-Thread QEMU platform
+	/* Test 6_3 with debug output to diagnose hang issue */
+	printf("Running test 6_3 (with debug)...\n");
+	test6_3(&realtime_service_cost[2][2]);		printf("Finish test 6_3.\n");
+
+	/* Note: Complex mqueue tests (6_4, 6_2, 7_3) hang on RT-Thread QEMU platform
 	 * due to priority scheduling issues with mqueue. Skip these tests for now.
 	 * TODO: Enable after fixing RT-Thread POSIX mqueue priority handling.
 	 */
-	printf("Skip test 6_3, 6_4, 7_2 (mqueue priority scheduling issue on RT-Thread).\n");
+	printf("Skip test 6_4, 7_2 (mqueue priority scheduling issue on RT-Thread).\n");
 
 	message_queue_filled_behavior = test6_0();
 	if (message_queue_filled_behavior == 0) {

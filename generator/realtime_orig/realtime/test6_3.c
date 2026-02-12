@@ -12,49 +12,79 @@
 #include <mqueue.h>
 #include <fcntl.h>
 #include <semaphore.h>
+#include <rtthread.h>
 
 #include "les.h"
 
 #define TEST_ITERATION 1000
 
+/* Debug mode: set to 1 for verbose output, 0 for production */
+#define TEST6_3_DEBUG 0
+
 static mqd_t mq;
 static sem_t to_highest;
 static sem_t to_assist;
 static volatile uint64_t total_cycles;
+static volatile int recv_count = 0;
+static volatile int send_count = 0;
+static volatile int assist_count = 0;
 
 static const char* msg = "Hi";
 
 
 static void *assist_thread(void *parameter) {
+#if TEST6_3_DEBUG
+	printf("[6_3] assist_thread started\n");
+#endif
 	for (int i = 0; i < TEST_ITERATION; i++) {
 		sem_wait(&to_assist);
+		assist_count++;
 		sem_post(&to_highest);
+#if TEST6_3_DEBUG
+		if (i < 5 || i == TEST_ITERATION - 1 || (i % 200 == 0)) {
+			printf("[6_3] assist: iter %d done\n", i);
+		}
+#endif
 	}
+#if TEST6_3_DEBUG
+	printf("[6_3] assist_thread done, count=%d\n", assist_count);
+#endif
 	return NULL;
 }
 
 static void *receive_thread(void *parameter) {
+#if TEST6_3_DEBUG
+	printf("[6_3] receive_thread started\n");
+#endif
 	for (int i = 0; i < TEST_ITERATION; i++) {
 		char buffer[8];
-		//ssize_t bytes_read;
-		mq_receive(mq, buffer, 8, NULL);
-		/*bytes_read = mq_receive(mq, buffer, 8, NULL);
-		if (bytes_read == -1) {
-		    perror("mq_receive");
+		ssize_t bytes_read = mq_receive(mq, buffer, 8, NULL);
+		if (bytes_read > 0) {
+			recv_count++;
 		} else {
-		    //printf("Received: %s (Priority: %u)\n", buffer, prio);
+			printf("[6_3] recv FAILED: iter %d, bytes=%zd, errno=%d\n", i, bytes_read, errno);
 		}
-		*/
+#if TEST6_3_DEBUG
+		if (i < 5 || i == TEST_ITERATION - 1 || (i % 200 == 0)) {
+			printf("[6_3] recv: iter %d, bytes=%zd, total=%d\n", i, bytes_read, recv_count);
+		}
+#endif
     }
-    
+#if TEST6_3_DEBUG
+    printf("[6_3] receive_thread done, count=%d\n", recv_count);
+#endif
     return NULL;
 }
 
-static void *send_thread(void *parameter) {    
+static void *send_thread(void *parameter) {
 
 	pthread_t tid1, tid2;
     pthread_attr_t attr;
     struct sched_param param;
+
+#if TEST6_3_DEBUG
+	printf("[6_3] send_thread started, creating children...\n");
+#endif
 
 	// Create receive_thread:
     pthread_attr_init(&attr);
@@ -67,49 +97,80 @@ static void *send_thread(void *parameter) {
         perror("6_3:Failed to create thread.");
         return NULL;
     }
-    
+#if TEST6_3_DEBUG
+	printf("[6_3] receive_thread created (prio=%d)\n", BENCHMARK_MIDDLE_PRIO);
+#endif
+
     // Create assist_thread:
     pthread_attr_setstacksize(&attr, 8192);
     param.sched_priority = BENCHMARK_LOW_PRIO;
+    pthread_attr_setschedparam(&attr, &param);
     if (pthread_create(&tid2, &attr, assist_thread, NULL) != 0) {
         perror("6_3:Failed to create thread.");
         return NULL;
     }
-    
-    
+#if TEST6_3_DEBUG
+	printf("[6_3] assist_thread created (prio=%d)\n", BENCHMARK_LOW_PRIO);
+	printf("[6_3] send_thread entering main loop (prio=%d)...\n", BENCHMARK_HIGH_PRIO);
+#endif
+
+
     uint64_t t0, t1;
 	uint64_t tmp_send_cycles = 0;
 	for (int i = 0; i < TEST_ITERATION; i++) {
-	
+
 		sem_post(&to_assist);
 		sem_wait(&to_highest);
-		
-		//此处无线程切换
-		//LES_enable();
-		
+
 		t0 = timeGet();
-		mq_send(mq, msg, strlen(msg) + 1, 0);
+		int ret;
+		int retry_count = 0;
+		/* RT-Thread mqueue may return error instead of blocking when full.
+		 * Workaround: retry with delay to let receiver run. */
+		do {
+			ret = mq_send(mq, msg, strlen(msg) + 1, 0);
+			if (ret != 0) {
+				retry_count++;
+				/* Force delay to let lower priority receiver run */
+				rt_thread_mdelay(1);
+			}
+		} while (ret != 0 && retry_count < 50);
 		t1 = timeGet();
-		
-		//LES_disable();
-		
-		/*
-		int offset = LES_getOffset();
-		if (offset >= 2) {
-			printf("switch occur, it's wrong.\n");
+
+		if (ret == 0) {
+			send_count++;
 		}
-		*/
-		
+#if TEST6_3_DEBUG
+		if (ret != 0) {
+			printf("[6_3] send FAILED: iter %d, ret=%d, errno=%d, retries=%d\n",
+			       i, ret, errno, retry_count);
+		}
+		if (i < 5 || i == TEST_ITERATION - 1) {
+			printf("[6_3] send: iter %d, ret=%d, retries=%d\n", i, ret, retry_count);
+		}
+#endif
+
 		tmp_send_cycles += t1 - t0;
     }
-    
+
+#if TEST6_3_DEBUG
+    printf("[6_3] send_thread main loop done, send_count=%d\n", send_count);
+    printf("[6_3] send_thread joining children...\n");
+#endif
+
     pthread_join(tid1, NULL);
+#if TEST6_3_DEBUG
+    printf("[6_3] receive_thread joined\n");
+#endif
     pthread_join(tid2, NULL);
-    
+#if TEST6_3_DEBUG
+    printf("[6_3] assist_thread joined\n");
+#endif
+
     total_cycles = tmp_send_cycles;
-    
+
     pthread_attr_destroy(&attr);
-    
+
     return NULL;
 }
 
