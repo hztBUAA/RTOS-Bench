@@ -5,6 +5,12 @@ import os
 cwd = GetCurrentDir()
 objs = []
 
+# Build rtbench_workloads.cpp which registers all workloads
+src = Glob('rtbench_workloads.cpp')
+CPPPATH = [cwd]
+group = DefineGroup('rtbench_workloads', src, depend=[''], CPPPATH=CPPPATH)
+objs.append(group)
+
 # Auto-discover workload subdirectories with SConscript
 for item in os.listdir(cwd):
     path = os.path.join(cwd, item)
