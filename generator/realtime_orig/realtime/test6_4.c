@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <mqueue.h>
 #include <fcntl.h>
+#include <rtthread.h>
 
 #include "les.h"
 
@@ -21,38 +22,53 @@ static volatile uint64_t send_total_cycles, receive_total_cycles;
 
 static const char* msg = "Hi";
 
+/* Helper: send with retry for RT-Thread mqueue bug workaround */
+static int mq_send_retry(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
+{
+	int ret;
+	int retry = 0;
+	do {
+		ret = mq_send(mqdes, msg_ptr, msg_len, msg_prio);
+		if (ret != 0) {
+			retry++;
+			rt_thread_mdelay(1);
+		}
+	} while (ret != 0 && retry < 50);
+	return ret;
+}
+
 
 static void *send_thread(void *parameter) {
-	
-	mq_send(mq, msg, strlen(msg) + 1, 0);
+
+	mq_send_retry(mq, msg, strlen(msg) + 1, 0);
 
 	for (int i = 0; i < TEST_ITERATION; i++) {
-		mq_send(mq, msg, strlen(msg) + 1, 0);
+		mq_send_retry(mq, msg, strlen(msg) + 1, 0);
     }
 
-	mq_send(mq, msg, strlen(msg) + 1, 0);
+	mq_send_retry(mq, msg, strlen(msg) + 1, 0);
 
 	uint64_t t0, t1 = 0, t2 = 0, t3;
 	uint64_t tmp_cycles = 0;
 
 	// 消息接收的高优先级挂起睡眠
 	for (int i = 0; i < TEST_ITERATION; i++) {
-		
+
 		LES_enable();
 		t0 = timeGet();
-		mq_send(mq, msg, strlen(msg) + 1, 0);
+		mq_send_retry(mq, msg, strlen(msg) + 1, 0);
 		t3 = timeGet();
 		LES_disable();
-		
+
 		int offset = LES_getOffset();
 		if (offset >= 2) {
 			LES_getTimeVal(0, &t1);
 			LES_getTimeVal(offset - 1, &t2);
 		}
-		
+
 		tmp_cycles += t3 - t2 + t1 - t0;
     }
-    
+
     send_total_cycles = tmp_cycles;
     return NULL;
 }
