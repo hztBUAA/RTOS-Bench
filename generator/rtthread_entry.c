@@ -21,6 +21,7 @@ typedef int clockid_t;
 #include <string.h>
 #include <strings.h>
 #include <rtthread.h>
+#include <rtsched.h>
 
 /* Minimal RT-Thread entry point to avoid argp/perf dependencies.
  * Usage: rtosbench [-p <period_sec>] [-t <tasks>] [-f <prio>] [-c <cpu>] [-b <workload>]
@@ -97,7 +98,7 @@ static void debug_print_context(const struct execution_options *opts)
 #endif
 	rt_kprintf("[rtbench] thread=%s prio=%d sp=%p\n",
 		   self ? self->parent.name : "NULL",
-		   self ? self->current_priority : -1,
+		   self ? (int)RT_SCHED_PRIV(self).current_priority : -1,
 		   sp);
 	rt_kprintf("[rtbench] workload=%s period=%ld.%09ld tasks=%llu\n",
 		   rtosbench_current_workload(),
