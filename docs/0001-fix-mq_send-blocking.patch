@@ -1,0 +1,121 @@
+From: RTOS-Bench Project <rtos-bench@example.com>
+Subject: [PATCH] [libc/posix] Fix mq_send() to block when queue is full per POSIX standard
+
+The POSIX mq_send() function currently passes timeout=0 to
+rt_mq_send_wait_prio(), causing it to return immediately when the
+queue is full instead of blocking as required by POSIX.1-2017.
+
+This patch:
+1. Changes mq_send() to use RT_WAITING_FOREVER for blocking behavior
+2. Implements mq_timedsend() properly with timeout support
+3. Fixes errno mapping for different error conditions
+
+Reference: POSIX.1-2017 mq_send(3p):
+"If the specified message queue is full, mq_send() shall block until
+space becomes available to enqueue the message, or until mq_send()
+is interrupted by a signal."
+
+Signed-off-by: RTOS-Bench Project <rtos-bench@example.com>
+---
+ components/libc/posix/ipc/mqueue.c | 50 +++++++++++++++++++++++++++---
+ 1 file changed, 46 insertions(+), 4 deletions(-)
+
+diff --git a/components/libc/posix/ipc/mqueue.c b/components/libc/posix/ipc/mqueue.c
+index xxx..yyy 100644
+--- a/components/libc/posix/ipc/mqueue.c
++++ b/components/libc/posix/ipc/mqueue.c
+@@ -224,8 +224,8 @@ RTM_EXPORT(mq_receive);
+  * @note    This function sends a message to the message queue identified by id.
+  *          The message to be sent is contained in the buffer pointed to by msg_ptr, with a size of msg_len bytes.
+  *          The priority of the message is specified by the msg_prio parameter.
+- *          The function then attempts to send the message to the message queue using the rt_mq_send_wait_prio() function
+- *          with zero timeout and uninterruptible mode.
++ *          If the message queue is full, the function blocks until space becomes available,
++ *          following POSIX standard behavior.
+  *          If the message is successfully sent, the function returns 0.
+  *          If an error occurs during the send operation, errno is set to EBADF, indicating a bad file descriptor,
+  *          and the function returns -1.
+@@ -245,11 +245,19 @@ int mq_send(mqd_t id, const char *msg_ptr, size_t msg_len, unsigned msg_prio)
+         rt_set_errno(EINVAL);
+         return -1;
+     }
+-    result = rt_mq_send_wait_prio(mq, (void *)msg_ptr, msg_len, msg_prio, 0, RT_UNINTERRUPTIBLE);
++    result = rt_mq_send_wait_prio(mq, (void *)msg_ptr, msg_len, msg_prio, RT_WAITING_FOREVER, RT_UNINTERRUPTIBLE);
+     if (result == RT_EOK)
+         return 0;
+
+-    rt_set_errno(EBADF);
++    if (result == -RT_EINTR)
++        rt_set_errno(EINTR);
++    else if (result == -RT_ERROR)
++        rt_set_errno(EMSGSIZE);
++    else if (result == -RT_EINVAL)
++        rt_set_errno(EINVAL);
++    else
++        rt_set_errno(EBADF);
+
+     return -1;
+ }
+@@ -321,6 +329,9 @@ RTM_EXPORT(mq_timedreceive);
+ /**
+  * @brief   Sends a message to a message queue with a timeout (not supported).
++ * @brief   Sends a message to a message queue with a timeout.
+  * @param   id Message queue descriptor.
+  * @param   msg_ptr Pointer to the buffer containing the message to be sent.
+  * @param   msg_len Size of the message to be sent.
+@@ -329,8 +340,10 @@ RTM_EXPORT(mq_timedreceive);
+  * @return  Upon successful completion, returns 0;
+  *          otherwise, returns -1 and sets errno to indicate the error.
+  *
+- * @note    This function attempts to send a message to the message queue identified by id with a specified timeout,
+- *          but timed send is not supported in the RT-Thread environment.
++ * @note    This function sends a message to the message queue identified by id with a specified timeout.
++ *          If the message queue is full and the timeout has not expired, the function blocks.
++ *          If abs_timeout is NULL, the function waits indefinitely (same as mq_send).
++ *          If the timeout expires before space becomes available, errno is set to ETIMEDOUT.
+  */
+ int mq_timedsend(mqd_t                  id,
+                  const char            *msg_ptr,
+@@ -338,8 +351,37 @@ int mq_timedsend(mqd_t                  id,
+                  unsigned               msg_prio,
+                  const struct timespec *abs_timeout)
+ {
+-    /* RT-Thread does not support timed send */
+-    return mq_send(id, msg_ptr, msg_len, msg_prio);
++    rt_mq_t mq;
++    rt_err_t result;
++    int tick = 0;
++    struct mqueue_file *mq_file;
++    mq_file = fd_get(id)->vnode->data;
++    mq = (rt_mq_t)mq_file->data;
++
++    if ((mq == RT_NULL) || (msg_ptr == RT_NULL))
++    {
++        rt_set_errno(EINVAL);
++        return -1;
++    }
++
++    if (abs_timeout != RT_NULL)
++        tick = rt_timespec_to_tick(abs_timeout);
++    else
++        tick = RT_WAITING_FOREVER;
++
++    result = rt_mq_send_wait_prio(mq, (void *)msg_ptr, msg_len, msg_prio, tick, RT_UNINTERRUPTIBLE);
++    if (result == RT_EOK)
++        return 0;
++
++    if (result == -RT_ETIMEOUT)
++        rt_set_errno(ETIMEDOUT);
++    else if (result == -RT_EINTR)
++        rt_set_errno(EINTR);
++    else if (result == -RT_ERROR)
++        rt_set_errno(EMSGSIZE);
++    else
++        rt_set_errno(EBADF);
++
++    return -1;
+ }
+ RTM_EXPORT(mq_timedsend);
+
+--
+2.39.0
