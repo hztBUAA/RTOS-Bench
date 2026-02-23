@@ -4,7 +4,7 @@
 
 ## 项目概览
 
-RTOS-Bench 是一套跨平台周期性实时基准测试框架，支持 Linux / RT-Thread / SylixOS / OneOS 等平台。
+RTOS-Bench 是一套跨平台工业 RTOS 基准测试框架，基于《工业操作系统通用基准检测指标体系指导书 v1.5》。
 
 ## 快速参考
 
@@ -15,25 +15,23 @@ RTOS-Bench 是一套跨平台周期性实时基准测试框架，支持 Linux / 
 ./run-rtthread.sh -b       # 仅编译
 ./run-rtthread.sh -r       # 仅运行
 
-# SylixOS (QEMU x86_64)
-./run-sylixos.sh           # 启动
-./run-sylixos.sh -n        # 无图形模式
-
 # msh 内运行测试
-rtbench -b busywait -p 0.5 -t 1 -q
-rtbench -L                 # 列出所有 workload
+rtbench test-realtime                # 实时性能测试
+rtbench test-schedule --cycles 100   # 可调度性测试
+rtbench test-stress -s cpu -t 5      # 压力测试
+rtbench -b busywait -p 0.5 -t 1 -q   # 周期负载
+rtbench -L                           # 列出所有 workload
 ```
 
 ### 目录结构
 - `generator/` - 核心框架与平台抽象层
-- `workloads/` - 所有打包的工作负载
-- `docs/` - 构建指南与文档
+- `workloads/` - 典型工业负载
+- `docs/` - 文档
 
 ### 关键文档
-- [AGENTS.md](AGENTS.md) - 完整开发资产（新增平台/workload 指南）
-- [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) - 构建与部署详细指南
-- [docs/COMPILE_QUICK_START.md](docs/COMPILE_QUICK_START.md) - 快速编译验证
-- [docs/RESULTS_SCHEMA.md](docs/RESULTS_SCHEMA.md) - 结果入库参考
+- [README.md](README.md) - 快速入门
+- [AGENTS.md](AGENTS.md) - 开发约定与详细指南
+- [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) - 架构设计
 
 ## 代码修改注意事项
 
