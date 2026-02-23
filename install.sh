@@ -249,6 +249,15 @@ setup_rtthread() {
         cp "$RTCONFIG_SRC" "$RTCONFIG_DST"
     fi
 
+    # 复制 rtbench msh 命令文件
+    local APP_DIR="$BSP_DIR/applications"
+    local CMD_SRC="$SCRIPT_DIR/configs/bsp_files/rtbench_cmd.c"
+    if [ -f "$CMD_SRC" ]; then
+        mkdir -p "$APP_DIR"
+        info "复制 rtbench_cmd.c (msh 命令注册)..."
+        cp "$CMD_SRC" "$APP_DIR/"
+    fi
+
     info "RT-Thread 配置完成"
 }
 
