@@ -25,6 +25,7 @@ src_files = [
     'workload_busywait.c',
     'uunifast.c',
     'test_schedule.c',
+    'test_realtime.c',
 ]
 
 # Add platform-specific entry and sources
@@ -43,7 +44,12 @@ src = [File(f) for f in src_files]
 # Add platform abstraction layer
 src += Glob('platform/' + platform + '/*.c')
 
-CPPPATH = [cwd]
+# Add original realtime tests (les, realtime, multicore)
+src += Glob('realtime_orig/les/*.c')
+src += Glob('realtime_orig/realtime/*.c')
+src += Glob('realtime_orig/multicore/*.c')
+
+CPPPATH = [cwd, cwd + '/realtime_orig/les']
 LOCAL_CPPDEFINES = []
 
 # RT-Thread 平台特殊处理

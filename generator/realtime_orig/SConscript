@@ -1,0 +1,21 @@
+# SConscript for original realtime benchmark tests
+Import('env')
+
+from building import *
+
+cwd = GetCurrentDir()
+CPPPATH = [cwd + '/les']
+src = []
+
+# LES library
+src += Glob('les/*.c')
+
+# Realtime tests
+src += Glob('realtime/*.c')
+
+# Multicore tests
+src += Glob('multicore/*.c')
+
+group = DefineGroup('realtime_orig', src, depend = [''], CPPPATH = CPPPATH)
+
+Return('group')

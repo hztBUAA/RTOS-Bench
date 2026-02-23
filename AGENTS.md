@@ -71,6 +71,10 @@
   - `rtbench test-schedule` => 完整测试（30%-100%利用率，10000周期）
   - `rtbench test-schedule --cycles 100` => 快速测试（减少周期数）
   - 详见 [docs/SCHEDULE.md](docs/SCHEDULE.md)
+- **实时性能测试**：
+  - `rtbench test-realtime` => 测量上下文切换、信号量、互斥锁、内存分配延迟
+  - `rtbench test-realtime --multicore` => 包含多核测试（需 SMP 支持）
+  - 详见 [docs/REALTIME.md](docs/REALTIME.md)
 
 ## 迁移/调试提示
 - Deadline：Linux 支持 SCHED_DEADLINE；RTOS 不支持时 `rtbench_set_deadline` 应返回 -1 并提示，统计层仍可用 deadline 判定 miss（需入口支持 -d）。
@@ -86,6 +90,7 @@
 - `extern/rt-thread/bsp/qemu-virt64-aarch64/`：RT-Thread BSP 与 `.config`。
 - `docs/BUILD_GUIDE.md`：详细构建与部署指南（新人必读）。
 - `docs/SCHEDULE.md`：可调度性测试 (test-schedule) 使用指南。
+- `docs/REALTIME.md`：实时性能测试 (test-realtime) 使用指南。
 
 ## 工具链说明
 
