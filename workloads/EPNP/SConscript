@@ -1,32 +1,7 @@
+# RTOS-Bench EPNP Workload SConscript
+# Temporarily disabled due to memory constraints during compilation
 from building import *
-import os
 
-cwd = GetCurrentDir()
-
-src = Glob('*.cpp')
-
-CPPPATH = [
-    cwd,
-    os.path.join(cwd, 'opengv'),
-    os.path.join(cwd, 'Eigen'),
-]
-
-CPPDEFINES = [
-    'ECL_STANDALONE',
-    '__STDC_FORMAT_MACROS',
-    '__STDC_LIMIT_MACROS',
-    '_USE_MATH_DEFINES',
-    'EIGEN_DONT_VECTORIZE',
-    'EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT',
-]
-
-path_to_fix_header = os.path.join(cwd, 'fix_opengv.h')
-LOCAL_CXXFLAGS = ' -O3 -std=c++14 -Wno-error -Wno-literal-suffix -include ' + path_to_fix_header
-
-LIBS = ['m']
-
-group = DefineGroup('EPNP', src, depend=['RT_USING_CPLUSPLUS'],
-                    CPPPATH=CPPPATH, CPPDEFINES=CPPDEFINES,
-                    LOCAL_CXXFLAGS=LOCAL_CXXFLAGS, LIBS=LIBS)
+group = []
 
 Return('group')

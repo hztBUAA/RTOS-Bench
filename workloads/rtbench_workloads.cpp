@@ -12,14 +12,14 @@ int fast_bench_run_once(int loops);
 int modbus_bench_run(void);
 int mqtt_bench_run(void);
 // C++ workloads exposed as C for simplicity
+#ifdef ENABLE_EPNP_WORKLOAD
 int epnp_bench_run(size_t iterations);
+#endif
 int ekf_bench_run(void);
 int icp_bench_run(void);
 int pid_bench_run(void);
 int cusum_bench_run(void);
 int ewma_bench_run(void);
-// Stress workload
-int stress_bench_run(void);
 }
 
 /* FAST */
@@ -53,6 +53,7 @@ const struct rtosbench_workload rtosbench_fast_workload = {
 };
 
 /* EPNP */
+#ifdef ENABLE_EPNP_WORKLOAD
 static int epnp_init(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
@@ -81,6 +82,7 @@ const struct rtosbench_workload rtosbench_epnp_workload = {
 	.exec = epnp_exec,
 	.teardown = epnp_teardown,
 };
+#endif
 
 /* EKF */
 static int ekf_init(int parameters_num, void **parameters)
@@ -292,43 +294,15 @@ const struct rtosbench_workload rtosbench_ewma_workload = {
 	.teardown = ewma_teardown,
 };
 
-/* STRESS */
-static int stress_init(int parameters_num, void **parameters)
-{
-	(void)parameters_num;
-	(void)parameters;
-	return 0;
-}
-
-static void stress_exec(int parameters_num, void **parameters)
-{
-	(void)parameters_num;
-	(void)parameters;
-	stress_bench_run();
-}
-
-static void stress_teardown(int parameters_num, void **parameters)
-{
-	(void)parameters_num;
-	(void)parameters;
-}
-
-const struct rtosbench_workload rtosbench_stress_workload = {
-	.name = "stress",
-	.description = "stress-ng CPU stress test (1s iteration)",
-	.category = "stress",
-	.init = stress_init,
-	.exec = stress_exec,
-	.teardown = stress_teardown,
-};
-
 /* Registration helpers */
 static void register_all_workloads(void)
 {
 	rtosbench_register_workload(&rtosbench_stub_workload);
 	rtosbench_register_workload(&rtosbench_busywait_workload);
 	rtosbench_register_workload(&rtosbench_fast_workload);
+#ifdef ENABLE_EPNP_WORKLOAD
 	rtosbench_register_workload(&rtosbench_epnp_workload);
+#endif
 	rtosbench_register_workload(&rtosbench_ekf_workload);
 	rtosbench_register_workload(&rtosbench_icp_workload);
 	rtosbench_register_workload(&rtosbench_modbus_workload);
@@ -336,7 +310,6 @@ static void register_all_workloads(void)
 	rtosbench_register_workload(&rtosbench_pid_workload);
 	rtosbench_register_workload(&rtosbench_cusum_workload);
 	rtosbench_register_workload(&rtosbench_ewma_workload);
-	rtosbench_register_workload(&rtosbench_stress_workload);
 }
 
 #if defined(__GNUC__) && !defined(RT_THREAD_PLATFORM)
