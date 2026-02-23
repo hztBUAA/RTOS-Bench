@@ -1,7 +1,17 @@
 #!/bin/bash
 # RTOS-Bench 环境安装脚本
 # 用途: 一键配置 RT-Thread (QEMU aarch64) 开发环境
-# 用法: ./install.sh
+#
+# 用法: ./install.sh [选项]
+#   -h          显示帮助
+#   -s          跳过工具链下载 (SKIP_TOOLCHAIN=1)
+#   -m          使用镜像加速下载 (USE_MIRROR=1)
+#   -t PATH     指定已有工具链路径
+#
+# 环境变量:
+#   SKIP_TOOLCHAIN=1    跳过工具链下载
+#   USE_MIRROR=1        使用 ghproxy 镜像加速
+#   TOOLCHAIN_PATH=...  指定已有工具链路径
 
 set -e
 
@@ -19,6 +29,34 @@ NC='\033[0m' # No Color
 info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+
+# 解析命令行参数
+parse_args() {
+    while getopts "hsmt:" opt; do
+        case $opt in
+            h)
+                echo "用法: $0 [选项]"
+                echo "  -h          显示帮助"
+                echo "  -s          跳过工具链下载"
+                echo "  -m          使用镜像加速下载"
+                echo "  -t PATH     指定已有工具链路径"
+                exit 0
+                ;;
+            s)
+                SKIP_TOOLCHAIN=1
+                ;;
+            m)
+                USE_MIRROR=1
+                ;;
+            t)
+                TOOLCHAIN_PATH="$OPTARG"
+                ;;
+            *)
+                error "未知选项: -$opt"
+                ;;
+        esac
+    done
+}
 
 # ============================================================================
 # 1. 检查系统依赖
@@ -90,10 +128,31 @@ install_toolchain() {
     info "检查 aarch64 工具链..."
 
     local TOOLCHAIN_NAME="xpack-aarch64-none-elf-gcc-14.2.1-1.1"
-    local TOOLCHAIN_PATH="$TOOLCHAIN_DIR/$TOOLCHAIN_NAME"
+    local TOOLCHAIN_DEST="$TOOLCHAIN_DIR/$TOOLCHAIN_NAME"
 
-    if [ -d "$TOOLCHAIN_PATH" ]; then
-        info "工具链已存在: $TOOLCHAIN_PATH"
+    # 如果指定了已有工具链路径
+    if [ -n "$TOOLCHAIN_PATH" ]; then
+        if [ -x "$TOOLCHAIN_PATH/bin/aarch64-none-elf-gcc" ]; then
+            info "使用指定的工具链: $TOOLCHAIN_PATH"
+            mkdir -p "$TOOLCHAIN_DIR"
+            ln -sfn "$TOOLCHAIN_PATH" "$TOOLCHAIN_DEST"
+            return 0
+        else
+            error "指定的工具链路径无效: $TOOLCHAIN_PATH"
+        fi
+    fi
+
+    # 检查是否已存在
+    if [ -d "$TOOLCHAIN_DEST" ]; then
+        info "工具链已存在: $TOOLCHAIN_DEST"
+        return 0
+    fi
+
+    # 跳过下载
+    if [ "$SKIP_TOOLCHAIN" = "1" ]; then
+        warn "跳过工具链下载 (SKIP_TOOLCHAIN=1)"
+        warn "请手动下载并解压到: $TOOLCHAIN_DIR/"
+        warn "下载地址: https://github.com/xpack-dev-tools/aarch64-none-elf-gcc-xpack/releases"
         return 0
     fi
 
@@ -103,31 +162,44 @@ install_toolchain() {
     # 检测系统架构
     local ARCH=$(uname -m)
     local DOWNLOAD_URL=""
+    local FILENAME=""
 
     case "$ARCH" in
         x86_64)
-            DOWNLOAD_URL="https://github.com/xpack-dev-tools/aarch64-none-elf-gcc-xpack/releases/download/v14.2.1-1.1/xpack-aarch64-none-elf-gcc-14.2.1-1.1-linux-x64.tar.gz"
+            FILENAME="xpack-aarch64-none-elf-gcc-14.2.1-1.1-linux-x64.tar.gz"
             ;;
         aarch64)
-            DOWNLOAD_URL="https://github.com/xpack-dev-tools/aarch64-none-elf-gcc-xpack/releases/download/v14.2.1-1.1/xpack-aarch64-none-elf-gcc-14.2.1-1.1-linux-arm64.tar.gz"
+            FILENAME="xpack-aarch64-none-elf-gcc-14.2.1-1.1-linux-arm64.tar.gz"
             ;;
         *)
             error "不支持的架构: $ARCH"
             ;;
     esac
 
+    DOWNLOAD_URL="https://github.com/xpack-dev-tools/aarch64-none-elf-gcc-xpack/releases/download/v14.2.1-1.1/$FILENAME"
+
+    # 使用镜像加速
+    if [ "$USE_MIRROR" = "1" ]; then
+        DOWNLOAD_URL="https://ghproxy.com/$DOWNLOAD_URL"
+        info "使用镜像加速: ghproxy.com"
+    fi
+
     info "下载工具链 (约 200MB)..."
+    info "URL: $DOWNLOAD_URL"
     local TARBALL="toolchain.tar.gz"
-    wget -q --show-progress -O "$TARBALL" "$DOWNLOAD_URL"
+
+    if ! wget -q --show-progress -O "$TARBALL" "$DOWNLOAD_URL"; then
+        error "下载失败，请尝试:\n  1. 使用镜像: ./install.sh -m\n  2. 手动下载并指定路径: ./install.sh -t /path/to/toolchain"
+    fi
 
     info "解压工具链..."
     tar xf "$TARBALL"
     rm "$TARBALL"
 
     # 验证
-    if [ -x "$TOOLCHAIN_PATH/bin/aarch64-none-elf-gcc" ]; then
+    if [ -x "$TOOLCHAIN_DEST/bin/aarch64-none-elf-gcc" ]; then
         info "工具链安装成功"
-        "$TOOLCHAIN_PATH/bin/aarch64-none-elf-gcc" --version | head -1
+        "$TOOLCHAIN_DEST/bin/aarch64-none-elf-gcc" --version | head -1
     else
         error "工具链安装失败"
     fi
@@ -250,6 +322,8 @@ print_usage() {
 # 主流程
 # ============================================================================
 main() {
+    parse_args "$@"
+
     echo "============================================================"
     echo "  RTOS-Bench 环境安装脚本"
     echo "============================================================"
