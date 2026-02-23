@@ -1,0 +1,26 @@
+# RTOS-Bench STRESS Workload SConscript
+from building import *
+import os
+
+cwd = GetCurrentDir()
+src = []
+CPPPATH = [cwd, cwd + '/common', cwd + '/osal', cwd + '/stressor']
+
+# Common sources
+src += Glob('common/*.c')
+
+# OSAL (OS abstraction layer) - only RT-Thread implementation
+src += Glob('osal/*.c')
+
+# Platform entry (RT-Thread MSH command)
+src += Glob('platforms/*.c')
+
+# All stressor implementations
+src += Glob('stressor/*.c')
+
+# Bench adapter
+src += Glob('stress_bench.c')
+
+group = DefineGroup('STRESS', src, depend=[''], CPPPATH=CPPPATH)
+
+Return('group')

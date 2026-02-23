@@ -18,6 +18,8 @@ int icp_bench_run(void);
 int pid_bench_run(void);
 int cusum_bench_run(void);
 int ewma_bench_run(void);
+// Stress workload
+int stress_bench_run(void);
 }
 
 /* FAST */
@@ -290,6 +292,36 @@ const struct rtosbench_workload rtosbench_ewma_workload = {
 	.teardown = ewma_teardown,
 };
 
+/* STRESS */
+static int stress_init(int parameters_num, void **parameters)
+{
+	(void)parameters_num;
+	(void)parameters;
+	return 0;
+}
+
+static void stress_exec(int parameters_num, void **parameters)
+{
+	(void)parameters_num;
+	(void)parameters;
+	stress_bench_run();
+}
+
+static void stress_teardown(int parameters_num, void **parameters)
+{
+	(void)parameters_num;
+	(void)parameters;
+}
+
+const struct rtosbench_workload rtosbench_stress_workload = {
+	.name = "stress",
+	.description = "stress-ng CPU stress test (1s iteration)",
+	.category = "stress",
+	.init = stress_init,
+	.exec = stress_exec,
+	.teardown = stress_teardown,
+};
+
 /* Registration helpers */
 static void register_all_workloads(void)
 {
@@ -304,6 +336,7 @@ static void register_all_workloads(void)
 	rtosbench_register_workload(&rtosbench_pid_workload);
 	rtosbench_register_workload(&rtosbench_cusum_workload);
 	rtosbench_register_workload(&rtosbench_ewma_workload);
+	rtosbench_register_workload(&rtosbench_stress_workload);
 }
 
 #if defined(__GNUC__) && !defined(RT_THREAD_PLATFORM)
