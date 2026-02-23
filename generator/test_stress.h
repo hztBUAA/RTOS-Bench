@@ -15,6 +15,8 @@
 #ifndef TEST_STRESS_H
 #define TEST_STRESS_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

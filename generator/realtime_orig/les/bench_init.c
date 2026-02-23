@@ -241,3 +241,47 @@ MSH_CMD_EXPORT(realtime_print, print realtime test results);
 MSH_CMD_EXPORT(multicore_init, start multicore benchmark);
 MSH_CMD_EXPORT(multicore_print, print realtime test results);
 #endif
+
+/* =========================================================================
+ * Public API for test_realtime wrapper
+ * ========================================================================= */
+
+/**
+ * @brief Run all realtime performance tests
+ * @return 0 on success
+ */
+int realtime_benchmark_run(void)
+{
+    realtime_init();
+    realtime_print();
+    return 0;
+}
+
+/**
+ * @brief Run multicore performance tests
+ * @return 0 on success
+ */
+int realtime_benchmark_run_multicore(void)
+{
+    multicore_init();
+    multicore_print();
+    return 0;
+}
+
+/**
+ * @brief Run both realtime and multicore tests
+ * @param run_multicore 1 to include multicore tests, 0 for realtime only
+ * @return 0 on success
+ */
+int realtime_benchmark_run_all(int run_multicore)
+{
+    realtime_init();
+    realtime_print();
+
+    if (run_multicore) {
+        multicore_init();
+        multicore_print();
+    }
+
+    return 0;
+}
