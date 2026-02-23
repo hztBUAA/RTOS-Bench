@@ -17,7 +17,7 @@
 #define STRESS_PRINTF printf
 #endif
 
-/* Forward declaration - implemented in workloads/STRESS */
+/* Forward declaration - implemented in stress_orig/ */
 extern int stress_ng_main(int argc, char **argv);
 extern int stress_ng_main_stop(void);
 

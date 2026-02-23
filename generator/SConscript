@@ -50,7 +50,15 @@ src += Glob('realtime_orig/les/*.c')
 src += Glob('realtime_orig/realtime/*.c')
 src += Glob('realtime_orig/multicore/*.c')
 
-CPPPATH = [cwd, cwd + '/realtime_orig/les']
+# Add stress-ng port (stress_orig)
+src += [File('stress_orig/stress_bench.c')]
+src += [File('stress_orig/common/stress-ng.c')]
+src += [File('stress_orig/common/core-helper.c')]
+src += [File('stress_orig/common/stress_stored_job.c')]
+src += Glob('stress_orig/osal/*.c')
+src += Glob('stress_orig/stressor/*.c')
+
+CPPPATH = [cwd, cwd + '/realtime_orig/les', cwd + '/stress_orig', cwd + '/stress_orig/common', cwd + '/stress_orig/osal']
 LOCAL_CPPDEFINES = []
 
 # RT-Thread 平台特殊处理
