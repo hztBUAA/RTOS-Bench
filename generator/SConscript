@@ -26,6 +26,7 @@ src_files = [
     'uunifast.c',
     'test_schedule.c',
     'test_realtime.c',
+    'test_stress.c',
 ]
 
 # Add platform-specific entry and sources

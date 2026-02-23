@@ -18,6 +18,7 @@ typedef int clockid_t;
 #include "workload_registry.h"
 #include "test_schedule.h"
 #include "test_realtime.h"
+#include "test_stress.h"
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -163,6 +164,47 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		}
 
 		return test_realtime_run(run_multicore);
+	}
+
+	/* Check for test-stress subcommand */
+	if (argc >= 2 && strcmp(argv[1], "test-stress") == 0) {
+		const char *stressor = "cpu";
+		int duration = 10;
+		int list_stressors = 0;
+
+		/* Parse optional test-stress arguments */
+		for (int i = 2; i < argc; i++) {
+			if (strcmp(argv[i], "-s") == 0 && (i + 1 < argc)) {
+				stressor = argv[++i];
+			} else if (strcmp(argv[i], "-t") == 0 && (i + 1 < argc)) {
+				duration = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "-l") == 0 ||
+			           strcmp(argv[i], "--list") == 0) {
+				list_stressors = 1;
+			} else if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+
+		if (list_stressors) {
+			test_stress_list_stressors();
+			return 0;
+		}
+
+		rt_kprintf("[test-stress] Starting stress/power test\n");
+		rt_kprintf("  Stressor: %s, Duration: %d seconds\n", stressor, duration);
+
+		if (strcmp(stressor, "all") == 0) {
+			struct test_stress_config config = {
+				.type = STRESS_TYPE_ALL,
+				.duration_sec = duration,
+				.num_workers = 1,
+				.quiet = 0
+			};
+			return test_stress_run_config(&config);
+		}
+
+		return test_stress_run_stressor(stressor, duration);
 	}
 
 	set_default_exec_opts(&opts);
