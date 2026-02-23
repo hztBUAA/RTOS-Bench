@@ -100,7 +100,8 @@ RTOS-Bench/
 │       ├── rt-thread/
 │       ├── sylixos/
 │       ├── oneos/
-│       └── freertos/
+│       ├── dongtu/
+│       └── ruihua/
 │
 ├── workloads/                   # 典型负载
 │   ├── FAST/, EPNP/, EKF/, ICP/, PID/
@@ -127,7 +128,8 @@ RTOS-Bench/
 | **Linux** | `main.c` | Makefile | ✅ 原生支持 |
 | **SylixOS** | `posixlite_entry.c` | RealEvo IDE | ⚠️ 需 Windows IDE |
 | **OneOS** | `oneos_entry.c` | SCons (OneOS Cube) | ✅ 部分验证 |
-| **FreeRTOS** | (待实现) | CMake/Makefile | ❌ 框架存在 |
+| **东土 (Dongtu)** | `posixlite_entry.c` | 厂商 IDE | ⚠️ POSIX-lite 适配 |
+| **锐华 (Ruihua)** | `posixlite_entry.c` | 厂商 IDE | ⚠️ POSIX-lite 适配 |
 
 ### 4.2 跨平台编译的三个层次
 
@@ -246,7 +248,8 @@ RTOS-Bench/
 └── ports/
     ├── rtthread/            # RT-Thread BSP 集成示例
     ├── oneos/               # OneOS 项目集成示例
-    ├── freertos/            # FreeRTOS 项目集成示例
+    ├── dongtu/              # 东土项目集成示例
+    ├── ruihua/              # 锐华项目集成示例
     └── sylixos/             # SylixOS IDE 工程模板
 ```
 

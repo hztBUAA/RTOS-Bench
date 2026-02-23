@@ -125,7 +125,8 @@ RTOS-Bench/
 | **Linux** | ✅ 支持 | `main.c` | Makefile |
 | **SylixOS** | ⚠️ 需 Windows IDE | `posixlite_entry.c` | RealEvo |
 | **OneOS** | ⚠️ 部分支持 | `oneos_entry.c` | SCons |
-| **FreeRTOS** | ❌ 框架存在 | - | - |
+| **东土 (Dongtu)** | ⚠️ POSIX-lite | `posixlite_entry.c` | 厂商 IDE |
+| **锐华 (Ruihua)** | ⚠️ POSIX-lite | `posixlite_entry.c` | 厂商 IDE |
 
 详见 [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) 中的跨平台编译章节。
 
