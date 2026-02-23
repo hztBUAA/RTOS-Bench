@@ -236,9 +236,17 @@ setup_rtthread() {
     # 复制 BSP 配置文件
     local CONFIG_SRC="$SCRIPT_DIR/configs/rtthread_qemu_aarch64.config"
     local CONFIG_DST="$BSP_DIR/.config"
+    local RTCONFIG_SRC="$SCRIPT_DIR/configs/rtthread_qemu_aarch64_rtconfig.h"
+    local RTCONFIG_DST="$BSP_DIR/rtconfig.h"
+
     if [ -f "$CONFIG_SRC" ]; then
         info "复制 BSP 配置 (启用 pthread 等组件)..."
         cp "$CONFIG_SRC" "$CONFIG_DST"
+    fi
+
+    if [ -f "$RTCONFIG_SRC" ]; then
+        info "复制 rtconfig.h (编译所需的宏定义)..."
+        cp "$RTCONFIG_SRC" "$RTCONFIG_DST"
     fi
 
     info "RT-Thread 配置完成"
