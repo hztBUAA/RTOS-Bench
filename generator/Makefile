@@ -74,7 +74,9 @@ PLATFORM_SRC := $(PLATFORM_DIR)/timer.c \
 # Core source files for all platforms
 CORE_SRC := $(GENERATOR_DIR)/periodic_benchmark.c \
 	$(GENERATOR_DIR)/logging.c \
-	$(GENERATOR_DIR)/memory_watcher.c
+	$(GENERATOR_DIR)/memory_watcher.c \
+	$(GENERATOR_DIR)/uunifast.c \
+	$(GENERATOR_DIR)/test_schedule.c
 
 # Workload registry (unified for all platforms, always included)
 WORKLOAD_REGISTRY_SRC := $(GENERATOR_DIR)/workload_registry.c \

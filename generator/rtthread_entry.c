@@ -16,13 +16,16 @@ typedef int clockid_t;
 #include "periodic_benchmark.h"
 #include "logging.h"
 #include "workload_registry.h"
+#include "test_schedule.h"
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <rtthread.h>
+#include <rtsched.h>
 
 /* Minimal RT-Thread entry point to avoid argp/perf dependencies.
  * Usage: rtosbench [-p <period_sec>] [-t <tasks>] [-f <prio>] [-c <cpu>] [-b <workload>]
+ *        rtosbench test-schedule [--cycles <n>] [--util-start <pct>] [--util-end <pct>]
  * Defaults: period 1s, run until SIGINT, skip priority/affinity changes.
  */
 
@@ -95,7 +98,7 @@ static void debug_print_context(const struct execution_options *opts)
 #endif
 	rt_kprintf("[rtbench] thread=%s prio=%d sp=%p\n",
 		   self ? self->parent.name : "NULL",
-		   self ? self->current_priority : -1,
+		   self ? (int)RT_SCHED_PRIV(self).current_priority : -1,
 		   sp);
 	rt_kprintf("[rtbench] workload=%s period=%ld.%09ld tasks=%llu\n",
 		   rtosbench_current_workload(),
@@ -106,6 +109,38 @@ static void debug_print_context(const struct execution_options *opts)
 int rtosbench_rtthread_entry(int argc, char **argv)
 {
 	struct execution_options opts;
+
+	/* Check for test-schedule subcommand first */
+	if (argc >= 2 && strcmp(argv[1], "test-schedule") == 0) {
+		int cycles = TEST_SCHEDULE_CYCLES;
+		int util_start = TEST_SCHEDULE_UTIL_START;
+		int util_end = TEST_SCHEDULE_UTIL_END;
+		int util_step = TEST_SCHEDULE_UTIL_STEP;
+
+		/* Parse optional test-schedule arguments */
+		for (int i = 2; i < argc; i++) {
+			if (strcmp(argv[i], "--cycles") == 0 && (i + 1 < argc)) {
+				cycles = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "--util-start") == 0 && (i + 1 < argc)) {
+				util_start = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "--util-end") == 0 && (i + 1 < argc)) {
+				util_end = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "--util-step") == 0 && (i + 1 < argc)) {
+				util_step = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+
+		/* Register workloads before running test */
+		rtosbench_register_rtos_workloads();
+
+		rt_kprintf("[test-schedule] Starting schedulability test\n");
+		rt_kprintf("  Cycles: %d, Utilization: %d%% - %d%% (step %d%%)\n",
+			   cycles, util_start, util_end, util_step);
+
+		return test_schedule_run_custom(cycles, util_start, util_end, util_step);
+	}
 
 	set_default_exec_opts(&opts);
 	rtosbench_register_rtos_workloads();

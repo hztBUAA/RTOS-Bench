@@ -5,17 +5,50 @@ import os
 cwd = GetCurrentDir()
 
 # 检测平台
+# RT-Thread detection: check for RT_THREAD_PRIORITY_MAX which is always defined
 if GetDepend(['ONEOS_PLATFORM']):
     platform = 'oneos'
+elif GetDepend(['RT_THREAD_PRIORITY_32']) or GetDepend(['RT_THREAD_PRIORITY_256']):
+    platform = 'rt-thread'
 elif GetDepend(['RT_USING_LIBC']):
     platform = 'rt-thread'
 else:
     platform = 'posix-lite'
 
-src = Glob('*.c')
+# Core source files (platform-agnostic)
+src_files = [
+    'periodic_benchmark.c',
+    'logging.c',
+    'memory_watcher.c',
+    'workload_registry.c',
+    'workload_stub.c',
+    'workload_busywait.c',
+    'uunifast.c',
+    'test_schedule.c',
+]
+
+# Add platform-specific entry and sources
+if platform == 'rt-thread':
+    src_files.append('rtthread_entry.c')
+    src_files.append('rtthread_fini_stub.c')
+elif platform == 'oneos':
+    src_files.append('oneos_entry.c')
+else:
+    # posix-lite or Linux
+    src_files.append('posixlite_entry.c')
+
+# Convert to File objects
+src = [File(f) for f in src_files]
+
+# Add platform abstraction layer
 src += Glob('platform/' + platform + '/*.c')
 
 CPPPATH = [cwd]
+LOCAL_CPPDEFINES = []
+
+# RT-Thread 平台特殊处理
+if platform == 'rt-thread':
+    LOCAL_CPPDEFINES.append('RT_THREAD_PLATFORM')
 
 # OneOS 平台特殊处理
 LOCAL_CCFLAGS = ''
@@ -28,6 +61,7 @@ if platform == 'oneos':
 group = DefineGroup('rtbench_generator', src,
                     depend=[''],
                     CPPPATH=CPPPATH,
-                    LOCAL_CCFLAGS=LOCAL_CCFLAGS)
+                    LOCAL_CCFLAGS=LOCAL_CCFLAGS,
+                    LOCAL_CPPDEFINES=LOCAL_CPPDEFINES)
 
 Return('group')

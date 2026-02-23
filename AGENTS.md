@@ -1,6 +1,7 @@
 # CLAUDE.md
 
 本文件用于指导后续在本仓库内集成/扩展 rt-bench，重点面向新增 RTOS 平台和新的 workload 打包。
+开发过程中必须严格确保：确保代码和文档的强一致性和复利性!
 
 ## 核心约定（统一入口 + POSIX 合同）
 - 仅使用 workload registry（`generator/workload_registry.*`），强符号禁用 benchmark_* 覆盖；新增负载必须注册 `rtosbench_register_workload()`。
@@ -66,6 +67,10 @@
 - 网络类（离线降级）：
   - `rtbench -b modbus -p 2 -t 1 -q`  => offline 仿真，打印 TPS
   - `rtbench -b mqtt -p 2 -t 1 -q`    => 无会话则 pack-only 并打印统计
+- **可调度性测试**：
+  - `rtbench test-schedule` => 完整测试（30%-100%利用率，10000周期）
+  - `rtbench test-schedule --cycles 100` => 快速测试（减少周期数）
+  - 详见 [docs/SCHEDULE.md](docs/SCHEDULE.md)
 
 ## 迁移/调试提示
 - Deadline：Linux 支持 SCHED_DEADLINE；RTOS 不支持时 `rtbench_set_deadline` 应返回 -1 并提示，统计层仍可用 deadline 判定 miss（需入口支持 -d）。
@@ -80,6 +85,7 @@
 - `run-rtthread.sh` / `run-sylixos.sh`：一键构建/运行脚本。
 - `extern/rt-thread/bsp/qemu-virt64-aarch64/`：RT-Thread BSP 与 `.config`。
 - `docs/BUILD_GUIDE.md`：详细构建与部署指南（新人必读）。
+- `docs/SCHEDULE.md`：可调度性测试 (test-schedule) 使用指南。
 
 ## 工具链说明
 
