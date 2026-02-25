@@ -12,14 +12,16 @@ override CFLAGS+=-DJSON_SUPPORT
 override LDFLAGS+=-ljson-c
 endif
 
-GENERATOR_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+# Project root directory (where this Makefile lives)
+PROJECT_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+GENERATOR_DIR := $(PROJECT_ROOT)generator/
 
 PLATFORM ?= linux
 
-# Include packaged workloads under ../workloads by default.
+# Include packaged workloads under workloads/ by default.
 # Set RTOS_WORKLOADS=0 to disable.
 RTOS_WORKLOADS ?= 1
-WORKLOADS_DIR := $(abspath $(GENERATOR_DIR)/../workloads)
+WORKLOADS_DIR := $(PROJECT_ROOT)workloads
 ifeq ($(RTOS_WORKLOADS),1)
 HSW_WORKLOADS_SRC := $(shell find $(WORKLOADS_DIR) -name '*.c' -o -name '*.cpp')
 override CFLAGS += -I$(WORKLOADS_DIR)

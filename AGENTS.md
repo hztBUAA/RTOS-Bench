@@ -6,7 +6,7 @@
 ## 核心约定（统一入口 + POSIX 合同）
 - 仅使用 workload registry（`generator/workload_registry.*`），强符号禁用 benchmark_* 覆盖；新增负载必须注册 `rtosbench_register_workload()`。
 - 默认 POSIX 契约（pthread/clock/socket/sem）；Linux/SylixOS 直接使用，RTOS 若 POSIX 不完备则在各自平台目录做最小垫片。
-- 打包开关：`generator/Makefile` 默认 `RTOS_WORKLOADS=1`，自动把 `workloads/` 下源码编入 Linux/SylixOS；RT-Thread 由 BSP SConscript 引用。
+- 打包开关：根目录 `Makefile` 默认 `RTOS_WORKLOADS=1`，自动把 `workloads/` 下源码编入 Linux/SylixOS；RT-Thread 由 BSP SConscript 引用。
 - 工作目录：`workloads/` 集中存放所有负载；`workloads/rtbench_workloads.cpp` 统一注册和 `register_all_workloads()`。
 - 入口 CLI：
   - Linux/SylixOS：`rtbench -p <period_sec> -t <tasks> -b <workload> [-q] [-d <deadline>]`
@@ -49,7 +49,7 @@
    - `scheduler.c`（priority/affinity；deadline 不支持可返回 -1 并提示）
    - `timestamp.c`（尽量高精度）
    - `signal.c`（不支持则返回 -1）
-2. `generator/Makefile` 添加平台分支；BSP 侧链接平台源码与 `workloads/rtbench_workloads.cpp`。
+2. 根目录 `Makefile` 添加平台分支；BSP 侧链接平台源码与 `workloads/rtbench_workloads.cpp`。
 
 ## RT-Thread 集成要点
 - BSP 已开启 POSIX/pthread/SAL/LWIP/virtio 配置（见 `extern/rt-thread/bsp/qemu-virt64-aarch64/.config`）；如需网络真实可用，需在 QEMU 侧配置网卡并确保 DHCP/静态地址匹配，否则 modbus/mqtt 会走离线模式。
@@ -84,6 +84,7 @@
 - 禁用旧 benchmark_registry；一切通过 workload registry。
 
 ## 目录速览
+- `Makefile`：跨平台构建入口（Linux/SylixOS/OneOS 等）。
 - `generator/`：核心框架 + 平台抽象 + 入口（Linux/SylixOS/RT-Thread）。
 - `workloads/`：全部打包的负载与注册表。
 - `run-rtthread.sh` / `run-sylixos.sh`：一键构建/运行脚本。
