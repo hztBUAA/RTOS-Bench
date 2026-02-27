@@ -19,6 +19,7 @@ typedef int clockid_t;
 #include "test_schedule.h"
 #include "test_realtime.h"
 #include "test_stress.h"
+#include "result_export.h"
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -28,11 +29,21 @@ typedef int clockid_t;
 /* Minimal RT-Thread entry point to avoid argp/perf dependencies.
  * Usage: rtosbench [-p <period_sec>] [-t <tasks>] [-f <prio>] [-c <cpu>] [-b <workload>]
  *        rtosbench test-schedule [--cycles <n>] [--util-start <pct>] [--util-end <pct>]
+ *        rtosbench test-all [-o <output_path>] [--no-realtime] [--no-schedule] [--no-stress]
  * Defaults: period 1s, run until SIGINT, skip priority/affinity changes.
  */
 
+/* Default result output path */
+#define RTBENCH_DEFAULT_OUTPUT_PATH "/rtbench_result.json"
+
 /* Register packaged workloads (must be linked in) */
 void rtosbench_register_rtos_workloads(void);
+
+/* Forward declarations for result collection */
+static void collect_realtime_result(int run_multicore);
+static void collect_schedule_result(void);
+static void collect_stress_result(const char *stressor, int duration);
+static void collect_workload_results(void);
 
 static void set_default_exec_opts(struct execution_options *opts)
 {
@@ -111,6 +122,120 @@ static void debug_print_context(const struct execution_options *opts)
 int rtosbench_rtthread_entry(int argc, char **argv)
 {
 	struct execution_options opts;
+	const char *output_path = NULL;
+
+	/* Check for test-all subcommand - comprehensive test suite */
+	if (argc >= 2 && strcmp(argv[1], "test-all") == 0) {
+		int run_realtime = 1;
+		int run_schedule = 1;
+		int run_stress = 1;
+		int run_workload = 1;
+		int run_multicore = 0;
+		int stress_duration = 10;
+
+		/* Parse optional arguments */
+		for (int i = 2; i < argc; i++) {
+			if ((strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) && (i + 1 < argc)) {
+				output_path = argv[++i];
+			} else if (strcmp(argv[i], "--no-realtime") == 0) {
+				run_realtime = 0;
+			} else if (strcmp(argv[i], "--no-schedule") == 0) {
+				run_schedule = 0;
+			} else if (strcmp(argv[i], "--no-stress") == 0) {
+				run_stress = 0;
+			} else if (strcmp(argv[i], "--no-workload") == 0) {
+				run_workload = 0;
+			} else if (strcmp(argv[i], "--multicore") == 0 || strcmp(argv[i], "-m") == 0) {
+				run_multicore = 1;
+			} else if (strcmp(argv[i], "--stress-duration") == 0 && (i + 1 < argc)) {
+				stress_duration = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+
+		/* Use default output path if not specified */
+		if (!output_path) {
+			output_path = RTBENCH_DEFAULT_OUTPUT_PATH;
+		}
+
+		/* Initialize result collection */
+		rtbench_result_init();
+		rtbench_result_set_env("RT-Thread", RT_VERSION, "QEMU-virt-aarch64",
+		                       "cortex-a53", 0, RT_CPUS_NR);
+		rtbench_result_start();
+
+		/* Register workloads */
+		rtosbench_register_rtos_workloads();
+
+		rt_kprintf("\n");
+		rt_kprintf("=============================================================\n");
+		rt_kprintf("[RTOS-Bench] Comprehensive Test Suite\n");
+		rt_kprintf("=============================================================\n");
+		rt_kprintf("Output: %s\n", output_path);
+		rt_kprintf("Modules: realtime=%s schedule=%s stress=%s workload=%s\n",
+		           run_realtime ? "yes" : "no",
+		           run_schedule ? "yes" : "no",
+		           run_stress ? "yes" : "no",
+		           run_workload ? "yes" : "no");
+		rt_kprintf("\n");
+
+		/* Run realtime test */
+		if (run_realtime) {
+			rt_kprintf(">>> Running test-realtime...\n");
+			test_realtime_run(run_multicore);
+			collect_realtime_result(run_multicore);
+		}
+
+		/* Run schedule test */
+		if (run_schedule) {
+			rt_kprintf("\n>>> Running test-schedule...\n");
+			test_schedule_run();
+			collect_schedule_result();
+		}
+
+		/* Run stress test */
+		if (run_stress) {
+			rt_kprintf("\n>>> Running test-stress...\n");
+			test_stress_run_stressor("cpu", stress_duration);
+			collect_stress_result("cpu", stress_duration);
+		}
+
+		/* Run workload tests */
+		if (run_workload) {
+			rt_kprintf("\n>>> Running typical workloads...\n");
+			collect_workload_results();
+		}
+
+		/* Finalize and export */
+		rtbench_result_end();
+		int ret = rtbench_result_export_json(output_path);
+		if (ret == 0) {
+			rt_kprintf("\n=============================================================\n");
+			rt_kprintf("[RTOS-Bench] Results saved to: %s\n", output_path);
+			rt_kprintf("=============================================================\n");
+		} else {
+			rt_kprintf("\n[RTOS-Bench] Failed to save results: %d\n", ret);
+		}
+
+		rtbench_result_cleanup();
+		return ret;
+	}
+
+	/* Check for export-result subcommand */
+	if (argc >= 2 && strcmp(argv[1], "export-result") == 0) {
+		output_path = RTBENCH_DEFAULT_OUTPUT_PATH;
+		for (int i = 2; i < argc; i++) {
+			if ((strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) && (i + 1 < argc)) {
+				output_path = argv[++i];
+			}
+		}
+		int ret = rtbench_result_export_json(output_path);
+		if (ret == 0) {
+			rt_kprintf("[RTOS-Bench] Results exported to: %s\n", output_path);
+		}
+		return ret;
+	}
 
 	/* Check for test-schedule subcommand */
 	if (argc >= 2 && strcmp(argv[1], "test-schedule") == 0) {
@@ -303,6 +428,174 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 int rtbench_rtthread_entry(int argc, char **argv)
 {
 	return rtosbench_rtthread_entry(argc, argv);
+}
+
+/* ============================================================================
+ * Result Collection Functions
+ * ============================================================================ */
+
+/* External references to realtime benchmark results */
+extern uint64_t *get_realtime_service_cost(void);
+extern uint64_t *get_realtime_interrupt(void);
+extern uint64_t *get_realtime_context_switch(void);
+extern uint64_t *get_realtime_syscall(void);
+extern uint64_t *get_multicore_memory_bandwidth(void);
+extern uint64_t *get_multicore_ipc_bandwidth(void);
+extern uint64_t *get_multicore_intra_inter_bandwidth(void);
+extern uint64_t *get_multicore_init_dlt_latency(void);
+
+static void collect_realtime_result(int run_multicore)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_realtime_result *rt = &r->realtime;
+
+	/* Mark as valid */
+	rt->valid = 1;
+
+	/* These values should be collected from the actual test
+	 * For now, we'll set placeholder values that indicate
+	 * the structure is ready for real data integration */
+
+	/* Note: The actual values are stored in static variables in bench_init.c
+	 * A proper integration would expose getter functions from there.
+	 * For now, we mark the module as executed. */
+
+	rt->multicore_valid = run_multicore ? 1 : 0;
+
+	/* Add service cost entries (placeholder names) */
+	static const char *svc_ops[] = {
+		"sem_take", "sem_release",
+		"mq_send", "mq_recv",
+		"mutex_take", "mutex_release",
+		"mempool_alloc", "mempool_free"
+	};
+	for (int i = 0; i < 8; i++) {
+		rtbench_realtime_add_service_cost(rt, svc_ops[i], -1, -1, -1, -1);
+	}
+
+	/* Add memory bandwidth types */
+	if (run_multicore) {
+		static const char *mem_types[] = {
+			"rd", "wr", "cp", "frd", "fwr", "fcp", "memset", "memcpy"
+		};
+		for (int i = 0; i < 8; i++) {
+			rtbench_realtime_add_mem_bw(rt, mem_types[i], 0, 0, 0, 0);
+		}
+	}
+}
+
+static void collect_schedule_result(void)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_schedule_result *sched = &r->schedule;
+
+	/* Get result from test_schedule module */
+	const struct test_schedule_result *ts_result = test_schedule_get_result();
+
+	sched->valid = 1;
+	sched->cycles = TEST_SCHEDULE_CYCLES;
+	sched->util_start = TEST_SCHEDULE_UTIL_START;
+	sched->util_end = TEST_SCHEDULE_UTIL_END;
+	sched->util_step = TEST_SCHEDULE_UTIL_STEP;
+
+	/* Copy summary */
+	sched->average_miss_rate = ts_result->average_miss_rate;
+	sched->final_score = ts_result->final_score;
+
+	/* Copy gradient results */
+	sched->gradient_count = ts_result->num_gradients;
+	for (int i = 0; i < ts_result->num_gradients && i < RTBENCH_MAX_GRADIENTS; i++) {
+		struct rtbench_gradient_result *dst = &sched->gradients[i];
+		const struct schedule_gradient_result *src = &ts_result->gradients[i];
+
+		dst->utilization_percent = src->utilization_percent;
+		dst->actual_utilization = src->actual_utilization;
+		dst->total_jobs = src->total_jobs;
+		dst->deadline_misses = src->total_misses;
+		dst->miss_rate = src->miss_rate;
+		dst->task_count = src->num_tasks;
+
+		/* Copy task stats */
+		for (int j = 0; j < src->num_tasks && j < RTBENCH_MAX_WORKLOADS; j++) {
+			struct rtbench_task_stat *tdst = &dst->task_stats[j];
+			const struct schedule_task_stats *tsrc = &src->task_stats[j];
+
+			if (tsrc->name) {
+				strncpy(tdst->name, tsrc->name, sizeof(tdst->name) - 1);
+			}
+			tdst->jobs = tsrc->total_jobs;
+			tdst->misses = tsrc->deadline_misses;
+			if (tsrc->total_jobs > 0) {
+				tdst->max_response_ms = (double)tsrc->max_response_ns / 1000000.0;
+			}
+		}
+	}
+}
+
+static void collect_stress_result(const char *stressor, int duration)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_stress_result *stress = &r->stress;
+
+	stress->valid = 1;
+	stress->duration_sec = duration;
+
+	/* Add stressor result (placeholder - actual bogo_ops should come from test) */
+	rtbench_stress_add_stressor(stress, stressor, "cpu", 0, duration, 0, "");
+}
+
+static void collect_workload_results(void)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_workload_module_result *wl = &r->workload;
+
+	wl->valid = 1;
+
+	/* Iterate through registered workloads and run them */
+	int count = rtosbench_workload_count();
+	for (int i = 0; i < count && wl->workload_count < RTBENCH_MAX_WORKLOADS; i++) {
+		const struct rtosbench_workload *w = rtosbench_get_workload(i);
+		if (!w || !w->name || !w->exec) {
+			continue;
+		}
+
+		/* Skip busywait and synthetic workloads for typical workload test */
+		if (w->category && strcmp(w->category, "synthetic") == 0) {
+			continue;
+		}
+
+		rt_kprintf("  Running workload: %s\n", w->name);
+
+		/* Initialize */
+		if (w->init) {
+			w->init(0, NULL);
+		}
+
+		/* Run workload and measure time */
+		int rounds = 100;
+		uint64_t start_tick = rt_tick_get();
+
+		for (int j = 0; j < rounds; j++) {
+			w->exec(0, NULL);
+		}
+
+		uint64_t end_tick = rt_tick_get();
+		double exec_time_ms = (double)(end_tick - start_tick) * 1000.0 / RT_TICK_PER_SECOND;
+		double avg_time_ms = exec_time_ms / rounds;
+
+		/* Teardown */
+		if (w->teardown) {
+			w->teardown(0, NULL);
+		}
+
+		/* Store result */
+		rtbench_workload_add_result(wl, w->name,
+		                            w->category ? w->category : "",
+		                            1, rounds, exec_time_ms, avg_time_ms);
+
+		rt_kprintf("    %s: %.3f ms total, %.3f ms avg\n",
+		           w->name, exec_time_ms, avg_time_ms);
+	}
 }
 
 #endif /* RT_THREAD_PLATFORM */

@@ -27,6 +27,7 @@ src_files = [
     'test_schedule.c',
     'test_realtime.c',
     'test_stress.c',
+    'result_export.c',
 ]
 
 # Add platform-specific entry and sources
