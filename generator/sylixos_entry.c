@@ -1,36 +1,33 @@
 /**
- * @file posixlite_entry.c
- * @brief Generic POSIX-lite CLI entry point
+ * @file sylixos_entry.c
+ * @brief RTOS-Bench entry point for SylixOS
  *
- * This is a generic entry point for systems with minimal POSIX support.
- * For specific RTOS platforms, use the dedicated entry files:
- *   - RT-Thread: rtthread_entry.c
- *   - SylixOS: sylixos_entry.c
- *   - OneOS: oneos_entry.c
- *   - Dongtu: dongtu_entry.c
- *   - Ruihua: ruihua_entry.c
+ * SylixOS provides good POSIX compatibility, so this entry uses standard
+ * POSIX interfaces. Shell commands are registered via SylixOS's module system.
  *
- * Avoids glibc argp/performance counters so it can build with minimal libc.
- * Supported options:
- *   -p <sec>   Period (seconds, float)
- *   -t <n>     Tasks to launch
- *   -f <prio>  FIFO priority (skip if 100, consistent with main.c default)
- *   -c <cpu>   Bind to CPU index
- *   -b <name>  Select workload by name
- *   -A         Run all workloads
- *   -G <cats>  Comma separated category filter
- *   -l|--list  List workloads and exit
- *   -q         Quiet logs (INFO)
+ * Usage from SylixOS shell:
+ *   # rtbench -l                    List available workloads
+ *   # rtbench -b pid -p 0.1 -t 10   Run PID workload
+ *   # rtbench -A                    Run all workloads
+ *   # rtbench test-schedule         Run schedulability test
+ *   # rtbench test-realtime         Run realtime performance test
  */
-
-#include "periodic_benchmark.h"
-#include "logging.h"
-#include "workload_registry.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+#include "platform_abstraction.h"
+#include "periodic_benchmark.h"
+#include "logging.h"
+#include "workload_registry.h"
+#include "test_schedule.h"
+#include "test_realtime.h"
+#include "test_stress.h"
+
+/* Forward declarations */
+extern void rtosbench_register_rtos_workloads(void);
 
 static int ci_equal(const char *a, const char *b)
 {
@@ -57,7 +54,7 @@ static void set_default_exec_opts(struct execution_options *opts)
 	opts->parsed_period = 0.0;
 	opts->parsed_deadline = 0.0;
 	opts->tasks_to_launch = 1;
-	opts->prio = 100; /* 100 means "skip priority change" (see main.c) */
+	opts->prio = 100; /* 100 means "skip priority change" */
 	opts->runtime = 0;
 	opts->deadline = 0;
 	opts->period = 0;
@@ -74,8 +71,7 @@ static void set_default_exec_opts(struct execution_options *opts)
 	benchmark_verbosity = LOG_LEVEL_TRACE;
 }
 
-static void parse_posixlite_args(int argc, char **argv,
-				 struct execution_options *opts)
+static void parse_args(int argc, char **argv, struct execution_options *opts)
 {
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-p") && (i + 1 < argc)) {
@@ -107,7 +103,6 @@ static void parse_posixlite_args(int argc, char **argv,
 		} else if (!strcmp(argv[i], "-b") && (i + 1 < argc)) {
 			opts->workload_name = argv[++i];
 		} else if (!strcmp(argv[i], "-w") && (i + 1 < argc)) {
-			/* Alias to keep parity with Linux CLI */
 			opts->workload_name = argv[++i];
 		} else if (!strcmp(argv[i], "-A")) {
 			opts->run_all_workloads = 1;
@@ -128,12 +123,98 @@ static void debug_print_context(const struct execution_options *opts)
 	       (unsigned long long)opts->tasks_to_launch);
 }
 
+/**
+ * @brief Main entry point for SylixOS
+ */
 int main(int argc, char **argv)
 {
 	struct execution_options opts;
 
+	/* Register workloads */
+	rtosbench_register_rtos_workloads();
+
+	/* Handle test-schedule subcommand */
+	if (argc >= 2 && strcmp(argv[1], "test-schedule") == 0) {
+		int cycles = TEST_SCHEDULE_CYCLES;
+		int util_start = TEST_SCHEDULE_UTIL_START;
+		int util_end = TEST_SCHEDULE_UTIL_END;
+		int util_step = TEST_SCHEDULE_UTIL_STEP;
+
+		for (int i = 2; i < argc; i++) {
+			if (strcmp(argv[i], "--cycles") == 0 && (i + 1 < argc)) {
+				cycles = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "--util-start") == 0 && (i + 1 < argc)) {
+				util_start = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "--util-end") == 0 && (i + 1 < argc)) {
+				util_end = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "--util-step") == 0 && (i + 1 < argc)) {
+				util_step = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+
+		printf("[test-schedule] Starting schedulability test on SylixOS\n");
+		printf("  Cycles: %d, Utilization: %d%% - %d%% (step %d%%)\n",
+		       cycles, util_start, util_end, util_step);
+
+		return test_schedule_run_custom(cycles, util_start, util_end, util_step);
+	}
+
+	/* Handle test-realtime subcommand */
+	if (argc >= 2 && strcmp(argv[1], "test-realtime") == 0) {
+		int run_multicore = 0;
+
+		for (int i = 2; i < argc; i++) {
+			if (strcmp(argv[i], "--multicore") == 0 ||
+			    strcmp(argv[i], "-m") == 0) {
+				run_multicore = 1;
+			} else if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+
+		printf("[test-realtime] Starting realtime performance test on SylixOS\n");
+		if (run_multicore) {
+			printf("  Multicore tests: enabled\n");
+		}
+
+		return test_realtime_run(run_multicore);
+	}
+
+	/* Handle test-stress subcommand */
+	if (argc >= 2 && strcmp(argv[1], "test-stress") == 0) {
+		const char *stressor = "cpu";
+		int duration = 10;
+		int list_stressors = 0;
+
+		for (int i = 2; i < argc; i++) {
+			if (strcmp(argv[i], "-s") == 0 && (i + 1 < argc)) {
+				stressor = argv[++i];
+			} else if (strcmp(argv[i], "-t") == 0 && (i + 1 < argc)) {
+				duration = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "-l") == 0 ||
+			           strcmp(argv[i], "--list") == 0) {
+				list_stressors = 1;
+			} else if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+
+		if (list_stressors) {
+			test_stress_list_stressors();
+			return 0;
+		}
+
+		printf("[test-stress] Starting stress test on SylixOS\n");
+		printf("  Stressor: %s, Duration: %d seconds\n", stressor, duration);
+
+		return test_stress_run_stressor(stressor, duration);
+	}
+
+	/* Standard workload execution */
 	set_default_exec_opts(&opts);
-	parse_posixlite_args(argc, argv, &opts);
+	parse_args(argc, argv, &opts);
 
 	if (opts.list_only) {
 		printf("Available workloads:\n");

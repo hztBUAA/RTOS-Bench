@@ -75,7 +75,10 @@ RTOS-Bench/
 ├── generator/                    # 核心框架
 │   ├── rtthread_entry.c         # RT-Thread 入口（msh 命令）
 │   ├── oneos_entry.c            # OneOS 入口
-│   ├── posixlite_entry.c        # Linux/SylixOS 入口
+│   ├── sylixos_entry.c          # SylixOS 入口
+│   ├── dongtu_entry.c           # 东土 (Intewell) 入口
+│   ├── ruihua_entry.c           # 锐华 (ReWorks) 入口
+│   ├── posixlite_entry.c        # 通用 POSIX-lite 入口（Linux 兼容）
 │   │
 │   ├── test_realtime.c/.h       # 实时性测试 wrapper
 │   ├── realtime_orig/           # 实时性测试原始实现
@@ -126,10 +129,10 @@ RTOS-Bench/
 |------|----------|----------|----------|
 | **RT-Thread** | `rtthread_entry.c` | SCons | ✅ QEMU 验证 |
 | **Linux** | `main.c` | Makefile | ✅ 原生支持 |
-| **SylixOS** | `posixlite_entry.c` | RealEvo IDE | ⚠️ 需 Windows IDE |
+| **SylixOS** | `sylixos_entry.c` | RealEvo IDE | ⚠️ 需 Windows IDE |
 | **OneOS** | `oneos_entry.c` | SCons (OneOS Cube) | ✅ 部分验证 |
-| **东土 (Dongtu)** | `posixlite_entry.c` | 厂商 IDE | ⚠️ POSIX-lite 适配 |
-| **锐华 (Ruihua)** | `posixlite_entry.c` | 厂商 IDE | ⚠️ POSIX-lite 适配 |
+| **东土 (Dongtu)** | `dongtu_entry.c` | 厂商 IDE | ⚠️ POSIX-lite 适配 |
+| **锐华 (Ruihua)** | `ruihua_entry.c` | 厂商 IDE | ⚠️ VxWorks 兼容 |
 
 ### 4.2 跨平台编译的三个层次
 
@@ -315,8 +318,11 @@ workloads/                      → 添加到 "Source Files"
 需要的宏定义                    → 在 IDE 的 "Preprocessor" 设置
 ├── XXX_PLATFORM               → 添加
 │
-入口适配                        → 创建新的 xxx_entry.c
-└── 参考 rtthread_entry.c      → 修改为厂商的 shell/cmd 注册方式
+入口适配                        → 使用对应平台的 xxx_entry.c
+├── RT-Thread: rtthread_entry.c
+├── SylixOS: sylixos_entry.c
+├── 东土: dongtu_entry.c
+└── 锐华: ruihua_entry.c
 ```
 
 **关键点**：
