@@ -449,6 +449,28 @@ int rtbench_result_to_json(char *buf, size_t bufsize)
     }
     JSON_APPEND("    },\n");
 
+    /* test-cmd */
+    JSON_APPEND("    \"test-cmd\": {\n");
+    JSON_APPEND("      \"status\": \"%s\"", r->cmd.valid ? "passed" : "skipped");
+
+    if (r->cmd.valid) {
+        JSON_APPEND(",\n      \"cmd_count\": %d,\n", r->cmd.cmd_count);
+        JSON_APPEND("      \"pass_count\": %d,\n", r->cmd.pass_count);
+        JSON_APPEND("      \"commands\": [\n");
+        for (i = 0; i < r->cmd.cmd_count; i++) {
+            struct rtbench_cmd_result *c = &r->cmd.results[i];
+            JSON_APPEND("        { \"name\": \"%s\", \"command\": \"%s\", "
+                        "\"supported\": %s }%s\n",
+                        c->name, c->command,
+                        c->supported ? "true" : "false",
+                        (i < r->cmd.cmd_count - 1) ? "," : "");
+        }
+        JSON_APPEND("      ]\n");
+    } else {
+        JSON_APPEND("\n");
+    }
+    JSON_APPEND("    },\n");
+
     /* typical-workload */
     JSON_APPEND("    \"typical-workload\": {\n");
     JSON_APPEND("      \"status\": \"%s\",\n", r->workload.valid ? "passed" : "skipped");
