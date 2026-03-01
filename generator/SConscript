@@ -27,6 +27,7 @@ src_files = [
     'test_schedule.c',
     'test_realtime.c',
     'test_stress.c',
+    'test_cmd.c',
     'result_export.c',
 ]
 

@@ -30,6 +30,7 @@ extern "C" {
 #define RTBENCH_RESULT_VERSION       "1.0.0"
 #define RTBENCH_MAX_WORKLOADS        32
 #define RTBENCH_MAX_STRESSORS        16
+#define RTBENCH_MAX_CMD_COMMANDS     16
 #define RTBENCH_MAX_GRADIENTS        16
 #define RTBENCH_MAX_SERVICE_OPS      16
 #define RTBENCH_MAX_MEM_BW_TYPES     8
@@ -193,6 +194,29 @@ struct rtbench_stress_result {
 };
 
 /* ============================================================================
+ * Data Structures - Command Support Test Results
+ * ============================================================================ */
+
+/**
+ * @brief Single command test result
+ */
+struct rtbench_cmd_result {
+    char command[RTBENCH_MAX_NAME_LEN];  /**< Full command string */
+    char name[32];                        /**< Command name (first word) */
+    int supported;                        /**< 1 = success, 0 = failure */
+};
+
+/**
+ * @brief Command support test results
+ */
+struct rtbench_cmd_module_result {
+    int valid;
+    int cmd_count;
+    int pass_count;
+    struct rtbench_cmd_result results[RTBENCH_MAX_CMD_COMMANDS];
+};
+
+/* ============================================================================
  * Data Structures - Typical Workload Results
  * ============================================================================ */
 
@@ -238,6 +262,7 @@ struct rtbench_result {
     struct rtbench_realtime_result realtime;
     struct rtbench_schedule_result schedule;
     struct rtbench_stress_result stress;
+    struct rtbench_cmd_module_result cmd;
     struct rtbench_workload_module_result workload;
 };
 
