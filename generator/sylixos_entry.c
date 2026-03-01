@@ -25,6 +25,7 @@
 #include "test_schedule.h"
 #include "test_realtime.h"
 #include "test_stress.h"
+#include "test_cmd.h"
 
 /* Forward declarations */
 extern void rtosbench_register_rtos_workloads(void);
@@ -210,6 +211,17 @@ int main(int argc, char **argv)
 		printf("  Stressor: %s, Duration: %d seconds\n", stressor, duration);
 
 		return test_stress_run_stressor(stressor, duration);
+	}
+
+	/* Handle test-cmd subcommand */
+	if (argc >= 2 && strcmp(argv[1], "test-cmd") == 0) {
+		for (int i = 2; i < argc; i++) {
+			if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+		printf("[test-cmd] Starting shell command support test on SylixOS\n");
+		return test_cmd_run();
 	}
 
 	/* Standard workload execution */

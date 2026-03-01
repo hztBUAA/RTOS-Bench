@@ -55,7 +55,9 @@ static const char *test_seq[] = {
     "rm ./test_cmd_dir",
 };
 
-#elif defined(LINUX_PLATFORM) || defined(__linux__)
+#elif defined(LINUX_PLATFORM) || defined(__linux__) || \
+      defined(SYLIXOS_PLATFORM) || defined(DONGTU_PLATFORM) || \
+      defined(RUIHUA_PLATFORM)
 
 #define CMD_EXEC(cmd, len) system(cmd)
 #define CMD_PRINTF printf

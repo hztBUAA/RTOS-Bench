@@ -15,6 +15,7 @@
 #include <shell.h>
 
 #include "workload_registry.h"
+#include "test_cmd.h"
 
 /* External workload declarations */
 extern const struct rtosbench_workload rtosbench_stub_workload;
@@ -123,6 +124,12 @@ static int cmd_rtbench(int argc, char **argv)
         } else if (strcmp(argv[i], "-b") == 0 && (i + 1 < argc)) {
             workload_name = argv[++i];
         }
+    }
+
+    /* Handle test-cmd subcommand */
+    if (argc >= 2 && strcmp(argv[1], "test-cmd") == 0) {
+        printf("[test-cmd] Starting shell command support test on OneOS\n");
+        return test_cmd_run();
     }
 
     /* List workloads */
