@@ -19,6 +19,7 @@ typedef int clockid_t;
 #include "test_schedule.h"
 #include "test_realtime.h"
 #include "test_stress.h"
+#include "test_cmd.h"
 #include "result_export.h"
 #include <stdlib.h>
 #include <string.h>
@@ -26,10 +27,18 @@ typedef int clockid_t;
 #include <rtthread.h>
 #include <rtsched.h>
 
+/* Stringify RT-Thread version from rtdef.h macros */
+#define _RTBENCH_STR(x) #x
+#define _RTBENCH_XSTR(x) _RTBENCH_STR(x)
+#define RT_VERSION_STRING \
+    _RTBENCH_XSTR(RT_VERSION_MAJOR) "." \
+    _RTBENCH_XSTR(RT_VERSION_MINOR) "." \
+    _RTBENCH_XSTR(RT_VERSION_PATCH)
+
 /* Minimal RT-Thread entry point to avoid argp/perf dependencies.
  * Usage: rtosbench [-p <period_sec>] [-t <tasks>] [-f <prio>] [-c <cpu>] [-b <workload>]
  *        rtosbench test-schedule [--cycles <n>] [--util-start <pct>] [--util-end <pct>]
- *        rtosbench test-all [-o <output_path>] [--no-realtime] [--no-schedule] [--no-stress]
+ *        rtosbench test-all [-o <output_path>] [--no-realtime] [--no-schedule] [--no-stress] [--no-cmd]
  * Defaults: period 1s, run until SIGINT, skip priority/affinity changes.
  */
 
@@ -43,6 +52,7 @@ void rtosbench_register_rtos_workloads(void);
 static void collect_realtime_result(int run_multicore);
 static void collect_schedule_result(void);
 static void collect_stress_result(const char *stressor, int duration);
+static void collect_cmd_result(void);
 static void collect_workload_results(void);
 
 static void set_default_exec_opts(struct execution_options *opts)
@@ -129,6 +139,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		int run_realtime = 1;
 		int run_schedule = 1;
 		int run_stress = 1;
+		int run_cmd = 1;
 		int run_workload = 1;
 		int run_multicore = 0;
 		int stress_duration = 10;
@@ -143,6 +154,8 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 				run_schedule = 0;
 			} else if (strcmp(argv[i], "--no-stress") == 0) {
 				run_stress = 0;
+			} else if (strcmp(argv[i], "--no-cmd") == 0) {
+				run_cmd = 0;
 			} else if (strcmp(argv[i], "--no-workload") == 0) {
 				run_workload = 0;
 			} else if (strcmp(argv[i], "--multicore") == 0 || strcmp(argv[i], "-m") == 0) {
@@ -161,7 +174,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 
 		/* Initialize result collection */
 		rtbench_result_init();
-		rtbench_result_set_env("RT-Thread", RT_VERSION, "QEMU-virt-aarch64",
+		rtbench_result_set_env("RT-Thread", RT_VERSION_STRING, "QEMU-virt-aarch64",
 		                       "cortex-a53", 0, RT_CPUS_NR);
 		rtbench_result_start();
 
@@ -173,10 +186,11 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		rt_kprintf("[RTOS-Bench] Comprehensive Test Suite\n");
 		rt_kprintf("=============================================================\n");
 		rt_kprintf("Output: %s\n", output_path);
-		rt_kprintf("Modules: realtime=%s schedule=%s stress=%s workload=%s\n",
+		rt_kprintf("Modules: realtime=%s schedule=%s stress=%s cmd=%s workload=%s\n",
 		           run_realtime ? "yes" : "no",
 		           run_schedule ? "yes" : "no",
 		           run_stress ? "yes" : "no",
+		           run_cmd ? "yes" : "no",
 		           run_workload ? "yes" : "no");
 		rt_kprintf("\n");
 
@@ -199,6 +213,13 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 			rt_kprintf("\n>>> Running test-stress...\n");
 			test_stress_run_stressor("cpu", stress_duration);
 			collect_stress_result("cpu", stress_duration);
+		}
+
+		/* Run command support test */
+		if (run_cmd) {
+			rt_kprintf("\n>>> Running test-cmd...\n");
+			test_cmd_run();
+			collect_cmd_result();
 		}
 
 		/* Run workload tests */
@@ -330,6 +351,17 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		}
 
 		return test_stress_run_stressor(stressor, duration);
+	}
+
+	/* Check for test-cmd subcommand */
+	if (argc >= 2 && strcmp(argv[1], "test-cmd") == 0) {
+		for (int i = 2; i < argc; i++) {
+			if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+		rt_kprintf("[test-cmd] Starting shell command support test\n");
+		return test_cmd_run();
 	}
 
 	set_default_exec_opts(&opts);
@@ -542,6 +574,29 @@ static void collect_stress_result(const char *stressor, int duration)
 
 	/* Add stressor result (placeholder - actual bogo_ops should come from test) */
 	rtbench_stress_add_stressor(stress, stressor, "cpu", 0, duration, 0, "");
+}
+
+static void collect_cmd_result(void)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	const struct test_cmd_module_result *src = test_cmd_get_result();
+
+	if (!src || !src->valid) {
+		return;
+	}
+
+	struct rtbench_cmd_module_result *dst = &r->cmd;
+	dst->valid = 1;
+	dst->cmd_count = src->cmd_count;
+	dst->pass_count = src->pass_count;
+
+	for (int i = 0; i < src->cmd_count && i < RTBENCH_MAX_CMD_COMMANDS; i++) {
+		strncpy(dst->results[i].command, src->results[i].command,
+		        sizeof(dst->results[i].command) - 1);
+		strncpy(dst->results[i].name, src->results[i].name,
+		        sizeof(dst->results[i].name) - 1);
+		dst->results[i].supported = src->results[i].supported;
+	}
 }
 
 static void collect_workload_results(void)
