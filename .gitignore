@@ -15,3 +15,7 @@ docs/conf/doxygen-awesome
 
 # RT-Thread QEMU
 extern/
+
+*.txt
+docs/deliver
+*.docx
