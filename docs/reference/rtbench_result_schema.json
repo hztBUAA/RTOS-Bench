@@ -1,0 +1,268 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RTOS-Bench Result Schema",
+  "description": "RTOS-Bench 中间格式 JSON Schema，用于框架各模块输出结果的结构化存储",
+  "type": "object",
+  "required": ["meta", "env", "modules"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "测试元信息",
+      "required": ["framework_version", "test_timestamp"],
+      "properties": {
+        "framework_version": { "type": "string", "description": "框架版本号" },
+        "test_timestamp": { "type": "string", "format": "date-time", "description": "测试开始时间 ISO 8601" },
+        "total_duration_sec": { "type": "number", "description": "总测试耗时（秒）" }
+      }
+    },
+    "env": {
+      "type": "object",
+      "description": "运行环境信息",
+      "required": ["os_name"],
+      "properties": {
+        "os_name": { "type": "string", "description": "操作系统名称" },
+        "os_version": { "type": "string", "description": "操作系统版本" },
+        "board": { "type": "string", "description": "板卡/平台名称" },
+        "cpu_type": { "type": "string", "description": "CPU 类型" },
+        "cpu_freq_mhz": { "type": "number", "description": "CPU 频率 (MHz)" },
+        "cpu_core_num": { "type": "integer", "description": "CPU 核心数" }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "description": "各测试模块结果",
+      "properties": {
+        "test-realtime": { "$ref": "#/definitions/realtime_module" },
+        "test-schedule": { "$ref": "#/definitions/schedule_module" },
+        "test-stress": { "$ref": "#/definitions/stress_module" },
+        "test-cmd": { "$ref": "#/definitions/cmd_module" },
+        "typical-workload": { "$ref": "#/definitions/workload_module" }
+      }
+    }
+  },
+  "definitions": {
+    "realtime_module": {
+      "type": "object",
+      "description": "实时性测试模块结果",
+      "properties": {
+        "status": { "type": "string", "enum": ["passed", "failed", "skipped"] },
+        "duration_sec": { "type": "number" },
+        "single_core": {
+          "type": "object",
+          "properties": {
+            "context_switch": {
+              "type": "object",
+              "properties": {
+                "avg_us": { "type": "number", "description": "上下文切换平均延迟 (us)" }
+              }
+            },
+            "interrupt": {
+              "type": "object",
+              "properties": {
+                "min_us": { "type": "number" },
+                "max_us": { "type": "number" },
+                "avg_us": { "type": "number" }
+              }
+            },
+            "syscall": {
+              "type": "object",
+              "properties": {
+                "min_us": { "type": "number" },
+                "max_us": { "type": "number" },
+                "avg_us": { "type": "number" }
+              }
+            },
+            "service_cost": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "operation": { "type": "string", "description": "操作名称" },
+                  "immediate_us": { "type": ["number", "null"] },
+                  "suspend_us": { "type": ["number", "null"] },
+                  "low_prio_us": { "type": ["number", "null"] },
+                  "high_prio_us": { "type": ["number", "null"] }
+                }
+              }
+            }
+          }
+        },
+        "multi_core": {
+          "type": "object",
+          "properties": {
+            "memory_bandwidth": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string" },
+                  "unit": { "type": "string" },
+                  "c1": { "type": "number" },
+                  "c2": { "type": "number" },
+                  "c4": { "type": "number" },
+                  "c8": { "type": "number" }
+                }
+              }
+            },
+            "ipc_bandwidth": {
+              "type": "object",
+              "properties": {
+                "c1": { "type": "number" },
+                "c2": { "type": "number" },
+                "c4": { "type": "number" },
+                "c8": { "type": "number" },
+                "unit": { "type": "string" }
+              }
+            },
+            "task_latency": {
+              "type": "object",
+              "properties": {
+                "c1": { "type": "number" },
+                "c2": { "type": "number" },
+                "c4": { "type": "number" },
+                "c8": { "type": "number" },
+                "unit": { "type": "string" }
+              }
+            },
+            "core_comm": {
+              "type": "object",
+              "properties": {
+                "intra_core": { "type": "number" },
+                "inter_core": { "type": "number" },
+                "unit": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schedule_module": {
+      "type": "object",
+      "description": "可调度性测试模块结果",
+      "properties": {
+        "status": { "type": "string", "enum": ["passed", "failed", "skipped"] },
+        "duration_sec": { "type": "number" },
+        "config": {
+          "type": "object",
+          "properties": {
+            "cycles": { "type": "integer" },
+            "util_start": { "type": "integer" },
+            "util_end": { "type": "integer" },
+            "util_step": { "type": "integer" }
+          }
+        },
+        "wcet_measurements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "workload": { "type": "string" },
+              "wcet_ms": { "type": "number" }
+            }
+          }
+        },
+        "gradients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "utilization_percent": { "type": "integer" },
+              "actual_utilization": { "type": "number" },
+              "total_jobs": { "type": "integer" },
+              "deadline_misses": { "type": "integer" },
+              "miss_rate": { "type": "number" },
+              "task_stats": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "utilization": { "type": "number" },
+                    "period_ms": { "type": "number" },
+                    "jobs": { "type": "integer" },
+                    "misses": { "type": "integer" },
+                    "max_response_ms": { "type": "number" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "properties": {
+            "average_miss_rate": { "type": "number" },
+            "final_score": { "type": "number" }
+          }
+        }
+      }
+    },
+    "stress_module": {
+      "type": "object",
+      "description": "压力测试模块结果",
+      "properties": {
+        "status": { "type": "string", "enum": ["passed", "failed", "skipped"] },
+        "duration_sec": { "type": "number" },
+        "stressors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string", "enum": ["cpu", "memory", "file"] },
+              "bogo_ops": { "type": "integer" },
+              "duration_sec": { "type": "number" },
+              "metric_value": { "type": "number" },
+              "metric_unit": { "type": "string" }
+            },
+            "required": ["name", "type", "bogo_ops"]
+          }
+        }
+      }
+    },
+    "cmd_module": {
+      "type": "object",
+      "description": "Shell 命令支持测试模块结果",
+      "properties": {
+        "status": { "type": "string", "enum": ["passed", "skipped"] },
+        "cmd_count": { "type": "integer", "description": "测试命令总数" },
+        "pass_count": { "type": "integer", "description": "通过命令数" },
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "description": "命令名 (首个单词)" },
+              "command": { "type": "string", "description": "完整命令字符串" },
+              "supported": { "type": "boolean", "description": "是否支持" }
+            },
+            "required": ["name", "command", "supported"]
+          }
+        }
+      }
+    },
+    "workload_module": {
+      "type": "object",
+      "description": "典型负载测试模块结果",
+      "properties": {
+        "status": { "type": "string", "enum": ["passed", "failed", "skipped"] },
+        "duration_sec": { "type": "number" },
+        "workloads": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "category": { "type": "string" },
+              "success": { "type": "boolean" },
+              "rounds": { "type": "integer" },
+              "exec_time_ms": { "type": "number" },
+              "avg_time_ms": { "type": "number" }
+            },
+            "required": ["name", "success"]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+    "flow_job_history_id": "",
+    "sw_info": {
+        "sdk_type": "Linux", # RTOS, Baremetal  must
+        "sdk_version": "1.0.0-rc1",  # sdk版本   must
+        "sdk_static_info": {
+          "sdk_commit": ""
+        },
+        "kernel_version": "6.6.0",   # 内核版本
+        "kernel_irq_freq": "12",     # 内核中断频率
+        "kernel_static_info": {
+          "kernel_commit": "",
+          "kernel_default": "Debug"
+        },
+        "tools_compile_type": "gnu", # 工具链类型
+        "tools_arch": "riscv",			 # 工具链架构 csky, arm
+        "tools_version": "V3.1.0",   # 工具链版本
+        "tools_libc": "glibc",       # 工具链集成的C库
+        "tools_static_info": {
+            "version_detail": "",
+            "tools_commit_gcc": "",
+            "tools_commit_gdb": "",
+            "tools_commit_binutils": "",
+            "tools_commit_libccrt": "",
+            "tools_commit_libc": "",
+            "tools_commit_llvm-project": "",
+            "tools_commit_riscv_gnu_toolchain": ""
+        }
+    },
+    "hw_info": {
+        "platform_type": "fpga",       # 硬件平台类型, fpga evb
+        "platform_info" : {
+            "platform_name": "haps-s26",  # 硬件平台信息,haps-h100 k230-evb
+            "platform_ddr": "16G"
+         },
+        "cpu_type": "c908v_v2-cp-xt", # must
+        "soc_id": "C908v2_1fpga_2core_version_2_0_5_UniPlat_tim25mhz_H100_20250416185817_tong.he.tar", # advance
+        "soc_info": {
+            "cpu_reg_info": "",       # mhint等性能寄存器信息
+            "soc_name": "xiaohui",
+            "cpu_cluster_num": "1",
+            "cpu_total_core_num": "",
+            "cpu_ver": "",
+            "bit_path": "",
+            "bit_freq": "50",
+            "bit_freq_unit": "MHz",
+            "bit_ddr_lat": "210",
+            "bit_ddr_lat_unit": "cycles",
+            "soc_cacheinfo": ""
+        },
+    },
+
+  "test_case_info":{
+      "test_suite": "coremark", # 测试集
+      "test_dir": "coremark",   # 测试子集
+      "test_case": "coremark",  # 测试项  
+      "test_data_source": "RTOS-SDK"# 测试数据来源
+  },
+  "test_config_info":{
+    "test_mcpu": "c908v_v2",   # 以-mcpu为标准 c908v_v2-cp, c908v_v2-cp-xt
+    "test_cpu_core_num": "1", # CPU核数
+    "test_option_alias": "O2",             # 编译选项简称
+    "test_option_detail": " -O2 -static ", # 编译选项详细信息
+  },
+  "test_result_info":{
+    "test_result": "5.80", 			  		# 除频分数, 归一化到MHz
+    "test_result_static_info": {
+        "test_unit": "CoreMark/MHz",  # 数据单位
+        "test_run_times": "10",       # 运行次数
+        "test_data_cv": "3",			    # 多次运行波动系数
+        "test_optimal_type": "max",   # 测试数据越大越好还是越小越好
+        "test_threshold": "5",		    # 数据报警阈值    
+        "test_result_rawdata": "278.00",   # 原始数据
+        "test_result_calculate": "rawdata/MHz",   # 计算公式
+    },
+    "test_result_valid": "valid",    # 测试数据是否有效, 减少错误数据
+    "test_result_type": "daliy",     # 测试数据类型, daily or release, 外部查看默认release
+  }
+}
