@@ -18,8 +18,36 @@
 
 #include <rtthread.h>
 #include <msh.h>
+#ifdef RT_USING_DFS
+#include <dfs_fs.h>
+#endif
 #define CMD_EXEC(cmd, len) msh_exec(cmd, len)
 #define CMD_PRINTF rt_kprintf
+
+/* Commands that require a writable filesystem */
+static int cmd_needs_filesystem(const char *cmd)
+{
+    /* Extract first word */
+    const char *fs_cmds[] = {"mkdir", "cp", "mv", "cat", "rm", "echo", NULL};
+    for (int i = 0; fs_cmds[i] != NULL; i++) {
+        size_t len = strlen(fs_cmds[i]);
+        if (strncmp(cmd, fs_cmds[i], len) == 0 &&
+            (cmd[len] == ' ' || cmd[len] == '\0')) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int test_cmd_has_filesystem(void)
+{
+#ifdef RT_USING_DFS
+    struct dfs_filesystem *fs = dfs_filesystem_lookup("/");
+    return (fs != NULL && fs->ops != NULL) ? 1 : 0;
+#else
+    return 0;
+#endif
+}
 
 static const char *test_seq[] = {
     "date",
@@ -160,8 +188,24 @@ int test_cmd_run(void)
     s_cmd_result.cmd_count = count;
     s_cmd_result.pass_count = 0;
 
+#if defined(RT_THREAD_PLATFORM)
+    int has_fs = test_cmd_has_filesystem();
+    if (!has_fs) {
+        CMD_PRINTF("[test-cmd] No writable filesystem detected, file commands will be skipped\n");
+    }
+#endif
+
     /* Run all commands */
     for (int i = 0; i < count; i++) {
+#if defined(RT_THREAD_PLATFORM)
+        if (!has_fs && cmd_needs_filesystem(test_seq[i])) {
+            s_cmd_result.results[i].command = test_seq[i];
+            s_cmd_result.results[i].name = extract_cmd_name(test_seq[i], i);
+            s_cmd_result.results[i].supported = 0;
+            CMD_PRINTF("[test-cmd] Skipped (no FS): %s\n", test_seq[i]);
+            continue;
+        }
+#endif
         int ok = cmd_examine(test_seq[i]);
         s_cmd_result.results[i].command = test_seq[i];
         s_cmd_result.results[i].name = extract_cmd_name(test_seq[i], i);
