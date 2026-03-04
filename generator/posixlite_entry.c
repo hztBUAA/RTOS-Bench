@@ -1,6 +1,6 @@
 /**
  * @file posixlite_entry.c
- * @brief Generic POSIX-lite CLI entry point
+ * @brief Generic POSIX entry for platforms without dedicated entry files
  *
  * This is a generic entry point for systems with minimal POSIX support.
  * For specific RTOS platforms, use the dedicated entry files:
