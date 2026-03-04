@@ -667,8 +667,10 @@ static void collect_stress_result(const char *stressor, int duration)
 	stress->valid = 1;
 	stress->duration_sec = duration;
 
-	/* Add stressor result (placeholder - actual bogo_ops should come from test) */
-	rtbench_stress_add_stressor(stress, stressor, "cpu", 0, duration, 0, "");
+	uint64_t bogo_ops = test_stress_get_last_bogo_ops();
+	double bogo_per_sec = (duration > 0) ? (double)bogo_ops / duration : 0;
+	rtbench_stress_add_stressor(stress, stressor, "cpu", bogo_ops, duration,
+	                            bogo_per_sec, "ops/s");
 }
 
 static void collect_cmd_result(void)

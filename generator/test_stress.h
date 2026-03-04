@@ -90,6 +90,12 @@ void test_stress_list_stressors(void);
  */
 void test_stress_stop(void);
 
+/**
+ * @brief Get bogo_ops from the last stress test run
+ * @return Number of bogo operations completed in the last run
+ */
+uint64_t test_stress_get_last_bogo_ops(void);
+
 #ifdef __cplusplus
 }
 #endif

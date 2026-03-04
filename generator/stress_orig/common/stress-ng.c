@@ -109,6 +109,9 @@ static const stressor_info_t stress_registry[] = {
 volatile stress_bool_t g_stress_global_stop = STRESS_FALSE;
 volatile stress_bool_t g_stress_silent_mode = STRESS_FALSE;
 
+/* Accumulated bogo_ops from the last stress_run_one_job() call */
+static stress_bogo_t g_last_bogo;
+
 /* ==================================================================
  * 内置 Jobfile 数据
  * ================================================================== */
@@ -359,9 +362,27 @@ static int stress_run_one_job(int argc, char **argv, stress_bool_t silent, stres
                 for (int k = 0; k < 2; k++) {
                     output_result->metric_val[k] += args_list[i]->bogo.metric_val[k];
                     if (i == 0) {
-                        strncpy(output_result->metric_name[k], 
-                                args_list[i]->bogo.metric_name[k], 
+                        strncpy(output_result->metric_name[k],
+                                args_list[i]->bogo.metric_name[k],
                                 sizeof(output_result->metric_name[k]) - 1);
+                    }
+                }
+            }
+        }
+    }
+
+    /* Always capture last run's bogo_ops for external retrieval */
+    if (spawned_count > 0) {
+        memset(&g_last_bogo, 0, sizeof(g_last_bogo));
+        for (i = 0; i < spawned_count; i++) {
+            if (args_list[i]) {
+                g_last_bogo.current_ops += args_list[i]->bogo.current_ops;
+                for (int k = 0; k < 2; k++) {
+                    g_last_bogo.metric_val[k] += args_list[i]->bogo.metric_val[k];
+                    if (i == 0) {
+                        strncpy(g_last_bogo.metric_name[k],
+                                args_list[i]->bogo.metric_name[k],
+                                sizeof(g_last_bogo.metric_name[k]) - 1);
                     }
                 }
             }
@@ -653,5 +674,10 @@ int stress_ng_main_stop(void)
     g_stress_global_stop = STRESS_TRUE;
     stress_osal_print("rtos_stress: info: stopping all stressors...\n");
     return 0;
+}
+
+uint64_t stress_ng_get_last_bogo_ops(void)
+{
+    return g_last_bogo.current_ops;
 }
 
