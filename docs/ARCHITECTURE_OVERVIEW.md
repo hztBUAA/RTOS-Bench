@@ -135,7 +135,7 @@ RTOS-Bench/
 | **Linux** | `main.c` | Makefile | ✅ 原生支持 |
 | **SylixOS** | `sylixos_entry.c` | RealEvo IDE | ⚠️ 需 Windows IDE |
 | **OneOS** | `oneos_entry.c` | SCons (OneOS Cube) | ✅ 部分验证 |
-| **东土 (Dongtu)** | `dongtu_entry.c` | 厂商 IDE | ⚠️ POSIX-lite 适配 |
+| **东土 (Dongtu)** | `dongtu_entry.c` | 厂商 IDE | ⚠️ 待验证 |
 | **锐华 (Ruihua)** | `ruihua_entry.c` | 厂商 IDE | ⚠️ VxWorks 兼容 |
 
 ### 4.2 跨平台编译的三个层次
