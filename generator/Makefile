@@ -47,11 +47,11 @@ PLATFORM_DIR := $(GENERATOR_DIR)/platform/oneos
 override LDFLAGS += -lm
 else ifeq ($(PLATFORM),dongtu)
 override CFLAGS += -DDONGTU_PLATFORM
-PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
+PLATFORM_DIR := $(GENERATOR_DIR)/platform/dongtu
 override LDFLAGS += -lm -pthread
 else ifeq ($(PLATFORM),ruihua)
 override CFLAGS += -DRUIHUA_PLATFORM
-PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
+PLATFORM_DIR := $(GENERATOR_DIR)/platform/ruihua
 override LDFLAGS += -lm -pthread
 else ifeq ($(PLATFORM),rt-thread)
 override CFLAGS += -DRT_THREAD_PLATFORM
