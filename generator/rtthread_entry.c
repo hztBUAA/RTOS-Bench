@@ -518,35 +518,47 @@ int rtbench_rtthread_entry(int argc, char **argv)
  * Result Collection Functions
  * ============================================================================ */
 
-/* External references to realtime benchmark results */
+/* External references to realtime benchmark results (bench_init.c) */
 extern uint64_t *get_realtime_service_cost(void);
 extern uint64_t *get_realtime_interrupt(void);
-extern uint64_t *get_realtime_context_switch(void);
+extern uint64_t  get_realtime_context_switch(void);
 extern uint64_t *get_realtime_syscall(void);
 extern uint64_t *get_multicore_memory_bandwidth(void);
 extern uint64_t *get_multicore_ipc_bandwidth(void);
 extern uint64_t *get_multicore_intra_inter_bandwidth(void);
 extern uint64_t *get_multicore_init_dlt_latency(void);
 
+/* Convert nanoseconds to microseconds */
+#define NS_TO_US(ns) ((double)(ns) / 1000.0)
+
+/* Convert raw bench_init.c value to GB/s (values stored as x1000 representation) */
+#define RAW_TO_GBS(v) ((double)(v) / 1000.0)
+
 static void collect_realtime_result(int run_multicore)
 {
 	struct rtbench_result *r = rtbench_result_get();
 	struct rtbench_realtime_result *rt = &r->realtime;
 
-	/* Mark as valid */
 	rt->valid = 1;
-
-	/* These values should be collected from the actual test
-	 * For now, we'll set placeholder values that indicate
-	 * the structure is ready for real data integration */
-
-	/* Note: The actual values are stored in static variables in bench_init.c
-	 * A proper integration would expose getter functions from there.
-	 * For now, we mark the module as executed. */
-
 	rt->multicore_valid = run_multicore ? 1 : 0;
 
-	/* Add service cost entries (placeholder names) */
+	/* Read actual measured values from bench_init.c */
+	uint64_t ctx_sw = get_realtime_context_switch();
+	uint64_t *interrupt = get_realtime_interrupt();
+	uint64_t *syscall = get_realtime_syscall();
+	uint64_t *svc = get_realtime_service_cost();
+
+	/* Single-core latency metrics */
+	rt->context_switch_avg_us = NS_TO_US(ctx_sw);
+	rt->interrupt_min_us = NS_TO_US(interrupt[0]);
+	rt->interrupt_max_us = NS_TO_US(interrupt[1]);
+	rt->interrupt_avg_us = NS_TO_US(interrupt[2]);
+	rt->syscall_min_us = NS_TO_US(syscall[0]);
+	rt->syscall_max_us = NS_TO_US(syscall[1]);
+	rt->syscall_avg_us = NS_TO_US(syscall[2]);
+
+	/* Service cost: svc is uint64_t[8][4], row=op, col=scenario
+	 * Columns: [0]=immediate, [1]=suspend, [2]=low_prio, [3]=high_prio */
 	static const char *svc_ops[] = {
 		"sem_take", "sem_release",
 		"mq_send", "mq_recv",
@@ -554,17 +566,48 @@ static void collect_realtime_result(int run_multicore)
 		"mempool_alloc", "mempool_free"
 	};
 	for (int i = 0; i < 8; i++) {
-		rtbench_realtime_add_service_cost(rt, svc_ops[i], -1, -1, -1, -1);
+		double immediate = NS_TO_US(svc[i * 4 + 0]);
+		double suspend   = NS_TO_US(svc[i * 4 + 1]);
+		double low_prio  = NS_TO_US(svc[i * 4 + 2]);
+		double high_prio = NS_TO_US(svc[i * 4 + 3]);
+		rtbench_realtime_add_service_cost(rt, svc_ops[i],
+			immediate, suspend, low_prio, high_prio);
 	}
 
-	/* Add memory bandwidth types */
+	/* Multi-core metrics */
 	if (run_multicore) {
+		uint64_t *mem_bw = get_multicore_memory_bandwidth();
+		uint64_t *ipc_bw = get_multicore_ipc_bandwidth();
+		uint64_t *intra_inter = get_multicore_intra_inter_bandwidth();
+		uint64_t *task_lat = get_multicore_init_dlt_latency();
+
+		/* Memory bandwidth: mem_bw is [8][4], row=type, col=concurrency */
 		static const char *mem_types[] = {
 			"rd", "wr", "cp", "frd", "fwr", "fcp", "memset", "memcpy"
 		};
 		for (int i = 0; i < 8; i++) {
-			rtbench_realtime_add_mem_bw(rt, mem_types[i], 0, 0, 0, 0);
+			rtbench_realtime_add_mem_bw(rt, mem_types[i],
+				RAW_TO_GBS(mem_bw[i * 4 + 0]),
+				RAW_TO_GBS(mem_bw[i * 4 + 1]),
+				RAW_TO_GBS(mem_bw[i * 4 + 2]),
+				RAW_TO_GBS(mem_bw[i * 4 + 3]));
 		}
+
+		/* IPC bandwidth: [4] concurrency levels */
+		rt->ipc_bw_c1 = RAW_TO_GBS(ipc_bw[0]);
+		rt->ipc_bw_c2 = RAW_TO_GBS(ipc_bw[1]);
+		rt->ipc_bw_c4 = RAW_TO_GBS(ipc_bw[2]);
+		rt->ipc_bw_c8 = RAW_TO_GBS(ipc_bw[3]);
+
+		/* Intra/inter core communication */
+		rt->core_comm_intra = RAW_TO_GBS(intra_inter[0]);
+		rt->core_comm_inter = RAW_TO_GBS(intra_inter[1]);
+
+		/* Task create/delete latency: [4] concurrency levels, in us */
+		rt->task_lat_c1 = NS_TO_US(task_lat[0]);
+		rt->task_lat_c2 = NS_TO_US(task_lat[1]);
+		rt->task_lat_c4 = NS_TO_US(task_lat[2]);
+		rt->task_lat_c8 = NS_TO_US(task_lat[3]);
 	}
 }
 
