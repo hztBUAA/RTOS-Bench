@@ -174,15 +174,17 @@ static void realtime_print(void) {
     div1000_print(realtime_interrupt[2], buf);
     printf("%s\n", buf);
     
-	printf("系统调用延迟    MIN: ");
-    div1000_print(realtime_syscall[0], buf);
-    printf("%s", buf);
-    printf("  MAX: ");
-    div1000_print(realtime_syscall[1], buf);
-    printf("%s", buf);
-    printf("  AVG: ");
-    div1000_print(realtime_syscall[2], buf);
-    printf("%s\n", buf);
+    if (!LES_NO_GETPID) {
+        printf("系统调用延迟    MIN: ");
+        div1000_print(realtime_syscall[0], buf);
+        printf("%s", buf);
+        printf("  MAX: ");
+        div1000_print(realtime_syscall[1], buf);
+        printf("%s", buf);
+        printf("  AVG: ");
+        div1000_print(realtime_syscall[2], buf);
+        printf("%s\n", buf);
+    }
 
 	printf("\n");
 }
