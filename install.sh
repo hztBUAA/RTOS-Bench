@@ -325,6 +325,8 @@ print_usage() {
     echo "     msh /> rtbench test-realtime"
     echo "     msh /> rtbench test-schedule --cycles 100"
     echo "     msh /> rtbench test-stress -s cpu -t 10"
+    echo "     msh /> rtbench test-cmd"
+    echo "     msh /> rtbench test-all"
     echo "     msh /> rtbench -b busywait -p 0.5 -t 100 -q"
     echo ""
     echo "文档:"

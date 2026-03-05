@@ -5,7 +5,7 @@
 
 ## 核心约定（统一入口 + POSIX 合同）
 - 仅使用 workload registry（`generator/workload_registry.*`），强符号禁用 benchmark_* 覆盖；新增负载必须注册 `rtosbench_register_workload()`。
-- 默认 POSIX 契约（pthread/clock/socket/sem）；Linux/SylixOS 直接使用，RTOS 若 POSIX 不完备则在各自平台目录做最小垫片。
+- 默认 POSIX 契约（pthread/clock/socket/sem）；RTOS 若 POSIX 不完备则在 `generator/platform/<platform>/` 做最小垫片。
 - 打包开关：根目录 `Makefile` 默认 `RTOS_WORKLOADS=1`，自动把 `workloads/` 下源码编入 Linux/SylixOS；RT-Thread 由 BSP SConscript 引用。
 - 工作目录：`workloads/` 集中存放所有负载；`workloads/rtbench_workloads.cpp` 统一注册和 `register_all_workloads()`。
 - 入口 CLI：
@@ -14,7 +14,7 @@
 - 内置工作负载：busywait, stub, fast, epnp, ekf, icp, pid, modbus, mqtt。网络类在无网络时自动离线仿真/pack-only，并打印 offline 提示。
 
 ## 脚本与命令
-- RT-Thread(QEMU aarch64)：`./run-rtthread.sh`
+- RT-Thread (QEMU virt aarch64, BSP: `qemu-virt64-aarch64`)：`./run-rtthread.sh`
   - `-b` 仅编译；`-r` 仅运行；交互：`rtbench -b <name> -p <sec> -t 1 -q`
   - 默认 4 核 128M，无网；如需网络自行加 QEMU 网卡，但 BSP 未保证；网络类已有离线兜底。
 - SylixOS：`./run-sylixos.sh`（默认 qemu-x86_64，支持 `-n` 无图形）。
@@ -75,6 +75,16 @@
   - `rtbench test-realtime` => 测量上下文切换、信号量、互斥锁、内存分配延迟
   - `rtbench test-realtime --multicore` => 包含多核测试（需 SMP 支持）
   - 详见 [docs/REALTIME.md](docs/REALTIME.md)
+- **压力测试**：
+  - `rtbench test-stress -s cpu -t 5` => CPU 压力测试
+  - `rtbench test-stress -s memory -t 5` => 内存压力测试
+  - 详见 [docs/STRESS.md](docs/STRESS.md)
+- **Shell 命令支持测试**：
+  - `rtbench test-cmd` => 测试 Shell 命令注册与执行能力
+  - 详见 [docs/CMD.md](docs/CMD.md)
+- **综合测试**：
+  - `rtbench test-all` => 运行所有测试子命令（test-realtime, test-schedule, test-stress, test-cmd）
+  - `rtbench test-all -o /rtbench_result.json` => 运行所有测试并导出结果
 
 ## 迁移/调试提示
 - Deadline：Linux 支持 SCHED_DEADLINE；RTOS 不支持时 `rtbench_set_deadline` 应返回 -1 并提示，统计层仍可用 deadline 判定 miss（需入口支持 -d）。
@@ -85,13 +95,14 @@
 
 ## 目录速览
 - `Makefile`：跨平台构建入口（Linux/SylixOS/OneOS 等）。
-- `generator/`：核心框架 + 平台抽象 + 入口（Linux/SylixOS/RT-Thread）。
+- `generator/`：核心框架 + 平台抽象 + 入口（Linux/SylixOS/RT-Thread 等）。
 - `workloads/`：全部打包的负载与注册表。
 - `run-rtthread.sh` / `run-sylixos.sh`：一键构建/运行脚本。
 - `extern/rt-thread/bsp/qemu-virt64-aarch64/`：RT-Thread BSP 与 `.config`。
-- `docs/BUILD_GUIDE.md`：详细构建与部署指南（新人必读）。
 - `docs/SCHEDULE.md`：可调度性测试 (test-schedule) 使用指南。
 - `docs/REALTIME.md`：实时性能测试 (test-realtime) 使用指南。
+- `docs/STRESS.md`：压力测试 (test-stress) 使用指南。
+- `docs/CMD.md`：Shell 命令支持测试 (test-cmd) 使用指南。
 
 ## 工具链说明
 
@@ -134,7 +145,7 @@
 ## 跨平台架构
 - **平台抽象层**：`generator/platform/<platform>/` 提供 timer/sync/scheduler/timestamp/signal
 - **对 workload 开发者透明**：只需关心业务逻辑，不同架构由工具链处理，不同 RTOS API 由抽象层处理
-- **POSIX 契约**：Linux/SylixOS 完整支持，RT-Thread 通过适配层支持，OneOS 通过原生 API + POSIX 补丁支持
+- **POSIX 契约**：各平台通过 `generator/platform/<platform>/` 提供 POSIX 垫片，RT-Thread 通过适配层支持，OneOS 通过原生 API + POSIX 补丁支持
 
 ## OneOS 集成经验（2026-02-09 验证）
 

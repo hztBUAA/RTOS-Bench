@@ -49,6 +49,7 @@
 | **test-realtime** | 独立子命令 | `generator/realtime_orig/` | `rtbench test-realtime` | 测量 RTOS 内核的实时性能指标 |
 | **test-schedule** | 独立子命令 | `generator/test_schedule.c` | `rtbench test-schedule` | 使用 workloads 验证可调度性 |
 | **test-stress** | 独立子命令 | `generator/stress_orig/` | `rtbench test-stress` | 压力测试，配合外部功耗仪使用 |
+| **test-cmd** | 独立子命令 | `generator/test_cmd.c` | `rtbench test-cmd` | 测试 Shell 命令注册与执行能力 |
 | **workloads** | 负载库 | `workloads/` | `rtbench -b <name>` | 为 test-schedule 和周期执行提供负载 |
 
 **关键区别**：
@@ -62,6 +63,8 @@ rtbench
 ├── test-realtime [--multicore]      # 实时性能 → realtime_orig/
 ├── test-schedule [--cycles N]       # 可调度性 → 调用 workloads
 ├── test-stress -s <stressor>        # 功耗压力 → stress_orig/
+├── test-cmd                         # Shell 命令测试 → test_cmd.c
+├── test-all [-o <file>]             # 运行所有测试
 ├── -b <workload> -p <period>        # 周期负载 → workloads/
 └── -L                               # 列出负载
 ```
@@ -78,7 +81,7 @@ RTOS-Bench/
 │   ├── sylixos_entry.c          # SylixOS 入口
 │   ├── dongtu_entry.c           # 东土 (Intewell) 入口
 │   ├── ruihua_entry.c           # 锐华 (ReWorks) 入口
-│   ├── posixlite_entry.c        # 通用 POSIX-lite 入口（Linux 兼容）
+│   ├── posixlite_entry.c        # 通用 POSIX 入口（无专用入口的平台使用）
 │   │
 │   ├── test_realtime.c/.h       # 实时性测试 wrapper
 │   ├── realtime_orig/           # 实时性测试原始实现
@@ -93,6 +96,7 @@ RTOS-Bench/
 │   │   └── stressor/
 │   │
 │   ├── test_schedule.c/.h       # 可调度性测试（独立实现）
+│   ├── test_cmd.c/.h            # Shell 命令支持测试
 │   ├── uunifast.c/.h            # UUniFast 算法
 │   │
 │   ├── workload_registry.c/.h   # 负载注册表
@@ -131,7 +135,7 @@ RTOS-Bench/
 | **Linux** | `main.c` | Makefile | ✅ 原生支持 |
 | **SylixOS** | `sylixos_entry.c` | RealEvo IDE | ⚠️ 需 Windows IDE |
 | **OneOS** | `oneos_entry.c` | SCons (OneOS Cube) | ✅ 部分验证 |
-| **东土 (Dongtu)** | `dongtu_entry.c` | 厂商 IDE | ⚠️ POSIX-lite 适配 |
+| **东土 (Dongtu)** | `dongtu_entry.c` | 厂商 IDE | ⚠️ 待验证 |
 | **锐华 (Ruihua)** | `ruihua_entry.c` | 厂商 IDE | ⚠️ VxWorks 兼容 |
 
 ### 4.2 跨平台编译的三个层次
@@ -338,7 +342,8 @@ workloads/                      → 添加到 "Source Files"
 ## 七、参考资料
 
 - [AGENTS.md](../AGENTS.md) - 开发资产与约定
-- [BUILD_GUIDE.md](BUILD_GUIDE.md) - 构建与部署指南
 - [SCHEDULE.md](SCHEDULE.md) - 可调度性测试指南
 - [REALTIME.md](REALTIME.md) - 实时性能测试指南
+- [STRESS.md](STRESS.md) - 压力测试指南
+- [CMD.md](CMD.md) - Shell 命令支持测试指南
 - 工业操作系统通用基准检测指标体系指导书 v1.5

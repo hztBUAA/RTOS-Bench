@@ -49,6 +49,12 @@ msh /> rtbench test-schedule --cycles 100
 # 功耗压力测试 - CPU/内存压力
 msh /> rtbench test-stress -s cpu -t 10
 
+# Shell 命令支持测试
+msh /> rtbench test-cmd
+
+# 运行所有测试
+msh /> rtbench test-all
+
 # 运行单个 workload
 msh /> rtbench -b busywait -p 0.5 -t 100 -q
 msh /> rtbench -L  # 列出所有 workload
@@ -63,6 +69,8 @@ msh /> rtbench -L  # 列出所有 workload
 | `test-realtime` | 实时性能测试 | 上下文切换、系统调用、信号量/互斥锁/消息队列延迟 |
 | `test-schedule` | 可调度性验证 | 截止时间错失率 (Miss Rate)、调度评分 |
 | `test-stress` | 功耗压力测试 | CPU/内存压力，配合外部功耗仪使用 |
+| `test-cmd` | Shell 命令支持测试 | Shell 命令注册与执行能力 |
+| `test-all` | 综合测试 | 运行所有测试子命令并汇总结果 |
 | `-b <workload>` | 周期负载执行 | 任务响应时间、吞吐量 |
 
 ---
@@ -75,6 +83,7 @@ RTOS-Bench/
 │   ├── test_realtime.c/.h    # 实时性测试入口
 │   ├── test_schedule.c/.h    # 可调度性测试
 │   ├── test_stress.c/.h      # 压力测试入口
+│   ├── test_cmd.c/.h         # Shell 命令支持测试
 │   ├── realtime_orig/        # 实时性测试实现
 │   ├── stress_orig/          # stress-ng 移植
 │   ├── workload_registry.c   # 负载注册表
@@ -83,6 +92,8 @@ RTOS-Bench/
 │       ├── rt-thread/
 │       ├── linux/
 │       ├── sylixos/
+│       ├── dongtu/
+│       ├── ruihua/
 │       └── oneos/
 │
 ├── workloads/                 # 典型工业负载
@@ -94,9 +105,11 @@ RTOS-Bench/
 │   └── MODBUS/, MQTT/        # 工业通信
 │
 ├── docs/                      # 文档
-│   ├── ARCHITECTURE_OVERVIEW.md  # 架构概览 ⭐
+│   ├── ARCHITECTURE_OVERVIEW.md  # 架构概览
 │   ├── SCHEDULE.md           # 可调度性测试详解
 │   ├── REALTIME.md           # 实时性测试详解
+│   ├── STRESS.md             # 压力测试详解
+│   ├── CMD.md                # Shell 命令支持测试
 │   └── TEST_REPORT.md        # 测试报告
 │
 ├── install.sh                 # 一键环境配置
@@ -112,6 +125,8 @@ RTOS-Bench/
 | [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) | 框架架构、跨平台策略、组件关系 | 新开发者必读 |
 | [docs/SCHEDULE.md](docs/SCHEDULE.md) | 可调度性测试原理与使用 | 测试执行者 |
 | [docs/REALTIME.md](docs/REALTIME.md) | 实时性能测试原理与使用 | 测试执行者 |
+| [docs/STRESS.md](docs/STRESS.md) | 压力测试原理与使用 | 测试执行者 |
+| [docs/CMD.md](docs/CMD.md) | Shell 命令支持测试使用指南 | 测试执行者 |
 | [docs/TEST_REPORT.md](docs/TEST_REPORT.md) | 已验证的测试报告 | 参考 |
 | [AGENTS.md](AGENTS.md) | AI 开发资产（详细约定） | AI 辅助开发 |
 
@@ -123,10 +138,10 @@ RTOS-Bench/
 |------|------|----------|----------|
 | **RT-Thread** | ✅ 完整支持 | `rtthread_entry.c` | SCons |
 | **Linux** | ✅ 支持 | `main.c` | Makefile |
-| **SylixOS** | ⚠️ 需 Windows IDE | `posixlite_entry.c` | RealEvo |
+| **SylixOS** | ⚠️ 需 Windows IDE | `sylixos_entry.c` | RealEvo |
 | **OneOS** | ⚠️ 部分支持 | `oneos_entry.c` | SCons |
-| **东土 (Dongtu)** | ⚠️ POSIX-lite | `posixlite_entry.c` | 厂商 IDE |
-| **锐华 (Ruihua)** | ⚠️ POSIX-lite | `posixlite_entry.c` | 厂商 IDE |
+| **东土 (Dongtu)** | ⚠️ 待验证 | `dongtu_entry.c` | 厂商 IDE |
+| **锐华 (Ruihua)** | ⚠️ 待验证 | `ruihua_entry.c` | 厂商 IDE |
 
 详见 [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) 中的跨平台编译章节。
 
@@ -141,6 +156,8 @@ rtbench [子命令] [选项]
   test-realtime [--multicore]     实时性能测试
   test-schedule [--cycles N]      可调度性测试
   test-stress -s <stressor> -t N  压力测试
+  test-cmd                        Shell 命令支持测试
+  test-all [-o <file>]            运行所有测试
 
 通用选项:
   -b, --workload <name>    指定 workload

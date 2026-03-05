@@ -13,7 +13,7 @@ elif GetDepend(['RT_THREAD_PRIORITY_32']) or GetDepend(['RT_THREAD_PRIORITY_256'
 elif GetDepend(['RT_USING_LIBC']):
     platform = 'rt-thread'
 else:
-    platform = 'posix-lite'
+    platform = 'linux'
 
 # Core source files (platform-agnostic)
 src_files = [
@@ -38,7 +38,7 @@ if platform == 'rt-thread':
 elif platform == 'oneos':
     src_files.append('oneos_entry.c')
 else:
-    # posix-lite or Linux
+    # Linux or other POSIX-compatible platform
     src_files.append('posixlite_entry.c')
 
 # Convert to File objects

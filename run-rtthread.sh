@@ -1,5 +1,5 @@
 #!/bin/bash
-# RT-Thread QEMU (qemu-virt64-aarch64) 一键测试脚本
+# RT-Thread QEMU virt aarch64 (BSP: qemu-virt64-aarch64) 一键测试脚本
 # 用法: ./run-rtthread.sh [选项]
 #   -b        仅编译，不运行
 #   -r        仅运行（使用已有镜像）
@@ -7,6 +7,7 @@
 #   -h        显示帮助
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# BSP 目录: "QEMU virt aarch64 (Cortex-A53 x4, 128MB)" 对应 qemu-virt64-aarch64
 BSP_DIR="$SCRIPT_DIR/extern/rt-thread/bsp/qemu-virt64-aarch64"
 TOOLCHAIN_DIR="$SCRIPT_DIR/extern/toolchains/xpack-aarch64-none-elf-gcc-14.2.1-1.1/bin"
 
@@ -108,7 +109,7 @@ build_rtthread() {
     echo "编译目录: $BSP_DIR"
     echo ""
 
-    scons -j$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+    scons -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
     if [ $? -ne 0 ]; then
         echo "编译失败!"
@@ -148,7 +149,12 @@ run_rtthread() {
     echo "按 Ctrl+A X 退出"
     echo ""
     echo "在 msh 终端中运行:"
-    echo "  rtbench -p 0.5 -b busywait -t 3"
+    echo "  rtbench test-realtime              # 实时性能测试"
+    echo "  rtbench test-schedule --cycles 100 # 可调度性测试"
+    echo "  rtbench test-stress -s cpu -t 5    # 压力测试"
+    echo "  rtbench test-cmd                   # Shell 命令支持测试"
+    echo "  rtbench test-all                   # 运行所有测试"
+    echo "  rtbench -b busywait -p 0.5 -t 3 -q # 周期负载"
     echo ""
 
     if [ $AUTO_TEST -eq 1 ]; then
@@ -186,7 +192,7 @@ run_auto_test() {
     echo "help rtbench" >&3
     sleep 2
 
-    # 运行 busywait benchmark (-q 显示输出)
+    # 运行 busywait benchmark (-q 静默输出)
     echo "rtbench -p 0.5 -b busywait -t 2 -q" >&3
     sleep 8
 
@@ -194,6 +200,18 @@ run_auto_test() {
 
     # 运行 stub benchmark
     echo "rtbench -p 0.3 -b stub -t 2 -q" >&3
+    sleep 5
+
+    # 实时性能测试
+    echo "rtbench test-realtime" >&3
+    sleep 10
+
+    # 压力测试（CPU, 5秒）
+    echo "rtbench test-stress -s cpu -t 5" >&3
+    sleep 8
+
+    # Shell 命令支持测试
+    echo "rtbench test-cmd" >&3
     sleep 5
 
     # 清理
