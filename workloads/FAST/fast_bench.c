@@ -15,8 +15,14 @@
 #include <unistd.h>
 #include <sched.h>
 
-#include "fast.h" 
+#include "fast.h"
 #include "include_imgs/dataset_registry.h"
+
+/* Defined in test_schedule.c — when nonzero, suppress printf output */
+extern volatile int g_sched_suppress_output;
+
+/* Quiet-aware printf: skips output when running inside test-schedule */
+#define FAST_PRINTF(...) do { if (!g_sched_suppress_output) printf(__VA_ARGS__); } while(0)
 
 static double diff_timespec_us(const struct timespec *start, const struct timespec *end) {
     double start_us = (double)start->tv_sec * 1000000.0 + (double)start->tv_nsec / 1000.0;
@@ -25,8 +31,8 @@ static double diff_timespec_us(const struct timespec *start, const struct timesp
 }
 
 int fast_bench_run_once(int loops) {
-    printf("[POSIX] Starting FAST Benchmark ...\n");
-    printf("Total Images: %d\n", benchmark_suite_len);
+    FAST_PRINTF("[POSIX] Starting FAST Benchmark ...\n");
+    FAST_PRINTF("Total Images: %d\n", benchmark_suite_len);
 
     // 1. 准备内存
     // 为了模拟真实的图像处理流程，我们需要一块 RAM 区域作为"显存/帧缓冲区"
@@ -37,18 +43,18 @@ int fast_bench_run_once(int loops) {
         if (sz > max_buffer_size) max_buffer_size = sz;
     }
 
-    printf("Allocating RAM buffer: %d bytes (KB: %d)\n", max_buffer_size, max_buffer_size/1024);
+    FAST_PRINTF("Allocating RAM buffer: %d bytes (KB: %d)\n", max_buffer_size, max_buffer_size/1024);
 
     unsigned char* img_buffer = (unsigned char*)malloc(max_buffer_size);
     if (!img_buffer) {
-        printf("Error: Failed to allocate RAM buffer (OOM).\n");
+        FAST_PRINTF("Error: Failed to allocate RAM buffer (OOM).\n");
         return -1;
     }
 
     // 打印表头
-    printf("\n");
-    printf("| %-15s | %-9s | %-8s | %-9s | %-7s |\n", "Image", "Size", "Corners", "Time(us)", "FPS");
-    printf("|-----------------|-----------|----------|-----------|---------|\n");
+    FAST_PRINTF("\n");
+    FAST_PRINTF("| %-15s | %-9s | %-8s | %-9s | %-7s |\n", "Image", "Size", "Corners", "Time(us)", "FPS");
+    FAST_PRINTF("|-----------------|-----------|----------|-----------|---------|\n");
 
     if (loops <= 0) {
         loops = 1000; // 默认循环次数
@@ -57,11 +63,11 @@ int fast_bench_run_once(int loops) {
 
     for (int i = 0; i < benchmark_suite_len; i++) {
         const BenchmarkImage* img = &benchmark_suite[i];
-        
+
         // A. 模拟采集：从 Flash (RO段) 拷贝到 RAM
         // 这一步模拟了 DMA 从摄像头搬运数据到内存的过程
         memcpy(img_buffer, img->data, img->w * img->h);
-        
+
         int num_corners = 0;
         xy* corners = NULL;
 
@@ -72,8 +78,8 @@ int fast_bench_run_once(int loops) {
         for (int j = 0; j < loops; j++) {
             // 注意：fast9_detect 内部 malloc 了返回的 corners 数组
             // 必须 free，否则 1000 次循环会耗尽堆内存
-            if (corners) free(corners); 
-            
+            if (corners) free(corners);
+
             // 核心算法调用
             corners = fast9_detect(img_buffer, img->w, img->h, img->w, 30, &num_corners);
         }
@@ -92,17 +98,17 @@ int fast_bench_run_once(int loops) {
         double fps = 1000000.0 / avg_us;
 
         // F. 输出表格行
-        printf("| %-15s | %-4dx%-4d | %-8d | %9.1f | %7.1f |\n", 
+        FAST_PRINTF("| %-15s | %-4dx%-4d | %-8d | %9.1f | %7.1f |\n",
                img->name, img->w, img->h, num_corners, avg_us, fps);
     }
 
-    printf("|-----------------|-----------|----------|-----------|---------|\n");
-    
-    printf("\n[Result] Total Time: %.3f s\n", bench_total_us / 1000000.0);
-    
+    FAST_PRINTF("|-----------------|-----------|----------|-----------|---------|\n");
+
+    FAST_PRINTF("\n[Result] Total Time: %.3f s\n", bench_total_us / 1000000.0);
+
     // 3. 释放全局缓冲区
     free(img_buffer);
-    printf("[POSIX] Benchmark Finished.\n");
+    FAST_PRINTF("[POSIX] Benchmark Finished.\n");
     return 0;
 }
 
