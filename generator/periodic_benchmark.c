@@ -200,10 +200,12 @@ static void stop_benchmark(int status, void *arg)
 #endif
 }
 
+#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM)
 static void stop_benchmark_wrapper(void)
 {
 	stop_benchmark(EXIT_SUCCESS, &memory_profiling_enabled);
 }
+#endif
 
 /**
  * @brief Quit handler, causes the program to terminate in a clean way.
@@ -506,7 +508,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		return -1;
 	}
 	memory_profiling_enabled = exec_opts->memory_profiling_enable;
-#ifdef RT_THREAD_PLATFORM
+#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM)
 	res = atexit(stop_benchmark_wrapper);
 #else
 	res = on_exit(stop_benchmark, &memory_profiling_enabled);
