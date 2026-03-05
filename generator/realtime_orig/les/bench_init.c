@@ -285,3 +285,48 @@ int realtime_benchmark_run_all(int run_multicore)
 
     return 0;
 }
+
+/* =========================================================================
+ * Getter functions to expose measured data for result collection
+ * Values are raw nanoseconds as stored by the benchmark tests.
+ * ========================================================================= */
+
+uint64_t *get_realtime_service_cost(void)
+{
+    return &realtime_service_cost[0][0];
+}
+
+uint64_t *get_realtime_interrupt(void)
+{
+    return realtime_interrupt;
+}
+
+uint64_t get_realtime_context_switch(void)
+{
+    return realtime_context_switch;
+}
+
+uint64_t *get_realtime_syscall(void)
+{
+    return realtime_syscall;
+}
+
+uint64_t *get_multicore_memory_bandwidth(void)
+{
+    return &multicore_memory_bandwidth[0][0];
+}
+
+uint64_t *get_multicore_ipc_bandwidth(void)
+{
+    return multicore_ipc_bandwidth;
+}
+
+uint64_t *get_multicore_intra_inter_bandwidth(void)
+{
+    return multicore_intra_inter_bandwidth;
+}
+
+uint64_t *get_multicore_init_dlt_latency(void)
+{
+    return multicore_init_dlt_latency;
+}

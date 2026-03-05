@@ -20,6 +20,10 @@
 /* Forward declaration - implemented in stress_orig/ */
 extern int stress_ng_main(int argc, char **argv);
 extern int stress_ng_main_stop(void);
+extern uint64_t stress_ng_get_last_bogo_ops(void);
+
+/* Last run's bogo_ops, captured after each test_stress_run_stressor call */
+static uint64_t s_last_bogo_ops = 0;
 
 /* Stressor name table */
 static const char *stressor_names[] = {
@@ -68,6 +72,9 @@ int test_stress_run_stressor(const char *name, int duration_sec)
     argv[argc++] = "1";
 
     int ret = stress_ng_main(argc, argv);
+
+    /* Capture bogo_ops from the last run */
+    s_last_bogo_ops = stress_ng_get_last_bogo_ops();
 
     STRESS_PRINTF("\n");
     STRESS_PRINTF("[test-stress] Stressor %s completed with code: %d\n", name, ret);
@@ -131,6 +138,11 @@ void test_stress_list_stressors(void)
     STRESS_PRINTF("  trig     - Trigonometric functions\n");
     STRESS_PRINTF("  fp       - Floating point operations\n");
     STRESS_PRINTF("  all      - Run all stressors sequentially\n");
+}
+
+uint64_t test_stress_get_last_bogo_ops(void)
+{
+    return s_last_bogo_ops;
 }
 
 void test_stress_stop(void)

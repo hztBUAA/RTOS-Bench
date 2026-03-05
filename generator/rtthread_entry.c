@@ -45,6 +45,9 @@ typedef int clockid_t;
 /* Default result output path */
 #define RTBENCH_DEFAULT_OUTPUT_PATH "/rtbench_result.json"
 
+/* Stack size for test-all worker thread (32KB to handle deep call chains) */
+#define RTBENCH_TEST_ALL_STACK_SIZE (32 * 1024)
+
 /* Register packaged workloads (must be linked in) */
 void rtosbench_register_rtos_workloads(void);
 
@@ -129,6 +132,100 @@ static void debug_print_context(const struct execution_options *opts)
 		   (unsigned long long)opts->tasks_to_launch);
 }
 
+/* ============================================================================
+ * test-all worker thread (avoids tshell 4KB stack overflow)
+ * ============================================================================ */
+
+struct test_all_params {
+	const char *output_path;
+	int run_realtime;
+	int run_schedule;
+	int run_stress;
+	int run_cmd;
+	int run_workload;
+	int run_multicore;
+	int stress_duration;
+	int result;
+	struct rt_semaphore done_sem;
+};
+
+static void test_all_thread_entry(void *parameter)
+{
+	struct test_all_params *p = (struct test_all_params *)parameter;
+
+	/* Initialize result collection */
+	rtbench_result_init();
+	rtbench_result_set_env("RT-Thread", RT_VERSION_STRING, "QEMU-virt-aarch64",
+	                       "cortex-a53", 0, RT_CPUS_NR);
+	rtbench_result_start();
+
+	/* Register workloads */
+	rtosbench_register_rtos_workloads();
+
+	rt_kprintf("\n");
+	rt_kprintf("=============================================================\n");
+	rt_kprintf("[RTOS-Bench] Comprehensive Test Suite\n");
+	rt_kprintf("=============================================================\n");
+	rt_kprintf("Output: %s\n", p->output_path);
+	rt_kprintf("Modules: realtime=%s schedule=%s stress=%s cmd=%s workload=%s\n",
+	           p->run_realtime ? "yes" : "no",
+	           p->run_schedule ? "yes" : "no",
+	           p->run_stress ? "yes" : "no",
+	           p->run_cmd ? "yes" : "no",
+	           p->run_workload ? "yes" : "no");
+	rt_kprintf("\n");
+
+	/* Run realtime test */
+	if (p->run_realtime) {
+		rt_kprintf(">>> Running test-realtime...\n");
+		test_realtime_run(p->run_multicore);
+		collect_realtime_result(p->run_multicore);
+	}
+
+	/* Run schedule test */
+	if (p->run_schedule) {
+		rt_kprintf("\n>>> Running test-schedule...\n");
+		test_schedule_run();
+		collect_schedule_result();
+	}
+
+	/* Run stress test */
+	if (p->run_stress) {
+		rt_kprintf("\n>>> Running test-stress...\n");
+		test_stress_run_stressor("cpu", p->stress_duration);
+		collect_stress_result("cpu", p->stress_duration);
+	}
+
+	/* Run command support test */
+	if (p->run_cmd) {
+		rt_kprintf("\n>>> Running test-cmd...\n");
+		test_cmd_run();
+		collect_cmd_result();
+	}
+
+	/* Run workload tests */
+	if (p->run_workload) {
+		rt_kprintf("\n>>> Running typical workloads...\n");
+		collect_workload_results();
+	}
+
+	/* Finalize and export */
+	rtbench_result_end();
+	p->result = rtbench_result_export_json(p->output_path);
+	if (p->result == 0) {
+		rt_kprintf("\n=============================================================\n");
+		rt_kprintf("[RTOS-Bench] Results saved to: %s\n", p->output_path);
+		rt_kprintf("=============================================================\n");
+	} else {
+		rt_kprintf("\n[RTOS-Bench] Failed to save results: %d\n", p->result);
+	}
+
+	rtbench_result_cleanup();
+
+	/* Signal completion */
+	rt_sem_release(&p->done_sem);
+}
+
 int rtosbench_rtthread_entry(int argc, char **argv)
 {
 	struct execution_options opts;
@@ -136,32 +233,34 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 
 	/* Check for test-all subcommand - comprehensive test suite */
 	if (argc >= 2 && strcmp(argv[1], "test-all") == 0) {
-		int run_realtime = 1;
-		int run_schedule = 1;
-		int run_stress = 1;
-		int run_cmd = 1;
-		int run_workload = 1;
-		int run_multicore = 0;
-		int stress_duration = 10;
+		static struct test_all_params params;
+		memset(&params, 0, sizeof(params));
+		params.run_realtime = 1;
+		params.run_schedule = 1;
+		params.run_stress = 1;
+		params.run_cmd = 1;
+		params.run_workload = 1;
+		params.run_multicore = 0;
+		params.stress_duration = 10;
 
 		/* Parse optional arguments */
 		for (int i = 2; i < argc; i++) {
 			if ((strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) && (i + 1 < argc)) {
 				output_path = argv[++i];
 			} else if (strcmp(argv[i], "--no-realtime") == 0) {
-				run_realtime = 0;
+				params.run_realtime = 0;
 			} else if (strcmp(argv[i], "--no-schedule") == 0) {
-				run_schedule = 0;
+				params.run_schedule = 0;
 			} else if (strcmp(argv[i], "--no-stress") == 0) {
-				run_stress = 0;
+				params.run_stress = 0;
 			} else if (strcmp(argv[i], "--no-cmd") == 0) {
-				run_cmd = 0;
+				params.run_cmd = 0;
 			} else if (strcmp(argv[i], "--no-workload") == 0) {
-				run_workload = 0;
+				params.run_workload = 0;
 			} else if (strcmp(argv[i], "--multicore") == 0 || strcmp(argv[i], "-m") == 0) {
-				run_multicore = 1;
+				params.run_multicore = 1;
 			} else if (strcmp(argv[i], "--stress-duration") == 0 && (i + 1 < argc)) {
-				stress_duration = atoi(argv[++i]);
+				params.stress_duration = atoi(argv[++i]);
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
 			}
@@ -171,76 +270,29 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		if (!output_path) {
 			output_path = RTBENCH_DEFAULT_OUTPUT_PATH;
 		}
+		params.output_path = output_path;
 
-		/* Initialize result collection */
-		rtbench_result_init();
-		rtbench_result_set_env("RT-Thread", RT_VERSION_STRING, "QEMU-virt-aarch64",
-		                       "cortex-a53", 0, RT_CPUS_NR);
-		rtbench_result_start();
+		/* Initialize completion semaphore */
+		rt_sem_init(&params.done_sem, "ta_done", 0, RT_IPC_FLAG_PRIO);
 
-		/* Register workloads */
-		rtosbench_register_rtos_workloads();
-
-		rt_kprintf("\n");
-		rt_kprintf("=============================================================\n");
-		rt_kprintf("[RTOS-Bench] Comprehensive Test Suite\n");
-		rt_kprintf("=============================================================\n");
-		rt_kprintf("Output: %s\n", output_path);
-		rt_kprintf("Modules: realtime=%s schedule=%s stress=%s cmd=%s workload=%s\n",
-		           run_realtime ? "yes" : "no",
-		           run_schedule ? "yes" : "no",
-		           run_stress ? "yes" : "no",
-		           run_cmd ? "yes" : "no",
-		           run_workload ? "yes" : "no");
-		rt_kprintf("\n");
-
-		/* Run realtime test */
-		if (run_realtime) {
-			rt_kprintf(">>> Running test-realtime...\n");
-			test_realtime_run(run_multicore);
-			collect_realtime_result(run_multicore);
+		/* Spawn worker thread with large stack to avoid tshell stack overflow */
+		rt_thread_t t = rt_thread_create("rtbench",
+		                                  test_all_thread_entry,
+		                                  &params,
+		                                  RTBENCH_TEST_ALL_STACK_SIZE,
+		                                  20, 10);
+		if (t == RT_NULL) {
+			rt_kprintf("[RTOS-Bench] Failed to create test-all worker thread\n");
+			rt_sem_detach(&params.done_sem);
+			return -1;
 		}
+		rt_thread_startup(t);
 
-		/* Run schedule test */
-		if (run_schedule) {
-			rt_kprintf("\n>>> Running test-schedule...\n");
-			test_schedule_run();
-			collect_schedule_result();
-		}
+		/* Wait for worker to finish */
+		rt_sem_take(&params.done_sem, RT_WAITING_FOREVER);
+		rt_sem_detach(&params.done_sem);
 
-		/* Run stress test */
-		if (run_stress) {
-			rt_kprintf("\n>>> Running test-stress...\n");
-			test_stress_run_stressor("cpu", stress_duration);
-			collect_stress_result("cpu", stress_duration);
-		}
-
-		/* Run command support test */
-		if (run_cmd) {
-			rt_kprintf("\n>>> Running test-cmd...\n");
-			test_cmd_run();
-			collect_cmd_result();
-		}
-
-		/* Run workload tests */
-		if (run_workload) {
-			rt_kprintf("\n>>> Running typical workloads...\n");
-			collect_workload_results();
-		}
-
-		/* Finalize and export */
-		rtbench_result_end();
-		int ret = rtbench_result_export_json(output_path);
-		if (ret == 0) {
-			rt_kprintf("\n=============================================================\n");
-			rt_kprintf("[RTOS-Bench] Results saved to: %s\n", output_path);
-			rt_kprintf("=============================================================\n");
-		} else {
-			rt_kprintf("\n[RTOS-Bench] Failed to save results: %d\n", ret);
-		}
-
-		rtbench_result_cleanup();
-		return ret;
+		return params.result;
 	}
 
 	/* Check for export-result subcommand */
@@ -466,35 +518,47 @@ int rtbench_rtthread_entry(int argc, char **argv)
  * Result Collection Functions
  * ============================================================================ */
 
-/* External references to realtime benchmark results */
+/* External references to realtime benchmark results (bench_init.c) */
 extern uint64_t *get_realtime_service_cost(void);
 extern uint64_t *get_realtime_interrupt(void);
-extern uint64_t *get_realtime_context_switch(void);
+extern uint64_t  get_realtime_context_switch(void);
 extern uint64_t *get_realtime_syscall(void);
 extern uint64_t *get_multicore_memory_bandwidth(void);
 extern uint64_t *get_multicore_ipc_bandwidth(void);
 extern uint64_t *get_multicore_intra_inter_bandwidth(void);
 extern uint64_t *get_multicore_init_dlt_latency(void);
 
+/* Convert nanoseconds to microseconds */
+#define NS_TO_US(ns) ((double)(ns) / 1000.0)
+
+/* Convert raw bench_init.c value to GB/s (values stored as x1000 representation) */
+#define RAW_TO_GBS(v) ((double)(v) / 1000.0)
+
 static void collect_realtime_result(int run_multicore)
 {
 	struct rtbench_result *r = rtbench_result_get();
 	struct rtbench_realtime_result *rt = &r->realtime;
 
-	/* Mark as valid */
 	rt->valid = 1;
-
-	/* These values should be collected from the actual test
-	 * For now, we'll set placeholder values that indicate
-	 * the structure is ready for real data integration */
-
-	/* Note: The actual values are stored in static variables in bench_init.c
-	 * A proper integration would expose getter functions from there.
-	 * For now, we mark the module as executed. */
-
 	rt->multicore_valid = run_multicore ? 1 : 0;
 
-	/* Add service cost entries (placeholder names) */
+	/* Read actual measured values from bench_init.c */
+	uint64_t ctx_sw = get_realtime_context_switch();
+	uint64_t *interrupt = get_realtime_interrupt();
+	uint64_t *syscall = get_realtime_syscall();
+	uint64_t *svc = get_realtime_service_cost();
+
+	/* Single-core latency metrics */
+	rt->context_switch_avg_us = NS_TO_US(ctx_sw);
+	rt->interrupt_min_us = NS_TO_US(interrupt[0]);
+	rt->interrupt_max_us = NS_TO_US(interrupt[1]);
+	rt->interrupt_avg_us = NS_TO_US(interrupt[2]);
+	rt->syscall_min_us = NS_TO_US(syscall[0]);
+	rt->syscall_max_us = NS_TO_US(syscall[1]);
+	rt->syscall_avg_us = NS_TO_US(syscall[2]);
+
+	/* Service cost: svc is uint64_t[8][4], row=op, col=scenario
+	 * Columns: [0]=immediate, [1]=suspend, [2]=low_prio, [3]=high_prio */
 	static const char *svc_ops[] = {
 		"sem_take", "sem_release",
 		"mq_send", "mq_recv",
@@ -502,17 +566,48 @@ static void collect_realtime_result(int run_multicore)
 		"mempool_alloc", "mempool_free"
 	};
 	for (int i = 0; i < 8; i++) {
-		rtbench_realtime_add_service_cost(rt, svc_ops[i], -1, -1, -1, -1);
+		double immediate = NS_TO_US(svc[i * 4 + 0]);
+		double suspend   = NS_TO_US(svc[i * 4 + 1]);
+		double low_prio  = NS_TO_US(svc[i * 4 + 2]);
+		double high_prio = NS_TO_US(svc[i * 4 + 3]);
+		rtbench_realtime_add_service_cost(rt, svc_ops[i],
+			immediate, suspend, low_prio, high_prio);
 	}
 
-	/* Add memory bandwidth types */
+	/* Multi-core metrics */
 	if (run_multicore) {
+		uint64_t *mem_bw = get_multicore_memory_bandwidth();
+		uint64_t *ipc_bw = get_multicore_ipc_bandwidth();
+		uint64_t *intra_inter = get_multicore_intra_inter_bandwidth();
+		uint64_t *task_lat = get_multicore_init_dlt_latency();
+
+		/* Memory bandwidth: mem_bw is [8][4], row=type, col=concurrency */
 		static const char *mem_types[] = {
 			"rd", "wr", "cp", "frd", "fwr", "fcp", "memset", "memcpy"
 		};
 		for (int i = 0; i < 8; i++) {
-			rtbench_realtime_add_mem_bw(rt, mem_types[i], 0, 0, 0, 0);
+			rtbench_realtime_add_mem_bw(rt, mem_types[i],
+				RAW_TO_GBS(mem_bw[i * 4 + 0]),
+				RAW_TO_GBS(mem_bw[i * 4 + 1]),
+				RAW_TO_GBS(mem_bw[i * 4 + 2]),
+				RAW_TO_GBS(mem_bw[i * 4 + 3]));
 		}
+
+		/* IPC bandwidth: [4] concurrency levels */
+		rt->ipc_bw_c1 = RAW_TO_GBS(ipc_bw[0]);
+		rt->ipc_bw_c2 = RAW_TO_GBS(ipc_bw[1]);
+		rt->ipc_bw_c4 = RAW_TO_GBS(ipc_bw[2]);
+		rt->ipc_bw_c8 = RAW_TO_GBS(ipc_bw[3]);
+
+		/* Intra/inter core communication */
+		rt->core_comm_intra = RAW_TO_GBS(intra_inter[0]);
+		rt->core_comm_inter = RAW_TO_GBS(intra_inter[1]);
+
+		/* Task create/delete latency: [4] concurrency levels, in us */
+		rt->task_lat_c1 = NS_TO_US(task_lat[0]);
+		rt->task_lat_c2 = NS_TO_US(task_lat[1]);
+		rt->task_lat_c4 = NS_TO_US(task_lat[2]);
+		rt->task_lat_c8 = NS_TO_US(task_lat[3]);
 	}
 }
 
@@ -572,8 +667,10 @@ static void collect_stress_result(const char *stressor, int duration)
 	stress->valid = 1;
 	stress->duration_sec = duration;
 
-	/* Add stressor result (placeholder - actual bogo_ops should come from test) */
-	rtbench_stress_add_stressor(stress, stressor, "cpu", 0, duration, 0, "");
+	uint64_t bogo_ops = test_stress_get_last_bogo_ops();
+	double bogo_per_sec = (duration > 0) ? (double)bogo_ops / duration : 0;
+	rtbench_stress_add_stressor(stress, stressor, "cpu", bogo_ops, duration,
+	                            bogo_per_sec, "ops/s");
 }
 
 static void collect_cmd_result(void)
