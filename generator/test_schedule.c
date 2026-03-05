@@ -25,12 +25,19 @@
 #ifdef RT_THREAD_PLATFORM
 #include <rtthread.h>
 #define SCHED_PRINTF rt_kprintf
-#define SCHED_THREAD_STACK_SIZE 8192
+#define SCHED_THREAD_STACK_SIZE (32 * 1024)
 #define SCHED_THREAD_PRIORITY   15
 #else
 #include <pthread.h>
 #define SCHED_PRINTF printf
 #endif
+
+/**
+ * Global flag: when nonzero, workloads should suppress console output.
+ * Set during concurrent task execution in test-schedule to prevent
+ * printf → dfs_file_lock → _rt_mutex_take crashes on RT-Thread.
+ */
+volatile int g_sched_suppress_output = 0;
 
 /* Static result storage */
 static struct test_schedule_result g_result;
@@ -306,6 +313,13 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 		stats[i].name = tasks[i].name;
 	}
 
+	/* Suppress workload output during concurrent execution.
+	 * Workloads like FAST/EKF/MODBUS call printf during exec(), which on
+	 * RT-Thread goes through dfs_file_lock → _rt_mutex_take.  Under heavy
+	 * concurrent load this can trigger "scheduler is not available" assertion
+	 * when threads contend on the console mutex. */
+	g_sched_suppress_output = 1;
+
 	/* Create and start all task threads */
 	for (i = 0; i < num_tasks; i++) {
 		if (create_task_thread(&contexts[i], tasks[i].name) != 0) {
@@ -315,6 +329,7 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 			for (int j = 0; j < i; j++) {
 				contexts[j].running = 0;
 			}
+			g_sched_suppress_output = 0;
 			free(contexts);
 			return -1;
 		}
@@ -324,6 +339,8 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 	for (i = 0; i < num_tasks; i++) {
 		wait_task_thread(&contexts[i]);
 	}
+
+	g_sched_suppress_output = 0;
 
 	/* Aggregate results */
 	result->total_jobs = 0;

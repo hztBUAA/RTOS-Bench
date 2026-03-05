@@ -11,9 +11,20 @@ typedef unsigned int rt_uint32_t;
 #endif
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+
+/* Defined in test_schedule.c — when nonzero, suppress printf output.
+ * During test-schedule concurrent execution, printf → write → dfs_file_lock
+ * can crash on RT-Thread when multiple threads contend on the console mutex. */
+extern volatile int g_sched_suppress_output;
+static inline int _mdb_printf(const char *fmt, ...) {
+	if (g_sched_suppress_output) return 0;
+	va_list ap; va_start(ap, fmt); int r = vprintf(fmt, ap); va_end(ap); return r;
+}
+#define printf(...) _mdb_printf(__VA_ARGS__)
 
 #if MDB_HAVE_PTHREAD
 #include <pthread.h>

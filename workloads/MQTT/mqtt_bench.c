@@ -9,9 +9,18 @@
 #define MQTT_HAVE_SOCKETS 1
 #endif
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+/* Defined in test_schedule.c — when nonzero, suppress printf output */
+extern volatile int g_sched_suppress_output;
+static inline int _mqtt_printf(const char *fmt, ...) {
+	if (g_sched_suppress_output) return 0;
+	va_list ap; va_start(ap, fmt); int r = vprintf(fmt, ap); va_end(ap); return r;
+}
+#define printf(...) _mqtt_printf(__VA_ARGS__)
 #if MQTT_HAVE_PTHREAD
 #include <pthread.h>
 #include <sched.h>

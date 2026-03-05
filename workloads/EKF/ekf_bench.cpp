@@ -13,19 +13,25 @@
 #include "EKF/ekf.h"
 #include "iris_gps.h"
 
+/* Defined in test_schedule.c — when nonzero, suppress printf output */
+extern "C" { extern volatile int g_sched_suppress_output; }
+
+/* Quiet-aware printf: skips output when running inside test-schedule */
+#define EKF_PRINTF(...) do { if (!g_sched_suppress_output) printf(__VA_ARGS__); } while(0)
+
 void print_quat(const Quatf& q, uint64_t time) {
     Eulerf euler(q);
     double t = (double)time / 1000000.0;
     float roll = math::degrees(euler(0));
     float pitch = math::degrees(euler(1));
     float yaw = math::degrees(euler(2));
-    
+
     // 使用 %.2f 打印浮点数
-    printf("T: %.3fs | R: %.2f P: %.2f Y: %.2f\n", t, roll, pitch, yaw);
+    EKF_PRINTF("T: %.3fs | R: %.2f P: %.2f Y: %.2f\n", t, roll, pitch, yaw);
 }
 
 extern "C" int ekf_bench_run(void) {
-    printf("--- EKF Benchmark Test Start ---\n");
+    EKF_PRINTF("--- EKF Benchmark Test Start ---\n");
 
     Ekf _ekf;
 
@@ -35,7 +41,7 @@ extern "C" int ekf_bench_run(void) {
     int baro_idx = 0;
     int gps_idx = 0;
     
-    printf("Processing...\n");
+    EKF_PRINTF("Processing...\n");
     
     int update_success_count = 0; // 记录成功更新的次数
 
@@ -105,7 +111,7 @@ extern "C" int ekf_bench_run(void) {
                 Vector3f vel = _ekf.getVelocity();
 
                 print_quat(q, imu_sample.time_us);
-                printf("   Pos: N=%.2f E=%.2f D=%.2f | Vel: N=%.2f E=%.2f D=%.2f\n", 
+                EKF_PRINTF("   Pos: N=%.2f E=%.2f D=%.2f | Vel: N=%.2f E=%.2f D=%.2f\n",
                        (double)pos(0), (double)pos(1), (double)pos(2),
                        (double)vel(0), (double)vel(1), (double)vel(2));
             }
@@ -113,8 +119,8 @@ extern "C" int ekf_bench_run(void) {
         }
     }
 
-    printf("--- EKF Test Finished ---\n");
-    printf("Total Successful Updates: %d\n", update_success_count);
+    EKF_PRINTF("--- EKF Test Finished ---\n");
+    EKF_PRINTF("Total Successful Updates: %d\n", update_success_count);
     
     return 0;
 }
