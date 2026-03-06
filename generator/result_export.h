@@ -29,7 +29,7 @@ extern "C" {
 
 #define RTBENCH_RESULT_VERSION       "1.0.0"
 #define RTBENCH_MAX_WORKLOADS        32
-#define RTBENCH_MAX_STRESSORS        16
+#define RTBENCH_MAX_STRESSORS        160
 #define RTBENCH_MAX_CMD_COMMANDS     16
 #define RTBENCH_MAX_GRADIENTS        16
 #define RTBENCH_MAX_SERVICE_OPS      16
@@ -177,6 +177,7 @@ struct rtbench_schedule_result {
 struct rtbench_stressor_result {
     char name[RTBENCH_MAX_NAME_LEN];
     char type[16];            /* cpu, memory, file */
+    int stage;                /* 1-5, stage index within job */
     uint64_t bogo_ops;
     double duration_sec;
     double metric_value;      /* optional: throughput etc */
@@ -391,6 +392,7 @@ void rtbench_schedule_add_wcet(struct rtbench_schedule_result *r,
  */
 void rtbench_stress_add_stressor(struct rtbench_stress_result *r,
                                   const char *name, const char *type,
+                                  int stage,
                                   uint64_t bogo_ops, double duration,
                                   double metric_val, const char *metric_unit);
 

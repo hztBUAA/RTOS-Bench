@@ -460,16 +460,19 @@ static void stress_print_progress(int total, int current, const char *running_na
                        bar, current, total, (int)(percent * 100), running_name ? running_name : "Done");
 }
 
-static void stress_jobfile_exec(const char *filepath)
+int stress_jobfile_exec_ex(const char *filepath, const char *job_type,
+                           int stressors_per_stage,
+                           stress_job_result_t *results_out, int results_max)
 {
     FILE *fp = NULL;
     const char *mem_ptr_start = NULL;
     const char *mem_ptr = NULL;
-    
+
     char line_buf[256];
     char *argv[MAX_ARGS];
     int argc;
     int total_tasks = 0;
+    int caller_owns_buf = (results_out != NULL);
 
     for (int i = 0; BUILTIN_JOBS[i].filename != NULL; i++) {
         if (stress_osal_strcmp(filepath, BUILTIN_JOBS[i].filename) == 0) {
@@ -482,7 +485,7 @@ static void stress_jobfile_exec(const char *filepath)
         fp = fopen(filepath, "r");
         if (!fp) {
             stress_table_print("rtos_stress: error: failed to open jobfile '%s'\n", filepath);
-            return;
+            return -1;
         }
     }
 
@@ -512,14 +515,21 @@ static void stress_jobfile_exec(const char *filepath)
     if (total_tasks == 0) {
         stress_table_print("No valid stressors found in jobfile.\n");
         if (fp) fclose(fp);
-        return;
+        return 0;
     }
 
-    stress_job_result_t *results = stress_osal_malloc(sizeof(stress_job_result_t) * total_tasks);
-    if (!results) {
-        stress_table_print("Error: OOM for job results.\n");
-        if (fp) fclose(fp);
-        return;
+    /* If caller provided buffer, use it; otherwise malloc internally */
+    stress_job_result_t *results;
+    if (caller_owns_buf) {
+        results = results_out;
+        if (total_tasks > results_max) total_tasks = results_max;
+    } else {
+        results = stress_osal_malloc(sizeof(stress_job_result_t) * total_tasks);
+        if (!results) {
+            stress_table_print("Error: OOM for job results.\n");
+            if (fp) fclose(fp);
+            return -1;
+        }
     }
     stress_osal_memset(results, 0, sizeof(stress_job_result_t) * total_tasks);
 
@@ -557,6 +567,15 @@ static void stress_jobfile_exec(const char *filepath)
             stress_print_progress(total_tasks, executed_count, stressor_name);
             stress_osal_strcpy(results[executed_count].name, stressor_name);
 
+            /* Compute stage (1-based) from position */
+            if (stressors_per_stage > 0) {
+                results[executed_count].stage = (executed_count / stressors_per_stage) + 1;
+            }
+            if (job_type && job_type[0] != '\0') {
+                strncpy(results[executed_count].job_type, job_type,
+                        sizeof(results[executed_count].job_type) - 1);
+            }
+
             double t_start = stress_osal_time_now();
             results[executed_count].retval = stress_run_one_job(argc, argv, STRESS_TRUE, &results[executed_count].bogo);
             double t_end = stress_osal_time_now();
@@ -574,7 +593,7 @@ static void stress_jobfile_exec(const char *filepath)
     stress_table_print("\n========================================================================\n");
     stress_table_print(" Job: %s [%s]\n", filepath, mem_ptr_start ? "Built-in" : "External");
     stress_table_print("========================================================================\n");
-    stress_table_print(" %-12s| %-13s| %-9s| %s\n", "Stressor", "Bogo Ops", "Time(s)", "Metric");
+    stress_table_print(" %-12s| %-6s| %-13s| %-9s| %s\n", "Stressor", "Stage", "Bogo Ops", "Time(s)", "Metric");
     stress_table_print("------------------------------------------------------------------------\n");
 
     for (int i = 0; i < executed_count; i++) {
@@ -602,14 +621,15 @@ static void stress_jobfile_exec(const char *filepath)
             uint64_t ops_safe;
             memcpy(&ops_safe, &results[i].bogo.current_ops, sizeof(uint64_t));
 
-            stress_table_print(" %-12s| %-13llu| %-9.2f| %s\n",
+            stress_table_print(" %-12s| %-6d| %-13llu| %-9.2f| %s\n",
                                 results[i].name,
+                                results[i].stage,
                                 (unsigned long long)ops_safe,
                                 results[i].duration,
                                 metric_buf);
         } else {
-            stress_table_print(" %-12s| %-13s| %-9.2f| %s\n",
-                                results[i].name, "FAILED", results[i].duration, "N/A");
+            stress_table_print(" %-12s| %-6d| %-13s| %-9.2f| %s\n",
+                                results[i].name, results[i].stage, "FAILED", results[i].duration, "N/A");
         }
     }
 
@@ -617,24 +637,73 @@ static void stress_jobfile_exec(const char *filepath)
     stress_table_print("------------------------------------------------------------------------\n");
     stress_table_print("Total Run Time: %dm %ds\n", (int)total_time/60, (int)total_time%60);
 
-    stress_osal_free(results);
+    if (!caller_owns_buf) {
+        stress_osal_free(results);
+    }
+
+    return executed_count;
+}
+
+static void stress_jobfile_exec(const char *filepath)
+{
+    stress_jobfile_exec_ex(filepath, "", 0, NULL, 0);
+}
+
+#define JOB_CPU_STRESSORS_PER_STAGE    13
+#define JOB_MEMORY_STRESSORS_PER_STAGE  6
+#define JOB_FILE_STRESSORS_PER_STAGE    8
+
+int handle_job_command_ex(const char *job_name,
+                          stress_job_result_t *results_out, int results_max)
+{
+    int total = 0;
+    int ret;
+
+    if (strcmp(job_name, "all") == 0) {
+        ret = stress_jobfile_exec_ex("stored_jobfile_cpu.txt", "cpu",
+                    JOB_CPU_STRESSORS_PER_STAGE, results_out, results_max);
+        if (ret < 0) return -1;
+        total += ret;
+
+        ret = stress_jobfile_exec_ex("stored_jobfile_memory.txt", "memory",
+                    JOB_MEMORY_STRESSORS_PER_STAGE,
+                    results_out ? results_out + total : NULL,
+                    results_max > total ? results_max - total : 0);
+        if (ret < 0) return -1;
+        total += ret;
+
+        ret = stress_jobfile_exec_ex("stored_jobfile_file.txt", "file",
+                    JOB_FILE_STRESSORS_PER_STAGE,
+                    results_out ? results_out + total : NULL,
+                    results_max > total ? results_max - total : 0);
+        if (ret < 0) return -1;
+        total += ret;
+    } else if (strcmp(job_name, "cpu") == 0) {
+        ret = stress_jobfile_exec_ex("stored_jobfile_cpu.txt", "cpu",
+                    JOB_CPU_STRESSORS_PER_STAGE, results_out, results_max);
+        if (ret < 0) return -1;
+        total = ret;
+    } else if (strcmp(job_name, "memory") == 0) {
+        ret = stress_jobfile_exec_ex("stored_jobfile_memory.txt", "memory",
+                    JOB_MEMORY_STRESSORS_PER_STAGE, results_out, results_max);
+        if (ret < 0) return -1;
+        total = ret;
+    } else if (strcmp(job_name, "file") == 0) {
+        ret = stress_jobfile_exec_ex("stored_jobfile_file.txt", "file",
+                    JOB_FILE_STRESSORS_PER_STAGE, results_out, results_max);
+        if (ret < 0) return -1;
+        total = ret;
+    } else {
+        stress_table_print("Unknown job: %s\n", job_name);
+        return -1;
+    }
+
+    return total;
 }
 
 static void handle_job_command(const char *job_name)
 {
-    if (strcmp(job_name, "all") == 0) {
-        stress_jobfile_exec("stored_jobfile_cpu.txt");
-        stress_jobfile_exec("stored_jobfile_memory.txt");
-        stress_jobfile_exec("stored_jobfile_file.txt");
-    } else if (strcmp(job_name, "cpu") == 0) {
-        stress_jobfile_exec("stored_jobfile_cpu.txt");
-    } else if (strcmp(job_name, "memory") == 0) {
-        stress_jobfile_exec("stored_jobfile_memory.txt");
-    } else if (strcmp(job_name, "file") == 0) {
-        stress_jobfile_exec("stored_jobfile_file.txt");
-    } else {
-        stress_table_print("Unknown job: %s\n", job_name);
-    }
+    handle_job_command_ex(job_name, NULL, 0);
 }
 
 int stress_ng_main(int argc, char **argv)

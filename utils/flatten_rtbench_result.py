@@ -77,7 +77,7 @@ def extract_metrics(data: Any, prefix: str = "") -> Generator[Tuple[str, Any, st
             for key, value in data.items():
                 new_prefix = f"{prefix}.{key}" if prefix else key
                 # 跳过状态和配置字段
-                if key in ('status', 'config', 'duration_sec'):
+                if key in ('status', 'config', 'stage', 'bogo_ops'):
                     continue
                 yield from extract_metrics(value, new_prefix)
 
@@ -86,6 +86,9 @@ def extract_metrics(data: Any, prefix: str = "") -> Generator[Tuple[str, Any, st
             if isinstance(item, dict):
                 # 尝试用 name/type/operation 作为标识
                 item_id = item.get('name') or item.get('type') or item.get('operation') or str(i)
+                # 若存在 stage 字段，拼接到 id 中避免重名冲突
+                if 'stage' in item:
+                    item_id = f"{item_id}_s{item['stage']}"
                 item_id = item_id.replace(' ', '_').lower()
                 yield from extract_metrics(item, f"{prefix}.{item_id}")
             else:
@@ -103,7 +106,9 @@ def extract_metrics(data: Any, prefix: str = "") -> Generator[Tuple[str, Any, st
 def infer_unit_from_path(path: str) -> str:
     """根据路径推断单位"""
     path_lower = path.lower()
-    if '_us' in path_lower or 'latency' in path_lower or 'delay' in path_lower:
+    if 'duration_sec' in path_lower:
+        return 'sec'
+    elif '_us' in path_lower or 'latency' in path_lower or 'delay' in path_lower:
         return 'us'
     elif '_ms' in path_lower or 'time' in path_lower:
         return 'ms'
