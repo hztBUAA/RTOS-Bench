@@ -115,4 +115,4 @@ extern "C" int icp_test(int argc, char** argv) {
     return 0;
 }
 // 导出 MSH 命令
-MSH_CMD_EXPORT(icp_test, Run IPC benchmark);
+MSH_CMD_EXPORT(icp_test, Run ICP benchmark);
