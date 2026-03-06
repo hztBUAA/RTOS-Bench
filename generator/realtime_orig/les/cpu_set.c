@@ -3,7 +3,7 @@
 
 
 // rt-thread上的pthread_setaffinity_np示例实现
-#ifdef __RT_THREAD_H__
+#if defined(RT_THREAD_PLATFORM)
 
 #include <rtthread.h>
 #include "pthread_internal.h"
