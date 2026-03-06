@@ -84,9 +84,7 @@ int ewma_bench_run(void)
 
 	(void)sink;
 
-#ifndef RT_THREAD_PLATFORM
 	printf("[ewma] samples=%zu spikes@%zu/%zu drop@%zu len=%zu alarms=%d\n",
 	       stream_len, spike1, spike2, drop_start, drop_len, alarms);
-#endif
 	return alarms;
 }

@@ -46,7 +46,7 @@
 
 #include "geo_magnetic_tables.hpp"
 
-#include <mathlib/mathlib.h>
+#include "../include/mathlib/mathlib.h"
 
 #include <math.h>
 #include <stdint.h>
