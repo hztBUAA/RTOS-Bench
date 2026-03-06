@@ -1,0 +1,14 @@
+# SylixOS Build outputs
+Debug/
+Release/
+
+# IDE project files (optional - can include for convenience)
+# .project
+# .cproject
+# .settings/
+
+# Temporary files
+*.o
+*.d
+*.swp
+*~
