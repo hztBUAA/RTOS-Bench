@@ -41,8 +41,6 @@
 #ifndef MATHLIB_H
 #define MATHLIB_H
 
-#ifdef ECL_STANDALONE
-
 #ifndef M_PI_F
 #define M_PI_F 3.14159265358979323846f
 #endif
@@ -88,9 +86,5 @@ static constexpr Type degrees(Type radians)
 }
 
 }  // namespace math
-#else
 
-#include <mathlib/mathlib.h>
-
-#endif  // ECL_STANDALONE
 #endif  // MATHLIB_H

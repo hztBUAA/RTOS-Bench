@@ -79,9 +79,8 @@ int cusum_bench_run(void)
 
 	(void)sink; /* keep compiler quiet */
 
-#ifndef RT_THREAD_PLATFORM
 	printf("[cusum] samples=%zu step@%zu drift@%zu alarms=%d final_mean=%.4f\n",
 	       stream_len, step_idx, drift_idx, alarms, mu);
-#endif
+           
 	return alarms;
 }

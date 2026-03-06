@@ -1,9 +1,3 @@
-#ifdef RT_THREAD_PLATFORM
-#include <rtthread.h>
-#include <finsh.h>
-#else
-#define MSH_CMD_EXPORT(cmd, desc)
-#endif
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
@@ -25,7 +19,7 @@ static double diff_timespec_us(const struct timespec *start, const struct timesp
     return end_us - start_us;
 }
 
-extern "C" int icp_bench_run(void) {
+static void* icp_thread_entry(void* parameter) {
     struct timespec start_time, end_time;
 
     int32_t num = bench_num; 
@@ -39,7 +33,6 @@ extern "C" int icp_bench_run(void) {
     Matrix R = Matrix::eye(3);
     Matrix t(3, 1);
 
-    // run point-to-plane ICP (-1 = no outlier threshold)
     cout << endl << "[ICP] Running ICP (point-to-plane)" << endl;
 
     clock_gettime(CLOCK_MONOTONIC, &start_time);
@@ -56,9 +49,7 @@ extern "C" int icp_bench_run(void) {
     cout << "Final Residual:     " << residual << endl;
     cout << "---------------------------------------------" << endl;
 
-    // 1. 输出旋转矩阵对比
     cout << "Ground Truth Rotation (R_gt):" << endl;
-    // bench_gt_R 是 C 数组，手动打印
     for(int i = 0; i < 3; i++) {
         cout << "  [" << bench_gt_R[i][0] << ", " << bench_gt_R[i][1] << ", " << bench_gt_R[i][2] << "]" << endl;
     }
@@ -75,12 +66,6 @@ extern "C" int icp_bench_run(void) {
     cout << "---------------------------------------------" << endl;
 
     cout << "[POSIX] ICP Benchmark Finished." << endl;
-    return 0;
-}
-
-static void* icp_thread_entry(void* parameter) {
-    (void)parameter;
-    icp_bench_run();
     return NULL;
 }
 
@@ -89,7 +74,6 @@ extern "C" int icp_test(int argc, char** argv) {
     pthread_attr_t attr;
     int ret;
 
-    // 初始化线程属性
     pthread_attr_init(&attr);
 
     pthread_attr_setstacksize(&attr, 64 * 1024); 
@@ -108,11 +92,10 @@ extern "C" int icp_test(int argc, char** argv) {
 
     if (ret != 0) {
         cout << "Failed to create pthread. Error code: " << ret << endl;
-    } else {
-        pthread_detach(tid);
+        return -1;
     }
+    
+    pthread_join(tid, NULL);
 
     return 0;
 }
-// 导出 MSH 命令
-MSH_CMD_EXPORT(icp_test, Run ICP benchmark);

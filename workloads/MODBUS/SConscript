@@ -1,9 +1,13 @@
 from building import *
 
 cwd = GetCurrentDir()
-src = Glob('*.c')
-CPPPATH = [cwd]
+src = Glob('*.cpp') + Glob('*.c')
+path = [cwd]
 
-group = DefineGroup('MODBUS', src, depend=[''], CPPPATH=CPPPATH)
+# 增加对 C++ 的支持定义
+group = DefineGroup('MODBUS', src, 
+        depend = [''], 
+        CPPPATH = path,
+        LIBS = [''])
 
 Return('group')

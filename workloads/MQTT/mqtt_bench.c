@@ -1,33 +1,23 @@
-#ifdef RT_THREAD_PLATFORM
-#include <rtthread.h>
-#include <finsh.h>
-#define MQTT_HAVE_PTHREAD 0
-#define MQTT_HAVE_SOCKETS 0
-#else
-#define MSH_CMD_EXPORT(cmd, desc)
-#define MQTT_HAVE_PTHREAD 1
-#define MQTT_HAVE_SOCKETS 1
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#if MQTT_HAVE_PTHREAD
 #include <pthread.h>
 #include <sched.h>
-#endif
+#include <sys/socket.h>
 
 #include "mongoose.h"
 #include "geolife.h"
 
-// ================= 配置区域 =================
-#define MQTT_URL "mqtt://broker.emqx.io:1883"
+// �޸�Ϊlocal broker IP
+#define MQTT_URL "tcp://192.168.7.30:1884"
+// skip DNS : broker.emqx.io:1883
+// ����ʹ�ù������Է��������� broker.emqx.io:1883)
+//#define MQTT_URL "tcp://44.232.241.40:1883"
 #define TOPIC_DATA "car/tracker/location"
-#define PUB_INTERVAL_MS 2000
 
-// 线程配置
 #define THREAD_PRIORITY         20
-#define THREAD_STACK_SIZE       (8 * 1024) 
+#define THREAD_STACK_SIZE       (32 * 1024) 
 #define THREAD_TIMESLICE        10
 
 static uint64_t get_time_us() {
@@ -37,189 +27,118 @@ static uint64_t get_time_us() {
 }
 
 static int g_cursor = 0;
-static uint64_t g_total_pack_send_us = 0; // 累积耗时
-static uint64_t g_total_count = 0;        // 发送计数
+static uint64_t g_total_pack_send_us = 0;
+static uint64_t g_total_count = 0;
 static int g_stop_flag = 0;
 static int g_mqtt_ready = 0;
+static int g_login_sent = 0; 
+static int g_tcp_connected = 0;
 
-static void fn(struct mg_connection* c, int ev, void* ev_data) {
-    if (ev == MG_EV_OPEN) {
-        printf("[MQTT] Network Connected\n");
+static void fn(struct mg_connection* c, int ev, void* ev_data, void* fn_data) {
+    if (ev == MG_EV_ERROR) {
+        printf("[MQTT] Error: %s\n", (char *)ev_data);
+    }
+    else if (ev == MG_EV_OPEN) {
+        printf("[MQTT] Socket Created\n");
+        g_tcp_connected = 0;
     } 
-    else if (ev == MG_EV_ERROR) {
-        printf("[MQTT] Connection Error: %s\n", (char *) ev_data);
-        g_mqtt_ready = 0;
+    else if (ev == MG_EV_CONNECT) {
+        printf("[MQTT] TCP Connected! (Handshake Complete)\n");
+        c->is_connecting = 0; 
+        g_tcp_connected = 1;
     }
-    else if (ev == MG_EV_MQTT_OPEN) {
-        printf("[MQTT] Session Started (Broker Connected)\n");
-        g_mqtt_ready = 1;
+    else if (ev == MG_EV_READ) {
+        if (c->recv.len >= 4 && (unsigned char)c->recv.buf[0] == 0x20) {
+            printf("[MQTT] >>> SUCCESS: Received CONNACK! <<<\n");
+            g_mqtt_ready = 1; 
+            mg_iobuf_del(&c->recv, 0, c->recv.len);
+        }
     }
-    else if (ev == MG_EV_POLL) {  
-        if (c->is_draining) return;
+    else if (ev == MG_EV_POLL) {
+        if (c->id > 0) c->is_readable = 1; 
 
-        if (!g_mqtt_ready) {
+        if (g_login_sent == 0) {
+            if (c->id > 0 && g_tcp_connected == 1) {
+                
+                static const unsigned char raw_login[] = {
+                    0x10, 0x16,                         // Fixed Header
+                    0x00, 0x04, 'M', 'Q', 'T', 'T',     // Protocol Name
+                    0x04, 0x02, 0x00, 0x3C,             // Level, Flags, KeepAlive
+                    0x00, 0x0A,                         // Client ID Len
+                    'r', 't', 'o', 's', '_', 'b', 'e', 'n', 'c', 'h' // Client ID
+                };
+                
+                printf("[MQTT] Sending RAW HEX Login (%d bytes)...\n", sizeof(raw_login));
+                
+                int sent = send((int)c->fd, raw_login, sizeof(raw_login), 0);
+                
+                if (sent > 0) {
+                    printf("[MQTT] Login Sent success\n");
+                    g_login_sent = 1;
+                } else {
+                    printf("[MQTT] Login Sent failed\n");
+                }
+            }
             return;
         }
-        if (g_cursor >= GEOLIFE_COUNT) {
-            g_stop_flag = 1; // 通知主循环退出
-            return;
-        }
 
-        // 获取下一条数据
+        if (!g_mqtt_ready) return;
+        if (g_stop_flag) return;
+        if (c->is_draining) return; 
+
+        if (g_cursor >= GEOLIFE_COUNT) { g_stop_flag = 1; return; }
+        
         GeoLifeRecord next_point = g_geolife_track[g_cursor % GEOLIFE_COUNT];
         g_cursor++;
 
         char json_payload[128];
-        
         struct mg_mqtt_opts pub_opts;
         memset(&pub_opts, 0, sizeof(pub_opts));
         pub_opts.topic = mg_str(TOPIC_DATA);
         pub_opts.qos = 1;
 
-        uint64_t t_start = get_time_us();
-
-        // 序列化
         snprintf(json_payload, sizeof(json_payload), 
                 "{\"lat\":%.6f,\"lon\":%.6f,\"alt\":%.1f,\"ts\":%u}",
-                next_point.lat, 
-                next_point.lon, 
-                next_point.alt,
-                next_point.ts); // 发送 Unix 时间戳
+                next_point.lat, next_point.lon, next_point.alt, next_point.ts);
+        
         pub_opts.message = mg_str(json_payload);
-        // 发送
-        mg_mqtt_pub(c, &pub_opts);
-        uint64_t t_end = get_time_us();
-        g_total_pack_send_us += (t_end - t_start);
-        g_total_count++;
-        // 每发送 100 条，输出一次平均性能
-        if (g_total_count % 100 == 0) {
-            uint64_t avg_us = g_total_pack_send_us / g_total_count;
-            printf("[Bench] Sent: %lu | Avg Pack+Send Time: %lu us\n", 
-                    (unsigned long)g_total_count, 
-                    (unsigned long)avg_us);
+        mg_mqtt_pub(c, &pub_opts); 
+        
+        if (c->send.len > 0) {
+            c->is_writable = 1; 
         }
+
+        g_total_count++;
+        if (g_total_count % 100 == 0) printf("[Bench] Sent: %lu\n", (unsigned long)g_total_count);
     }
 }
 
 static void* mqtt_thread_entry(void *parameter) {
     struct mg_mgr mgr;
-    
     printf("[MQTT] Thread Started...\n");
-    g_cursor = 0;
-    g_total_pack_send_us = 0;
-    g_total_count = 0;
-    g_stop_flag = 0;
-    g_mqtt_ready = 0;
 
-    // 初始化 Mongoose
     mg_mgr_init(&mgr);
-    mg_log_set(0);
-    // 连接 MQTT Broker 
-    struct mg_connection *c = mg_mqtt_connect(&mgr, MQTT_URL, NULL, fn, NULL);
+    mg_log_set(0); 
+    
+    printf("[MQTT] Connecting to %s (Raw TCP Mode)...\n", MQTT_URL);
+    struct mg_connection *c = mg_connect(&mgr, MQTT_URL, fn, NULL);
     
     if (c == NULL) {
-        /* 无网络或无法连接 Broker，改为离线模式：仅做打包计数 */
-        uint64_t t_bench_start = get_time_us();
-        for (g_cursor = 0; g_cursor < GEOLIFE_COUNT; g_cursor++) {
-            char json_payload[128];
-            GeoLifeRecord next_point = g_geolife_track[g_cursor];
-            uint64_t t_start = get_time_us();
-            snprintf(json_payload, sizeof(json_payload), 
-                     "{\"lat\":%.6f,\"lon\":%.6f,\"alt\":%.1f,\"ts\":%u}",
-                     next_point.lat, next_point.lon, next_point.alt,
-                     next_point.ts);
-            uint64_t t_end = get_time_us();
-            g_total_pack_send_us += (t_end - t_start);
-            g_total_count++;
-        }
-        uint64_t t_bench_end = get_time_us();
-        double total_time_ms = (t_bench_end - t_bench_start) / 1000.0;
-        printf("[MQTT][offline] No broker/connection, ran pack-only simulation\n");
-        printf("Total Records: %ld Total Duration: %.2f ms Avg Pack Time: %.1f us\n",
-               GEOLIFE_COUNT, total_time_ms,
-               g_total_count ? (double)g_total_pack_send_us / g_total_count : 0.0);
-        mg_mgr_free(&mgr);
+        printf("[MQTT] Conn failed\n");
         return NULL;
     }
 
-    uint64_t t_bench_start = get_time_us();
-    uint32_t idle_loops = 0;
     while (g_stop_flag == 0) {
-        mg_mgr_poll(&mgr, 1);
-        idle_loops++;
-        if (!g_mqtt_ready && idle_loops > 500) {
-            /* 连接未建立，直接离线退化 */
-            uint64_t t_off_start = get_time_us();
-            for (; g_cursor < GEOLIFE_COUNT; g_cursor++) {
-                char json_payload[128];
-                GeoLifeRecord next_point = g_geolife_track[g_cursor];
-                uint64_t t_start = get_time_us();
-                snprintf(json_payload, sizeof(json_payload), 
-                         "{\"lat\":%.6f,\"lon\":%.6f,\"alt\":%.1f,\"ts\":%u}",
-                         next_point.lat, next_point.lon, next_point.alt,
-                         next_point.ts);
-                uint64_t t_end = get_time_us();
-                g_total_pack_send_us += (t_end - t_start);
-                g_total_count++;
-            }
-            uint64_t t_off_end = get_time_us();
-            double total_time_ms = (t_off_end - t_bench_start) / 1000.0;
-            double pack_only_ms = (t_off_end - t_off_start) / 1000.0;
-            printf("[MQTT][offline] No session established, pack-only simulation\n");
-            printf("Total Records: %ld Total Duration: %.2f ms Pack-only: %.2f ms Avg Pack: %.1f us\n",
-                   GEOLIFE_COUNT, total_time_ms, pack_only_ms,
-                   g_total_count ? (double)g_total_pack_send_us / g_total_count : 0.0);
-            break;
-        }
-        if (g_total_count == 0 && idle_loops > 3000) { /* ~3s 无流量，退化为离线模式 */
-            uint64_t t_off_start = get_time_us();
-            for (; g_cursor < GEOLIFE_COUNT; g_cursor++) {
-                char json_payload[128];
-                GeoLifeRecord next_point = g_geolife_track[g_cursor];
-                uint64_t t_start = get_time_us();
-                snprintf(json_payload, sizeof(json_payload), 
-                         "{\"lat\":%.6f,\"lon\":%.6f,\"alt\":%.1f,\"ts\":%u}",
-                         next_point.lat, next_point.lon, next_point.alt,
-                         next_point.ts);
-                uint64_t t_end = get_time_us();
-                g_total_pack_send_us += (t_end - t_start);
-                g_total_count++;
-            }
-            uint64_t t_off_end = get_time_us();
-            double total_time_ms = (t_off_end - t_bench_start) / 1000.0;
-            double pack_only_ms = (t_off_end - t_off_start) / 1000.0;
-            printf("[MQTT][offline] Timeout/no traffic, pack-only simulation\n");
-            printf("Total Records: %ld Total Duration: %.2f ms Pack-only: %.2f ms Avg Pack: %.1f us\n",
-                   GEOLIFE_COUNT, total_time_ms, pack_only_ms,
-                   g_total_count ? (double)g_total_pack_send_us / g_total_count : 0.0);
-            break;
-        }
+        mg_mgr_poll(&mgr, 20); 
     }
 
-    uint64_t t_bench_end = get_time_us();
-
-    printf("\n\n====== Benchmark Finished ======\n");
-    printf("Total Records:   %ld\n", GEOLIFE_COUNT);
-    printf("Total Sent:      %lu\n", (unsigned long)g_total_count);
-    
-    double total_time_ms = (t_bench_end - t_bench_start) / 1000.0;
-    printf("Total Duration:  %.2f ms\n", total_time_ms);
-
-    if (g_total_count > 0) {
-        uint64_t avg_us = g_total_pack_send_us / g_total_count;
-        printf("Avg Processing:  %lu us/msg (Pack + Enqueue)\n", (unsigned long)avg_us);
-    }
-    printf("================================\n");
-
+    printf("\n====== Benchmark Finished ======\n");
+    printf("Total Sent: %lu\n", (unsigned long)g_total_count);
     mg_mgr_free(&mgr);
     return NULL;
 }
 
 int mqtt_test(int argc, char** argv) {
-#if !(MQTT_HAVE_PTHREAD && MQTT_HAVE_SOCKETS)
-    printf("mqtt benchmark not supported on this platform (missing pthread/socket)\n");
-    return -1;
-#else
     pthread_t tid;
     pthread_attr_t attr;
     struct sched_param param;
@@ -232,27 +151,11 @@ int mqtt_test(int argc, char** argv) {
     pthread_attr_setschedparam(&attr, &param);
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
-    printf("Starting MQTT Benchmark using pthread...\n");
-
-    // 5. 创建线程
+    printf("Starting MQTT Benchmark...\n");
     ret = pthread_create(&tid, &attr, mqtt_thread_entry, NULL);
-
     pthread_attr_destroy(&attr);
-    if (ret == 0) {
-        pthread_detach(tid); 
-        printf("MQTT thread created successfully.\n");
-    } else {
-        printf("Failed to create MQTT thread! Error code: %d\n", ret);
-    }
     
+    if (ret != 0) return -1;
+    pthread_join(tid, NULL);
     return 0;
-#endif
-}
-
-MSH_CMD_EXPORT(mqtt_test, run MQTT benchmark);
-
-int mqtt_bench_run(void)
-{
-    /* Run synchronously without spawning a detached thread */
-    return mqtt_thread_entry(NULL) == NULL ? 0 : 0;
 }

@@ -1,9 +1,3 @@
-#ifdef RT_THREAD_PLATFORM
-#include <rtthread.h>
-#include <finsh.h>
-#else
-#define MSH_CMD_EXPORT(cmd, desc)
-#endif
 #include <stdio.h>
 
 #include <pthread.h>
@@ -35,11 +29,9 @@ static uint64_t get_time_ns() {
 static void* pid_thread_entry(void *parameter) {
     printf("--- RT-Thread PID Simulation Start ---\n");
 
-    /* PID 参数设置 */
     double Kp = 5.5, Ki = 0.02, Kd = 2.5;
     double Setpoint, Input, Output;
 
-    // 实例化 PID 对象 (调用构造函数)
     PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
     myPID.SetMode(AUTOMATIC);
@@ -52,12 +44,9 @@ static void* pid_thread_entry(void *parameter) {
 
     uint64_t t_start = get_time_ns();
 
-    /* 2. 模拟循环 */
     for (int i = 0; i < TEST_ROUNDS; i++) {
         double target, measured;
         
-        // 1. 从合成数据集中获取输入 (开环)
-        // 这模拟了从传感器读取数据的过程，但数据是预设好的"高难度"数据
         get_synth_point(i, &target, &measured);
         
         Setpoint = target;
@@ -71,7 +60,6 @@ static void* pid_thread_entry(void *parameter) {
     uint64_t t_end = get_time_ns();
     total_duration_ns = t_end - t_start;
 
-    // ================= 结果输出 =================
     double avg_latency_ns = (double)total_duration_ns / TEST_ROUNDS;
 
     printf("\nBenchmark Results:\n");
@@ -82,11 +70,6 @@ static void* pid_thread_entry(void *parameter) {
     printf("------------------------------------------------\n");
 
     return NULL;
-}
-
-extern "C" int pid_bench_run(void)
-{
-    return pid_thread_entry(NULL) == NULL ? 0 : 0;
 }
 
 extern "C" int pid_test(int argc, char **argv) {
@@ -111,10 +94,11 @@ extern "C" int pid_test(int argc, char **argv) {
     pthread_attr_destroy(&attr);
     if (ret != 0) {
         printf("Failed to create pthread. Error: %d\n", ret);
-    } else {
-        pthread_detach(tid); 
+        return -1;
     }
+    
+    // Wait for thread to complete
+    pthread_join(tid, NULL);
 
     return 0;
 }
-MSH_CMD_EXPORT(pid_test, Run PID benchmark);

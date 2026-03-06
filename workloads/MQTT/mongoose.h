@@ -46,11 +46,7 @@ extern "C" {
 #define MG_ARCH_CUBE 16	        // STM32Cube environment
 
 #define MG_ARCH_NEWLIB MG_ARCH_ARMGCC  // Alias, deprecate in 2025
-#if defined(SYLIXOS_PLATFORM)
 #define MG_ARCH MG_ARCH_UNIX
-#else
-#define MG_ARCH MG_ARCH_RTTHREAD
-#endif
 
 #if !defined(MG_ARCH)
 #if defined(__unix__) || defined(__APPLE__)
@@ -350,7 +346,7 @@ int mkdir(const char *, mode_t);
 
 #if MG_ARCH == MG_ARCH_RTTHREAD
 
-#include <rtthread.h>
+
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>

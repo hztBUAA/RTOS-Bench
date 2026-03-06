@@ -1,40 +1,25 @@
-#ifdef RT_THREAD_PLATFORM
-#include <rtthread.h>
-#include <finsh.h>
-#define MDB_HAVE_PTHREAD 1
-#define MDB_HAVE_SOCKETS 1
-#else
-#define MSH_CMD_EXPORT(cmd, desc)
-typedef unsigned int rt_uint32_t;
-#define MDB_HAVE_PTHREAD 1
-#define MDB_HAVE_SOCKETS 1
-#endif
-#include <stdbool.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
-#if MDB_HAVE_PTHREAD
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/time.h>     
 #include <time.h>          
 #include <sched.h>         
-#endif
-
-#if MDB_HAVE_SOCKETS
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#endif
 
 #define NANOMODBUS_IMPLEMENTATION
 #include "nanomodbus.h"
 #include "sim_plc.h"
 
+// 本地测试服务器地址和端口
 #define PORT 5020
 #define SERVER_IP "127.0.0.1"
 #define TEST_ROUNDS 5
@@ -43,11 +28,6 @@ typedef unsigned int rt_uint32_t;
 
 #define SERVER_PRIORITY   19 
 #define CLIENT_PRIORITY   20
-
-// 空实现，消除 BSP 未实现的警告
-void rt_hw_us_delay(rt_uint32_t us) {
-    (void)us; 
-}
 
 static double diff_timespec_us(const struct timespec *start, const struct timespec *end) {
     double start_us = (double)start->tv_sec * 1000000.0 + (double)start->tv_nsec / 1000.0;
@@ -67,11 +47,6 @@ static void print_nmbs_error(nmbs_error err) {
     }
 }
 
-#if MDB_HAVE_SOCKETS
-// ==========================================
-// 传输层
-// ==========================================
-
 int32_t transport_read(uint8_t* buf, uint16_t count, int32_t timeout_ms, void* arg) {
     int sockfd = (int)(intptr_t)arg;
     
@@ -79,13 +54,13 @@ int32_t transport_read(uint8_t* buf, uint16_t count, int32_t timeout_ms, void* a
     
     if (n < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return 0;  // 返回0表示没有数据
+            return 0;
         }
         return -1;
     }
     
     if (n == 0) {
-        return -1;  // 连接关闭
+        return -1;
     }
     
     return (int32_t)n;
@@ -101,34 +76,9 @@ int32_t transport_write(const uint8_t* buf, uint16_t count, int32_t timeout_ms, 
     
     return (int32_t)n;
 }
-#endif
 
-#if MDB_HAVE_PTHREAD && MDB_HAVE_SOCKETS
-static int modbus_offline_fallback(void)
-{
-    /* 没有可用网络时，执行本地仿真以保持可运行 */
-    struct timespec start_time = {0, 0};
-    struct timespec end_time = {0, 0};
-    int errors = 0;
-    plc_init();
-    clock_gettime(CLOCK_MONOTONIC, &start_time);
-    for (int i = 0; i < TEST_ROUNDS; i++) {
-        /* 简单交替读写模拟 */
-        plc_tick();
-    }
-    clock_gettime(CLOCK_MONOTONIC, &end_time);
-    double time_us = diff_timespec_us(&start_time, &end_time);
-    double time_s = time_us / 1000000.0;
-    double total_reqs = TEST_ROUNDS * 4.0;
+static volatile int g_server_stop = 0;
 
-    printf("[modbus][offline] No socket, run local simulation\n");
-    printf("Time: %.3f s, Requests(sim): %.0f, Errors: %d, TPS: %.2f\n",
-           time_s, total_reqs, errors, total_reqs / time_s);
-    return 0;
-}
-#endif
-
-#if MDB_HAVE_PTHREAD && MDB_HAVE_SOCKETS
 static void* server_thread_entry(void* parameter) {
     int server_fd, client_fd;
     struct sockaddr_in address;
@@ -145,11 +95,17 @@ static void* server_thread_entry(void* parameter) {
     bind(server_fd, (struct sockaddr*)&address, sizeof(address));
     listen(server_fd, 3);
     
+    struct timeval server_tv = {3, 0};
+    setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, &server_tv, sizeof(server_tv));
+
     printf("[Server] Listening on %d...\n", PORT);
 
-    while (1) {
+    while (!g_server_stop) {
         client_fd = accept(server_fd, (struct sockaddr*)&address, &addrlen);
         if (client_fd < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            }
             sleep(1);
             continue;
         }
@@ -188,7 +144,6 @@ static void* server_thread_entry(void* parameter) {
             nmbs_error err = nmbs_server_poll(&nmbs);
             if (err != NMBS_ERROR_NONE) {
                 if (err == NMBS_ERROR_TIMEOUT) {
-                    // 超时是正常的，继续poll
                     sched_yield();
                     continue;
                 }
@@ -219,7 +174,6 @@ static void* client_thread_entry(void* parameter) {
     int sock;
     struct sockaddr_in serv_addr;
     
-    // 等待 Server 就绪
     printf("[Client] Waiting for server...\n");
     sleep(1);
 
@@ -261,16 +215,12 @@ static void* client_thread_entry(void* parameter) {
     nmbs_bitfield r_coils;
 
     int errors = 0;
-    struct timespec start_time = {0, 0}; // 初始化为0
+    struct timespec start_time = {0, 0}; 
     struct timespec end_time = {0, 0};
 
-    // 记录开始时间
     clock_gettime(CLOCK_MONOTONIC, &start_time);
     
     for (int i = 0; i < TEST_ROUNDS; i++) {
-        // --- Test 1: Write Registers (批量写入) ---
-        // 模拟 HMI 写入配方数据 (Address 50-59)
-        // 数据内容：当前轮次 i
         for(int k = 0; k < 10; k++) {
             w_regs[k] = (uint16_t)(i + k);
         }
@@ -279,30 +229,24 @@ static void* client_thread_entry(void* parameter) {
             errors++; printf("E1");
         }
 
-        // --- Test 2: Read & Verify (回读校验) ---
-        // 验证刚才写入的数据是否正确存储
         if (nmbs_read_holding_registers(&nmbs, 50, 10, r_regs) != NMBS_ERROR_NONE) {
             errors++; printf("E2");
         }
         
-        // 校验数据一致性
         if (r_regs[0] != i || r_regs[9] != i + 9) {
             printf("[Err] Data Verify Fail! Exp: %d, Got: %d\n", i, r_regs[0]);
             errors++;
         }
 
-        // --- Test 3: Write Single Coil (位控制) ---
-        // 模拟开关操作 (Address 10)
         bool coil_val = (i % 2 == 0);
         if (nmbs_write_single_coil(&nmbs, 10, coil_val) != NMBS_ERROR_NONE) {
             errors++; printf("E3");
         }
 
-        // --- Test 4: Read Coils (位状态轮询) ---
         if (nmbs_read_coils(&nmbs, 10, 1, r_coils) != NMBS_ERROR_NONE) {
             errors++; printf("E4");
         }
-        // 检查位是否正确 (bit 0 of byte 0)
+
         bool read_val = (r_coils[0] & 0x01) ? true : false;
         if (read_val != coil_val) {
             printf("[Err] Coil Verify Fail!\n");
@@ -327,20 +271,8 @@ static void* client_thread_entry(void* parameter) {
     printf("[Client] Finished\n");
     return NULL;
 }
-#endif
 
 int modbus_test(int argc, char** argv) {
-#if !(MDB_HAVE_PTHREAD && MDB_HAVE_SOCKETS)
-    printf("modbus benchmark not supported on this platform (missing pthread/socket)\n");
-    return -1;
-#else
-    /* 先探测 socket 是否可用，失败则执行本地仿真 */
-    int probe = socket(AF_INET, SOCK_STREAM, 0);
-    if (probe < 0) {
-        return modbus_offline_fallback();
-    }
-    close(probe);
-
     pthread_t s_tid, c_tid;
     pthread_attr_t attr;
     int ret;
@@ -353,14 +285,16 @@ int modbus_test(int argc, char** argv) {
     param.sched_priority = SERVER_PRIORITY; 
     pthread_attr_setschedparam(&attr, &param);
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
-    
+
+    g_server_stop = 0;
+
     printf("Creating Server thread...\n");
     ret = pthread_create(&s_tid, &attr, server_thread_entry, NULL);
     if (ret != 0) {
         printf("Error creating server thread: %d\n", ret);
         return -1;
     }
-    pthread_detach(s_tid);
+    // pthread_detach(s_tid);
 
     ret = pthread_create(&c_tid, &attr, client_thread_entry, NULL);
     if (ret != 0) {
@@ -368,16 +302,10 @@ int modbus_test(int argc, char** argv) {
         return -1;
     }
     pthread_join(c_tid, NULL);
+    g_server_stop = 1;
+    pthread_join(s_tid, NULL);
+    printf("[MODBUS] Server thread joined. Test complete.\n");
 
     pthread_attr_destroy(&attr);
     return 0;
-}
-#endif
-
-MSH_CMD_EXPORT(modbus_test, Modbus TCP Benchmark);
-
-int modbus_bench_run(void)
-{
-    /* Run the benchmark inline (no shell arguments) */
-    return modbus_test(0, NULL);
 }

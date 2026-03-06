@@ -44,6 +44,10 @@
 #include <Eigen/Eigen>
 #include <Eigen/src/Core/util/DisableStupidWarnings.h>
 
+#if defined(_C)
+#undef _C
+#endif
+
 /**
  * \brief The namespace of this library.
  */
