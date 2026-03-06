@@ -73,7 +73,8 @@ typedef struct {
     stress_bogo_t bogo;
     int retval;
     double duration;
-    uint32_t _padding;
+    int stage;           /* 1-5, stage index within job */
+    char job_type[16];   /* "cpu"/"memory"/"file" */
 } stress_job_result_t;
 
 /* =========================================================================
@@ -86,6 +87,15 @@ extern volatile stress_bool_t g_stress_silent_mode;
 stress_bool_t stress_continue(stress_args_t *args);
 stress_tick_t stress_parse_time(const char *str);
 double stress_time_now(void);
+
+/* Extended jobfile execution with result output */
+int stress_jobfile_exec_ex(const char *filepath, const char *job_type,
+                           int stressors_per_stage,
+                           stress_job_result_t *results_out, int results_max);
+
+/* Extended job command dispatcher with result output */
+int handle_job_command_ex(const char *job_name,
+                          stress_job_result_t *results_out, int results_max);
 
 
 #endif

@@ -54,7 +54,7 @@ void rtosbench_register_rtos_workloads(void);
 /* Forward declarations for result collection */
 static void collect_realtime_result(int run_multicore);
 static void collect_schedule_result(void);
-static void collect_stress_result(const char *stressor, int duration);
+static void collect_stress_result(const char *job_name);
 static void collect_cmd_result(void);
 static void collect_workload_results(void);
 
@@ -144,7 +144,6 @@ struct test_all_params {
 	int run_cmd;
 	int run_workload;
 	int run_multicore;
-	int stress_duration;
 	int result;
 	struct rt_semaphore done_sem;
 };
@@ -191,9 +190,9 @@ static void test_all_thread_entry(void *parameter)
 
 	/* Run stress test */
 	if (p->run_stress) {
-		rt_kprintf("\n>>> Running test-stress...\n");
-		test_stress_run_stressor("cpu", p->stress_duration);
-		collect_stress_result("cpu", p->stress_duration);
+		rt_kprintf("\n>>> Running test-stress (job: all)...\n");
+		test_stress_run_job("all");
+		collect_stress_result("all");
 	}
 
 	/* Run command support test */
@@ -241,7 +240,6 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		params.run_cmd = 1;
 		params.run_workload = 1;
 		params.run_multicore = 0;
-		params.stress_duration = 10;
 
 		/* Parse optional arguments */
 		for (int i = 2; i < argc; i++) {
@@ -259,8 +257,6 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 				params.run_workload = 0;
 			} else if (strcmp(argv[i], "--multicore") == 0 || strcmp(argv[i], "-m") == 0) {
 				params.run_multicore = 1;
-			} else if (strcmp(argv[i], "--stress-duration") == 0 && (i + 1 < argc)) {
-				params.stress_duration = atoi(argv[++i]);
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
 			}
@@ -366,43 +362,30 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 
 	/* Check for test-stress subcommand */
 	if (argc >= 2 && strcmp(argv[1], "test-stress") == 0) {
-		const char *stressor = "cpu";
-		int duration = 10;
-		int list_stressors = 0;
+		const char *job_name = "all";
+		int list_jobs = 0;
 
 		/* Parse optional test-stress arguments */
 		for (int i = 2; i < argc; i++) {
-			if (strcmp(argv[i], "-s") == 0 && (i + 1 < argc)) {
-				stressor = argv[++i];
-			} else if (strcmp(argv[i], "-t") == 0 && (i + 1 < argc)) {
-				duration = atoi(argv[++i]);
+			if (strcmp(argv[i], "--job") == 0 && (i + 1 < argc)) {
+				job_name = argv[++i];
 			} else if (strcmp(argv[i], "-l") == 0 ||
 			           strcmp(argv[i], "--list") == 0) {
-				list_stressors = 1;
+				list_jobs = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
 			}
 		}
 
-		if (list_stressors) {
-			test_stress_list_stressors();
+		if (list_jobs) {
+			test_stress_list_jobs();
 			return 0;
 		}
 
-		rt_kprintf("[test-stress] Starting stress/power test\n");
-		rt_kprintf("  Stressor: %s, Duration: %d seconds\n", stressor, duration);
+		rt_kprintf("[test-stress] Starting stress test\n");
+		rt_kprintf("  Job: %s\n", job_name);
 
-		if (strcmp(stressor, "all") == 0) {
-			struct test_stress_config config = {
-				.type = STRESS_TYPE_ALL,
-				.duration_sec = duration,
-				.num_workers = 1,
-				.quiet = 0
-			};
-			return test_stress_run_config(&config);
-		}
-
-		return test_stress_run_stressor(stressor, duration);
+		return test_stress_run_job(job_name);
 	}
 
 	/* Check for test-cmd subcommand */
@@ -659,18 +642,39 @@ static void collect_schedule_result(void)
 	}
 }
 
-static void collect_stress_result(const char *stressor, int duration)
+static void collect_stress_result(const char *job_name)
 {
 	struct rtbench_result *r = rtbench_result_get();
 	struct rtbench_stress_result *stress = &r->stress;
 
-	stress->valid = 1;
-	stress->duration_sec = duration;
+	int count = 0;
+	const struct test_stress_job_result *results = test_stress_get_job_results(&count);
 
-	uint64_t bogo_ops = test_stress_get_last_bogo_ops();
-	double bogo_per_sec = (duration > 0) ? (double)bogo_ops / duration : 0;
-	rtbench_stress_add_stressor(stress, stressor, "cpu", bogo_ops, duration,
-	                            bogo_per_sec, "ops/s");
+	stress->valid = 1;
+
+	/* Calculate total duration from individual results */
+	double total_dur = 0;
+	for (int i = 0; i < count; i++) {
+		total_dur += results[i].duration_sec;
+	}
+	stress->duration_sec = total_dur;
+
+	/* Add each stressor result */
+	for (int i = 0; i < count; i++) {
+		const struct test_stress_job_result *jr = &results[i];
+		double metric_val = 0;
+		const char *metric_unit = "";
+
+		if (jr->metric_value > 0.00001 && jr->metric_unit[0] != '\0') {
+			metric_val = jr->metric_value;
+			metric_unit = jr->metric_unit;
+		}
+
+		rtbench_stress_add_stressor(stress,
+			jr->name, jr->type, jr->stage,
+			jr->bogo_ops, jr->duration_sec,
+			metric_val, metric_unit);
+	}
 }
 
 static void collect_cmd_result(void)

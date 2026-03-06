@@ -217,6 +217,7 @@ void rtbench_schedule_add_wcet(struct rtbench_schedule_result *r,
 
 void rtbench_stress_add_stressor(struct rtbench_stress_result *r,
                                   const char *name, const char *type,
+                                  int stage,
                                   uint64_t bogo_ops, double duration,
                                   double metric_val, const char *metric_unit)
 {
@@ -225,6 +226,7 @@ void rtbench_stress_add_stressor(struct rtbench_stress_result *r,
     struct rtbench_stressor_result *s = &r->stressors[r->stressor_count++];
     if (name) strncpy(s->name, name, sizeof(s->name) - 1);
     if (type) strncpy(s->type, type, sizeof(s->type) - 1);
+    s->stage = stage;
     s->bogo_ops = bogo_ops;
     s->duration_sec = duration;
     s->metric_value = metric_val;
@@ -434,9 +436,10 @@ int rtbench_result_to_json(char *buf, size_t bufsize)
         JSON_APPEND(",\n      \"stressors\": [\n");
         for (i = 0; i < r->stress.stressor_count; i++) {
             struct rtbench_stressor_result *s = &r->stress.stressors[i];
-            JSON_APPEND("        { \"name\": \"%s\", \"type\": \"%s\", "
+            JSON_APPEND("        { \"name\": \"%s\", \"type\": \"%s\", \"stage\": %d, "
                         "\"bogo_ops\": %llu, \"duration_sec\": %.3f",
-                        s->name, s->type, (unsigned long long)s->bogo_ops, s->duration_sec);
+                        s->name, s->type, s->stage,
+                        (unsigned long long)s->bogo_ops, s->duration_sec);
             if (s->metric_unit[0] != '\0') {
                 JSON_APPEND(", \"metric_value\": %.3f, \"metric_unit\": \"%s\"",
                             s->metric_value, s->metric_unit);
