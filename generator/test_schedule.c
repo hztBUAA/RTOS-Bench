@@ -32,6 +32,8 @@
 #define SCHED_PRINTF printf
 #endif
 
+volatile int g_sched_suppress_output = 0;
+
 /* Static result storage */
 static struct test_schedule_result g_result;
 

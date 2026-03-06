@@ -1,3 +1,14 @@
+#ifdef RT_THREAD_PLATFORM
+#include <rtthread.h>
+#include <finsh.h>
+#define MDB_HAVE_PTHREAD 1
+#define MDB_HAVE_SOCKETS 1
+#else
+#define MSH_CMD_EXPORT(cmd, desc)
+typedef unsigned int rt_uint32_t;
+#define MDB_HAVE_PTHREAD 1
+#define MDB_HAVE_SOCKETS 1
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -308,4 +319,12 @@ int modbus_test(int argc, char** argv) {
 
     pthread_attr_destroy(&attr);
     return 0;
+}
+
+MSH_CMD_EXPORT(modbus_test, Modbus TCP Benchmark);
+
+int modbus_bench_run(void)
+{
+    /* Run the benchmark inline (no shell arguments) */
+    return modbus_test(0, NULL);
 }

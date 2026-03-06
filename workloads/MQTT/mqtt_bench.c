@@ -1,3 +1,14 @@
+#ifdef RT_THREAD_PLATFORM
+#include <rtthread.h>
+#include <finsh.h>
+#define MQTT_HAVE_PTHREAD 0
+#define MQTT_HAVE_SOCKETS 0
+#else
+#define MSH_CMD_EXPORT(cmd, desc)
+#define MQTT_HAVE_PTHREAD 1
+#define MQTT_HAVE_SOCKETS 1
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,11 +20,11 @@
 #include "mongoose.h"
 #include "geolife.h"
 
-// ÐÞ¸ÄÎªlocal broker IP
-#define MQTT_URL "tcp://192.168.7.30:1884"
+// ï¿½Þ¸ï¿½Îªlocal broker IP
+// #define MQTT_URL "tcp://192.168.7.30:1884"
 // skip DNS : broker.emqx.io:1883
-// »òÕßÊ¹ÓÃ¹«¹²²âÊÔ·þÎñÆ÷£¨Èç broker.emqx.io:1883)
-//#define MQTT_URL "tcp://44.232.241.40:1883"
+// ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ã¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ broker.emqx.io:1883)
+#define MQTT_URL "tcp://44.232.241.40:1883"
 #define TOPIC_DATA "car/tracker/location"
 
 #define THREAD_PRIORITY         20
@@ -34,7 +45,7 @@ static int g_mqtt_ready = 0;
 static int g_login_sent = 0; 
 static int g_tcp_connected = 0;
 
-static void fn(struct mg_connection* c, int ev, void* ev_data, void* fn_data) {
+static void fn(struct mg_connection* c, int ev, void* ev_data) {
     if (ev == MG_EV_ERROR) {
         printf("[MQTT] Error: %s\n", (char *)ev_data);
     }
@@ -158,4 +169,12 @@ int mqtt_test(int argc, char** argv) {
     if (ret != 0) return -1;
     pthread_join(tid, NULL);
     return 0;
+}
+
+MSH_CMD_EXPORT(mqtt_test, run MQTT benchmark);
+
+int mqtt_bench_run(void)
+{
+    /* Run synchronously without spawning a detached thread */
+    return mqtt_thread_entry(NULL) == NULL ? 0 : 0;
 }
