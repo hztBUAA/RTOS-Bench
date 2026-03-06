@@ -595,7 +595,6 @@ rt-bench/
 │   ├── yihui/             # SylixOS IDE 和镜像
 │   └── .venv/             # Python 虚拟环境 (scons)
 ├── run-rtthread.sh        # RT-Thread 一键脚本
-├── run-sylixos.sh         # SylixOS 启动脚本
 └── docs/
     └── BUILD_GUIDE.md     # 本文档
 ```

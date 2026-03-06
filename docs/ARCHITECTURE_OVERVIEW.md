@@ -117,7 +117,6 @@ RTOS-Bench/
 │   └── rtbench_workloads.cpp    # 统一注册
 │
 ├── run-rtthread.sh              # RT-Thread 一键脚本
-├── run-sylixos.sh               # SylixOS 启动脚本
 └── extern/                      # 外部依赖
     ├── rt-thread/               # RT-Thread 源码
     └── toolchains/              # 工具链
