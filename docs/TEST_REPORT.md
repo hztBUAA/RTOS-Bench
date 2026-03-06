@@ -42,6 +42,206 @@ rtos_stress: info: [cpu-0] completed, 0x0000000000000ef1 ops
 
 **状态**: ✅ 通过
 
+文件类负载直接跳过
+copy-file/dentry/fstat/memtrash/rename
+
+```bash
+msh />rtbench test-stress -s copy-file
+[test-stress] Starting stress/power test
+  Stressor: copy-file, Duration: 10 seconds
+
+=============================================================
+[test-stress] Running stressor: copy-file for 10 seconds
+=============================================================
+rtos_stress: info: spawning 1 instances of 'copy-file' (duration: 1000 ticks)...
+rtos_stress: info: [copy-file-0] started (pid 0x4051bf10)
+rtos_stress: info: [copy-file-0] using 0 MB files
+rtos_stress: fail: [copy-file] open c_0.orig failed
+rtos_stress: info: [copy-file-0] completed, 0x0000000000000000 ops
+
+[test-stress] Stressor copy-file completed with code: 0
+=============================================================
+
+```
+
+trig负载
+```
+msh />rtbench test-stress -s stream
+[test-stress] Starting stress/power test
+  Stressor: stream, Duration: 10 seconds
+
+=============================================================
+[test-stress] Running stressor: stream for 10 seconds
+=============================================================
+rtos_stress: info: spawning 1 instances of 'stream' (duration: 1000 ticks)...
+rtos_stress: info: [stream-0] started (pid 0x4051bf10)
+rtos_stress: info: [stream-0] using 1024 elements (approx 24 KB total)
+rtos_stress: info: [stream-0] bandwidth: 669.83 MB/sec, compute: 35.12 Mflop/sec
+rtos_stress: info: [stream-0] completed, 0x0000000000014e94 ops
+
+[test-stress] Stressor stream completed with code: 0
+=============================================================
+msh />rtbench test-stress -s trig  
+[test-stress] Starting stress/power test
+  Stressor: trig, Duration: 10 seconds
+
+=============================================================
+[test-stress] Running stressor: trig for 10 seconds
+=============================================================
+rtos_stress: info: spawning 1 instances of 'trig' (duration: 1000 ticks)...
+rtos_stress: info: [trig-0] started (pid 0x4051bf10)
+rtos_stress: info: [trig-0] starting trigonometric stressor
+rtos_stress: info: [trig-0] using 'all' methods
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: fail: [trig] tan error detected, sum=-355.242069, expect=-710.412864
+rtos_stress: fail: [trig] tanf error detected
+rtos_stress: fail: [trig] tanl error detected
+rtos_stress: info: [trig-0] completed, 0x0000000000000030 ops
+
+[test-stress] Stressor trig completed with code: 0
+=============================================================
+
+```
 ---
 
 ## 2. test-realtime 验证
