@@ -3,7 +3,7 @@ from building import *
 cwd = GetCurrentDir()
 
 # collect sources
-src = Glob('EKF/*.cpp') + Glob('geo/*.cpp') + Glob('geo_lookup/*.cpp') + Glob('*.cpp')
+src = Glob('EKF_core/*.cpp') + Glob('geo/*.cpp') + Glob('geo_lookup/*.cpp') + Glob('*.cpp')
 
 # header include paths (relative to RT-Thread root)
 import os

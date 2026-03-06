@@ -38,6 +38,8 @@ namespace std {
 #define M_PI 3.14159265358979323846
 #endif
 
+#ifdef FIX_OPENGV_USE_STUB_LDOUBLE
+
 // --- Part 3: 补全缺失的 long double 函数 (extern "C") ---
 extern "C" {
 
@@ -98,5 +100,5 @@ static inline long double atanl(long double x) { return (long double)std::atan((
 #endif
 
 } // extern "C"
-
+#endif
 #endif // FIX_OPENGV_H
