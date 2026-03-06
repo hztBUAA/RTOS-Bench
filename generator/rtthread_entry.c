@@ -45,11 +45,86 @@ typedef int clockid_t;
 /* Default result output path */
 #define RTBENCH_DEFAULT_OUTPUT_PATH "/rtbench_result.json"
 
-/* Stack size for test-all worker thread (32KB to handle deep call chains) */
-#define RTBENCH_TEST_ALL_STACK_SIZE (32 * 1024)
+/* Stack size for worker threads (32KB to handle deep call chains like printf→malloc→mutex) */
+#define RTBENCH_WORKER_STACK_SIZE (32 * 1024)
 
 /* Register packaged workloads (must be linked in) */
 void rtosbench_register_rtos_workloads(void);
+
+/* ============================================================================
+ * Worker thread helper — spawns func(arg) in a 32KB-stack thread, blocks
+ * the caller (tshell) via semaphore until the worker finishes.  This avoids
+ * stack overflows caused by printf→vfprintf→malloc→_rt_mutex_take on the
+ * 4KB tshell thread.
+ * ============================================================================ */
+
+struct rtbench_worker_ctx {
+	void (*func)(void *arg);
+	void *arg;
+	struct rt_semaphore done;
+};
+
+static void rtbench_worker_entry(void *parameter)
+{
+	struct rtbench_worker_ctx *ctx = (struct rtbench_worker_ctx *)parameter;
+	ctx->func(ctx->arg);
+	rt_sem_release(&ctx->done);
+}
+
+static int rtbench_run_in_thread(const char *name,
+				 void (*func)(void *), void *arg)
+{
+	struct rtbench_worker_ctx ctx;
+	ctx.func = func;
+	ctx.arg  = arg;
+	rt_sem_init(&ctx.done, "rb_done", 0, RT_IPC_FLAG_FIFO);
+
+	rt_thread_t t = rt_thread_create(name, rtbench_worker_entry, &ctx,
+					 RTBENCH_WORKER_STACK_SIZE, 20, 10);
+	if (!t) {
+		rt_kprintf("[RTOS-Bench] Failed to create worker thread '%s'\n",
+			   name);
+		rt_sem_detach(&ctx.done);
+		return -1;
+	}
+	rt_thread_startup(t);
+	rt_sem_take(&ctx.done, RT_WAITING_FOREVER);
+	rt_sem_detach(&ctx.done);
+	return 0;
+}
+
+/* Named worker functions for each subcommand */
+struct sched_worker_args {
+	int cycles, util_start, util_end, util_step;
+};
+
+static void sched_worker_fn(void *arg)
+{
+	struct sched_worker_args *a = (struct sched_worker_args *)arg;
+	rtosbench_register_rtos_workloads();
+	test_schedule_run_custom(a->cycles, a->util_start, a->util_end, a->util_step);
+}
+
+static void realtime_worker_fn(void *arg)
+{
+	test_realtime_run(*(int *)arg);
+}
+
+struct stress_worker_args {
+	const char *job_name;
+};
+
+static void stress_worker_fn(void *arg)
+{
+	struct stress_worker_args *a = (struct stress_worker_args *)arg;
+	test_stress_run_job(a->job_name);
+}
+
+static void cmd_worker_fn(void *arg)
+{
+	(void)arg;
+	test_cmd_run();
+}
 
 /* Forward declarations for result collection */
 static void collect_realtime_result(int run_multicore);
@@ -275,7 +350,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		rt_thread_t t = rt_thread_create("rtbench",
 		                                  test_all_thread_entry,
 		                                  &params,
-		                                  RTBENCH_TEST_ALL_STACK_SIZE,
+		                                  RTBENCH_WORKER_STACK_SIZE,
 		                                  20, 10);
 		if (t == RT_NULL) {
 			rt_kprintf("[RTOS-Bench] Failed to create test-all worker thread\n");
@@ -328,14 +403,14 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 			}
 		}
 
-		/* Register workloads before running test */
-		rtosbench_register_rtos_workloads();
-
 		rt_kprintf("[test-schedule] Starting schedulability test\n");
 		rt_kprintf("  Cycles: %d, Utilization: %d%% - %d%% (step %d%%)\n",
 			   cycles, util_start, util_end, util_step);
 
-		return test_schedule_run_custom(cycles, util_start, util_end, util_step);
+		struct sched_worker_args sched_args = {
+			cycles, util_start, util_end, util_step
+		};
+		return rtbench_run_in_thread("sched", sched_worker_fn, &sched_args);
 	}
 
 	/* Check for test-realtime subcommand */
@@ -357,7 +432,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 			rt_kprintf("  Multicore tests: enabled\n");
 		}
 
-		return test_realtime_run(run_multicore);
+		return rtbench_run_in_thread("realtime", realtime_worker_fn, &run_multicore);
 	}
 
 	/* Check for test-stress subcommand */
@@ -385,7 +460,8 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		rt_kprintf("[test-stress] Starting stress test\n");
 		rt_kprintf("  Job: %s\n", job_name);
 
-		return test_stress_run_job(job_name);
+		struct stress_worker_args stress_args = { job_name };
+		return rtbench_run_in_thread("stress", stress_worker_fn, &stress_args);
 	}
 
 	/* Check for test-cmd subcommand */
@@ -396,7 +472,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 			}
 		}
 		rt_kprintf("[test-cmd] Starting shell command support test\n");
-		return test_cmd_run();
+		return rtbench_run_in_thread("cmd", cmd_worker_fn, NULL);
 	}
 
 	set_default_exec_opts(&opts);
@@ -715,8 +791,9 @@ static void collect_workload_results(void)
 			continue;
 		}
 
-		/* Skip busywait and synthetic workloads for typical workload test */
-		if (w->category && strcmp(w->category, "synthetic") == 0) {
+		/* Skip synthetic and utility workloads (stub, busywait) */
+		if (w->category && (strcmp(w->category, "synthetic") == 0 ||
+		                    strcmp(w->category, "utility") == 0)) {
 			continue;
 		}
 

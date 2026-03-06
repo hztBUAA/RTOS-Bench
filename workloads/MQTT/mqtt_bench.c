@@ -30,7 +30,7 @@ static inline int _mqtt_printf(const char *fmt, ...) {
 #include "geolife.h"
 
 // ================= 配置区域 =================
-#define MQTT_URL "mqtt://broker.emqx.io:1883"
+#define MQTT_URL "tcp://44.232.241.40:1883"
 #define TOPIC_DATA "car/tracker/location"
 #define PUB_INTERVAL_MS 2000
 

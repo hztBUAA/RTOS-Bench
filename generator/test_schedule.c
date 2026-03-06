@@ -389,7 +389,7 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 		num_workloads = TEST_SCHEDULE_MAX_TASKS;
 	}
 
-	/* Allocate arrays */
+	/* Allocate arrays (sized for max, actual count may be smaller after filtering) */
 	tasks = (struct schedule_task_config *)calloc(num_workloads,
 						      sizeof(struct schedule_task_config));
 	stats = (struct schedule_task_stats *)calloc(num_workloads,
@@ -404,29 +404,50 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	}
 
 	/* ================================================================
-	 * Phase 1: WCET Measurement
+	 * Phase 1: WCET Measurement (skip utility workloads like stub/busywait)
 	 * ================================================================ */
 	SCHED_PRINTF("=============================================================\n");
-	SCHED_PRINTF("[Phase 1] Measuring WCET for %d workloads...\n", num_workloads);
+	SCHED_PRINTF("[Phase 1] Measuring WCET for workloads...\n");
 	SCHED_PRINTF("=============================================================\n");
 
-	for (i = 0; i < num_workloads; i++) {
-		const struct rtosbench_workload *wl = rtosbench_get_workload(i);
-		if (!wl || !wl->name) {
-			continue;
+	{
+		int real_count = 0;
+		int total = rtosbench_workload_count();
+		if (total > TEST_SCHEDULE_MAX_TASKS)
+			total = TEST_SCHEDULE_MAX_TASKS;
+		for (i = 0; i < total; i++) {
+			const struct rtosbench_workload *wl = rtosbench_get_workload(i);
+			if (!wl || !wl->name) {
+				continue;
+			}
+
+			/* Skip synthetic/utility workloads (stub, busywait) */
+			if (wl->category && strcmp(wl->category, "utility") == 0) {
+				SCHED_PRINTF("  [%s]: skipped (utility workload)\n", wl->name);
+				continue;
+			}
+
+			tasks[real_count].name = wl->name;
+			tasks[real_count].workload_idx = i;
+			workload_indices[real_count] = i;
+
+			uint64_t wcet = measure_wcet_ns(wl, TEST_SCHEDULE_WCET_ITERATIONS);
+			tasks[real_count].wcet_ns = wcet;
+			wcets_ns[real_count] = (double)wcet;
+
+			SCHED_PRINTF("  [%s]: WCET = %.3f ms\n",
+				     wl->name, (double)wcet / 1000000.0);
+			real_count++;
 		}
-
-		tasks[i].name = wl->name;
-		tasks[i].workload_idx = i;
-		workload_indices[i] = i;
-
-		uint64_t wcet = measure_wcet_ns(wl, TEST_SCHEDULE_WCET_ITERATIONS);
-		tasks[i].wcet_ns = wcet;
-		wcets_ns[i] = (double)wcet;
-
-		SCHED_PRINTF("  [%s]: WCET = %.3f ms\n",
-			     wl->name, (double)wcet / 1000000.0);
+		num_workloads = real_count;
 	}
+
+	if (num_workloads == 0) {
+		SCHED_PRINTF("[test-schedule] No non-utility workloads found\n");
+		goto cleanup;
+	}
+
+	SCHED_PRINTF("[Phase 1] %d workloads measured\n", num_workloads);
 
 	/* Sort tasks by WCET descending */
 	qsort(tasks, num_workloads, sizeof(struct schedule_task_config),
