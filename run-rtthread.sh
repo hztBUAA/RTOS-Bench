@@ -138,10 +138,11 @@ run_rtthread() {
         exit 1
     fi
 
-    # 创建 SD 卡镜像（如果不存在）
+    # 创建 SD 卡镜像（如果不存在），并格式化为 FAT 文件系统
     if [ ! -f "sd.bin" ]; then
         echo "创建 SD 卡镜像..."
         dd if=/dev/zero of=sd.bin bs=1024 count=65536 2>/dev/null
+        mkfs.fat sd.bin >/dev/null 2>&1
     fi
 
     echo ""
@@ -163,7 +164,9 @@ run_rtthread() {
     else
         # 交互模式
         "$QEMU" -M virt,gic-version=2 -cpu cortex-a53 -m 128M -smp 4 \
-            -kernel rtthread.bin -nographic
+            -kernel rtthread.bin -nographic \
+            -drive if=none,file=sd.bin,format=raw,id=blk0 \
+            -device virtio-blk-device,drive=blk0,bus=virtio-mmio-bus.0
     fi
 }
 
@@ -176,7 +179,9 @@ run_auto_test() {
 
     # 启动 QEMU 在后台
     ("$QEMU" -M virt,gic-version=2 -cpu cortex-a53 -m 128M -smp 4 \
-        -kernel rtthread.bin -nographic < "$FIFO" 2>&1 &)
+        -kernel rtthread.bin -nographic \
+        -drive if=none,file=sd.bin,format=raw,id=blk0 \
+        -device virtio-blk-device,drive=blk0,bus=virtio-mmio-bus.0 < "$FIFO" 2>&1 &)
 
     QEMU_PID=$!
     exec 3>"$FIFO"
