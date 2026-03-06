@@ -13,12 +13,30 @@
 /* 根据POSIX标准和定义优先级，
  * 需要根据具体实现进行调整
  */
+#if defined(RT_THREAD_PLATFORM)
+
 #define BENCHMARK_HIGH_PRIO		14
 #define BENCHMARK_MIDDLE_PRIO	15
 #define BENCHMARK_LOW_PRIO		16
 
-/* 无getpid()接口，且没有系统调用而只有函数调用时，将此值设为非0 */
+#else
+
+#define BENCHMARK_HIGH_PRIO		16
+#define BENCHMARK_MIDDLE_PRIO	15
+#define BENCHMARK_LOW_PRIO		14
+
+#endif
+
+/* 系统调用开关 */
+#if defined(ONEOS_PLATFORM)
+
+#define LES_NO_GETPID 1
+
+#else
+
 #define LES_NO_GETPID 0
+
+#endif
 
 
 

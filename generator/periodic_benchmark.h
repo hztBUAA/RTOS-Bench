@@ -9,7 +9,9 @@
 */
 #ifndef PERIODIC_BENCHMARK_H
 #define PERIODIC_BENCHMARK_H
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <inttypes.h>
 #include <stdlib.h>
 
@@ -22,6 +24,19 @@ typedef uint32_t cpu_set_t;
 #define CPU_COUNT(set) __builtin_popcount(*(set))
 #else
 #include <sched.h>
+#ifdef SYLIXOS_PLATFORM
+/* SylixOS sched.h 没有 CPU_COUNT 宏，需要补充定义 */
+#ifndef CPU_COUNT
+static inline int __sylixos_cpu_count(const cpu_set_t *set) {
+    int count = 0;
+    for (int i = 0; i < CPU_SETSIZE; i++) {
+        if (CPU_ISSET(i, set)) count++;
+    }
+    return count;
+}
+#define CPU_COUNT(set) __sylixos_cpu_count(set)
+#endif
+#endif
 #endif
 
 /** @brief Struct used to hold the parsed arguments and options.

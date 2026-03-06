@@ -6,7 +6,7 @@
 
 #include "les.h"
 
-#define TEST_REPETITION 	500
+#define TEST_REPETITION 	100
 #define MAX_WORKERS         8
 
 //#define TMP_STACK_SIZE	2048
@@ -24,9 +24,8 @@ static void *tmp_thread(void* parameter) {
 
 static void *son_thread(void* parameter) {
 	int number = (int)(long)parameter;
-	
-	
-	pthread_t tid;
+
+	pthread_t tid[TEST_REPETITION];
     pthread_attr_t attr;
     struct sched_param param;
 
@@ -57,9 +56,17 @@ static void *son_thread(void* parameter) {
 		pthread_attr_setstack(&attr, stack_ptr, TMP_STACK_SIZE);
 		*/
 		
-		if (pthread_create(&tid, &attr, tmp_thread, (void *)(long)number) != 0) {
+		if (pthread_create(&tid[i], &attr, tmp_thread, (void *)(long)number) != 0) {
+
 			sem_post(&son_to_father);
+
 			printf("tmp thread create fail.\n");
+
+			//clear
+			for (int j = 0; j < i; j++) {
+				pthread_join(tid[j], NULL);
+			}
+
 			return NULL;
 		}
 		// bind cpu (tmp & son on same core)
@@ -75,10 +82,13 @@ static void *son_thread(void* parameter) {
 	
 	// finish task
 
-	pthread_join(tid, NULL);
+	for (int i = 0; i < TEST_REPETITION; i++) {
+		pthread_join(tid[i], NULL);
+	}
 
 	sem_post(&son_to_father);
-	
+
+	pthread_attr_destroy(&attr);
 
 	return NULL;
 }

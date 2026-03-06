@@ -14,7 +14,7 @@
 
 
 // 示例实现
-#ifdef __RT_THREAD_H__
+#if defined(RT_THREAD_PLATFORM)
 
 typedef unsigned long cpu_set_t;
 
@@ -22,15 +22,21 @@ typedef unsigned long cpu_set_t;
 #define CPU_SET(cpu, cpusetp)	(*(cpusetp) |= (1UL << (cpu)))
 #define CPU_ISSET(cpu, cpusetp)	(*(cpusetp) & (1UL << (cpu)))
 
-#endif
-//#else ...
-
-
-
-
-
-
-
 int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t *cpuset);
+
+
+#elif defined(SYLIXOS_PLATFORM)
+
+// 待确认
+#include <pthread_np.h>
+
+#else
+// Linux或东土、锐华、VxWorks，待确认
+#define _GNU_SOURCE
+#include <sched.h>
+#include <pthread.h>
+
+#endif
+
 
 #endif /* __CPU_SET.H__ */
