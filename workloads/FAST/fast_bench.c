@@ -58,7 +58,7 @@ int fast_bench_run_once(int loops) {
     FAST_PRINTF("|-----------------|-----------|----------|-----------|---------|\n");
 
     if (loops <= 0) {
-        loops = 1000; // 默认循环次数
+        loops = 1; // 默认循环次数
     }
     double bench_total_us = 0.0;
 
