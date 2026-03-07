@@ -45,8 +45,9 @@ typedef int clockid_t;
 /* Default result output path */
 #define RTBENCH_DEFAULT_OUTPUT_PATH "/rtbench_result.json"
 
-/* Stack size for test-all worker thread (32KB to handle deep call chains) */
+/* Stack size for worker threads (32KB to handle deep call chains, avoids tshell 4KB overflow) */
 #define RTBENCH_TEST_ALL_STACK_SIZE (32 * 1024)
+#define RTBENCH_TEST_STRESS_STACK_SIZE (32 * 1024)
 
 /* Register packaged workloads (must be linked in) */
 void rtosbench_register_rtos_workloads(void);
@@ -56,7 +57,7 @@ static void collect_realtime_result(int run_multicore);
 static void collect_schedule_result(void);
 static void collect_stress_result(const char *job_name);
 static void collect_cmd_result(void);
-static void collect_workload_results(void);
+static void collect_workload_results(int quick_mode);
 
 static void set_default_exec_opts(struct execution_options *opts)
 {
@@ -133,6 +134,28 @@ static void debug_print_context(const struct execution_options *opts)
 }
 
 /* ============================================================================
+ * test-stress worker thread (avoids tshell 4KB stack overflow)
+ * ============================================================================ */
+
+struct test_stress_params {
+	const char *job_name;
+	int result;
+	struct rt_semaphore done_sem;
+};
+
+static void test_stress_thread_entry(void *parameter)
+{
+	struct test_stress_params *p = (struct test_stress_params *)parameter;
+
+	rt_kprintf("[test-stress] Starting stress test\n");
+	rt_kprintf("  Job: %s\n", p->job_name);
+
+	p->result = test_stress_run_job(p->job_name);
+
+	rt_sem_release(&p->done_sem);
+}
+
+/* ============================================================================
  * test-all worker thread (avoids tshell 4KB stack overflow)
  * ============================================================================ */
 
@@ -144,6 +167,7 @@ struct test_all_params {
 	int run_cmd;
 	int run_workload;
 	int run_multicore;
+	int quick_mode;
 	int result;
 	struct rt_semaphore done_sem;
 };
@@ -172,6 +196,9 @@ static void test_all_thread_entry(void *parameter)
 	           p->run_stress ? "yes" : "no",
 	           p->run_cmd ? "yes" : "no",
 	           p->run_workload ? "yes" : "no");
+	if (p->quick_mode) {
+		rt_kprintf("Mode: QUICK (smoke test)\n");
+	}
 	rt_kprintf("\n");
 
 	/* Run realtime test */
@@ -183,16 +210,26 @@ static void test_all_thread_entry(void *parameter)
 
 	/* Run schedule test */
 	if (p->run_schedule) {
-		rt_kprintf("\n>>> Running test-schedule...\n");
-		test_schedule_run();
+		rt_kprintf("\n>>> Running test-schedule%s...\n",
+		           p->quick_mode ? " (quick)" : "");
+		if (p->quick_mode) {
+			test_schedule_run_custom(
+				TEST_SCHEDULE_QUICK_CYCLES,
+				TEST_SCHEDULE_QUICK_UTIL_START,
+				TEST_SCHEDULE_QUICK_UTIL_END,
+				TEST_SCHEDULE_QUICK_UTIL_STEP);
+		} else {
+			test_schedule_run();
+		}
 		collect_schedule_result();
 	}
 
 	/* Run stress test */
 	if (p->run_stress) {
-		rt_kprintf("\n>>> Running test-stress (job: all)...\n");
-		test_stress_run_job("all");
-		collect_stress_result("all");
+		const char *stress_job = p->quick_mode ? "all-quick" : "all";
+		rt_kprintf("\n>>> Running test-stress (job: %s)...\n", stress_job);
+		test_stress_run_job(stress_job);
+		collect_stress_result(stress_job);
 	}
 
 	/* Run command support test */
@@ -204,8 +241,9 @@ static void test_all_thread_entry(void *parameter)
 
 	/* Run workload tests */
 	if (p->run_workload) {
-		rt_kprintf("\n>>> Running typical workloads...\n");
-		collect_workload_results();
+		rt_kprintf("\n>>> Running typical workloads%s...\n",
+		           p->quick_mode ? " (quick)" : "");
+		collect_workload_results(p->quick_mode);
 	}
 
 	/* Finalize and export */
@@ -240,6 +278,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		params.run_cmd = 1;
 		params.run_workload = 1;
 		params.run_multicore = 0;
+		params.quick_mode = 0;
 
 		/* Parse optional arguments */
 		for (int i = 2; i < argc; i++) {
@@ -257,6 +296,8 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 				params.run_workload = 0;
 			} else if (strcmp(argv[i], "--multicore") == 0 || strcmp(argv[i], "-m") == 0) {
 				params.run_multicore = 1;
+			} else if (strcmp(argv[i], "--quick") == 0) {
+				params.quick_mode = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
 			}
@@ -312,6 +353,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		int util_start = TEST_SCHEDULE_UTIL_START;
 		int util_end = TEST_SCHEDULE_UTIL_END;
 		int util_step = TEST_SCHEDULE_UTIL_STEP;
+		int quick = 0;
 
 		/* Parse optional test-schedule arguments */
 		for (int i = 2; i < argc; i++) {
@@ -323,15 +365,25 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 				util_end = atoi(argv[++i]);
 			} else if (strcmp(argv[i], "--util-step") == 0 && (i + 1 < argc)) {
 				util_step = atoi(argv[++i]);
+			} else if (strcmp(argv[i], "--quick") == 0) {
+				quick = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
 			}
 		}
 
+		if (quick) {
+			cycles = TEST_SCHEDULE_QUICK_CYCLES;
+			util_start = TEST_SCHEDULE_QUICK_UTIL_START;
+			util_end = TEST_SCHEDULE_QUICK_UTIL_END;
+			util_step = TEST_SCHEDULE_QUICK_UTIL_STEP;
+		}
+
 		/* Register workloads before running test */
 		rtosbench_register_rtos_workloads();
 
-		rt_kprintf("[test-schedule] Starting schedulability test\n");
+		rt_kprintf("[test-schedule] Starting schedulability test%s\n",
+			   quick ? " (quick)" : "");
 		rt_kprintf("  Cycles: %d, Utilization: %d%% - %d%% (step %d%%)\n",
 			   cycles, util_start, util_end, util_step);
 
@@ -364,6 +416,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 	if (argc >= 2 && strcmp(argv[1], "test-stress") == 0) {
 		const char *job_name = "all";
 		int list_jobs = 0;
+		int quick = 0;
 
 		/* Parse optional test-stress arguments */
 		for (int i = 2; i < argc; i++) {
@@ -372,6 +425,8 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 			} else if (strcmp(argv[i], "-l") == 0 ||
 			           strcmp(argv[i], "--list") == 0) {
 				list_jobs = 1;
+			} else if (strcmp(argv[i], "--quick") == 0) {
+				quick = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
 			}
@@ -382,10 +437,37 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 			return 0;
 		}
 
-		rt_kprintf("[test-stress] Starting stress test\n");
-		rt_kprintf("  Job: %s\n", job_name);
+		/* In quick mode, append "-quick" to job name if not already a quick variant */
+		static char quick_job_buf[64];
+		if (quick && strstr(job_name, "-quick") == NULL) {
+			snprintf(quick_job_buf, sizeof(quick_job_buf), "%s-quick", job_name);
+			job_name = quick_job_buf;
+		}
 
-		return test_stress_run_job(job_name);
+		/* Spawn worker thread with large stack to avoid tshell stack overflow */
+		static struct test_stress_params stress_params;
+		memset(&stress_params, 0, sizeof(stress_params));
+		stress_params.job_name = job_name;
+
+		rt_sem_init(&stress_params.done_sem, "ts_done", 0, RT_IPC_FLAG_PRIO);
+
+		rt_thread_t t = rt_thread_create("ts_work",
+		                                  test_stress_thread_entry,
+		                                  &stress_params,
+		                                  RTBENCH_TEST_STRESS_STACK_SIZE,
+		                                  20, 10);
+		if (t == RT_NULL) {
+			rt_kprintf("[test-stress] Failed to create worker thread\n");
+			rt_sem_detach(&stress_params.done_sem);
+			return -1;
+		}
+		rt_thread_startup(t);
+
+		/* Wait for worker to finish */
+		rt_sem_take(&stress_params.done_sem, RT_WAITING_FOREVER);
+		rt_sem_detach(&stress_params.done_sem);
+
+		return stress_params.result;
 	}
 
 	/* Check for test-cmd subcommand */
@@ -700,7 +782,7 @@ static void collect_cmd_result(void)
 	}
 }
 
-static void collect_workload_results(void)
+static void collect_workload_results(int quick_mode)
 {
 	struct rtbench_result *r = rtbench_result_get();
 	struct rtbench_workload_module_result *wl = &r->workload;
@@ -728,7 +810,7 @@ static void collect_workload_results(void)
 		}
 
 		/* Run workload and measure time */
-		int rounds = 100;
+		int rounds = quick_mode ? 5 : 100;
 		uint64_t start_tick = rt_tick_get();
 
 		for (int j = 0; j < rounds; j++) {
