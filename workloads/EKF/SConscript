@@ -1,22 +1,31 @@
 from building import *
-import os
 
 cwd = GetCurrentDir()
 
-src = Glob('EKF/*.cpp') + Glob('geo/*.cpp') + Glob('geo_lookup/*.cpp') + Glob('*.cpp')
+# collect sources
+src = Glob('EKF_core/*.cpp') + Glob('geo/*.cpp') + Glob('geo_lookup/*.cpp') + Glob('*.cpp')
 
+# header include paths (relative to RT-Thread root)
+import os
 CPPPATH = [
     cwd,
+    str(Dir('#')),
+    os.path.join(str(Dir('#')), 'include'),
     os.path.join(cwd, 'include'),
     os.path.join(cwd, 'include', 'matrix'),
     os.path.join(cwd, 'geo_lookup'),
     os.path.join(cwd, 'geo')
 ]
 
+# preprocessor defines and libs
 CPPDEFINES = ['ECL_STANDALONE']
 LIBS = ['m']
 
-group = DefineGroup('EKF', src, depend=['RT_USING_CPLUSPLUS'],
-                    CPPPATH=CPPPATH, CPPDEFINES=CPPDEFINES, LIBS=LIBS)
+# Define as a grouped application so top-level build can handle deps/ordering
+group = DefineGroup('EKF', src,
+                    depend = [''],
+                    CPPPATH = CPPPATH,
+                    CPPDEFINES = CPPDEFINES,
+                    LIBS = LIBS)
 
 Return('group')

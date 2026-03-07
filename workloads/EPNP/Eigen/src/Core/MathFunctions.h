@@ -1204,7 +1204,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double absdiff(const double& x, const doub
 #ifndef EIGEN_GPU_COMPILE_PHASE
 template <>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE long double absdiff(const long double& x, const long double& y) {
-  return fabsl(x - y);
+  return std::abs(x - y);
 }
 #endif
 
@@ -1518,13 +1518,13 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T exp(const T& x) {
 template <typename RealScalar>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::complex<RealScalar> exp(const std::complex<RealScalar>& x) {
   EIGEN_USING_STD(exp);
-  // If z is (x,±∞) (for any finite x), the result is (NaN,NaN) and FE_INVALID is raised.
+  // If z is (x,卤鈭�) (for any finite x), the result is (NaN,NaN) and FE_INVALID is raised.
   // If z is (x,NaN) (for any finite x), the result is (NaN,NaN) and FE_INVALID may be raised.
   if ((isfinite)(real_ref(x)) && !(isfinite)(imag_ref(x))) {
     return std::complex<RealScalar>(NumTraits<RealScalar>::quiet_NaN(), NumTraits<RealScalar>::quiet_NaN());
   }
-  // If z is (+∞,±∞), the result is (±∞,NaN) and FE_INVALID is raised (the sign of the real part is unspecified)
-  // If z is (+∞,NaN), the result is (±∞,NaN) (the sign of the real part is unspecified)
+  // If z is (+鈭�,卤鈭�), the result is (卤鈭�,NaN) and FE_INVALID is raised (the sign of the real part is unspecified)
+  // If z is (+鈭�,NaN), the result is (卤鈭�,NaN) (the sign of the real part is unspecified)
   if ((real_ref(x) == NumTraits<RealScalar>::infinity() && !(isfinite)(imag_ref(x)))) {
     return std::complex<RealScalar>(NumTraits<RealScalar>::infinity(), NumTraits<RealScalar>::quiet_NaN());
   }
@@ -1575,13 +1575,13 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T exp2(const T& x) {
 template <typename RealScalar>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::complex<RealScalar> exp2(const std::complex<RealScalar>& x) {
   EIGEN_USING_STD(exp);
-  // If z is (x,±∞) (for any finite x), the result is (NaN,NaN) and FE_INVALID is raised.
+  // If z is (x,卤鈭�) (for any finite x), the result is (NaN,NaN) and FE_INVALID is raised.
   // If z is (x,NaN) (for any finite x), the result is (NaN,NaN) and FE_INVALID may be raised.
   if ((isfinite)(real_ref(x)) && !(isfinite)(imag_ref(x))) {
     return std::complex<RealScalar>(NumTraits<RealScalar>::quiet_NaN(), NumTraits<RealScalar>::quiet_NaN());
   }
-  // If z is (+∞,±∞), the result is (±∞,NaN) and FE_INVALID is raised (the sign of the real part is unspecified)
-  // If z is (+∞,NaN), the result is (±∞,NaN) (the sign of the real part is unspecified)
+  // If z is (+鈭�,卤鈭�), the result is (卤鈭�,NaN) and FE_INVALID is raised (the sign of the real part is unspecified)
+  // If z is (+鈭�,NaN), the result is (卤鈭�,NaN) (the sign of the real part is unspecified)
   if ((real_ref(x) == NumTraits<RealScalar>::infinity() && !(isfinite)(imag_ref(x)))) {
     return std::complex<RealScalar>(NumTraits<RealScalar>::infinity(), NumTraits<RealScalar>::quiet_NaN());
   }

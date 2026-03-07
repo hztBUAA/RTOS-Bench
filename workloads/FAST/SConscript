@@ -1,11 +1,13 @@
 from building import *
-import os
 
 cwd = GetCurrentDir()
-src = Glob('*.c')
-CPPPATH = [cwd, os.path.join(cwd, 'include_imgs')]
-LIBS = ['m']
+src = Glob('*.cpp') + Glob('*.c')
+path = [cwd]
 
-group = DefineGroup('FAST', src, depend=[''], CPPPATH=CPPPATH, LIBS=LIBS)
+# 增加对 C++ 的支持定义
+group = DefineGroup('FAST', src, 
+        depend = ['RT_USING_CPLUSPLUS'], 
+        CPPPATH = path,
+        LIBS = ['m'])
 
 Return('group')
