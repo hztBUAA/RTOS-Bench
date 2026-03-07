@@ -33,6 +33,11 @@ extern "C" {
  */
 int test_realtime_run(int run_multicore);
 
+/**
+ * @brief Run realtime verify program
+ */
+void test_realtime_verify(void);
+
 #ifdef __cplusplus
 }
 #endif

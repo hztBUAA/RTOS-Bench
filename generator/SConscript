@@ -51,6 +51,7 @@ src += Glob('platform/' + platform + '/*.c')
 src += Glob('realtime_orig/les/*.c')
 src += Glob('realtime_orig/realtime/*.c')
 src += Glob('realtime_orig/multicore/*.c')
+src += Glob('realtime_orig/verify/*.c')
 
 # Add stress-ng port (stress_orig)
 src += [File('stress_orig/stress_bench.c')]

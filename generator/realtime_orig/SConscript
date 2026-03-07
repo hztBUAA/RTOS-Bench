@@ -16,6 +16,9 @@ src += Glob('realtime/*.c')
 # Multicore tests
 src += Glob('multicore/*.c')
 
+# Verification
+src += Glob('verify/*.c')
+
 group = DefineGroup('realtime_orig', src, depend = [''], CPPPATH = CPPPATH)
 
 Return('group')

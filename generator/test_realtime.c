@@ -23,6 +23,8 @@
 
 /* Forward declaration - implemented in realtime_orig/les/bench_init.c */
 extern int realtime_benchmark_run_all(int run_multicore);
+/* Forward declaration - implemented in realtime_orig/verify/all_realtime_verify.c */
+extern void realtime_verify_all(void);
 
 int test_realtime_run(int run_multicore)
 {
@@ -46,4 +48,8 @@ int test_realtime_run(int run_multicore)
     REALTIME_PRINTF("=============================================================\n");
 
     return ret;
+}
+
+void test_realtime_verify(void) {
+    realtime_verify_all();
 }
