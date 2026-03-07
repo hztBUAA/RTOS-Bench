@@ -57,7 +57,11 @@ src += [File('stress_orig/stress_bench.c')]
 src += [File('stress_orig/common/stress-ng.c')]
 src += [File('stress_orig/common/core-helper.c')]
 src += [File('stress_orig/common/stress_stored_job.c')]
-src += Glob('stress_orig/osal/*.c')
+# Only include platform-specific OSAL (avoid compiling SylixOS OSAL on RT-Thread)
+if platform == 'rt-thread':
+    src += [File('stress_orig/osal/os_rtt.c')]
+else:
+    src += Glob('stress_orig/osal/*.c')
 src += Glob('stress_orig/stressor/*.c')
 
 CPPPATH = [cwd, cwd + '/realtime_orig/les', cwd + '/stress_orig', cwd + '/stress_orig/common', cwd + '/stress_orig/osal']

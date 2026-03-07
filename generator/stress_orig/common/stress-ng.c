@@ -66,9 +66,9 @@ extern const stress_opt_t stress_vecmath_opts[];
 extern const stress_opt_t stress_vm_opts[];
 
 static const stressor_info_t stress_registry[] = {
-    /* --- 计算密集型 (16KB ) --- */
+    /* --- 计算密集型 --- */
     {"vecmath",    stress_vecmath,    16384,  20,   stress_vecmath_opts},
-    {"cpu",        stress_cpu,        16384,  20,   stress_cpu_opts},
+    {"cpu",        stress_cpu,        65536,  20,   stress_cpu_opts},      /* 64KB: ackermann(3,2) needs ~25KB stack */
     {"bitops",     stress_bitops,     16384,  20,   stress_bitops_opts},
     {"prime",      stress_prime,      16384,  19,   stress_prime_opts},
     {"fp",         stress_fp,         16384,  20,   stress_fp_opts},
@@ -119,11 +119,17 @@ static stress_bogo_t g_last_bogo;
 extern const char JOB_DATA_CPU[];
 extern const char JOB_DATA_MEMORY[];
 extern const char JOB_DATA_FILE[];
+extern const char JOB_DATA_CPU_QUICK[];
+extern const char JOB_DATA_MEMORY_QUICK[];
+extern const char JOB_DATA_FILE_QUICK[];
 
 static const stress_vfile_t BUILTIN_JOBS[] = {
-    { "stored_jobfile_cpu.txt",    JOB_DATA_CPU },
-    { "stored_jobfile_memory.txt", JOB_DATA_MEMORY },
-    { "stored_jobfile_file.txt",   JOB_DATA_FILE },
+    { "stored_jobfile_cpu.txt",          JOB_DATA_CPU },
+    { "stored_jobfile_memory.txt",       JOB_DATA_MEMORY },
+    { "stored_jobfile_file.txt",         JOB_DATA_FILE },
+    { "stored_jobfile_cpu_quick.txt",    JOB_DATA_CPU_QUICK },
+    { "stored_jobfile_memory_quick.txt", JOB_DATA_MEMORY_QUICK },
+    { "stored_jobfile_file_quick.txt",   JOB_DATA_FILE_QUICK },
     { NULL, NULL }
 };
 
@@ -678,8 +684,32 @@ int handle_job_command_ex(const char *job_name,
                     results_max > total ? results_max - total : 0);
         if (ret < 0) return -1;
         total += ret;
+    } else if (strcmp(job_name, "all-quick") == 0) {
+        ret = stress_jobfile_exec_ex("stored_jobfile_cpu_quick.txt", "cpu",
+                    JOB_CPU_STRESSORS_PER_STAGE, results_out, results_max);
+        if (ret < 0) return -1;
+        total += ret;
+
+        ret = stress_jobfile_exec_ex("stored_jobfile_memory_quick.txt", "memory",
+                    JOB_MEMORY_STRESSORS_PER_STAGE,
+                    results_out ? results_out + total : NULL,
+                    results_max > total ? results_max - total : 0);
+        if (ret < 0) return -1;
+        total += ret;
+
+        ret = stress_jobfile_exec_ex("stored_jobfile_file_quick.txt", "file",
+                    JOB_FILE_STRESSORS_PER_STAGE,
+                    results_out ? results_out + total : NULL,
+                    results_max > total ? results_max - total : 0);
+        if (ret < 0) return -1;
+        total += ret;
     } else if (strcmp(job_name, "cpu") == 0) {
         ret = stress_jobfile_exec_ex("stored_jobfile_cpu.txt", "cpu",
+                    JOB_CPU_STRESSORS_PER_STAGE, results_out, results_max);
+        if (ret < 0) return -1;
+        total = ret;
+    } else if (strcmp(job_name, "cpu-quick") == 0) {
+        ret = stress_jobfile_exec_ex("stored_jobfile_cpu_quick.txt", "cpu",
                     JOB_CPU_STRESSORS_PER_STAGE, results_out, results_max);
         if (ret < 0) return -1;
         total = ret;
@@ -688,8 +718,18 @@ int handle_job_command_ex(const char *job_name,
                     JOB_MEMORY_STRESSORS_PER_STAGE, results_out, results_max);
         if (ret < 0) return -1;
         total = ret;
+    } else if (strcmp(job_name, "memory-quick") == 0) {
+        ret = stress_jobfile_exec_ex("stored_jobfile_memory_quick.txt", "memory",
+                    JOB_MEMORY_STRESSORS_PER_STAGE, results_out, results_max);
+        if (ret < 0) return -1;
+        total = ret;
     } else if (strcmp(job_name, "file") == 0) {
         ret = stress_jobfile_exec_ex("stored_jobfile_file.txt", "file",
+                    JOB_FILE_STRESSORS_PER_STAGE, results_out, results_max);
+        if (ret < 0) return -1;
+        total = ret;
+    } else if (strcmp(job_name, "file-quick") == 0) {
+        ret = stress_jobfile_exec_ex("stored_jobfile_file_quick.txt", "file",
                     JOB_FILE_STRESSORS_PER_STAGE, results_out, results_max);
         if (ret < 0) return -1;
         total = ret;

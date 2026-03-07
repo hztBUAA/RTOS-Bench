@@ -166,7 +166,8 @@ run_rtthread() {
         "$QEMU" -M virt,gic-version=2 -cpu cortex-a53 -m 128M -smp 4 \
             -kernel rtthread.bin -nographic \
             -drive if=none,file=sd.bin,format=raw,id=blk0 \
-            -device virtio-blk-device,drive=blk0,bus=virtio-mmio-bus.0
+            -device virtio-blk-device,drive=blk0,bus=virtio-mmio-bus.0 \
+            -netdev user,id=net0 -device virtio-net-device,netdev=net0,bus=virtio-mmio-bus.1
     fi
 }
 
@@ -181,7 +182,8 @@ run_auto_test() {
     ("$QEMU" -M virt,gic-version=2 -cpu cortex-a53 -m 128M -smp 4 \
         -kernel rtthread.bin -nographic \
         -drive if=none,file=sd.bin,format=raw,id=blk0 \
-        -device virtio-blk-device,drive=blk0,bus=virtio-mmio-bus.0 < "$FIFO" 2>&1 &)
+        -device virtio-blk-device,drive=blk0,bus=virtio-mmio-bus.0 \
+        -netdev user,id=net0 -device virtio-net-device,netdev=net0,bus=virtio-mmio-bus.1 < "$FIFO" 2>&1 &)
 
     QEMU_PID=$!
     exec 3>"$FIFO"

@@ -121,38 +121,38 @@ do {                                                            \
 
 static int stress_atomic_uint8(atomic_shared_data_t *data)
 {
-    static int idx = 0;
+    static volatile int idx = 0;
     int rc = 0;
-    DO_ATOMIC_OPS(NULL, uint8_t, &data->val8[idx], rc);
-    idx = (idx + 1) & (ATOMIC_ARRAY_SIZE - 1);
+    int i = __atomic_fetch_add(&idx, 1, __ATOMIC_RELAXED) & (ATOMIC_ARRAY_SIZE - 1);
+    DO_ATOMIC_OPS(NULL, uint8_t, &data->val8[i], rc);
     return rc;
 }
 
 static int stress_atomic_uint16(atomic_shared_data_t *data)
 {
-    static int idx = 0;
+    static volatile int idx = 0;
     int rc = 0;
-    DO_ATOMIC_OPS(NULL, uint16_t, &data->val16[idx], rc);
-    idx = (idx + 1) & (ATOMIC_ARRAY_SIZE - 1);
+    int i = __atomic_fetch_add(&idx, 1, __ATOMIC_RELAXED) & (ATOMIC_ARRAY_SIZE - 1);
+    DO_ATOMIC_OPS(NULL, uint16_t, &data->val16[i], rc);
     return rc;
 }
 
 static int stress_atomic_uint32(atomic_shared_data_t *data)
 {
-    static int idx = 0;
+    static volatile int idx = 0;
     int rc = 0;
-    DO_ATOMIC_OPS(NULL, uint32_t, &data->val32[idx], rc);
-    idx = (idx + 1) & (ATOMIC_ARRAY_SIZE - 1);
+    int i = __atomic_fetch_add(&idx, 1, __ATOMIC_RELAXED) & (ATOMIC_ARRAY_SIZE - 1);
+    DO_ATOMIC_OPS(NULL, uint32_t, &data->val32[i], rc);
     return rc;
 }
 
 #if defined(STRESS_ATOMIC_64BIT)
 static int stress_atomic_uint64(atomic_shared_data_t *data)
 {
-    static int idx = 0;
+    static volatile int idx = 0;
     int rc = 0;
-    DO_ATOMIC_OPS(NULL, uint64_t, &data->val64[idx], rc);
-    idx = (idx + 1) & (ATOMIC_ARRAY_SIZE - 1);
+    int i = __atomic_fetch_add(&idx, 1, __ATOMIC_RELAXED) & (ATOMIC_ARRAY_SIZE - 1);
+    DO_ATOMIC_OPS(NULL, uint64_t, &data->val64[i], rc);
     return rc;
 }
 #endif

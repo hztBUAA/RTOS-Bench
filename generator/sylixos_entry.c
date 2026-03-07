@@ -185,32 +185,29 @@ int main(int argc, char **argv)
 
 	/* Handle test-stress subcommand */
 	if (argc >= 2 && strcmp(argv[1], "test-stress") == 0) {
-		const char *stressor = "cpu";
-		int duration = 10;
-		int list_stressors = 0;
+		const char *job_name = "all";
+		int list_jobs = 0;
 
 		for (int i = 2; i < argc; i++) {
-			if (strcmp(argv[i], "-s") == 0 && (i + 1 < argc)) {
-				stressor = argv[++i];
-			} else if (strcmp(argv[i], "-t") == 0 && (i + 1 < argc)) {
-				duration = atoi(argv[++i]);
+			if (strcmp(argv[i], "--job") == 0 && (i + 1 < argc)) {
+				job_name = argv[++i];
 			} else if (strcmp(argv[i], "-l") == 0 ||
 			           strcmp(argv[i], "--list") == 0) {
-				list_stressors = 1;
+				list_jobs = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
 			}
 		}
 
-		if (list_stressors) {
-			test_stress_list_stressors();
+		if (list_jobs) {
+			test_stress_list_jobs();
 			return 0;
 		}
 
 		printf("[test-stress] Starting stress test on SylixOS\n");
-		printf("  Stressor: %s, Duration: %d seconds\n", stressor, duration);
+		printf("  Job: %s\n", job_name);
 
-		return test_stress_run_stressor(stressor, duration);
+		return test_stress_run_job(job_name);
 	}
 
 	/* Handle test-cmd subcommand */

@@ -37,6 +37,31 @@ rtbench -L                           # 列出所有 workload
 - [docs/CMD.md](docs/CMD.md) - Shell 命令支持测试 (test-cmd) 使用指南
 - [docs/STRESS.md](docs/STRESS.md) - 压力测试 (test-stress) 使用指南
 
+### QEMU 测试技巧
+
+使用 tmux 向 QEMU 发送命令并捕获输出（适合 CI 和自动化调试）：
+
+```bash
+# 1. 创建 tmux session 运行 QEMU
+tmux new-session -d -s qemu -x 200 -y 50 \
+  "qemu-system-aarch64 -M virt,gic-version=2 -cpu cortex-a53 -m 128M -smp 4 \
+   -kernel rtthread.bin -nographic \
+   -drive if=none,file=sd.bin,format=raw,id=blk0 \
+   -device virtio-blk-device,drive=blk0,bus=virtio-mmio-bus.0 2>&1"
+
+# 2. 等待启动后发送命令
+sleep 5
+tmux send-keys -t qemu "rtbench test-all" Enter
+
+# 3. 捕获输出（最近 200 行）
+tmux capture-pane -t qemu -p -S -200
+
+# 4. 退出
+tmux send-keys -t qemu C-a x   # 或 tmux kill-session -t qemu
+```
+
+注：需在 BSP 编译目录下执行，或使用绝对路径指向 rtthread.bin 和 sd.bin。
+
 ## 代码修改注意事项
 
 1. **新增 workload**：在 `workloads/<NAME>/` 添加源码，在 `rtbench_workloads.cpp` 注册

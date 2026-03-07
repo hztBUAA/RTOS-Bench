@@ -112,10 +112,14 @@ const struct test_stress_job_result *test_stress_get_job_results(int *count_out)
 void test_stress_list_jobs(void)
 {
     STRESS_PRINTF("Available stress jobs:\n");
-    STRESS_PRINTF("  cpu      - CPU compute stressors (13 stressors x 5 stages)\n");
-    STRESS_PRINTF("  memory   - Memory stressors (6 stressors x 5 stages)\n");
-    STRESS_PRINTF("  file     - File I/O stressors (8 stressors x 5 stages)\n");
-    STRESS_PRINTF("  all      - Run all jobs sequentially (135 total runs)\n");
+    STRESS_PRINTF("  cpu         - CPU compute stressors (13 stressors x 5 stages)\n");
+    STRESS_PRINTF("  memory      - Memory stressors (6 stressors x 5 stages)\n");
+    STRESS_PRINTF("  file        - File I/O stressors (8 stressors x 5 stages)\n");
+    STRESS_PRINTF("  all         - Run all jobs sequentially (135 total runs)\n");
+    STRESS_PRINTF("  cpu-quick   - CPU quick smoke test (13 stressors x 1 stage)\n");
+    STRESS_PRINTF("  memory-quick- Memory quick smoke test (6 stressors x 1 stage)\n");
+    STRESS_PRINTF("  file-quick  - File I/O quick smoke test (8 stressors x 1 stage)\n");
+    STRESS_PRINTF("  all-quick   - Run all quick jobs (27 total runs)\n");
 }
 
 void test_stress_stop(void)
