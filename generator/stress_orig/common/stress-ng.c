@@ -66,9 +66,9 @@ extern const stress_opt_t stress_vecmath_opts[];
 extern const stress_opt_t stress_vm_opts[];
 
 static const stressor_info_t stress_registry[] = {
-    /* --- 计算密集型 (16KB ) --- */
+    /* --- 计算密集型 --- */
     {"vecmath",    stress_vecmath,    16384,  20,   stress_vecmath_opts},
-    {"cpu",        stress_cpu,        16384,  20,   stress_cpu_opts},
+    {"cpu",        stress_cpu,        65536,  20,   stress_cpu_opts},      /* 64KB: ackermann(3,2) needs ~25KB stack */
     {"bitops",     stress_bitops,     16384,  20,   stress_bitops_opts},
     {"prime",      stress_prime,      16384,  19,   stress_prime_opts},
     {"fp",         stress_fp,         16384,  20,   stress_fp_opts},
