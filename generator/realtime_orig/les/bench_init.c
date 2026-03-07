@@ -3,7 +3,7 @@
 #include "les.h"
 #include "test_list.h"
 
-#define STR_BUFFER_LENGTH 16
+#define STR_BUFFER_LENGTH 32
 
 static char buf[STR_BUFFER_LENGTH];
 
@@ -129,7 +129,7 @@ static void div1000_print(uint64_t full_n_data, char* buf) {
     uint64_t u_xx = full_n_data / 1000;
     uint64_t n_xx = full_n_data % 1000;
 
-    snprintf(buf, STR_BUFFER_LENGTH, "%" PRIu64 ".%03" PRIu64, u_xx, n_xx);
+    snprintf(buf, STR_BUFFER_LENGTH, "%llu" ".%03llu", (unsigned long long)u_xx, (unsigned long long)n_xx);
 }
 
 static void realtime_print(void) {
