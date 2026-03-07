@@ -142,7 +142,19 @@ run_rtthread() {
     if [ ! -f "sd.bin" ]; then
         echo "创建 SD 卡镜像..."
         dd if=/dev/zero of=sd.bin bs=1024 count=65536 2>/dev/null
+
+        # 检查 mkfs.fat 是否可用（Ubuntu: dosfstools，macOS: brew install dosfstools）
+        if ! command -v mkfs.fat >/dev/null 2>&1; then
+            echo "错误: 未找到 mkfs.fat，无法格式化 sd.bin 为 FAT 文件系统。"
+            echo "请安装 dosfstools（如 Ubuntu: sudo apt-get install dosfstools，或 macOS: brew install dosfstools），然后重试。"
+            exit 1
+        fi
+
         mkfs.fat sd.bin >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            echo "错误: mkfs.fat 格式化 sd.bin 失败，请检查 mkfs.fat 是否正确安装。"
+            exit 1
+        fi
     fi
 
     echo ""
