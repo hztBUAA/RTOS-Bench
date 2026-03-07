@@ -63,6 +63,25 @@ static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterati
 static void task_thread_entry(void *param);
 static int compare_double_desc(const void *a, const void *b);
 static int compare_wcet_desc(const void *a, const void *b);
+static int is_builtin_workload(const struct rtosbench_workload *wl);
+
+/**
+ * @brief Check if a workload is a built-in utility workload
+ * @details Built-in workloads (stub, busywait) have category "utility"
+ *          and should be excluded from automated tests like test-schedule.
+ *          They are only intended for explicit user invocation.
+ */
+static int is_builtin_workload(const struct rtosbench_workload *wl)
+{
+	if (!wl || !wl->category) {
+		return 0;
+	}
+	/* Built-in utility workloads: stub, busywait */
+	if (strcmp(wl->category, "utility") == 0) {
+		return 1;
+	}
+	return 0;
+}
 
 /* Timer callback for period expiration */
 static void period_timer_callback(void *user_data)
@@ -375,15 +394,34 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	double *generated_u;
 	int *workload_indices;
 	double sum_mr;
+	int total_workloads;
+	int valid_idx;
 
 	/* Clear previous results */
 	memset(&g_result, 0, sizeof(g_result));
 
-	num_workloads = rtosbench_workload_count();
-	if (num_workloads == 0) {
+	total_workloads = rtosbench_workload_count();
+	if (total_workloads == 0) {
 		SCHED_PRINTF("[test-schedule] No workloads registered\n");
 		return -1;
 	}
+
+	/* Count non-builtin workloads (exclude utility workloads like stub/busywait) */
+	num_workloads = 0;
+	for (i = 0; i < total_workloads; i++) {
+		const struct rtosbench_workload *wl = rtosbench_get_workload(i);
+		if (wl && wl->name && !is_builtin_workload(wl)) {
+			num_workloads++;
+		}
+	}
+
+	if (num_workloads == 0) {
+		SCHED_PRINTF("[test-schedule] No industrial workloads registered (only utility workloads found)\n");
+		return -1;
+	}
+
+	SCHED_PRINTF("[test-schedule] Found %d industrial workloads (excluded %d utility workloads)\n",
+		     num_workloads, total_workloads - num_workloads);
 
 	if (num_workloads > TEST_SCHEDULE_MAX_TASKS) {
 		num_workloads = TEST_SCHEDULE_MAX_TASKS;
@@ -404,7 +442,7 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	}
 
 	/* ================================================================
-	 * Phase 1: WCET Measurement
+	 * Phase 1: WCET Measurement (skip builtin utility workloads)
 	 * ================================================================ */
 	SCHED_PRINTF("=============================================================\n");
 	SCHED_PRINTF("[Phase 1] Measuring WCET for %d workloads...\n", num_workloads);
@@ -412,30 +450,28 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 
 	int is_quick = (cycles <= TEST_SCHEDULE_QUICK_CYCLES);
 
-	for (i = 0; i < num_workloads; i++) {
+	valid_idx = 0;
+	for (i = 0; i < total_workloads && valid_idx < num_workloads; i++) {
 		const struct rtosbench_workload *wl = rtosbench_get_workload(i);
 		if (!wl || !wl->name) {
 			continue;
 		}
 
-		tasks[i].name = wl->name;
-		tasks[i].workload_idx = i;
-		workload_indices[i] = i;
-
-		/* Skip utility workloads (stub, busywait) */
-		if (wl->category && strcmp(wl->category, "utility") == 0) {
-			tasks[i].wcet_ns = 0;
-			wcets_ns[i] = 0;
-			SCHED_PRINTF("  [%s]: skipped (utility workload)\n", wl->name);
+		/* Skip builtin utility workloads (stub, busywait) */
+		if (is_builtin_workload(wl)) {
 			continue;
 		}
+
+		tasks[valid_idx].name = wl->name;
+		tasks[valid_idx].workload_idx = i;
+		workload_indices[valid_idx] = i;
 
 		int wcet_iters = is_quick
 			? TEST_SCHEDULE_QUICK_WCET_ITERATIONS
 			: TEST_SCHEDULE_WCET_ITERATIONS;
 		uint64_t wcet = measure_wcet_ns(wl, wcet_iters);
-		tasks[i].wcet_ns = wcet;
-		wcets_ns[i] = (double)wcet;
+		tasks[valid_idx].wcet_ns = wcet;
+		wcets_ns[valid_idx] = (double)wcet;
 
 		SCHED_PRINTF("  [%s]: WCET = %.3f ms (%d iters)\n",
 			     wl->name, (double)wcet / 1000000.0, wcet_iters);
@@ -443,10 +479,12 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 		/* In quick mode, skip workloads with long WCET (>2s)
 		 * to keep the schedule test within a reasonable time */
 		if (is_quick && wcet > 2000000000ULL) {
-			tasks[i].wcet_ns = 0;
-			wcets_ns[i] = 0;
+			tasks[valid_idx].wcet_ns = 0;
+			wcets_ns[valid_idx] = 0;
 			SCHED_PRINTF("    -> skipped for quick schedule (WCET > 2s)\n");
 		}
+
+		valid_idx++;
 	}
 
 	/* Remove skipped workloads (wcet_ns == 0) by compacting the array */
