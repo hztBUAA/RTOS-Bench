@@ -235,14 +235,6 @@ static void multicore_print(void) {
     printf("（除特殊说明外，上述单位均为GB/s）\n");
 }
 
-// 导出测试函数
-#ifdef __RT_THREAD_H__
-#include <rtthread.h>
-MSH_CMD_EXPORT(realtime_init, start realtime benchmark);
-MSH_CMD_EXPORT(realtime_print, print realtime test results);
-MSH_CMD_EXPORT(multicore_init, start multicore benchmark);
-MSH_CMD_EXPORT(multicore_print, print realtime test results);
-#endif
 
 /* =========================================================================
  * Public API for test_realtime wrapper

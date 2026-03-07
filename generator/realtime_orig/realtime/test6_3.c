@@ -12,7 +12,6 @@
 #include <mqueue.h>
 #include <fcntl.h>
 #include <semaphore.h>
-#include <rtthread.h>
 
 #include "les.h"
 

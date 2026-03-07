@@ -11,7 +11,6 @@
 #include <pthread.h>
 #include <mqueue.h>
 #include <fcntl.h>
-#include <rtthread.h>
 
 #include "les.h"
 

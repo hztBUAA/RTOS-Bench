@@ -7,7 +7,6 @@
 #include <limits.h>
 #include <errno.h>
 #include "les.h"
-#include <rtthread.h>
 
 volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
 volatile uint32_t LES_offset = 0;
