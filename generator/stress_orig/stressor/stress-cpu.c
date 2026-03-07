@@ -78,6 +78,12 @@ __exit:
     if (r) stress_osal_free(r);
 }
 
+/*
+ * Ackermann function - highly recursive, requires large stack.
+ * ackermann(3, 2) = 29, but requires ~541 recursive calls with max depth ~500.
+ * Each stack frame uses ~50 bytes, so total stack usage is ~25KB.
+ * The cpu stressor must have at least 32KB stack (64KB recommended).
+ */
 static uint32_t ackermann(uint32_t m, uint32_t n) {
     if (m == 0) return n + 1;
     if (n == 0) return ackermann(m - 1, 1);
