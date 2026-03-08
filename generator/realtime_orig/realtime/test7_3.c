@@ -3,7 +3,7 @@
  * 场景: 消息接收、低优先级就绪
  * 插桩：否
  */
-
+#include <cpu_affinity.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,23 +24,9 @@ static volatile uint64_t total_cycles;
 
 static const char* msg = "Hi";
 
-/* Helper: send with retry for RT-Thread mqueue bug workaround */
-static int mq_send_retry(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
-{
-	int ret;
-	int retry = 0;
-	do {
-		ret = mq_send(mqdes, msg_ptr, msg_len, msg_prio);
-		if (ret != 0) {
-			retry++;
-			rt_thread_mdelay(1);
-		}
-	} while (ret != 0 && retry < 50);
-	return ret;
-}
-
 
 static void *assist_thread(void *parameter) {
+    BIND_THREAD_TO_CPU(0);
 	for (int i = 0; i < TEST_ITERATION; i++) {
 		sem_wait(&to_assist);
 		sem_post(&to_highest);
@@ -49,15 +35,16 @@ static void *assist_thread(void *parameter) {
 }
 
 static void *send_thread(void *parameter) {
+    BIND_THREAD_TO_CPU(0);
 	for (int i = 0; i < TEST_ITERATION; i++) {
-		mq_send_retry(mq, msg, strlen(msg) + 1, 0);
+		mq_send(mq, msg, strlen(msg) + 1, 0);
     }
-
+    
     return NULL;
 }
 
 static void *receive_thread(void *parameter) {    
-
+    BIND_THREAD_TO_CPU(0);
 	pthread_t tid1, tid2;
     pthread_attr_t attr;
     struct sched_param param;
@@ -77,6 +64,7 @@ static void *receive_thread(void *parameter) {
     // Create assist_thread:
     pthread_attr_setstacksize(&attr, 8192);
     param.sched_priority = BENCHMARK_LOW_PRIO;
+    pthread_attr_setschedparam(&attr, &param);
     if (pthread_create(&tid2, &attr, assist_thread, NULL) != 0) {
         perror("7_3:Failed to create thread.");
         return NULL;

@@ -5,13 +5,12 @@
 #ifndef __LES_H__
 #define __LES_H__
 
-#include "cpu_set.h"
 #include "data_tools.h"
 #include "safe_sleep.h"
 #include "test_list.h"
 
 /* 根据POSIX标准和定义优先级，
- * 需要根据具体实现进行调整
+ * 根据具体实现进行调整
  */
 #if defined(RT_THREAD_PLATFORM)
 
@@ -27,7 +26,7 @@
 
 #endif
 
-/* 系统调用开关 */
+/* 系统调用延迟开关：1-关闭，0-开启 */
 #if defined(ONEOS_PLATFORM)
 
 #define LES_NO_GETPID 1
@@ -63,7 +62,7 @@ static inline void LES_start_timer(void) {
 #if defined(__aarch64__)
     /* ... */
 
-#elif defined(__x86_64__)
+#elif defined(_M_X64) || defined(__x86_64__)
     /* ... */
 
 #elif defined(__riscv)
@@ -83,7 +82,7 @@ static inline uint64_t freqGet(void) {
 #if defined(__aarch64__)
     __asm__ volatile("mrs %0, cntfrq_el0" : "=r"(freq));
 
-#elif defined(__x86_64__)
+#elif defined(_M_X64) || defined(__x86_64__)
     /* ... */
 
 #elif defined(__riscv)
@@ -108,10 +107,14 @@ static inline uint64_t timeGet(void) {
 #if defined(__aarch64__)
     __asm__ volatile("mrs %0, cntpct_el0" : "=r"(val));
 
-#elif defined(__x86_64__) || defined(_M_X64)
-    uint32_t low, high;
-    __asm__ volatile("rdtsc" : "=a"(low), "=d"(high));
-    val = ((uint64_t)high << 32) | low;
+#elif defined(_M_X64) || defined(__x86_64__)
+    #if defined(_MSC_VER)
+        val = __rdtsc();
+    #else
+        uint32_t low, high;
+        __asm__ volatile("rdtsc" : "=a"(low), "=d"(high));
+        val = ((uint64_t)high << 32) | low;
+    #endif
 
 #elif defined(__riscv)
     #if __riscv_xlen == 64

@@ -72,6 +72,8 @@ static void message_test_immd(uint64_t *a, uint64_t *b) {
 }
 
 void test6_1(uint64_t *address1, uint64_t *address2) {
+    send_total_cycles = 0;
+    receive_total_cycles = 0;
 	if (address1 != NULL && address2 != NULL) {
 		message_test_immd(address1, address2);
 	}

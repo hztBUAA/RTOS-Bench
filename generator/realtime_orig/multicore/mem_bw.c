@@ -1,3 +1,4 @@
+#include <cpu_affinity.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdlib.h>
@@ -9,7 +10,7 @@
 
 
 #define TEST_MEM_SIZE       (2 * 1024 * 1024)      /* 每个线程 2MB 缓冲区 */
-#define TEST_REPETITION     1024                   /* 重复次数 */
+#define TEST_REPETITION     500                   /* 重复次数 */
 #define MAX_WORKERS         8                      /* 最大线程数支持 */
 #define NUM                 (TEST_MEM_SIZE / sizeof(int))
 
@@ -178,33 +179,32 @@ static void mem_mcpy(int *dst, int *src) {
     for (int i = 0; i < TEST_REPETITION; i++) memcpy(dst, src, TEST_MEM_SIZE);
 }
 
-/* --- Worker 线程逻辑 --- */
-
 static void *mem_worker_entry(void *parameter) {
-    int pid = (int)(long)parameter;
-    test_buf_dst[pid] = (int *)malloc(TEST_MEM_SIZE);
-    if (!test_buf_dst[pid]) {
-        sem_post(&sem_response[pid]);
+    int number = (int)(long)parameter;
+    BIND_THREAD_TO_CPU(number % USE_PROCESSORS);
+
+    test_buf_dst[number] = (int *)malloc(TEST_MEM_SIZE);
+    if (!test_buf_dst[number]) {
+        sem_post(&sem_response[number]);
         return NULL;
     }
 
-    sem_post(&sem_response[pid]); // 就绪通知
-    sem_wait(&sem_order[pid]);    // 等待开始指令
+    sem_post(&sem_response[number]); // 就绪通知
+    sem_wait(&sem_order[number]);    // 等待开始指令
 
-    /* 使用 switch-case 整数判断 */
     switch (current_mode) {
         case MODE_RD:   mem_rd(test_buf_src); break;
-        case MODE_WR:   mem_wr(test_buf_dst[pid]); break;
-        case MODE_CP:   mem_cp(test_buf_dst[pid], test_buf_src); break;
+        case MODE_WR:   mem_wr(test_buf_dst[number]); break;
+        case MODE_CP:   mem_cp(test_buf_dst[number], test_buf_src); break;
         case MODE_FRD:  mem_frd(test_buf_src); break;
-        case MODE_FWR:  mem_fwr(test_buf_dst[pid]); break;
-        case MODE_FCP:  mem_fcp(test_buf_dst[pid], test_buf_src); break;
-        case MODE_MSET: mem_mset(test_buf_dst[pid]); break;
-        case MODE_MCPY: mem_mcpy(test_buf_dst[pid], test_buf_src); break;
+        case MODE_FWR:  mem_fwr(test_buf_dst[number]); break;
+        case MODE_FCP:  mem_fcp(test_buf_dst[number], test_buf_src); break;
+        case MODE_MSET: mem_mset(test_buf_dst[number]); break;
+        case MODE_MCPY: mem_mcpy(test_buf_dst[number], test_buf_src); break;
         default: break;
     }
 
-    sem_post(&sem_response[pid]); // 完成通知
+    sem_post(&sem_response[number]); // 完成通知
     return NULL;
 }
 
@@ -218,21 +218,25 @@ uint64_t multicore_mem_bw(int mode, int number) {
     int i, worker_count;
     if (mode < 0 || mode > 7 || number <= 0) return 0;
 
-    current_mode = mode; /* 直接赋值整数模式 */
+    current_mode = mode;
     worker_count = (number > MAX_WORKERS) ? MAX_WORKERS : number;
 
     test_buf_src = (int *)malloc(TEST_MEM_SIZE);
     if (test_buf_src) memset(test_buf_src, 0x55, TEST_MEM_SIZE);
     
+    pthread_attr_t attr;
+    struct sched_param param;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 8192);
+    pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+    param.sched_priority = BENCHMARK_MIDDLE_PRIO;
+    pthread_attr_setschedparam(&attr, &param);
+    pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
     for (i = 0; i < worker_count; i++) {
         sem_init(&sem_order[i], 0, 0);
         sem_init(&sem_response[i], 0, 0);
-        if (pthread_create(&worker_tids[i], NULL, mem_worker_entry, (void *)(long)i) == 0) {
-            cpu_set_t cpuset;
-            CPU_ZERO(&cpuset);
-            CPU_SET(i % USE_PROCESSORS, &cpuset);
-            pthread_setaffinity_np(worker_tids[i], sizeof(cpu_set_t), &cpuset);
-        }
+        pthread_create(&worker_tids[i], &attr, mem_worker_entry, (void *)(long)i);
     }
 
     /* 等待就绪 -> 开始计时 -> 触发指令 */
@@ -252,11 +256,12 @@ uint64_t multicore_mem_bw(int mode, int number) {
         if (test_buf_dst[i]) free(test_buf_dst[i]);
     }
     if (test_buf_src) free(test_buf_src);
+
+    pthread_attr_destroy(&attr);
     
     uint64_t dur = cycles_to_ns(t_end - t_start);
     uint64_t data_per_worker;
 
-    /* 根据整数模式计算有效数据量 */
     if (current_mode == MODE_RD || current_mode == MODE_WR) {
         data_per_worker = TEST_MEM_SIZE / 8; // 间隔读写仅1/8有效
     } else if (current_mode == MODE_CP) {
@@ -269,7 +274,7 @@ uint64_t multicore_mem_bw(int mode, int number) {
 
     uint64_t total_bytes = data_per_worker * TEST_REPETITION * worker_count;
     uint64_t bandwidth_mb_s = total_bytes * 1000000000ULL / (dur * 1048576ULL);
-    
+
     return bandwidth_mb_s;
 }
 

@@ -1,9 +1,9 @@
 /*
  * File: benchmark/realtime/test6/test6_0.c
  * 场景: 消息队列满时阻塞检测
- * 在消息队列已满时，向其中发送消息的请求只有能够阻塞（或至少忙等一段时间），才可以进行8.2/9.3/9.4测试
+ * 在消息队列已满时，向其中发送消息的请求只有能够阻塞（或至少忙等一段时间），才可以进行6.2/7.3/7.4测试
  */
-
+#include <cpu_affinity.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +19,7 @@ static const char* msg = "Hi";
 static volatile int can_stall = 0;
 
 static void *receive_thread(void *parameter) {
+    BIND_THREAD_TO_CPU(0);
 	// 睡1ms，看看send_thread能否阻塞等待消息队列出现空位
 	safe_usleep(1000);
 	
@@ -27,7 +28,8 @@ static void *receive_thread(void *parameter) {
     return NULL;
 }
 
-static void *send_thread(void *parameter) {    
+static void *send_thread(void *parameter) {
+    BIND_THREAD_TO_CPU(0);
 
 	pthread_t tid1;
     pthread_attr_t attr;

@@ -60,12 +60,8 @@ static void realtime_init(void) {
 
 	test6_1(&realtime_service_cost[2][0], &realtime_service_cost[3][0]);		printf("Finish test 6_1, 7_1.\n");
 
-	/* Test 6_3 with debug output to diagnose hang issue */
-	printf("Running test 6_3 (with debug)...\n");
 	test6_3(&realtime_service_cost[2][2]);		printf("Finish test 6_3.\n");
 
-	/* Test 6_4 */
-	printf("Running test 6_4, 7_2...\n");
 	test6_4(&realtime_service_cost[2][3], &realtime_service_cost[3][1]);
 	printf("Finish test 6_4, 7_2.\n");
 
@@ -73,19 +69,15 @@ static void realtime_init(void) {
 	message_queue_filled_behavior = test6_0();
 	if (message_queue_filled_behavior == 0) {
 		printf("mqueue supports blocking on full queue.\n");
+        test6_2(&realtime_service_cost[2][1], &realtime_service_cost[3][3]);
+        printf("Finish test 6_2, 7_4.\n");
+        test7_3(&realtime_service_cost[3][2]);
+        printf("Finish test 7_3.\n");
 	} else {
-		printf("mqueue does NOT block on full queue (using retry workaround).\n");
+		printf("mqueue does NOT block on full queue.\n"
+               "Skip test 6_2, 7_3, 7_4.\n");
 	}
-
-	/* Run test 6_2, 7_3, 7_4 with retry workaround regardless of test6_0 result */
-	printf("Running test 6_2, 7_4...\n");
-	test6_2(&realtime_service_cost[2][1], &realtime_service_cost[3][3]);
-	printf("Finish test 6_2, 7_4.\n");
-	printf("Running test 7_3...\n");
-	test7_3(&realtime_service_cost[3][2]);
-	printf("Finish test 7_3.\n");
-
-
+    
 	test8_1(&realtime_service_cost[4][0], &realtime_service_cost[5][0]);
 	printf("Finish test 8_1, 9_1.\n");
 
@@ -134,7 +126,7 @@ static void div1000_print(uint64_t full_n_data, char* buf) {
 
 static void realtime_print(void) {
     // 打印系统服务实时指标realtime_service_cost
-    printf("单核系统服务开销:\n");
+    printf("系统延迟（单位：us）:\n");
     printf("%-12s | %-14s | %-14s | %-14s | %-14s\n", "指标", "立即执行", "挂起睡眠", "低优就绪", "高优恢复");
     printf("----------------------------------------------------------------------\n");
 
