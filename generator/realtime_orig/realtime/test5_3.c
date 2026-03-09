@@ -3,7 +3,7 @@
  * 场景: 信号量释放、低优先级就绪
  * 插桩：否
  */
-
+#include <cpu_affinity.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +22,7 @@ static volatile uint64_t total_cycles;
 
 
 static void *assist_thread(void *parameter) {
+    BIND_THREAD_TO_CPU(0);
 	for (int i = 0; i < TEST_ITERATION; i++) {
 		sem_wait(&to_assist);
 		sem_post(&to_highest);
@@ -30,6 +31,7 @@ static void *assist_thread(void *parameter) {
 }
 
 static void *lock_thread(void *parameter) {
+    BIND_THREAD_TO_CPU(0);
 	for (int i = 0; i < TEST_ITERATION; i++) {
 		sem_wait(&test_object);
     }
@@ -38,7 +40,7 @@ static void *lock_thread(void *parameter) {
 }
 
 static void *unlock_thread(void *parameter) {    
-
+    BIND_THREAD_TO_CPU(0);
 	pthread_t tid1, tid2;
     pthread_attr_t attr;
     struct sched_param param;
@@ -51,15 +53,16 @@ static void *unlock_thread(void *parameter) {
     pthread_attr_setschedparam(&attr, &param);
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
     if (pthread_create(&tid1, &attr, lock_thread, NULL) != 0) {
-        perror("7_3:Failed to create thread.");
+        perror("5_3:Failed to create thread.");
         return NULL;
     }
     
     // Create assist_thread:
     pthread_attr_setstacksize(&attr, 8192);
     param.sched_priority = BENCHMARK_LOW_PRIO;
+    pthread_attr_setschedparam(&attr, &param);
     if (pthread_create(&tid2, &attr, assist_thread, NULL) != 0) {
-        perror("7_3:Failed to create thread.");
+        perror("5_3:Failed to create thread.");
         return NULL;
     }
     

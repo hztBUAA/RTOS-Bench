@@ -12,6 +12,8 @@
 
 #define TEST_ITERATION 1000
 
+static uint64_t min, max, avg;
+
 static int getpid_temp_alternative() {
 	LES_syscall_stub();
 	return 0;
@@ -65,7 +67,17 @@ void test3(uint64_t *address1, uint64_t *address2, uint64_t *address3) {
 		//printf("系统调用插桩点未能成功获取值，使用默认函数测量\n");
 	}
 	
-	*address1 = min_dur;
-    *address2 = max_dur;
-    *address3 = total_dur / valid_count;
+	if (valid_count > 0) {
+		min = min_dur;
+		max = max_dur;
+		avg = total_dur / valid_count;
+	} else {
+		min = 0;
+		max = 0;
+		avg = 0;
+	}
+
+	*address1 = min;
+    *address2 = max;
+    *address3 = avg;
 }

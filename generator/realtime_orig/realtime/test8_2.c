@@ -3,7 +3,7 @@
  * 场景: 互斥锁获取（挂起睡眠）&互斥锁释放（高优先级恢复）
  * 插桩：是
  */
-
+#include <cpu_affinity.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +23,8 @@ static volatile uint64_t unlock_total_cycles, lock_total_cycles;
 
 
 static void *unlock_thread(void *parameter) {
-	
+	BIND_THREAD_TO_CPU(0);
+
 	// start
 	pthread_mutex_lock(&lock);
 	sem_post(&to_locker);
@@ -75,6 +76,7 @@ static void *unlock_thread(void *parameter) {
 }
 
 static void *lock_thread(void *parameter) {    
+	BIND_THREAD_TO_CPU(0);
 
 	pthread_t tid1;
     pthread_attr_t attr;

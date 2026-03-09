@@ -1,3 +1,4 @@
+#include <cpu_affinity.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
@@ -9,8 +10,6 @@
 #define TEST_REPETITION 	100
 #define MAX_WORKERS         8
 
-//#define TMP_STACK_SIZE	2048
-//static void *global_stack_ptrs[TEST_REPETITION * MAX_WORKERS];
 
 static sem_t father_to_son;
 static sem_t son_to_father;
@@ -18,12 +17,12 @@ static sem_t son_to_father;
 static volatile uint64_t cycles;
 
 static void *tmp_thread(void* parameter) {
-	// API中未找到合适的删除逻辑，先直接返回
 	return NULL;
 }
 
 static void *son_thread(void* parameter) {
 	int number = (int)(long)parameter;
+	BIND_THREAD_TO_CPU(number % USE_PROCESSORS);
 
 	pthread_t tid[TEST_REPETITION];
     pthread_attr_t attr;
@@ -31,12 +30,12 @@ static void *son_thread(void* parameter) {
 
     pthread_attr_init(&attr);
     
-    pthread_attr_setstacksize(&attr, 8192);
+    pthread_attr_setstacksize(&attr, 4096);
     
 	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
     param.sched_priority = BENCHMARK_LOW_PRIO;
     pthread_attr_setschedparam(&attr, &param);
-    pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+    pthread_attr_setinheritsched(&attr, PTHREAD_INHERIT_SCHED);
 
 	
 	
@@ -49,12 +48,6 @@ static void *son_thread(void* parameter) {
 	
 	// main work
 	for (int i = 0; i < TEST_REPETITION; i++) {
-		// do
-		/*
-		int stack_pos = number * TEST_REPETITION + i;
-		void *stack_ptr = global_stack_ptrs[stack_pos];
-		pthread_attr_setstack(&attr, stack_ptr, TMP_STACK_SIZE);
-		*/
 		
 		if (pthread_create(&tid[i], &attr, tmp_thread, (void *)(long)number) != 0) {
 
@@ -67,15 +60,10 @@ static void *son_thread(void* parameter) {
 				pthread_join(tid[j], NULL);
 			}
 
+			pthread_attr_destroy(&attr);
+
 			return NULL;
 		}
-		// bind cpu (tmp & son on same core)
-		
-		cpu_set_t cpuset;
-		CPU_ZERO(&cpuset);
-		CPU_SET(number % USE_PROCESSORS, &cpuset);
-		//pthread_setaffinity_np(tid, sizeof(cpu_set_t), &cpuset);
-		
 	}
 	
 	
@@ -94,6 +82,7 @@ static void *son_thread(void* parameter) {
 }
 
 static void *father_thread(void* parameter) {
+	BIND_THREAD_TO_CPU(0);
 	int pair_count = (int)(long)parameter;
 
 	pthread_t tid[MAX_WORKERS];
@@ -102,7 +91,7 @@ static void *father_thread(void* parameter) {
 
     pthread_attr_init(&attr);
 
-    pthread_attr_setstacksize(&attr, 8192);
+    pthread_attr_setstacksize(&attr, 16384);
     
 	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
     param.sched_priority = BENCHMARK_MIDDLE_PRIO;
@@ -113,18 +102,15 @@ static void *father_thread(void* parameter) {
 		if (pthread_create(&tid[i], &attr, son_thread, (void *)(long)i) != 0) {
 		    return 0;
 		}
-		// bind cpu
-		cpu_set_t cpuset;
-        CPU_ZERO(&cpuset);
-        CPU_SET(i % USE_PROCESSORS, &cpuset);
-        pthread_setaffinity_np(tid[i], sizeof(cpu_set_t), &cpuset);
 	}
 	
+
 	// wait for sons to be prepared
 	for (int i = 0; i < pair_count; i++) {
 		sem_wait(&son_to_father);
 	}
 	
+
 	uint64_t t0, t1;
 	
 	t0 = timeGet();
@@ -169,7 +155,7 @@ uint64_t multicore_task_lat(int pair_count) {
 
     pthread_attr_init(&attr);
 
-    pthread_attr_setstacksize(&attr, 8192);
+    pthread_attr_setstacksize(&attr, 16384);
     
 	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
     param.sched_priority = BENCHMARK_HIGH_PRIO;
