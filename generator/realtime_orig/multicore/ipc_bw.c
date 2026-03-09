@@ -1,3 +1,4 @@
+#include <cpu_affinity.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
@@ -26,8 +27,8 @@ static volatile uint64_t cycles;
 
 static void *tmp_thread(void* parameter) {
 	int number = (int)(long)parameter;
-	
-	
+	// ipc_mode == 1 : different core; ipc_mode == 0: same core 
+	BIND_THREAD_TO_CPU((number + ipc_mode) % USE_PROCESSORS);
 	
 	char *buffer1 = (char*)malloc(MESSAGE_SIZE);
 	char *buffer2 = (char*)malloc(MESSAGE_SIZE);
@@ -62,6 +63,7 @@ static void *tmp_thread(void* parameter) {
 static void *son_thread(void* parameter) {
 	int number = (int)(long)parameter;
 	
+	BIND_THREAD_TO_CPU(number % USE_PROCESSORS);
 	
 	
 	char *buffer1 = (char*)malloc(MESSAGE_SIZE);
@@ -85,19 +87,6 @@ static void *son_thread(void* parameter) {
 		sem_post(&son_to_father);
 		printf("tmp thread create fail.\n");
 		return NULL;
-	}
-	if (ipc_mode == 1) {
-		// bind cpu (tmp & son on same / diff core)
-		cpu_set_t cpuset;
-		CPU_ZERO(&cpuset);
-		CPU_SET((number + 1) % USE_PROCESSORS, &cpuset);
-		pthread_setaffinity_np(tid, sizeof(cpu_set_t), &cpuset);
-	} else {
-		// bind cpu (tmp & son on same core)
-		cpu_set_t cpuset;
-		CPU_ZERO(&cpuset);
-		CPU_SET((number) % USE_PROCESSORS, &cpuset);
-		pthread_setaffinity_np(tid, sizeof(cpu_set_t), &cpuset);
 	}
 	
 	// prepared
@@ -135,6 +124,7 @@ static void *son_thread(void* parameter) {
 }
 
 static void *father_thread(void* parameter) {
+	BIND_THREAD_TO_CPU(0);
 	int pair_count = (int)(long)parameter;
 
 	pthread_t tid[MAX_WORKERS];
@@ -152,14 +142,7 @@ static void *father_thread(void* parameter) {
 
 	for (int i = 0; i < pair_count; i++) {
 		if (pthread_create(&tid[i], &attr, son_thread, (void *)(long)i) != 0) {
-		    return 0;
-		}
-		if (ipc_mode == 0 || ipc_mode == 1 || ipc_mode == 2) {
-			// bind cpu
-			cpu_set_t cpuset;
-		    CPU_ZERO(&cpuset);
-		    CPU_SET(i % USE_PROCESSORS, &cpuset);
-		    pthread_setaffinity_np(tid[i], sizeof(cpu_set_t), &cpuset);
+		    return NULL;
 		}
 	}
 	

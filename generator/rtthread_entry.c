@@ -393,10 +393,14 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 	/* Check for test-realtime subcommand */
 	if (argc >= 2 && strcmp(argv[1], "test-realtime") == 0) {
 		int run_multicore = 0;
+		int run_verify = 0;
 
 		/* Parse optional test-realtime arguments */
 		for (int i = 2; i < argc; i++) {
-			if (strcmp(argv[i], "--multicore") == 0 ||
+			if (strcmp(argv[i], "--verify") == 0 ||
+			    strcmp(argv[i], "-v") == 0) {
+				run_verify = 1;
+			} else if (strcmp(argv[i], "--multicore") == 0 ||
 			    strcmp(argv[i], "-m") == 0) {
 				run_multicore = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
@@ -407,6 +411,10 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		rt_kprintf("[test-realtime] Starting realtime performance test\n");
 		if (run_multicore) {
 			rt_kprintf("  Multicore tests: enabled\n");
+		}
+
+		if (run_verify) {
+			test_realtime_verify();
 		}
 
 		return test_realtime_run(run_multicore);

@@ -4,6 +4,7 @@
  * 插桩：是
  */
 
+#include <cpu_affinity.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +22,8 @@ static volatile uint64_t unlock_total_cycles, lock_total_cycles;
 
 
 static void *post_thread(void *parameter) {
-	
+	BIND_THREAD_TO_CPU(0);
+
 	// start
 	sem_post(&sem);
 
@@ -67,7 +69,8 @@ static void *post_thread(void *parameter) {
     return NULL;
 }
 
-static void *wait_thread(void *parameter) {    
+static void *wait_thread(void *parameter) {
+	BIND_THREAD_TO_CPU(0);
 
 	pthread_t tid1;
     pthread_attr_t attr;

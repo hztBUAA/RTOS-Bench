@@ -1,6 +1,6 @@
 #include <sys/time.h>
 #include <errno.h>
-
+#include "safe_sleep.h"
 
 /* 安全睡眠 */
 void safe_usleep(uint64_t us) {

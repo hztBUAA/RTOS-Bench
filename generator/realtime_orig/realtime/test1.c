@@ -3,6 +3,7 @@
  * 项目: 上下文切换延迟
  * 插桩：否
  */
+#include <cpu_affinity.h>
 #include <pthread.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -20,6 +21,8 @@ static sem_t sem_start;
 static sem_t sem_done;
 
 static void* thread_b_entry(void* arg) {
+    BIND_THREAD_TO_CPU(0);
+
     /* 1. 等待线程 A 准备就绪 */
     sem_wait(&sem_start);
 
@@ -34,6 +37,8 @@ static void* thread_b_entry(void* arg) {
 }
 
 static void* thread_a_entry(void* arg) {
+    BIND_THREAD_TO_CPU(0);
+
     /*  释放信号量唤醒 B，并执行第一次同步 yield */
     sem_post(&sem_start);
     sched_yield(); 
@@ -91,6 +96,8 @@ void test1(uint64_t *address) {
     // 等待线程结束
     pthread_join(tid_a, NULL);
     pthread_join(tid_b, NULL);
+
+    pthread_attr_destroy(&attr);
 
     sem_destroy(&sem_start);
     sem_destroy(&sem_done);

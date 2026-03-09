@@ -1,13 +1,8 @@
-//#define _GNU_SOURCE
-
 #include <inttypes.h>
-#ifdef CPU_SET
-//#include <sched.h>
-#endif
 #include <limits.h>
 #include <errno.h>
 #include "les.h"
-#include <rtthread.h>
+#include "cpu_affinity.h"
 
 volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
 volatile uint32_t LES_offset = 0;
@@ -21,7 +16,7 @@ volatile uint32_t LES_interrupt_flag = 0;
 
 /* 中断插桩函数 */
 void LES_interrupt_end_stub(void) {
-    if (LES_interrupt_flag == 1) {
+    if (LES_interrupt_flag == 1 && bench_get_cpu() == 0) {
     	LES_interrupt_end_val = timeGet();
     }
     LES_interrupt_flag = 0;
