@@ -107,10 +107,17 @@ void test2(uint64_t *address1, uint64_t *address2, uint64_t *address3)
 			valid_count++;
 		}
 	}
-		
-    min = min_dur;
-    max = max_dur;
-    avg = total_dur / valid_count;
+	
+	if (valid_count > 0) {
+		min = min_dur;
+		max = max_dur;
+		avg = total_dur / valid_count;
+	} else {
+		min = 0;
+		max = 0;
+		avg = 0;
+	}
+    
 
     *address1 = min;
     *address2 = max;
