@@ -108,7 +108,8 @@ static inline uint64_t timeGet(void) {
     __asm__ volatile("mrs %0, cntpct_el0" : "=r"(val));
 
 #elif defined(_M_X64) || defined(__x86_64__)
-    #if defined(_MSC_VER)
+    #if defined(_M_X64)
+        #include <intrin.h>
         val = __rdtsc();
     #else
         uint32_t low, high;
