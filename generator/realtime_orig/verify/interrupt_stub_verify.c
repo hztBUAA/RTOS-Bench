@@ -48,6 +48,9 @@ static void *thread(void *parameter)
 
 static void test()
 {
+    count_all = 0;
+    count_valid = 0;
+
 	pthread_t tid;
     pthread_attr_t attr;
     struct sched_param param;
