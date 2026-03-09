@@ -1,5 +1,5 @@
-#ifndef __BENCH_VERIFY__H__
-#define __BENCH_VERIFY__H__
+#ifndef __BENCH_VERIFY_H__
+#define __BENCH_VERIFY_H__
 
 void realtime_verify_all(void);
 void freq_verify(void);
