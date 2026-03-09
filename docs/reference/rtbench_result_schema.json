@@ -210,10 +210,11 @@
             "properties": {
               "name": { "type": "string" },
               "type": { "type": "string", "enum": ["cpu", "memory", "file"] },
+              "stage": { "type": "integer", "description": "Job 阶段 (1-5), quick 模式通常为 1" },
               "bogo_ops": { "type": "integer" },
               "duration_sec": { "type": "number" },
-              "metric_value": { "type": "number" },
-              "metric_unit": { "type": "string" }
+              "metric_value": { "type": ["number", "null"], "description": "可选附加指标数值 (如 Mflop/sec, KB/sec)" },
+              "metric_unit": { "type": ["string", "null"], "description": "可选附加指标单位 (如 Mflop/sec, KB/sec)" }
             },
             "required": ["name", "type", "bogo_ops"]
           }

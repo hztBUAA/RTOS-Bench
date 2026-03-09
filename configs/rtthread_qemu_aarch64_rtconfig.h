@@ -72,7 +72,7 @@
 
 /* end of rt_strnlen options */
 /* end of klibc options */
-#define RT_NAME_MAX 16
+#define RT_NAME_MAX 256
 #define RT_USING_SMP
 #define RT_CPUS_NR 4
 #define RT_ALIGN_SIZE 8
@@ -176,7 +176,7 @@
 #define RT_USING_DFS
 #define DFS_USING_POSIX
 #define DFS_USING_WORKDIR
-#define DFS_FD_MAX 128
+#define DFS_FD_MAX 512
 #define RT_USING_DFS_V1
 #define DFS_FILESYSTEMS_MAX 4
 #define DFS_FILESYSTEM_TYPES_MAX 8
