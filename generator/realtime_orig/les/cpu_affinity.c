@@ -64,9 +64,11 @@ int bench_get_cpu(void) {
 
 // SylixOS 翼辉
 #elif defined(SYLIXOS_PLATFORM)
+#include <SylixOS.h>
 
 int bench_get_cpu(void) {
     // TODO: realize API
+    return (int)API_CpuCurId();
 }
 
 // OneOS 中移
