@@ -21,7 +21,7 @@ static int stress_prime_opt_start(const char *opt_name, const char *opt_arg)
     char *endptr;
     unsigned long long val = strtoull(opt_arg, &endptr, 10);
 
-    if (val < 3) val = 3;
+    if (val < MIN_PRIME_START) val = MIN_PRIME_START;
 
     s_prime_start = (uint64_t)val;
     stress_osal_print("rtos_stress: debug: prime-start set to %llu\n", (unsigned long long)s_prime_start);

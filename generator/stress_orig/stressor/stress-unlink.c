@@ -22,7 +22,7 @@ static int32_t s_unlink_files = DEFAULT_UNLINK_FILES;
 static int stress_unlink_opt_files(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
-    if (val < 1) val = 1;
+    if (val < MIN_UNLINK_FILES) val = MIN_UNLINK_FILES;
     if (val > MAX_UNLINK_FILES) val = MAX_UNLINK_FILES;
 
     s_unlink_files = val;

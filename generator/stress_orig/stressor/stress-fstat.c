@@ -20,8 +20,8 @@ static int32_t s_fstat_files = DEFAULT_FSTAT_FILES;
 static int stress_fstat_opt_files(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
-    if (val < 1) val = 1;
-    if (val > 1000) val = 1000;
+    if (val < MIN_FSTAT_FILES) val = MIN_FSTAT_FILES;
+    if (val > MAX_FSTAT_FILES) val = MAX_FSTAT_FILES;
 
     s_fstat_files = val;
     stress_osal_print("rtos_stress: debug: fstat-files set to %d\n", s_fstat_files);

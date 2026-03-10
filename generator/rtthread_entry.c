@@ -139,6 +139,13 @@ static void debug_print_context(const struct execution_options *opts)
 
 struct test_stress_params {
 	const char *job_name;
+	const char *stressor_name;  /* For single stressor mode (-s) */
+	int duration_sec;           /* -t parameter */
+	int num_workers;            /* -c parameter */
+	uint64_t max_ops;           /* --ops parameter */
+	const char *method_name;    /* --method parameter */
+	const char *extra_opts;     /* Extra stressor-specific options */
+	int single_mode;            /* 1 = run single stressor, 0 = run job */
 	int result;
 	struct rt_semaphore done_sem;
 };
@@ -147,10 +154,15 @@ static void test_stress_thread_entry(void *parameter)
 {
 	struct test_stress_params *p = (struct test_stress_params *)parameter;
 
-	rt_kprintf("[test-stress] Starting stress test\n");
-	rt_kprintf("  Job: %s\n", p->job_name);
-
-	p->result = test_stress_run_job(p->job_name);
+	if (p->single_mode && p->stressor_name) {
+		rt_kprintf("  Mode: Single stressor\n");
+		p->result = test_stress_run_single(p->stressor_name, p->duration_sec,
+		                                   p->num_workers, p->max_ops,
+		                                   p->method_name, p->extra_opts);
+	} else {
+		rt_kprintf("  Job: %s\n", p->job_name);
+		p->result = test_stress_run_job(p->job_name);
+	}
 
 	rt_sem_release(&p->done_sem);
 }
@@ -393,14 +405,10 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 	/* Check for test-realtime subcommand */
 	if (argc >= 2 && strcmp(argv[1], "test-realtime") == 0) {
 		int run_multicore = 0;
-		int run_verify = 0;
 
 		/* Parse optional test-realtime arguments */
 		for (int i = 2; i < argc; i++) {
-			if (strcmp(argv[i], "--verify") == 0 ||
-			    strcmp(argv[i], "-v") == 0) {
-				run_verify = 1;
-			} else if (strcmp(argv[i], "--multicore") == 0 ||
+			if (strcmp(argv[i], "--multicore") == 0 ||
 			    strcmp(argv[i], "-m") == 0) {
 				run_multicore = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
@@ -413,23 +421,92 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 			rt_kprintf("  Multicore tests: enabled\n");
 		}
 
-		if (run_verify) {
-			test_realtime_verify();
-		}
-
 		return test_realtime_run(run_multicore);
 	}
 
 	/* Check for test-stress subcommand */
 	if (argc >= 2 && strcmp(argv[1], "test-stress") == 0) {
 		const char *job_name = "all";
+		const char *stressor_name = NULL;
 		int list_jobs = 0;
 		int quick = 0;
-
+		int duration_sec = 10;      /* Default 10 seconds */
+		int num_workers = 1;        /* Default 1 worker */
+		uint64_t max_ops = 0;       /* Default no limit */
+		const char *method_name = NULL;   /* --method parameter */
+		static char extra_opts_buf[512];    /* Extra stressor-specific options buffer */
+		int extra_opts_len = 0;
+		int single_mode = 0;        /* Default to job mode */
+	
+		extra_opts_buf[0] = '\0';
+	
 		/* Parse optional test-stress arguments */
 		for (int i = 2; i < argc; i++) {
-			if (strcmp(argv[i], "--job") == 0 && (i + 1 < argc)) {
+			const char *val;
+			
+			if (strcmp(argv[i], "--job") == 0 && (i +1 < argc)) {
 				job_name = argv[++i];
+			} else if ((val = test_stress_parse_opt_arg(argv[i], "--job=")) != NULL) {
+				job_name = val;
+			} else if (strcmp(argv[i], "-s") == 0 && (i +1 < argc)) {
+				/* Single stressor mode */
+				single_mode = 1;
+				stressor_name = argv[++i];
+			} else if ((val = test_stress_parse_opt_arg(argv[i], "-s=")) != NULL) {
+				single_mode = 1;
+				stressor_name = val;
+			} else if (strcmp(argv[i], "-t") == 0 && (i +1 < argc)) {
+				/* Duration in seconds */
+				duration_sec = atoi(argv[++i]);
+			} else if ((val = test_stress_parse_opt_arg(argv[i], "-t=")) != NULL) {
+				duration_sec = atoi(val);
+			} else if (strcmp(argv[i], "-c") == 0 && (i +1 < argc)) {
+				/* Number of workers */
+				num_workers = atoi(argv[++i]);
+			} else if ((val = test_stress_parse_opt_arg(argv[i], "-c=")) != NULL) {
+				num_workers = atoi(val);
+			} else if (strcmp(argv[i], "--ops") == 0 && (i +1 < argc)) {
+				/* Maximum operations */
+				max_ops = strtoull(argv[++i], NULL, 10);
+			} else if ((val = test_stress_parse_opt_arg(argv[i], "--ops=")) != NULL) {
+				max_ops = strtoull(val, NULL, 10);
+			} else if (strcmp(argv[i], "--method") == 0 && (i +1 < argc)) {
+				/* Method/algorithm name */
+				method_name = argv[++i];
+			} else if ((val = test_stress_parse_opt_arg(argv[i], "--method=")) != NULL) {
+				/* Method with equals sign: --method=ackermann */
+				method_name = val;
+			} else if (strcmp(argv[i], "--opts") == 0 && (i +1 < argc)) {
+				/* Extra stressor-specific options */
+				const char *opts = argv[++i];
+				int opts_len = strlen(opts);
+				if (extra_opts_len + opts_len +2 < sizeof(extra_opts_buf)) {
+					if (extra_opts_len > 0) {
+						extra_opts_buf[extra_opts_len++] = ' ';
+					}
+					strcpy(extra_opts_buf + extra_opts_len, opts);
+					extra_opts_len += opts_len;
+				}
+			} else if (strncmp(argv[i], "--", 2) == 0) {
+				/* Unknown --option: collect it and its argument if present */
+				/* Support both --opt value and --opt=value forms */
+				int arg_len = strlen(argv[i]);
+				if (strchr(argv[i], '=') == NULL && i +1 < argc && argv[i+1][0] != '-') {
+					/* Has separate argument: --opt value */
+					arg_len += 1 + strlen(argv[i+1]);
+				}
+				if (extra_opts_len + arg_len +2 < sizeof(extra_opts_buf)) {
+					if (extra_opts_len > 0) {
+						extra_opts_buf[extra_opts_len++] = ' ';
+					}
+					strcpy(extra_opts_buf + extra_opts_len, argv[i]);
+					extra_opts_len += strlen(argv[i]);
+					if (strchr(argv[i], '=') == NULL && i +1 < argc && argv[i+1][0] != '-') {
+						extra_opts_buf[extra_opts_len++] = ' ';
+						strcpy(extra_opts_buf + extra_opts_len, argv[++i]);
+						extra_opts_len += strlen(argv[i]);
+					}
+				}
 			} else if (strcmp(argv[i], "-l") == 0 ||
 			           strcmp(argv[i], "--list") == 0) {
 				list_jobs = 1;
@@ -439,10 +516,19 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 				benchmark_verbosity = LOG_LEVEL_INFO;
 			}
 		}
+	
+		const char *extra_opts = (extra_opts_len > 0) ? extra_opts_buf : NULL;
 
 		if (list_jobs) {
 			test_stress_list_jobs();
+			test_stress_list_stressors();
 			return 0;
+		}
+
+		/* Validate single stressor mode */
+		if (single_mode && !stressor_name) {
+			rt_kprintf("[test-stress] Error: -s requires a stressor name\n");
+			return -1;
 		}
 
 		/* In quick mode, append "-quick" to job name if not already a quick variant */
@@ -456,6 +542,13 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		static struct test_stress_params stress_params;
 		memset(&stress_params, 0, sizeof(stress_params));
 		stress_params.job_name = job_name;
+		stress_params.stressor_name = stressor_name;
+		stress_params.duration_sec = duration_sec;
+		stress_params.num_workers = num_workers;
+		stress_params.max_ops = max_ops;
+		stress_params.method_name = method_name;
+		stress_params.extra_opts = extra_opts;
+		stress_params.single_mode = single_mode;
 
 		rt_sem_init(&stress_params.done_sem, "ts_done", 0, RT_IPC_FLAG_PRIO);
 
@@ -463,7 +556,7 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		                                  test_stress_thread_entry,
 		                                  &stress_params,
 		                                  RTBENCH_TEST_STRESS_STACK_SIZE,
-		                                  20, 10);
+		                                 20, 10);
 		if (t == RT_NULL) {
 			rt_kprintf("[test-stress] Failed to create worker thread\n");
 			rt_sem_detach(&stress_params.done_sem);

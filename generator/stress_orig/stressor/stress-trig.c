@@ -17,7 +17,7 @@ static int32_t s_trig_loops = DEFAULT_TRIG_LOOPS;
 static int stress_trig_opt_loops(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
-    if (val < 1) val = 1;
+    if (val < MIN_TRIG_LOOPS) val = MIN_TRIG_LOOPS;
 
     s_trig_loops = val;
     stress_osal_print("rtos_stress: debug: trig-loops set to %d\n", s_trig_loops);

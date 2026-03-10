@@ -8,6 +8,7 @@
 #include "logging.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef RT_THREAD_PLATFORM
@@ -53,6 +54,16 @@ static int s_job_result_count = 0;
 
 /* Legacy bogo_ops */
 static uint64_t s_last_bogo_ops = 0;
+
+/* Helper function to parse argument with equals sign support */
+const char *test_stress_parse_opt_arg(const char *arg, const char *prefix)
+{
+    size_t prefix_len = strlen(prefix);
+    if (strncmp(arg, prefix, prefix_len) == 0) {
+        return arg + prefix_len;
+    }
+    return NULL;
+}
 
 int test_stress_run_job(const char *job_name)
 {
@@ -111,15 +122,18 @@ const struct test_stress_job_result *test_stress_get_job_results(int *count_out)
 
 void test_stress_list_jobs(void)
 {
-    STRESS_PRINTF("Available stress jobs:\n");
-    STRESS_PRINTF("  cpu         - CPU compute stressors (13 stressors x 5 stages)\n");
-    STRESS_PRINTF("  memory      - Memory stressors (6 stressors x 5 stages)\n");
-    STRESS_PRINTF("  file        - File I/O stressors (8 stressors x 5 stages)\n");
-    STRESS_PRINTF("  all         - Run all jobs sequentially (135 total runs)\n");
-    STRESS_PRINTF("  cpu-quick   - CPU quick smoke test (13 stressors x 1 stage)\n");
-    STRESS_PRINTF("  memory-quick- Memory quick smoke test (6 stressors x 1 stage)\n");
-    STRESS_PRINTF("  file-quick  - File I/O quick smoke test (8 stressors x 1 stage)\n");
-    STRESS_PRINTF("  all-quick   - Run all quick jobs (27 total runs)\n");
+  STRESS_PRINTF("Available stress jobs:\n");
+  STRESS_PRINTF("  cpu         - CPU compute stressors (13 stressors x 5 stages)\n");
+  STRESS_PRINTF("  memory      - Memory stressors (6 stressors x 5 stages)\n");
+  STRESS_PRINTF("  file        - File I/O stressors (8 stressors x 5 stages)\n");
+  STRESS_PRINTF("  all         - Run all jobs sequentially (135 total runs)\n");
+  STRESS_PRINTF("  cpu-quick   - CPU quick smoke test (13 stressors x 1 stage)\n");
+  STRESS_PRINTF("  memory-quick- Memory quick smoke test (6 stressors x 1 stage)\n");
+  STRESS_PRINTF("  file-quick  - File I/O quick smoke test (8 stressors x 1 stage)\n");
+  STRESS_PRINTF("  all-quick   - Run all quick jobs(27 total runs)\n");
+  STRESS_PRINTF("\n");
+  STRESS_PRINTF("Examples:\n");
+  STRESS_PRINTF("  rtbench test-stress --job cpu");
 }
 
 void test_stress_stop(void)
@@ -143,34 +157,96 @@ static const char *stress_type_to_name(stress_type_t type)
 
 int test_stress_run_stressor(const char *name, int duration_sec)
 {
+    return test_stress_run_single(name, duration_sec, 1, 0, NULL, NULL);
+}
+
+int test_stress_run_single(const char *stressor_name, int duration_sec,
+                           int num_workers, uint64_t max_ops,
+                           const char *method_name, const char *extra_opts)
+{
     char duration_str[16];
-    char *argv[8];
+    char workers_str[16];
+    char ops_str[32];
+    char method_arg[64];
+    char *argv[32];
     int argc = 0;
 
-    if (!name || duration_sec <= 0) {
-        name = "cpu";
+    /* Validate and set defaults */
+    if (!stressor_name || duration_sec <= 0) {
+        stressor_name = "cpu";
         duration_sec = 10;
     }
+    if (num_workers <= 0) num_workers = 1;
 
-    snprintf(duration_str, sizeof(duration_str), "%ds", duration_sec);
-
-    STRESS_PRINTF("\n");
-    STRESS_PRINTF("=============================================================\n");
-    STRESS_PRINTF("[test-stress] Running stressor: %s for %d seconds\n", name, duration_sec);
-    STRESS_PRINTF("=============================================================\n");
-
+    STRESS_PRINTF("\n=============================================================\n");
+    STRESS_PRINTF("[test-stress]   Running stressor: %s\n", stressor_name);
+    
+    /* Build argv array */
     argv[argc++] = "rtos_stress";
-    argv[argc++] = (char *)name;
-    argv[argc++] = "-t";
-    argv[argc++] = duration_str;
+    argv[argc++] = (char *)stressor_name;
+    
+    /* Parameter combination logic */
+    if (max_ops > 0 && duration_sec> 0) {
+        /* Both: time-bounded with ops limit */
+        snprintf(duration_str, sizeof(duration_str), "%ds", duration_sec);
+        snprintf(ops_str, sizeof(ops_str), "%lld", (long long)max_ops);
+        argv[argc++] = "-t";
+        argv[argc++] = duration_str;
+        argv[argc++] = "--ops";
+        argv[argc++] = ops_str;
+        STRESS_PRINTF("                Duration: %d seconds\n", duration_sec);
+        STRESS_PRINTF("                Max ops: %lld\n", (long long)max_ops);
+    } else if (max_ops > 0) {
+        /* Ops only: no time limit */
+        snprintf(ops_str, sizeof(ops_str), "%lld", (long long)max_ops);
+        argv[argc++] = "--ops";
+        argv[argc++] = ops_str;
+        STRESS_PRINTF("                Max ops: %lld\n", (long long)max_ops);
+    } else {
+        /* Time only (or default): time-bounded */
+        snprintf(duration_str, sizeof(duration_str), "%ds", duration_sec);
+        argv[argc++] = "-t";
+        argv[argc++] = duration_str;
+        STRESS_PRINTF("                Duration: %d seconds\n", duration_sec);
+    }
+    
+    STRESS_PRINTF("                Workers: %d\n", num_workers);
+    if (method_name) {
+        STRESS_PRINTF("                Method: %s\n", method_name);
+    }
+    if (extra_opts) {
+        STRESS_PRINTF("                Extra opts: %s\n", extra_opts);
+    }
+    STRESS_PRINTF("=============================================================\n");
+
+    /* Add workers parameter */
     argv[argc++] = "-c";
-    argv[argc++] = "1";
+    snprintf(workers_str, sizeof(workers_str), "%d", num_workers);
+    argv[argc++] = workers_str;
+
+    /* Add method parameter */
+    if (method_name) {
+        snprintf(method_arg, sizeof(method_arg), "--method=%s", method_name);
+        argv[argc++] = method_arg;
+    }
+
+    /* Parse and add extra options */
+    if (extra_opts) {
+        char opts_copy[512];
+        strncpy(opts_copy, extra_opts, sizeof(opts_copy) -1);
+        opts_copy[sizeof(opts_copy) -1] = '\0';
+        
+        char *token = strtok(opts_copy, " ");
+        while (token != NULL && argc < 30) {
+            argv[argc++] = token;
+            token = strtok(NULL, " ");
+        }
+    }
 
     int ret = stress_ng_main(argc, argv);
     s_last_bogo_ops = stress_ng_get_last_bogo_ops();
 
-    STRESS_PRINTF("\n");
-    STRESS_PRINTF("[test-stress] Stressor %s completed with code: %d\n", name, ret);
+    STRESS_PRINTF("\n[test-stress] Stressor %s completed with code: %d\n", stressor_name, ret);
     STRESS_PRINTF("=============================================================\n");
 
     return ret;
@@ -211,14 +287,66 @@ uint64_t test_stress_get_last_bogo_ops(void)
 
 void test_stress_list_stressors(void)
 {
-    STRESS_PRINTF("Available stressors:\n");
-    STRESS_PRINTF("  cpu      - CPU compute intensive stress\n");
-    STRESS_PRINTF("  matrix   - Matrix multiplication\n");
-    STRESS_PRINTF("  vm       - Virtual memory stress\n");
-    STRESS_PRINTF("  malloc   - Memory allocation/free\n");
-    STRESS_PRINTF("  memcpy   - Memory copy operations\n");
-    STRESS_PRINTF("  prime    - Prime number calculation\n");
-    STRESS_PRINTF("  trig     - Trigonometric functions\n");
-    STRESS_PRINTF("  fp       - Floating point operations\n");
-    STRESS_PRINTF("  all      - Run all stressors sequentially\n");
+  STRESS_PRINTF("Single stressor mode:\n");
+  STRESS_PRINTF("  rtbench test-stress -s <stressor> [OPTIONS]\n");
+
+  STRESS_PRINTF("\n");
+  STRESS_PRINTF("Common Options:\n");
+  STRESS_PRINTF("  -t <seconds>     Duration in seconds (default: 10)\n");
+  STRESS_PRINTF("  -c <workers>     Number of worker threads (default: 1)\n");
+  STRESS_PRINTF("  --ops <max>      Maximum operations limit\n");
+  STRESS_PRINTF("  --method <name>  Specific algorithm/method to use(default: all)\n");
+
+  STRESS_PRINTF("Available stressors and their specific options:\n");
+  STRESS_PRINTF("\n");
+  
+  STRESS_PRINTF("CPU Stressors:\n");
+  STRESS_PRINTF("  cpu       --cpu-load <0-100>     CPU load percentage\n");
+  STRESS_PRINTF("            Methods: sqrt, bitops, matrixprod, ackermann, fibonacci, prime\n");
+  STRESS_PRINTF("  matrix    --matrix-size <N>      Matrix dimension (default: 64)\n");
+  STRESS_PRINTF("            Methods: prod, add, sub, trans, mean, identity\n");
+  STRESS_PRINTF("  qsort     --qsort-size <size>    Array size to sort (supports K/M suffix)\n");
+  STRESS_PRINTF("  atomic    --atomic-threads <N>   Number of atomic operation threads (0-64)\n");
+  STRESS_PRINTF("  bitops    --bitops-loops <N>     Number of bit operation loops\n");
+  STRESS_PRINTF("  bsearch   --bsearch-size <N>     Array size for binary search\n");
+  STRESS_PRINTF("            Methods: bsearch-libc, bsearch-nonlibc, ternary\n");
+  STRESS_PRINTF("  context   --context-threads <N>  Number of context switch threads (1-128)\n");
+  STRESS_PRINTF("  fp        --fp-loops <N>         Number of FP operation loops\n");
+  STRESS_PRINTF("  prime     --prime-start <N>      Starting value for prime search\n");
+  STRESS_PRINTF("            Methods: inc, sieve, factorial\n");
+  STRESS_PRINTF("  stack     --stack-size <size>    Stack size (supports K/M suffix)\n");
+  STRESS_PRINTF("  str       --str-size <size>      String size (supports K/M suffix)\n");
+  STRESS_PRINTF("  trig      --trig-loops <N>       Number of trigonometric loops\n");
+  STRESS_PRINTF("  vecmath   --vecmath-loops <N>    Number of vector math loops\n");
+  STRESS_PRINTF("\n");
+  
+  STRESS_PRINTF("Memory Stressors:\n");
+  STRESS_PRINTF("  memcpy    --memcpy-loops <N>     Number of memcpy loops\n");
+  STRESS_PRINTF("            --memcpy-size <N>      Size of each memcpy operation\n");
+  STRESS_PRINTF("  stream    --stream-elem <N>      Number of stream elements (supports K/M suffix)\n");
+  STRESS_PRINTF("  vm        --vm-bytes <size>      Memory size (supports K/M/G suffix)\n");
+  STRESS_PRINTF("            Methods: write64, read64, rand-set, toggle, walk-1, galpat-1, gray, rowhammer, modulo-x\n");
+  STRESS_PRINTF("  malloc    --malloc-bytes <size>  Max bytes per allocation (supports K/M/G suffix)\n");
+  STRESS_PRINTF("            --malloc-max <slots>   Max allocation slots\n");
+  STRESS_PRINTF("  memthrash --memthrash-size <sz>  Memory size (supports K/M/G suffix)\n");
+  STRESS_PRINTF("  ptr-chase --ptr-chase-pages <N>  Number of pages to chase (supports K/M suffix)\n");
+  STRESS_PRINTF("\n");
+  
+  STRESS_PRINTF("File I/O Stressors:\n");
+  STRESS_PRINTF("  hdd       --hdd-bytes <size>     Total bytes to write (supports K/M/G suffix)\n");
+  STRESS_PRINTF("  open      --open-max <N>         Maximum number of open files\n");
+  STRESS_PRINTF("  copy-file --copy-file-bytes <sz> File size in bytes (supports K/M/G suffix)\n");
+  STRESS_PRINTF("  unlink    --unlink-files <N>     Number of files to unlink\n");
+  STRESS_PRINTF("  fstat     --fstat-files <N>      Number of files to fstat\n");
+  STRESS_PRINTF("  dentry    --dentries <N>         Number of directory entries\n");
+  STRESS_PRINTF("  rename    --rename-file-size <sz> File size for rename test (supports K/M suffix)\n");
+  STRESS_PRINTF("  pipe      --pipe-data-size <sz>  Pipe chunk size (supports K/M suffix)\n");
+  STRESS_PRINTF("\n");
+  
+  STRESS_PRINTF("Examples:\n");
+  STRESS_PRINTF("  rtbench test-stress -s cpu -t 30 -c 2 --cpu-load 50 --method ackermann\n");
+  STRESS_PRINTF("  rtbench test-stress -s cpu -t 30 -c 2 --cpu-load=50 --method=ackermann\n");
+  STRESS_PRINTF("  rtbench test-stress -s bsearch --ops 1000 --bsearch-size 10000 --method ternary\n");
+  STRESS_PRINTF("  rtbench test-stress -s context -t 10s --context-threads 8\n");
+
 }

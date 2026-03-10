@@ -124,7 +124,7 @@ static int32_t s_vecmath_loops = DEFAULT_VECMATH_LOOPS;
 static int stress_vecmath_opt_loops(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
-    if (val < 1) val = 1;
+    if (val < MIN_VECMATH_LOOPS) val = MIN_VECMATH_LOOPS;
 
     s_vecmath_loops = val;
     stress_osal_print("rtos_stress: debug: vecmath-loops set to %d\n", s_vecmath_loops);

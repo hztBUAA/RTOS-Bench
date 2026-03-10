@@ -57,10 +57,10 @@ static int32_t s_atomic_threads = DEFAULT_ATOMIC_THREADS;
 static int stress_atomic_opt_threads(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
-    if (val < 0) val = 0;
-    if (val > 64) val = 64;
+    if (val < MIN_ATOMIC_THREADS) val = MIN_ATOMIC_THREADS;
+    if (val > MAX_ATOMIC_THREADS) val = MAX_ATOMIC_THREADS;
 
-    s_atomic_threads = val;
+    s_atomic_threads = val - 1;
     stress_osal_print("rtos_stress: debug: atomic-threads set to %d\n", s_atomic_threads);
     return 0;
 }

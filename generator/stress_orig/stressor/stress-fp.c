@@ -50,7 +50,7 @@ static int32_t s_fp_loops = DEFAULT_FP_LOOPS;
 static int stress_fp_opt_loops(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
-    if (val < 1) val = 1;
+    if (val < MIN_FP_LOOPS) val = MIN_FP_LOOPS;
 
     s_fp_loops = val;
     stress_osal_print("rtos_stress: debug: fp-loops set to %d\n", s_fp_loops);

@@ -11,8 +11,8 @@ static int32_t s_cpu_load = DEFAULT_CPU_LOAD;
 static int stress_cpu_opt_load(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
-    if (val < 0) val = 0;
-    if (val > 100) val = 100;
+    if (val < MIN_CPU_LOAD) val = MIN_CPU_LOAD;
+    if (val > MAX_CPU_LOAD) val = MAX_CPU_LOAD;
 
     s_cpu_load = val;
     stress_osal_print("rtos_stress: debug: cpu-load set to %d%%\n", s_cpu_load);

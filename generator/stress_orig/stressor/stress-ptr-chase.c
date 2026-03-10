@@ -26,7 +26,7 @@ static int stress_ptr_chase_opt_pages(const char *opt_name, const char *opt_arg)
     else if (*endptr == 'm' || *endptr == 'M') val *= (1024 * 1024);
 
     if (val < MIN_PTR_CHASE_PAGES) val = MIN_PTR_CHASE_PAGES;
-    if (val > 65536) val = 65536;
+    if (val > MAX_PTR_CHASE_PAGES) val = MAX_PTR_CHASE_PAGES;
 
     s_ptr_chase_pages = (uint64_t)val;
     stress_osal_print("rtos_stress: debug: ptr-chase-pages set to %llu\n", (unsigned long long)s_ptr_chase_pages);

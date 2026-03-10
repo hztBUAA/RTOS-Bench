@@ -38,7 +38,7 @@ static int stress_bitops_opt_loops(const char *opt_name, const char *opt_arg)
     /* atoi 不是 OSAL 接口，保留标准调用 */
     int val = atoi(opt_arg);
     /* 限制最小 1，防止除零或空转 */
-    if (val < 1) val = 1;
+    if (val < MIN_BITOPS_LOOPS) val = MIN_BITOPS_LOOPS;
 
     s_bitops_loops = val;
     stress_osal_print("rtos_stress: debug: bitops-loops set to %d\n", s_bitops_loops);

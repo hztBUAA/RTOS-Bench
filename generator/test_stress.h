@@ -86,6 +86,28 @@ int test_stress_run_config(const struct test_stress_config *config);
 uint64_t test_stress_get_last_bogo_ops(void);
 void test_stress_list_stressors(void);
 
+/**
+ * @brief Helper function to parse argument with equals sign support
+ * @param arg Current argument (e.g., "--method=ackermann")
+ * @param prefix Prefix to match (e.g., "--method=")
+ * @return Pointer to value after equals sign, or NULL if no match
+ */
+const char *test_stress_parse_opt_arg(const char *arg, const char *prefix);
+
+/**
+ * @brief Run a single stressor with custom parameters (NEW)
+ * @param stressor_name Stressor name (e.g., "cpu", "matrix", "vm")
+ * @param duration_sec Duration in seconds (-t)
+ * @param num_workers Number of workers (-c)
+ * @param max_ops Maximum operations limit (--ops)
+ * @param method_name Method/algorithm name (--method, e.g., "ackermann", "prod")
+ * @param extra_opts Extra stressor-specific options (e.g., "--cpu-load 80")
+ * @return 0 on success, negative on error
+ */
+int test_stress_run_single(const char *stressor_name, int duration_sec,
+                           int num_workers, uint64_t max_ops,
+                           const char *method_name, const char *extra_opts);
+
 #ifdef __cplusplus
 }
 #endif

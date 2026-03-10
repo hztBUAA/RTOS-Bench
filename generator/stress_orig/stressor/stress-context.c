@@ -28,8 +28,8 @@ static int32_t s_context_threads = DEFAULT_CONTEXT_THREADS;
 static int stress_context_opt_threads(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
-    if (val < 1) val = 1;
-    if (val > 128) val = 128;
+    if (val < MIN_CONTEXT_THREADS) val = MIN_CONTEXT_THREADS;
+    if (val > MAX_CONTEXT_THREADS) val = MAX_CONTEXT_THREADS;
     s_context_threads = val;
     return 0;
 }

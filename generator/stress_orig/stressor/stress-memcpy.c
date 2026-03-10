@@ -41,7 +41,7 @@ static int32_t s_memcpy_size = DEFAULT_MEMCPY_MEMSIZE;
 static int stress_memcpy_opt_loops(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
-    if (val < 1) val = 1;
+    if (val < MIN_MEMCPY_LOOPS) val = MIN_MEMCPY_LOOPS;
     s_memcpy_loops = val;
     stress_osal_print("rtos_stress: debug: memcpy-loops set to %d\n", s_memcpy_loops);
     return 0;
@@ -50,7 +50,7 @@ static int stress_memcpy_opt_loops(const char *opt_name, const char *opt_arg)
 static int stress_memcpy_opt_size(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
-    if (val < 64) val = 64;
+    if (val < MIN_MEMCPY_MEMSIZE) val = MIN_MEMCPY_MEMSIZE;
     s_memcpy_size = val;
     stress_osal_print("rtos_stress: debug: memcpy-size set to %d\n", s_memcpy_size);
     return 0;
