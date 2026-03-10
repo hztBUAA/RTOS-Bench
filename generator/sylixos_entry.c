@@ -244,6 +244,9 @@ int main(int argc, char **argv)
 					strcpy(extra_opts_buf + extra_opts_len, opts);
 					extra_opts_len += opts_len;
 				}
+			} else if (strcmp(argv[i], "-l") == 0 ||
+			           strcmp(argv[i], "--list") == 0) {
+				list_jobs = 1;
 			} else if (strncmp(argv[i], "--", 2) == 0) {
 				/* Unknown --option: collect it and its argument if present */
 				/* Support both --opt value and --opt=value forms */
@@ -264,9 +267,6 @@ int main(int argc, char **argv)
 						extra_opts_len += strlen(argv[i]);
 					}
 				}
-			} else if (strcmp(argv[i], "-l") == 0 ||
-			           strcmp(argv[i], "--list") == 0) {
-				list_jobs = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
 			}
