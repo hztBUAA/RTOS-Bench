@@ -1,4 +1,6 @@
 #include <sys/time.h>
+#include <time.h>
+#include <stdint.h>
 #include <errno.h>
 #include "safe_sleep.h"
 
