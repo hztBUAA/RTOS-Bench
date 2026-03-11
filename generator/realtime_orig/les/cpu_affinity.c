@@ -84,7 +84,7 @@ int bench_get_cpu(void) {
 #include <pthread.h>
 #include <cpuset.h>
 
-int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, cpu_set_t *cpusetp) {
+int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t *cpusetp) {
 	return pthread_affinity_set(thread, (cpuset_t)*cpusetp);
 }
 

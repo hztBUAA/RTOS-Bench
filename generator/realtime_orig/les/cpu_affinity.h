@@ -46,6 +46,8 @@ int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t 
 
 // ReWorks 锐华
 #elif defined(RUIHUA_PLATFORM)
+#include <pthread.h>
+#include <cpuset.h>
 typedef cpuset_t cpu_set_t;
 #define CPU_ZERO(p_cupset) CPUSET_ZERO(*p_cupset)
 #define CPU_SET(n, p_cupset) CPUSET_SET(*p_cupset, n)

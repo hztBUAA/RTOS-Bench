@@ -1,7 +1,14 @@
+#include "platform_macro.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include "les.h"
 #include "test_list.h"
+
+#if defined(RUIHUA_PLATFORM)
+#include "reworks_int.h"
+extern int pthread_switch_hook_add(void(*)(thread_t, thread_t));
+#endif
+
 
 #define STR_BUFFER_LENGTH 32
 
@@ -238,6 +245,10 @@ static void multicore_print(void) {
  */
 int realtime_benchmark_run(void)
 {
+#if defined(RUIHUA_PLATFORM)
+	pthread_switch_hook_add(task_switch_hook);
+#endif
+
     realtime_init();
     realtime_print();
     return 0;
@@ -249,6 +260,10 @@ int realtime_benchmark_run(void)
  */
 int realtime_benchmark_run_multicore(void)
 {
+#if defined(RUIHUA_PLATFORM)
+	pthread_switch_hook_add(task_switch_hook);
+#endif
+
     multicore_init();
     multicore_print();
     return 0;
