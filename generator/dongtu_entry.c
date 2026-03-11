@@ -1,4 +1,4 @@
--/**
+/**
  * @file dongtu_entry.c
  * @brief RTOS-Bench entry point for Dongtu (Intewell) RTOS
  *
@@ -319,12 +319,11 @@ int rtbench_dongtu_entry(int argc, char **argv)
 	}
 
 	if (opts.run_all_workloads || opts.category_filter) {
-		char cats_buf[256];
+		char *cats_buf = NULL;
 		char *cats[RTOSBENCH_MAX_WORKLOADS];
 		int cat_count = 0;
 		if (opts.category_filter) {
-			strncpy(cats_buf, opts.category_filter, sizeof(cats_buf) - 1);
-			cats_buf[sizeof(cats_buf) - 1] = '\0';
+			cats_buf = strdup(opts.category_filter);
 			char *tok = strtok(cats_buf, ",");
 			while (tok && cat_count < RTOSBENCH_MAX_WORKLOADS) {
 				cats[cat_count++] = tok;
@@ -347,6 +346,9 @@ int rtbench_dongtu_entry(int argc, char **argv)
 					}
 				}
 			}
+		}
+		if (cats_buf) {
+			free(cats_buf);
 		}
 	} else if (opts.workload_name) {
 		for (int j = 0; j < rtosbench_workload_count(); j++) {
