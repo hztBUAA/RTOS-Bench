@@ -18,8 +18,8 @@ volatile uint32_t LES_interrupt_flag = 0;
 void LES_interrupt_end_stub(void) {
     if (LES_interrupt_flag == 1 && bench_get_cpu() == 0) {
     	LES_interrupt_end_val = timeGet();
+        LES_interrupt_flag = 0;
     }
-    LES_interrupt_flag = 0;
 }
 
 /* 开启插桩 */

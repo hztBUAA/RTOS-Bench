@@ -11,7 +11,7 @@
 #include "les.h"
 
 #define TEST_VALID_ITERATIONS 200
-#define TEST_LIMIT_ITERATIONS 2000
+#define TEST_LIMIT_ITERATIONS 1000
 static uint64_t t0s[TEST_LIMIT_ITERATIONS];
 static uint64_t t1s[TEST_LIMIT_ITERATIONS];
 static uint64_t durs[TEST_LIMIT_ITERATIONS];
@@ -29,7 +29,7 @@ static void *thread(void *parameter)
 		LES_interrupt_stub_enable();
 
 		/* 内核的时钟中断会频繁触发。*/
-		safe_usleep(5000);
+		safe_usleep(100);
 		//LES_interrupt_end_stub 桩函数会自动设置结束插桩 
 
 		t0s[count_all] = LES_interrupt_start_val;

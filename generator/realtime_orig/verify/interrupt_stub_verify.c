@@ -6,8 +6,8 @@
 #include "les.h"
 #include "bench_verify.h"
 
-#define TEST_VALID_ITERATIONS 15
-#define TEST_LIMIT_ITERATIONS 150
+#define TEST_VALID_ITERATIONS 20
+#define TEST_LIMIT_ITERATIONS 100
 static uint64_t t0s[TEST_LIMIT_ITERATIONS];
 static uint64_t t1s[TEST_LIMIT_ITERATIONS];
 static uint64_t durs[TEST_LIMIT_ITERATIONS];
@@ -22,7 +22,7 @@ static void *thread(void *parameter)
 	while (count_valid < TEST_VALID_ITERATIONS && count_all < TEST_LIMIT_ITERATIONS) {
 		LES_interrupt_stub_enable();
 
-		safe_usleep(5000);
+		safe_usleep(100);
 		//LES_interrupt_end_stub 桩函数会自动设置结束插桩 
 
 		t0s[count_all] = LES_interrupt_start_val;
