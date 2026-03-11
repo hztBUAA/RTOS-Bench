@@ -5,6 +5,7 @@
 #ifndef __CPU_AFFINITY_H__
 #define __CPU_AFFINITY_H__
 
+#include "platform_macro.h"
 
 /* 默认绑定核心 */
 #define BIND_THREAD_TO_CPU(cpu_id) do { \

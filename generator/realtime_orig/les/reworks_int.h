@@ -1,3 +1,5 @@
+#include "platform_macro.h"
+
 #if defined(RUIHUA_PLATFORM)
 
 #include <pthread.h>

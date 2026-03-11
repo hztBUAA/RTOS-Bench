@@ -5,6 +5,8 @@
 #ifndef __LES_H__
 #define __LES_H__
 
+#include "platform_macro.h"
+
 #include "data_tools.h"
 #include "safe_sleep.h"
 #include "test_list.h"

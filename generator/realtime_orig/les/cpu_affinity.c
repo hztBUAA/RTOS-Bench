@@ -1,5 +1,7 @@
-#include <pthread.h>
+#include "platform_macro.h"
 #include "cpu_affinity.h"
+#include <pthread.h>
+
 
 
 /**
@@ -90,6 +92,7 @@ int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t 
 
 int bench_get_cpu(void) {
     // TODO: realize API
+    return cpu_id_get();
 }
 
 // Intewell 东土
