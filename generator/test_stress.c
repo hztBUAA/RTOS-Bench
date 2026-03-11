@@ -292,14 +292,14 @@ void test_stress_list_stressors(void)
 
   STRESS_PRINTF("\n");
   STRESS_PRINTF("Common Options:\n");
-  STRESS_PRINTF("  -t <seconds>     Duration in seconds (default: 10)\n");
-  STRESS_PRINTF("  -c <workers>     Number of worker threads (default: 1)\n");
+  STRESS_PRINTF("  -t <seconds>     Duration in seconds\n");
   STRESS_PRINTF("  --ops <max>      Maximum operations limit\n");
+  STRESS_PRINTF("  -c <workers>     Number of worker threads (default: 1)\n");
   STRESS_PRINTF("  --method <name>  Specific algorithm/method to use(default: all)\n");
 
   STRESS_PRINTF("Available stressors and their specific options:\n");
   STRESS_PRINTF("\n");
-  
+
   STRESS_PRINTF("CPU Stressors:\n");
   STRESS_PRINTF("  cpu       --cpu-load <0-100>     CPU load percentage\n");
   STRESS_PRINTF("            Methods: sqrt, bitops, matrixprod, ackermann, fibonacci, prime\n");
@@ -308,7 +308,7 @@ void test_stress_list_stressors(void)
   STRESS_PRINTF("  qsort     --qsort-size <size>    Array size to sort (supports K/M suffix)\n");
   STRESS_PRINTF("  atomic    --atomic-threads <N>   Number of atomic operation threads (0-64)\n");
   STRESS_PRINTF("  bitops    --bitops-loops <N>     Number of bit operation loops\n");
-  STRESS_PRINTF("  bsearch   --bsearch-size <N>     Array size for binary search\n");
+  STRESS_PRINTF("  bsearch   --bsearch-size <N>     Array size for binary search(supports K/M/G suffix)\n");
   STRESS_PRINTF("            Methods: bsearch-libc, bsearch-nonlibc, ternary\n");
   STRESS_PRINTF("  context   --context-threads <N>  Number of context switch threads (1-128)\n");
   STRESS_PRINTF("  fp        --fp-loops <N>         Number of FP operation loops\n");
@@ -319,10 +319,10 @@ void test_stress_list_stressors(void)
   STRESS_PRINTF("  trig      --trig-loops <N>       Number of trigonometric loops\n");
   STRESS_PRINTF("  vecmath   --vecmath-loops <N>    Number of vector math loops\n");
   STRESS_PRINTF("\n");
-  
+
   STRESS_PRINTF("Memory Stressors:\n");
   STRESS_PRINTF("  memcpy    --memcpy-loops <N>     Number of memcpy loops\n");
-  STRESS_PRINTF("            --memcpy-size <N>      Size of each memcpy operation\n");
+  STRESS_PRINTF("            --memcpy-size <N>      Size of each memcpy operation (supports K/M/G suffix)\n");
   STRESS_PRINTF("  stream    --stream-elem <N>      Number of stream elements (supports K/M suffix)\n");
   STRESS_PRINTF("  vm        --vm-bytes <size>      Memory size (supports K/M/G suffix)\n");
   STRESS_PRINTF("            Methods: write64, read64, rand-set, toggle, walk-1, galpat-1, gray, rowhammer, modulo-x\n");

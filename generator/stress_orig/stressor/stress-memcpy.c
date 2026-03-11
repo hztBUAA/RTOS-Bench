@@ -40,7 +40,12 @@ static int32_t s_memcpy_size = DEFAULT_MEMCPY_MEMSIZE;
 
 static int stress_memcpy_opt_loops(const char *opt_name, const char *opt_arg)
 {
-    int val = atoi(opt_arg);
+    char *endptr;
+    unsigned long long val = strtoull(opt_arg, &endptr, 10);
+
+    if (*endptr == 'k' || *endptr == 'K') val *= 1024;
+    else if (*endptr == 'm' || *endptr == 'M') val *= (1024 * 1024);
+    else if (*endptr == 'g' || *endptr == 'G') val *= (1024 * 1024 * 1024);
     if (val < MIN_MEMCPY_LOOPS) val = MIN_MEMCPY_LOOPS;
     s_memcpy_loops = val;
     stress_osal_print("rtos_stress: debug: memcpy-loops set to %d\n", s_memcpy_loops);

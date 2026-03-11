@@ -25,7 +25,12 @@ static uint32_t s_bsearch_size = DEFAULT_BSEARCH_SIZE;
 
 static int stress_bsearch_opt_size(const char *opt_name, const char *opt_arg)
 {
-    int val = atoi(opt_arg);
+    char *endptr;
+    unsigned long long val = strtoull(opt_arg, &endptr, 10);
+
+    if (*endptr == 'k' || *endptr == 'K') val *= 1024;
+    else if (*endptr == 'm' || *endptr == 'M') val *= (1024 * 1024);
+    else if (*endptr == 'g' || *endptr == 'G') val *= (1024 * 1024 * 1024);
 
     if (val < MIN_BSEARCH_SIZE) val = MIN_BSEARCH_SIZE;
     if (val > MAX_BSEARCH_SIZE) val = MAX_BSEARCH_SIZE;

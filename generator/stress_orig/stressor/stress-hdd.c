@@ -84,8 +84,8 @@ void stress_hdd(stress_args_t *args)
 
     stress_osal_snprintf(filename, sizeof(filename), HDD_FILENAME_FMT, (int)args->instance);
 
-    stress_osal_print("rtos_stress: info: [hdd-%d] testing file '%s', size %d MB\n",
-               args->instance, filename, (int)(hdd_bytes / 1024 / 1024));
+    stress_osal_print("rtos_stress: info: [hdd-%d] testing file '%s', size %d KB\n",
+               args->instance, filename, (int)(hdd_bytes / 1024));
 
     while (stress_continue(args))
     {
