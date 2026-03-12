@@ -51,9 +51,10 @@ void cpu_bind_verify(void) {
             smp_flag = 1;
         }
     }
-    if (bind_flag == 0) {
-        printf("please check cpu affinity API (BIND_THREAD_TO_CPU & bench_get_cpu).\n");
-    } else if (smp_flag == 0) {
+    if (smp_flag == 0) {
         printf("please ensure turning on SMP.\n");
     }
+    if (bind_flag == 0) {
+        printf("please check cpu affinity API (BIND_THREAD_TO_CPU & bench_get_cpu).\n");
+    } 
 }

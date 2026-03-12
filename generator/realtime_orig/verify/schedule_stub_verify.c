@@ -93,7 +93,7 @@ void schedule_stub_verify(void) {
             uint64_t dur = cycles_to_ns(t1 - t0);
             uint64_t dur_i = dur / 1000;
             uint64_t dur_f = dur % 1000;
-            printf("Time lag : %llu.%03llu ns (should be very short)\n", (unsigned long long)dur_i, (unsigned long long)dur_f);
+            printf("Time lag : %llu.%03llu us (should be very short)\n", (unsigned long long)dur_i, (unsigned long long)dur_f);
         }
     }
 }
