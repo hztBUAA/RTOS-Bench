@@ -74,6 +74,7 @@ struct execution_options {
 	const char *category_filter; ///< comma-separated categories (optional)
 	unsigned run_all_workloads;  ///< run every registered workload
 	unsigned list_only;          ///< only list workloads and exit
+	long duration_sec;           ///< Maximum wall-clock duration in seconds (0 = unlimited)
 };
 
 /**

@@ -448,6 +448,29 @@ static uint32_t cpu_set_to_mask(const cpu_set_t *set)
  */
 int periodic_benchmark(struct execution_options *exec_opts)
 {
+	/* Reset static state for re-entrant calls (RT-Thread single address space) */
+	tasks_launched = 0;
+	job_end_timestamp_clocks = 0;
+	last_deadline_timestamp_clocks = 0;
+	job_deadline_timestamp_clocks = 0;
+	job_period_end_timestamp_clocks = 0;
+	job_period_start_timestamp_clocks = 0;
+	job_end_timestamp = 0;
+	last_deadline_timestamp = 0;
+	job_deadline_timestamp = 0;
+	job_period_end_timestamp = 0;
+	job_period_start_timestamp = 0;
+	extra_measurement = 0.0f;
+	deadline_timer = NULL;
+	period_timer = NULL;
+	period_sem = NULL;
+	filep = NULL;
+	deadline_timer_sec = 0;
+	deadline_timer_nsec = 0;
+	benchmark_param_num = 0;
+	benchmark_params = NULL;
+	memory_profiling_enabled = 0;
+
 	// variables used to handle the output file
 	char *fname;
 	// status variables
@@ -625,8 +648,18 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	// since timer will start shortly there are no previous jobs that are
 	// executing we get the timestamp of the first period
 	// This cycle will proceed infinitely if the user has not set a specific number of benchmarks to run or it will just terminate after having launched the specified amount of benchmarks.
+	long double start_timestamp = rtbench_get_timestamp();
 	while (tasks_launched < exec_opts->tasks_to_launch ||
 	       exec_opts->tasks_to_launch == 0) {
+		// Check duration timeout if enabled
+		if (exec_opts->duration_sec > 0) {
+			long double elapsed = rtbench_get_timestamp() - start_timestamp;
+			if (elapsed >= (long double)exec_opts->duration_sec) {
+				elogf(LOG_LEVEL_INFO, "Duration timeout reached (%ld seconds), exiting\n", exec_opts->duration_sec);
+				break;
+			}
+		}
+
 		// we wait for the period to finish
 		do {
 			res = rtbench_sem_wait(period_sem);
