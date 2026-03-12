@@ -69,15 +69,17 @@ int bench_get_cpu(void) {
 #include <SylixOS.h>
 
 int bench_get_cpu(void) {
-    // TODO: realize API
+    // API
     return (int)API_CpuCurId();
 }
 
 // OneOS 中移
 #elif defined(ONEOS_PLATFORM)
+#include <os_cpu_id.h>
 
 int bench_get_cpu(void) {
-    // TODO: realize API
+    // API
+    os_cpu_id_get();
 }
 
 // ReWorks 锐华
@@ -91,7 +93,7 @@ int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t 
 }
 
 int bench_get_cpu(void) {
-    // TODO: realize API
+    // API
     return cpu_id_get();
 }
 
