@@ -92,7 +92,7 @@ static inline uint64_t freqGet(void) {
 
 #elif defined(__loongarch__)
     uint32_t val;
-    __asm__ volatile("cpucfg %0, %1" : "=r"(val) : "r"(0x2));
+    __asm__ volatile("cpucfg %0, %1" : "=r"(val) : "r"(0x4));
     freq = (uint64_t)val; 
 
 #else
