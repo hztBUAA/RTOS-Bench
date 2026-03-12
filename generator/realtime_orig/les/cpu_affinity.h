@@ -6,13 +6,15 @@
 #define __CPU_AFFINITY_H__
 
 #include "platform_macro.h"
+#include "safe_sleep.h"
 
-/* 默认绑定核心 */
+/* “设置线程亲和度”宏 */
 #define BIND_THREAD_TO_CPU(cpu_id) do { \
     cpu_set_t cpuset; \
     CPU_ZERO(&cpuset); \
     CPU_SET((cpu_id), &cpuset); \
     pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset); \
+    safe_usleep(10); \
 } while(0)
 
 /* 使用核心数。注意：请勿修改此数。此数设置为2，表示多核测试部分均只使用两个核心进行测试，*/

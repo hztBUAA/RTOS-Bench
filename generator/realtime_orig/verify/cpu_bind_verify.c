@@ -5,15 +5,16 @@
 #include "les.h"
 #include "bench_verify.h"
 
-static volatile int cpu_1st;
-static volatile int cpu_2nd;
+#define ITERATION 4
+
+static volatile int cpu_number[ITERATION];
 
 static void *thread(void *parameter) {
-    BIND_THREAD_TO_CPU(0);
-    cpu_1st = bench_get_cpu();
-    BIND_THREAD_TO_CPU(1);
-    cpu_2nd = bench_get_cpu();
-    
+    for (int i = 0; i < ITERATION; i++) {
+        BIND_THREAD_TO_CPU(i % USE_PROCESSORS);
+        cpu_number[i] = bench_get_cpu();
+    }
+
     return NULL;
 }
 
@@ -37,12 +38,22 @@ void cpu_bind_verify(void) {
 
     pthread_attr_destroy(&attr);
 
-    printf("[cpu bind verification]\n"
-           "1st : expect 0, get %d\n"
-           "2nd : expect 1, get %d\n", cpu_1st, cpu_2nd);
-    if (cpu_1st != 0) {
-        printf("please check cpu affinity function.\n");
-    } else if (cpu_2nd != 1) {
-        printf("please ensure turning on SMP, then check cpu affinity function.\n");
+    int bind_flag = 1;
+    int smp_flag = 0;
+
+    printf("[cpu bind verification]\n");
+    for (int i = 0; i < ITERATION; i++) {
+        printf("iteration %d : expect %d, get %d\n", i, i % USE_PROCESSORS, cpu_number[i]);
+        if (i % USE_PROCESSORS != cpu_number[i]) {
+            bind_flag = 0;
+        }
+        if (cpu_number[i] != 0) {
+            smp_flag = 1;
+        }
+    }
+    if (bind_flag == 0) {
+        printf("please check cpu affinity API (BIND_THREAD_TO_CPU & bench_get_cpu).\n");
+    } else if (smp_flag == 0) {
+        printf("please ensure turning on SMP.\n");
     }
 }
