@@ -8,6 +8,8 @@ void realtime_verify_all(void) {
            "=============================================================\n");
     freq_verify();
     printf("\n");
+    time_verify();
+    printf("\n");
     interrupt_stub_verify();
     printf("\n");
     schedule_stub_verify();
