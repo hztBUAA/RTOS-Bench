@@ -100,12 +100,16 @@ int bench_get_cpu(void) {
 // Intewell 东土
 #elif defined(DONGTU_PLATFORM)
 
-/* TODO: realize API "int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, cpu_set_t *cpusetp)"
- *       or expose the realization by including header (or defining macro _GNU_SOURCE) in "cpu_affinity.h"
- */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include <sched.h>
+#include <pthread.h>
 
 int bench_get_cpu(void) {
-    // TODO: realize API
+    // API
+    return sched_getcpu();
 }
 
 

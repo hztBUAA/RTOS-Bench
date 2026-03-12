@@ -47,6 +47,9 @@ int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t 
 #define _GNU_SOURCE
 #endif
 
+#include <sched.h>
+#include <pthread.h>
+
 // ReWorks 锐华
 #elif defined(RUIHUA_PLATFORM)
 #include <pthread.h>
@@ -59,6 +62,12 @@ int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t 
 // Intewell 东土
 #elif defined(DONGTU_PLATFORM)
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include <sched.h>
+#include <pthread.h>
 
 #endif
 
