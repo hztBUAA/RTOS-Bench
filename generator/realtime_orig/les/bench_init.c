@@ -4,6 +4,8 @@
 #include "les.h"
 #include "test_list.h"
 
+#include "bench_verify.h"
+
 #if defined(RUIHUA_PLATFORM)
 #include "reworks_int.h"
 extern int pthread_switch_hook_add(void(*)(thread_t, thread_t));
@@ -276,6 +278,10 @@ int realtime_benchmark_run_multicore(void)
  */
 int realtime_benchmark_run_all(int run_multicore)
 {
+#if defined(RUIHUA_PLATFORM)
+	pthread_switch_hook_add(task_switch_hook);
+#endif
+
     realtime_init();
     realtime_print();
 
