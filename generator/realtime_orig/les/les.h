@@ -6,6 +6,7 @@
 #define __LES_H__
 
 #include "platform_macro.h"
+#include "cpu_affinity.h"
 
 #include "data_tools.h"
 #include "safe_sleep.h"
@@ -144,7 +145,7 @@ static inline uint64_t timeGet(void) {
 
 /* 系统服务插桩函数 */
 static inline void LES_stub(void) {
-    if (LES_flag == 0) {
+    if (LES_flag == 0 || bench_get_cpu() != 0) {
         return;
     }
     if (LES_offset >= LES_BUFFER_SIZE) {
