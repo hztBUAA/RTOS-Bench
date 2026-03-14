@@ -72,7 +72,7 @@
 
 /* end of rt_strnlen options */
 /* end of klibc options */
-#define RT_NAME_MAX 256
+#define RT_NAME_MAX 16
 #define RT_USING_SMP
 #define RT_CPUS_NR 4
 #define RT_ALIGN_SIZE 8
@@ -176,7 +176,7 @@
 #define RT_USING_DFS
 #define DFS_USING_POSIX
 #define DFS_USING_WORKDIR
-#define DFS_FD_MAX 512
+#define DFS_FD_MAX 128
 #define RT_USING_DFS_V1
 #define DFS_FILESYSTEMS_MAX 4
 #define DFS_FILESYSTEM_TYPES_MAX 8
@@ -224,6 +224,7 @@
 #define RT_USING_VIRTIO10
 #define RT_USING_VIRTIO_MMIO_ALIGN
 #define RT_USING_VIRTIO_BLK
+#define RT_USING_VIRTIO_NET
 #define RT_USING_VIRTIO_CONSOLE
 #define RT_USING_VIRTIO_CONSOLE_PORT_MAX_NR 4
 #define RT_USING_VIRTIO_GPU
@@ -257,36 +258,37 @@
 #define RT_USING_POSIX_POLL
 #define RT_USING_POSIX_SELECT
 #define RT_USING_POSIX_TERMIOS
-#define RT_USING_CLOCK_TIME
 #define RT_USING_POSIX_DELAY
 #define RT_USING_POSIX_CLOCK
+#define RT_USING_CPLUSPLUS
+#define RT_USING_POSIX_MESSAGE_SEMAPHORE
+#define RT_USING_POSIX_MESSAGE_QUEUE
+#define RT_USING_DFS_MQUEUE
+#define RT_USING_MESSAGEQUEUE_PRIORITY
+#define RT_USING_CLOCK_TIME
+#define RT_USING_POSIX_SOCKET
 #define RT_USING_PTHREADS
-#define PTHREAD_NUM_MAX 8
+#define PTHREAD_NUM_MAX 32
 
 /* Interprocess Communication (IPC) */
 
 #define RT_USING_POSIX_PIPE
 #define RT_USING_POSIX_PIPE_SIZE 512
-#define RT_USING_POSIX_MESSAGE_QUEUE
-#define RT_USING_POSIX_MESSAGE_SEMAPHORE
-#define RT_USING_MESSAGEQUEUE_PRIORITY
-#define RT_USING_DFS_MQUEUE
 
 /* Socket is in the 'Network' category */
-#define RT_USING_POSIX_SOCKET
 
 /* end of Interprocess Communication (IPC) */
 /* end of POSIX (Portable Operating System Interface) layer */
-#define RT_USING_CPLUSPLUS
 /* end of C/C++ and POSIX layer */
 
 /* Network */
+
 #define RT_USING_SAL
 #define SAL_INTERNET_CHECK
 #define SAL_SOCKETS_NUM 16
+#define SOCKET_TABLE_STEP_LEN 4
 #define SAL_USING_LWIP
 #define SAL_USING_POSIX
-#define SOCKET_TABLE_STEP_LEN 4
 #define RT_USING_NETDEV
 #define NETDEV_USING_IFCONFIG
 #define NETDEV_USING_PING
@@ -296,7 +298,8 @@
 #define NETDEV_IPV6 0
 #define RT_USING_LWIP
 #define RT_USING_LWIP212
-#define RT_LWIP_MEM_ALIGNMENT 4
+#define RT_USING_LWIP_VER_NUM 0x20102
+#define RT_LWIP_MEM_ALIGNMENT 8
 #define RT_LWIP_IGMP
 #define RT_LWIP_ICMP
 #define RT_LWIP_DNS
@@ -326,6 +329,7 @@
 #define RT_LWIP_REASSEMBLY_FRAG
 #define LWIP_NETIF_STATUS_CALLBACK 1
 #define LWIP_NETIF_LINK_CALLBACK 1
+#define RT_LWIP_NETIF_NAMESIZE 6
 #define SO_REUSE 1
 #define LWIP_SO_RCVTIMEO 1
 #define LWIP_SO_SNDTIMEO 1
@@ -333,6 +337,7 @@
 #define LWIP_SO_LINGER 0
 #define LWIP_NETIF_LOOPBACK 1
 #define RT_LWIP_USING_PING
+
 /* end of Network */
 
 /* Memory protection */
@@ -580,6 +585,7 @@
 #define BSP_USING_RTC
 #define BSP_USING_PIN
 #define BSP_USING_VIRTIO_BLK
+#define BSP_USING_VIRTIO_NET
 #define BSP_USING_VIRTIO_CONSOLE
 #define BSP_USING_VIRTIO_GPU
 #define BSP_USING_VIRTIO_INPUT

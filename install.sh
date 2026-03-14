@@ -19,6 +19,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXTERN_DIR="$SCRIPT_DIR/extern"
 TOOLCHAIN_DIR="$EXTERN_DIR/toolchains"
 RTT_DIR="$EXTERN_DIR/rt-thread"
+# 固定 RT-Thread 版本，避免上游更新引入兼容性问题
+RTT_COMMIT="db6c0ddbf333be65f5ddc990ee63a200f768a9f7"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -214,14 +216,26 @@ setup_rtthread() {
     info "配置 RT-Thread..."
 
     if [ -d "$RTT_DIR" ]; then
-        info "RT-Thread 已存在，检查更新..."
+        info "RT-Thread 已存在，验证版本..."
         cd "$RTT_DIR"
-        git fetch origin --depth=1 2>/dev/null || true
+        local current_commit
+        current_commit=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+        if [ "$current_commit" != "$RTT_COMMIT" ]; then
+            warn "RT-Thread 版本不匹配 (当前: ${current_commit:0:8}, 期望: ${RTT_COMMIT:0:8})"
+            info "重新获取指定版本..."
+            git fetch origin "$RTT_COMMIT" --depth=1 2>/dev/null || true
+            git checkout "$RTT_COMMIT" 2>/dev/null || warn "checkout 失败，继续使用当前版本"
+        else
+            info "RT-Thread 版本匹配: ${RTT_COMMIT:0:8}"
+        fi
         cd "$SCRIPT_DIR"
     else
-        info "克隆 RT-Thread (shallow clone)..."
+        info "克隆 RT-Thread (pinned: ${RTT_COMMIT:0:8})..."
         mkdir -p "$EXTERN_DIR"
-        git clone --depth=1 https://github.com/RT-Thread/rt-thread.git "$RTT_DIR"
+        git clone https://github.com/RT-Thread/rt-thread.git "$RTT_DIR" --no-checkout --filter=blob:none
+        cd "$RTT_DIR"
+        git checkout "$RTT_COMMIT"
+        cd "$SCRIPT_DIR"
     fi
 
     # 创建软链接到 rtos-bench
