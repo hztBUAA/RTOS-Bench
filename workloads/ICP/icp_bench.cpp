@@ -28,10 +28,11 @@ static double diff_timespec_us(const struct timespec *start, const struct timesp
 extern "C" int icp_bench_run(void) {
     struct timespec start_time, end_time;
 
-    int32_t num = bench_num; 
+    int32_t num = bench_num;
     int32_t dim = 3;
 
-    cout << "ICP Benchmark Start..." << endl;
+    /* Output suppressed to avoid affecting performance measurements */
+    // printf("ICP Benchmark Start...\n");
 
     double* M = (double*)bench_source_points;
     double* T = (double*)bench_target_points;
@@ -51,30 +52,9 @@ extern "C" int icp_bench_run(void) {
 
     double total_time_us = diff_timespec_us(&start_time, &end_time);
 
-    cout << "---------------------------------------------" << endl;
-    cout << "[Result] Time Cost: " << (total_time_us / 1000.0) << " ms" << endl;
-    cout << "Final Residual:     " << residual << endl;
-    cout << "---------------------------------------------" << endl;
+    printf("[icp] samples=1 total_time=%.3f ms avg_latency=%.3f ms/run\n",
+           total_time_us / 1000.0, total_time_us / 1000.0);
 
-    // 1. 输出旋转矩阵对比
-    cout << "Ground Truth Rotation (R_gt):" << endl;
-    // bench_gt_R 是 C 数组，手动打印
-    for(int i = 0; i < 3; i++) {
-        cout << "  [" << bench_gt_R[i][0] << ", " << bench_gt_R[i][1] << ", " << bench_gt_R[i][2] << "]" << endl;
-    }
-
-    cout << endl << "Estimated Rotation (R_est):" << endl;
-    cout << R << endl;
-
-    cout << "Ground Truth Translation (t_gt):" << endl;
-    cout << "  [" << bench_gt_t[0] << ", " << bench_gt_t[1] << ", " << bench_gt_t[2] << "]" << endl;
-    
-    cout << "Estimated Translation (t_est):" << endl;
-    cout << t << endl;
-
-    cout << "---------------------------------------------" << endl;
-
-    cout << "[POSIX] ICP Benchmark Finished." << endl;
     return 0;
 }
 

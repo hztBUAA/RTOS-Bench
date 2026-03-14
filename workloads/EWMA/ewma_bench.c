@@ -1,11 +1,30 @@
+#ifdef RT_THREAD_PLATFORM
+#include <rtthread.h>
+#include <finsh.h>
+#else
+#define MSH_CMD_EXPORT(cmd, desc)
+#endif
+
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 
+#include <unistd.h>
+#include <sys/time.h>
+#include <pthread.h>
+#include <sched.h>
+
 /* Simple EWMA (with EW variance) residual thresholding benchmark.
  * Uses only standard C/POSIX math/stdio, no dynamic allocation.
  */
+
+static uint64_t get_time_ns(void)
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (uint64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+}
 
 typedef struct {
 	double alpha;     /* smoothing factor */
@@ -65,26 +84,69 @@ int ewma_bench_run(void)
 	volatile double sink = 0.0;
 	int alarms = 0;
 
-	for (size_t i = 0; i < stream_len; ++i) {
-		double x = sin(omega * (double)i) + signed_noise(&rng, noise_amp);
+	/* Start timing */
+	uint64_t start_time = get_time_ns();
 
-		if (i == spike1 || i == spike2) {
-			x += spike_mag;
-		}
-		if (i >= drop_start && i < (drop_start + drop_len)) {
-			x = 0.0; /* emulate dropout */
-		}
+	int loops = 100;
+	for (int j = 0; j < loops; j++) {
+		for (size_t i = 0; i < stream_len; ++i) {
+			double x = sin(omega * (double)i) + signed_noise(&rng, noise_amp);
 
-		const double z = ewma_step(&st, x);
-		if (fabs(z) > threshold_z) {
-			alarms++;
+			if (i == spike1 || i == spike2) {
+				x += spike_mag;
+			}
+			if (i >= drop_start && i < (drop_start + drop_len)) {
+				x = 0.0; /* emulate dropout */
+			}
+
+			const double z = ewma_step(&st, x);
+			if (fabs(z) > threshold_z) {
+				alarms++;
+			}
+			sink += z + x;
 		}
-		sink += z + x;
 	}
+	/* End timing */
+	uint64_t end_time = get_time_ns();
+	uint64_t total_ns = end_time - start_time;
+	double avg_ns = (double)total_ns / stream_len;
 
-	(void)sink;
+	printf("[ewma] samples=%zu total_time=%.3f ms avg_latency=%.3f us/sample\n",
+	       stream_len, (double)total_ns / 1000000.0, avg_ns / 1000.0);
 
-	printf("[ewma] samples=%zu spikes@%zu/%zu drop@%zu len=%zu alarms=%d\n",
-	       stream_len, spike1, spike2, drop_start, drop_len, alarms);
 	return alarms;
 }
+
+static void* ewma_thread_entry(void *parameter) {
+    (void)parameter;
+    ewma_bench_run();
+    return NULL;
+}
+
+int ewma_test(void) {
+    pthread_t tid;
+    pthread_attr_t attr;
+    int ret;
+
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 64 * 1024);
+
+    struct sched_param param;
+    pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+    param.sched_priority = 20;
+    pthread_attr_setschedparam(&attr, &param);
+    pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+    ret = pthread_create(&tid, &attr, ewma_thread_entry, NULL);
+
+    pthread_attr_destroy(&attr);
+
+    if (ret != 0) {
+        printf("Failed to create pthread. Error: %d\n", ret);
+    } else {
+        pthread_detach(tid);
+    }
+
+    return 0;
+}
+MSH_CMD_EXPORT(ewma_test, Run EWMA benchmark);

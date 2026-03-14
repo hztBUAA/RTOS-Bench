@@ -53,28 +53,22 @@ int fast_bench_run_once(int loops) {
     }
 
     // 打印表头
-    FAST_PRINTF("\n");
-    FAST_PRINTF("| %-15s | %-9s | %-8s | %-9s | %-7s |\n", "Image", "Size", "Corners", "Time(us)", "FPS");
-    FAST_PRINTF("|-----------------|-----------|----------|-----------|---------|\n");
+    // FAST_PRINTF("\n");
+    // FAST_PRINTF("| %-15s | %-9s | %-8s | %-9s | %-7s |\n", "Image", "Size", "Corners", "Time(us)", "FPS");
+    // FAST_PRINTF("|-----------------|-----------|----------|-----------|---------|\n");
 
     if (loops <= 0) {
         loops = 1; // 默认循环次数
     }
-    double bench_total_us = 0.0;
-
+    
+    struct timespec start_time, end_time;
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
+    
     for (int i = 0; i < benchmark_suite_len; i++) {
         const BenchmarkImage* img = &benchmark_suite[i];
 
-        // A. 模拟采集：从 Flash (RO段) 拷贝到 RAM
-        // 这一步模拟了 DMA 从摄像头搬运数据到内存的过程
-        memcpy(img_buffer, img->data, img->w * img->h);
-
         int num_corners = 0;
         xy* corners = NULL;
-
-        // C. 正式 Benchmark
-        struct timespec start_time, end_time;
-        clock_gettime(CLOCK_MONOTONIC, &start_time);
 
         for (int j = 0; j < loops; j++) {
             // 注意：fast9_detect 内部 malloc 了返回的 corners 数组
@@ -84,32 +78,25 @@ int fast_bench_run_once(int loops) {
             // 核心算法调用
             corners = fast9_detect(img_buffer, img->w, img->h, img->w, 30, &num_corners);
         }
-
-        clock_gettime(CLOCK_MONOTONIC, &end_time);
-
         // D. 清理最后一次的结果
         if (corners) free(corners);
 
-        // E. 计算统计数据
-        double total_us = diff_timespec_us(&start_time, &end_time);
-
-        bench_total_us += total_us;
-
-        double avg_us = total_us / loops;
-        double fps = 1000000.0 / avg_us;
-
         // F. 输出表格行
-        FAST_PRINTF("| %-15s | %-4dx%-4d | %-8d | %9.1f | %7.1f |\n",
-               img->name, img->w, img->h, num_corners, avg_us, fps);
+        // FAST_PRINTF("| %-15s | %-4dx%-4d | %-8d | %9.1f | %7.1f |\n",
+        //        img->name, img->w, img->h, num_corners, avg_us, fps);
     }
-
-    FAST_PRINTF("|-----------------|-----------|----------|-----------|---------|\n");
-
-    FAST_PRINTF("\n[Result] Total Time: %.3f s\n", bench_total_us / 1000000.0);
+    
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
+    double total_us = diff_timespec_us(&start_time, &end_time);
+    // 统一格式计时输出
+    int total_samples = benchmark_suite_len * loops;
+    double total_ms = total_us / 1000.0;
+    double avg_us_per_img = total_us / total_samples;
+    printf("[FAST] samples=%d total_time=%.3f ms avg_latency=%.3f us/img\n",
+           total_samples, total_ms, avg_us_per_img);
 
     // 3. 释放全局缓冲区
     free(img_buffer);
-    FAST_PRINTF("[POSIX] Benchmark Finished.\n");
     return 0;
 }
 
