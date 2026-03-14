@@ -227,7 +227,7 @@ uint64_t multicore_mem_bw(int mode, int number) {
     pthread_attr_t attr;
     struct sched_param param;
     pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, 8192);
+    pthread_attr_setstacksize(&attr, 32768);
     pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
     param.sched_priority = BENCHMARK_MIDDLE_PRIO;
     pthread_attr_setschedparam(&attr, &param);

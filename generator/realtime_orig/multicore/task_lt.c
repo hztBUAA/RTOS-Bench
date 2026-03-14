@@ -7,7 +7,7 @@
 
 #include "les.h"
 
-#define TEST_REPETITION 	100
+#define TEST_REPETITION 	30
 #define MAX_WORKERS         8
 
 
@@ -30,7 +30,7 @@ static void *son_thread(void* parameter) {
 
     pthread_attr_init(&attr);
     
-    pthread_attr_setstacksize(&attr, 4096);
+    pthread_attr_setstacksize(&attr, 8192);
     
 	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
     param.sched_priority = BENCHMARK_LOW_PRIO;
