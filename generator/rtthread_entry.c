@@ -196,7 +196,7 @@ static void parse_rtthread_args(int argc, char **argv,
 			opts->run_all_workloads = 1;
 		} else if (!strcmp(argv[i], "-G") && (i + 1 < argc)) {
 			opts->category_filter = argv[++i];
-		} else if (!strcmp(argv[i], "-l") || !strcmp(argv[i], "--list") || !strcmp(argv[i], "-L")) {
+		} else if (!strcmp(argv[i], "-l") || !strcmp(argv[i], "-L") || !strcmp(argv[i], "--list")) {
 			opts->list_only = 1;
 		}
 	}
