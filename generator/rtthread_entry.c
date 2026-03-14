@@ -59,6 +59,82 @@ static void collect_stress_result(const char *job_name);
 static void collect_cmd_result(void);
 static void collect_workload_results(int quick_mode);
 
+static void print_usage(void)
+{
+	rt_kprintf("\n");
+	rt_kprintf("RTOS-Bench - Cross-platform Industrial RTOS Benchmark Framework\n");
+	rt_kprintf("\n");
+	rt_kprintf("USAGE:\n");
+	rt_kprintf("  rtbench [OPTIONS]                    Run workload benchmark\n");
+	rt_kprintf("  rtbench test-all [OPTIONS]           Run comprehensive test suite\n");
+	rt_kprintf("  rtbench test-realtime [OPTIONS]      Run realtime performance test\n");
+	rt_kprintf("  rtbench test-schedule [OPTIONS]      Run schedulability test\n");
+	rt_kprintf("  rtbench test-stress [OPTIONS]        Run stress test\n");
+	rt_kprintf("  rtbench test-cmd                     Run shell command support test\n");
+	rt_kprintf("  rtbench export-result [OPTIONS]      Export results to JSON\n");
+	rt_kprintf("  rtbench -L | --list                  List available workloads\n");
+	rt_kprintf("  rtbench -h | --help                  Show this help message\n");
+	rt_kprintf("\n");
+	rt_kprintf("WORKLOAD BENCHMARK OPTIONS:\n");
+	rt_kprintf("  -b <name>        Workload name (use -L to list)\n");
+	rt_kprintf("  -p <sec>         Period in seconds (default: 1.0)\n");
+	rt_kprintf("  -t <count>       Number of tasks to launch (0 = infinite, default: 1)\n");
+	rt_kprintf("  -d <sec>         Maximum duration in seconds (0 = unlimited, default: 0)\n");
+	rt_kprintf("  -f <prio>        Task priority for SCHED_FIFO\n");
+	rt_kprintf("  -c <cpu>         CPU affinity (0-31)\n");
+	rt_kprintf("  -q               Quiet mode (reduce verbosity)\n");
+	rt_kprintf("  -A               Run all registered workloads\n");
+	rt_kprintf("  -G <categories>  Filter workloads by comma-separated categories\n");
+	rt_kprintf("\n");
+	rt_kprintf("TEST-ALL OPTIONS:\n");
+	rt_kprintf("  -o, --output <path>   Output JSON path (default: /rtbench_result.json)\n");
+	rt_kprintf("  --no-realtime         Skip realtime performance test\n");
+	rt_kprintf("  --no-schedule         Skip schedulability test\n");
+	rt_kprintf("  --no-stress           Skip stress test\n");
+	rt_kprintf("  --no-cmd              Skip shell command support test\n");
+	rt_kprintf("  --no-workload         Skip typical workload tests\n");
+	rt_kprintf("  -m, --multicore       Enable multicore tests\n");
+	rt_kprintf("  --quick               Quick mode (smoke test)\n");
+	rt_kprintf("  -q                    Quiet mode\n");
+	rt_kprintf("\n");
+	rt_kprintf("TEST-REALTIME OPTIONS:\n");
+	rt_kprintf("  -v, --verify          Run verification tests\n");
+	rt_kprintf("  -m, --multicore       Enable multicore tests\n");
+	rt_kprintf("  -q                    Quiet mode\n");
+	rt_kprintf("\n");
+	rt_kprintf("TEST-SCHEDULE OPTIONS:\n");
+	rt_kprintf("  --cycles <n>          Number of test cycles (default: 100)\n");
+	rt_kprintf("  --util-start <pct>    Starting utilization percentage (default: 10)\n");
+	rt_kprintf("  --util-end <pct>      Ending utilization percentage (default: 100)\n");
+	rt_kprintf("  --util-step <pct>     Utilization step size (default: 10)\n");
+	rt_kprintf("  --quick               Quick mode (fewer cycles)\n");
+	rt_kprintf("  -q                    Quiet mode\n");
+	rt_kprintf("\n");
+	rt_kprintf("TEST-STRESS OPTIONS:\n");
+	rt_kprintf("  --job <name>          Run predefined stress job (default: all)\n");
+	rt_kprintf("  -s <stressor>         Run single stressor\n");
+	rt_kprintf("  -t <sec>              Duration in seconds (default: 10)\n");
+	rt_kprintf("  -c <workers>          Number of workers (default: 1)\n");
+	rt_kprintf("  --ops <count>         Maximum operations (default: unlimited)\n");
+	rt_kprintf("  --method <name>       Algorithm/method name for stressor\n");
+	rt_kprintf("  --opts <options>      Extra stressor-specific options\n");
+	rt_kprintf("  -l, --list            List available jobs and stressors\n");
+	rt_kprintf("  --quick               Quick mode\n");
+	rt_kprintf("  -q                    Quiet mode\n");
+	rt_kprintf("\n");
+	rt_kprintf("EXPORT-RESULT OPTIONS:\n");
+	rt_kprintf("  -o, --output <path>   Output JSON path (default: /rtbench_result.json)\n");
+	rt_kprintf("\n");
+	rt_kprintf("EXAMPLES:\n");
+	rt_kprintf("  rtbench -L                                  # List workloads\n");
+	rt_kprintf("  rtbench -b busywait -p 0.5 -t 10 -q         # Run busywait 10 times\n");
+	rt_kprintf("  rtbench -b pid -p 1.0 -t 0 -d 5 -q          # Run pid for 5 seconds\n");
+	rt_kprintf("  rtbench test-all --quick                    # Quick comprehensive test\n");
+	rt_kprintf("  rtbench test-schedule --cycles 50           # Custom schedule test\n");
+	rt_kprintf("  rtbench test-stress -s cpu -t 30            # CPU stress for 30s\n");
+	rt_kprintf("\n");
+}
+
 static void set_default_exec_opts(struct execution_options *opts)
 {
 	memset(opts, 0, sizeof(*opts));
@@ -72,6 +148,7 @@ static void set_default_exec_opts(struct execution_options *opts)
 	opts->deadline = 0;
 	opts->period = 0;
 	opts->memory_profiling_enable = 0;
+	opts->duration_sec = 0;      /* 0 = unlimited */
 	CPU_ZERO(&opts->core_affinity);
 	CPU_ZERO(&opts->memory_profiling_core_affinity);
 	opts->workload_name = NULL;
@@ -83,10 +160,15 @@ static void set_default_exec_opts(struct execution_options *opts)
 }
 
 static void parse_rtthread_args(int argc, char **argv,
-				struct execution_options *opts)
+				struct execution_options *opts,
+				int *help_requested)
 {
+	*help_requested = 0;
 	for (int i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-p") && (i + 1 < argc)) {
+		if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
+			print_usage();
+			*help_requested = 1;
+		} else if (!strcmp(argv[i], "-p") && (i + 1 < argc)) {
 			double v = atof(argv[++i]);
 			long sec = (long)v;
 			long nsec = (long)((v - (double)sec) * 1000000000.0);
@@ -94,6 +176,10 @@ static void parse_rtthread_args(int argc, char **argv,
 			opts->period_nsec = nsec;
 		} else if (!strcmp(argv[i], "-t") && (i + 1 < argc)) {
 			opts->tasks_to_launch = strtoull(argv[++i], NULL, 10);
+		} else if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--duration")) {
+			if (i + 1 < argc) {
+				opts->duration_sec = (long)atoi(argv[++i]);
+			}
 		} else if (!strcmp(argv[i], "-f") && (i + 1 < argc)) {
 			opts->prio = (uint32_t)strtoul(argv[++i], NULL, 10);
 		} else if (!strcmp(argv[i], "-c") && (i + 1 < argc)) {
@@ -110,7 +196,7 @@ static void parse_rtthread_args(int argc, char **argv,
 			opts->run_all_workloads = 1;
 		} else if (!strcmp(argv[i], "-G") && (i + 1 < argc)) {
 			opts->category_filter = argv[++i];
-		} else if (!strcmp(argv[i], "-l") || !strcmp(argv[i], "--list")) {
+		} else if (!strcmp(argv[i], "-l") || !strcmp(argv[i], "--list") || !strcmp(argv[i], "-L")) {
 			opts->list_only = 1;
 		}
 	}
@@ -279,6 +365,12 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 {
 	struct execution_options opts;
 	const char *output_path = NULL;
+
+	/* No arguments - show help */
+	if (argc < 2) {
+		print_usage();
+		return 0;
+	}
 
 	/* Check for test-all subcommand - comprehensive test suite */
 	if (argc >= 2 && strcmp(argv[1], "test-all") == 0) {
@@ -592,7 +684,11 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 
 	set_default_exec_opts(&opts);
 	rtosbench_register_rtos_workloads();
-	parse_rtthread_args(argc, argv, &opts);
+	int help_requested = 0;
+	parse_rtthread_args(argc, argv, &opts, &help_requested);
+	if (help_requested) {
+		return 0;
+	}
 	if (opts.list_only) {
 		rt_kprintf("Available workloads:\n");
 		for (int j = 0; j < rtosbench_workload_count(); j++) {
