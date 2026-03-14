@@ -22,10 +22,9 @@
 #include <opengv/absolute_pose/CentralAbsoluteAdapter.hpp>
 #include <opengv/math/cayley.hpp>
 
-// Helper Includes (假设这些文件在你项目中已包含)
 #include "random_generators.hpp"
 #include "experiment_helpers.hpp"
-// #include "time_measurement.hpp" // 注释掉：使用 RT-Thread 原生计时
+// #include "time_measurement.hpp"
 
 using namespace std;
 using namespace Eigen;
@@ -45,7 +44,6 @@ extern "C" int epnp_bench_run(size_t iterations) {
     std::cout << "[POSIX] Starting ePnP Benchmark..." << std::endl;
 
     // 1. 初始化随机种子
-    // 使用当前时间作为种子
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     srand((unsigned int)ts.tv_nsec);
@@ -108,15 +106,10 @@ extern "C" int epnp_bench_run(size_t iterations) {
     // 计算结果
     double total_time_us = diff_timespec_us(&start_time, &end_time);
     double avg_time_us = total_time_us / loops;
-    double score = 1000000.0 / avg_time_us; // 每秒执行次数 (OPS)
 
-    // 输出报告
-    std::cout << "---------------------------------------------" << std::endl;
-    std::cout << "RTOS Benchmark Result (ePnP 100 points):" << std::endl;
-    std::cout << "Total Time: " << (total_time_us/1000.0) << " ms" << std::endl;
-    std::cout << "Avg Latency: " << avg_time_us << " us" << std::endl;
-    std::cout << "Performance: " << (int)score << " Runs/Sec" << std::endl;
-    std::cout << "---------------------------------------------" << std::endl;
+    /* Unified format timing output */
+    printf("[epnp] samples=%zu total_time=%.3f ms avg_latency=%.3f us/iter\n",
+           loops, total_time_us / 1000.0, avg_time_us);
 
     return 0;
 }

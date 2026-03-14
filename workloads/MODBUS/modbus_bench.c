@@ -16,15 +16,7 @@ typedef unsigned int rt_uint32_t;
 #include <string.h>
 #include <errno.h>
 
-/* Defined in test_schedule.c — when nonzero, suppress printf output.
- * During test-schedule concurrent execution, printf → write → dfs_file_lock
- * can crash on RT-Thread when multiple threads contend on the console mutex. */
-extern volatile int g_sched_suppress_output;
-static inline int _mdb_printf(const char *fmt, ...) {
-	if (g_sched_suppress_output) return 0;
-	va_list ap; va_start(ap, fmt); int r = vprintf(fmt, ap); va_end(ap); return r;
-}
-#define printf(...) _mdb_printf(__VA_ARGS__)
+/* Standard printf for workload output */
 
 #if MDB_HAVE_PTHREAD
 #include <pthread.h>
@@ -125,7 +117,8 @@ static void* server_thread_entry(void* parameter) {
     struct timeval server_tv = {3, 0};
     setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, &server_tv, sizeof(server_tv));
 
-    printf("[Server] Listening on %d...\n", PORT);
+    /* Output suppressed to avoid affecting performance measurements */
+    // printf("[Server] Listening on %d...\n", PORT);
 
     while (!g_server_stop) {
         client_fd = accept(server_fd, (struct sockaddr*)&address, &addrlen);
@@ -137,7 +130,8 @@ static void* server_thread_entry(void* parameter) {
             continue;
         }
 
-        printf("[Server] Client connected\n");
+        /* Output suppressed to avoid affecting performance measurements */
+        // printf("[Server] Client connected\n");
 
         int flag = 1;
         setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
@@ -163,7 +157,8 @@ static void* server_thread_entry(void* parameter) {
         callbacks.write_multiple_registers = cb_write_mult_regs;
 
         nmbs_server_create(&nmbs, 1, &conf, &callbacks);
-        printf("[Server] Modbus server created\n");
+        /* Output suppressed to avoid affecting performance measurements */
+        // printf("[Server] Modbus server created\n");
 
         int request_count = 0;
 
@@ -179,9 +174,10 @@ static void* server_thread_entry(void* parameter) {
                     break;
                 }
                 
-                printf("[Server] Poll error: ");
-                print_nmbs_error(err);
-                printf("\n");
+                /* Output suppressed to avoid affecting performance measurements */
+                // printf("[Server] Poll error: ");
+                // print_nmbs_error(err);
+                // printf("\n");
                 continue;
             }
             request_count++;
@@ -189,7 +185,8 @@ static void* server_thread_entry(void* parameter) {
             // usleep(1000); // Optional: yield CPU
         }
         
-        printf("[Server] Client disconnected (processed %d requests)\n", request_count);
+        /* Output suppressed to avoid affecting performance measurements */
+        // printf("[Server] Client disconnected (processed %d requests)\n", request_count);
         close(client_fd);
     }
     
@@ -293,6 +290,10 @@ static void* client_thread_entry(void* parameter) {
     printf("Errors:     %d\n", errors);
     printf("TPS:        %.2f\n", total_reqs / time_s);
 
+    double avg_us = time_us / total_reqs;
+    printf("[modbus] samples=%.0f total_time=%.3f ms avg_latency=%.3f us/request\n",
+           total_reqs, time_us / 1000.0, avg_us);
+
     close(sock);
 
     printf("[Client] Finished\n");
@@ -315,7 +316,8 @@ int modbus_test(int argc, char** argv) {
 
     g_server_stop = 0;
 
-    printf("Creating Server thread...\n");
+    /* Output suppressed to avoid affecting performance measurements */
+    // printf("Creating Server thread...\n");
     ret = pthread_create(&s_tid, &attr, server_thread_entry, NULL);
     if (ret != 0) {
         printf("Error creating server thread: %d\n", ret);
@@ -331,7 +333,8 @@ int modbus_test(int argc, char** argv) {
     pthread_join(c_tid, NULL);
     g_server_stop = 1;
     pthread_join(s_tid, NULL);
-    printf("[MODBUS] Server thread joined. Test complete.\n");
+    /* Output suppressed to avoid affecting performance measurements */
+    // printf("[MODBUS] Server thread joined. Test complete.\n");
 
     pthread_attr_destroy(&attr);
     return 0;

@@ -33,7 +33,7 @@ static uint64_t get_time_ns() {
 // }
 
 static void* pid_thread_entry(void *parameter) {
-    printf("--- RT-Thread PID Simulation Start ---\n");
+    printf("--- PID Simulation Start ---\n");
 
     /* PID 参数设置 */
     double Kp = 5.5, Ki = 0.02, Kd = 2.5;
@@ -46,7 +46,7 @@ static void* pid_thread_entry(void *parameter) {
     myPID.SetOutputLimits(-10000, 10000);
     myPID.SetSampleTime(100);
 
-    const int TEST_ROUNDS = 100000;
+    const int TEST_ROUNDS = 1000000;
     uint64_t total_duration_ns = 0;
     volatile double output_dummy = 0.0;
 
@@ -74,13 +74,9 @@ static void* pid_thread_entry(void *parameter) {
     // ================= 结果输出 =================
     double avg_latency_ns = (double)total_duration_ns / TEST_ROUNDS;
 
-    printf("\nBenchmark Results:\n");
-    printf("------------------------------------------------\n");
-    printf("Total Iterations:   %d\n", TEST_ROUNDS);
-    printf("Total Time Cost:    %ld ns\n", total_duration_ns);
-    printf("Avg Latency:        %.3f ns (%.3f us) / op\n", avg_latency_ns, avg_latency_ns/1000.0);
-    printf("------------------------------------------------\n");
-
+    // 统一格式计时输出
+    printf("[pid] samples=%d total_time=%.3f ms avg_latency=%.3f us/op\n",
+           TEST_ROUNDS, (double)total_duration_ns / 1000000.0, avg_latency_ns / 1000.0);
     return NULL;
 }
 
