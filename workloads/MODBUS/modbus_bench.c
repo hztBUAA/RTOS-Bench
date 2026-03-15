@@ -41,7 +41,7 @@ typedef unsigned int rt_uint32_t;
 // 本地测试服务器地址和端口
 #define PORT 5020
 #define SERVER_IP "127.0.0.1"
-#define TEST_ROUNDS 5
+#define TEST_ROUNDS 1
 
 #define THREAD_STACK_SIZE (16*1024)
 
@@ -290,9 +290,9 @@ static void* client_thread_entry(void* parameter) {
     printf("Errors:     %d\n", errors);
     printf("TPS:        %.2f\n", total_reqs / time_s);
 
-    double avg_us = time_us / total_reqs;
-    printf("[modbus] samples=%.0f total_time=%.3f ms avg_latency=%.3f us/request\n",
-           total_reqs, time_us / 1000.0, avg_us);
+    double avg_ms = time_us / total_reqs / 1000.0;
+    printf("[modbus] samples=%.0f total_time=%.3f ms avg_latency=%.3f ms/request\n",
+           total_reqs, time_us / 1000.0, avg_ms);
 
     close(sock);
 

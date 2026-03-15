@@ -50,8 +50,10 @@ static uint64_t g_total_pack_send_us = 0;
 static uint64_t g_total_count = 0;
 static int g_stop_flag = 0;
 static int g_mqtt_ready = 0;
-static int g_login_sent = 0; 
+static int g_login_sent = 0;
 static int g_tcp_connected = 0;
+static uint64_t g_start_time = 0;
+static int g_benchmark_started = 0;
 
 static void fn(struct mg_connection* c, int ev, void* ev_data) {
     if (ev == MG_EV_ERROR) {
@@ -69,7 +71,12 @@ static void fn(struct mg_connection* c, int ev, void* ev_data) {
     else if (ev == MG_EV_READ) {
         if (c->recv.len >= 4 && (unsigned char)c->recv.buf[0] == 0x20) {
             printf("[MQTT] >>> SUCCESS: Received CONNACK! <<<\n");
-            g_mqtt_ready = 1; 
+            g_mqtt_ready = 1;
+            /* Start timing when connection is ready (actual data transmission begins) */
+            if (!g_benchmark_started) {
+                g_start_time = get_time_us();
+                g_benchmark_started = 1;
+            }
             mg_iobuf_del(&c->recv, 0, c->recv.len);
         }
     }
@@ -128,17 +135,28 @@ static void fn(struct mg_connection* c, int ev, void* ev_data) {
         }
 
         g_total_count++;
-        if (g_total_count % 100 == 0) printf("[Bench] Sent: %lu\n", (unsigned long)g_total_count);
+        // if (g_total_count % 100 == 0) printf("[Bench] Sent: %lu\n", (unsigned long)g_total_count);
     }
 }
 
 static void* mqtt_thread_entry(void *parameter) {
     struct mg_mgr mgr;
+
+    /* Reset global state for fresh benchmark run */
+    g_cursor = 0;
+    g_total_count = 0;
+    g_stop_flag = 0;
+    g_mqtt_ready = 0;
+    g_login_sent = 0;
+    g_tcp_connected = 0;
+    g_start_time = 0;
+    g_benchmark_started = 0;
+
     printf("[MQTT] Thread Started...\n");
 
     mg_mgr_init(&mgr);
-    mg_log_set(0); 
-    
+    mg_log_set(0);
+
     printf("[MQTT] Connecting to %s (Raw TCP Mode)...\n", MQTT_URL);
     struct mg_connection *c = mg_connect(&mgr, MQTT_URL, fn, NULL);
     
@@ -151,8 +169,19 @@ static void* mqtt_thread_entry(void *parameter) {
         mg_mgr_poll(&mgr, 20); 
     }
 
-    printf("\n====== Benchmark Finished ======\n");
-    printf("Total Sent: %lu\n", (unsigned long)g_total_count);
+    uint64_t end_time = get_time_us();
+
+    
+    /* Unified format timing output */
+    if (g_total_count > 0 && g_benchmark_started) {
+        uint64_t total_us = end_time - g_start_time;
+        double avg_us = (double)total_us / g_total_count;
+        printf("\n====== Benchmark Finished ======\n");
+        printf("Total Sent: %lu\n", (unsigned long)g_total_count);
+        printf("[mqtt] samples=%lu total_time=%.3f ms avg_latency=%.3f us/msg\n",
+               (unsigned long)g_total_count, (double)total_us / 1000.0, avg_us);
+    }
+
     mg_mgr_free(&mgr);
     return NULL;
 }
