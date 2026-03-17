@@ -1,4 +1,6 @@
 #include "platform_macro.h"
+#include <cpu_affinity.h>
+#include <pthread.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include "les.h"
@@ -236,39 +238,42 @@ static void multicore_print(void) {
     printf("（除特殊说明外，上述单位均为GB/s）\n");
 }
 
-
 /* =========================================================================
- * Public API for test_realtime wrapper
+ * Threads for test_realtime wrapper
  * ========================================================================= */
 
 /**
  * @brief Run all realtime performance tests
  * @return 0 on success
  */
-int realtime_benchmark_run(void)
+static void *realtime_benchmark_run_thread(void *parameter)
 {
+    BIND_THREAD_TO_CPU(0);
+
 #if defined(RUIHUA_PLATFORM)
 	pthread_switch_hook_add(task_switch_hook);
 #endif
 
     realtime_init();
     realtime_print();
-    return 0;
+    return NULL;
 }
 
 /**
  * @brief Run multicore performance tests
  * @return 0 on success
  */
-int realtime_benchmark_run_multicore(void)
+static void *realtime_benchmark_run_multicore_thread(void *parameter)
 {
+    BIND_THREAD_TO_CPU(0);
+
 #if defined(RUIHUA_PLATFORM)
 	pthread_switch_hook_add(task_switch_hook);
 #endif
 
     multicore_init();
     multicore_print();
-    return 0;
+    return NULL;
 }
 
 /**
@@ -276,8 +281,11 @@ int realtime_benchmark_run_multicore(void)
  * @param run_multicore 1 to include multicore tests, 0 for realtime only
  * @return 0 on success
  */
-int realtime_benchmark_run_all(int run_multicore)
+static void *realtime_benchmark_run_all_thread(void *parameter)
 {
+    BIND_THREAD_TO_CPU(0);
+
+    int run_multicore = (int)(long)parameter;
 #if defined(RUIHUA_PLATFORM)
 	pthread_switch_hook_add(task_switch_hook);
 #endif
@@ -289,6 +297,102 @@ int realtime_benchmark_run_all(int run_multicore)
         multicore_init();
         multicore_print();
     }
+
+    return NULL;
+}
+
+
+/* =========================================================================
+ * Public API for test_realtime wrapper
+ * ========================================================================= */
+
+/**
+ * @brief Run all realtime performance tests
+ * @return 0 on success
+ */
+int realtime_benchmark_run(void)
+{
+    pthread_t tid;
+    pthread_attr_t attr;
+	pthread_attr_init(&attr);
+
+    pthread_attr_setstacksize(&attr, 32768);
+    pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+    struct sched_param param;
+    param.sched_priority = BENCHMARK_HIGH_PRIO;
+    pthread_attr_setschedparam(&attr, &param);
+    pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+    // 创建线程
+    if (pthread_create(&tid, &attr, realtime_benchmark_run_thread, NULL) != 0) {
+        perror("Failed to create main thread");
+        return -1;
+    }
+
+    pthread_join(tid, NULL);
+
+    pthread_attr_destroy(&attr);
+
+    return 0;
+}
+
+/**
+ * @brief Run multicore performance tests
+ * @return 0 on success
+ */
+int realtime_benchmark_run_multicore(void)
+{
+    pthread_t tid;
+    pthread_attr_t attr;
+	pthread_attr_init(&attr);
+
+    pthread_attr_setstacksize(&attr, 32768);
+    pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+    struct sched_param param;
+    param.sched_priority = BENCHMARK_HIGH_PRIO;
+    pthread_attr_setschedparam(&attr, &param);
+    pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+    // 创建线程
+    if (pthread_create(&tid, &attr, realtime_benchmark_run_multicore_thread, NULL) != 0) {
+        perror("Failed to create main thread");
+        return -1;
+    }
+
+    pthread_join(tid, NULL);
+
+    pthread_attr_destroy(&attr);
+
+    return 0;
+}
+
+/**
+ * @brief Run both realtime and multicore tests
+ * @param run_multicore 1 to include multicore tests, 0 for realtime only
+ * @return 0 on success
+ */
+int realtime_benchmark_run_all(int run_multicore)
+{
+    pthread_t tid;
+    pthread_attr_t attr;
+	pthread_attr_init(&attr);
+
+    pthread_attr_setstacksize(&attr, 32768);
+    pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+    struct sched_param param;
+    param.sched_priority = BENCHMARK_HIGH_PRIO;
+    pthread_attr_setschedparam(&attr, &param);
+    pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+    // 创建线程
+    if (pthread_create(&tid, &attr, realtime_benchmark_run_all_thread, (void *)(long)run_multicore) != 0) {
+        perror("Failed to create main thread");
+        return -1;
+    }
+
+    pthread_join(tid, NULL);
+
+    pthread_attr_destroy(&attr);
 
     return 0;
 }
