@@ -1,7 +1,7 @@
 # RTOS-Bench v2 平坦记录 Schema
 
 > 面向下游(ElasticSearch)的结构化评估数据文档。
-> 基于 `result_export.c` + `flatten_rtbench_result.py` 实际代码行为编写。
+> 基于已有框架的 `result_export.c` + `flatten_rtbench_result.py` 实际代码行为编写。
 
 ---
 

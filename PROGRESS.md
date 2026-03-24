@@ -104,6 +104,8 @@
 
 **评分**: `score_single_json()` 能消费 JSON 并计算得分，但需 ≥2 个 OS 数据才有意义。deploy.py 已集成调用入口，默认关闭需配置开启。
 
+> 完整的端到端操作流程、配置说明、输出目录结构详见 [docs/SOP.md](docs/SOP.md)。
+
 ---
 
 ## 2026-03-04: E2E 测试修复 (feat/e2e-test-rtt)
