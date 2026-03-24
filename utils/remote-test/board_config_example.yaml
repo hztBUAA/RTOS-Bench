@@ -1,0 +1,30 @@
+# RTOS-Bench 远程测试板卡配置示例
+# 复制为 board.yaml 并填入实际参数
+
+board:
+  name: "LS2K1000LA"
+  os: "SylixOS"
+  arch: "mips64"
+
+connection:
+  type: "ssh"          # ssh | telnet | serial
+  ip: "192.168.1.100"
+  port: 22             # FRP 场景用非标端口如 6000
+  username: "root"
+  password: "root"
+
+deploy:
+  local_binary: "./rtbench"         # 本机编译产物路径
+  remote_dir: "/tmp/"               # 板上目标目录
+
+test:
+  command: "cd /tmp && ./rtbench test-all -o /tmp/rtbench_result.json"
+  end_regex: "\\[result-export\\] JSON result saved"
+  timeout_sec: 600
+
+result:
+  remote_path: "/tmp/rtbench_result.json"
+  local_output_dir: "./results/"
+  retrieval_method: "sftp"          # sftp | terminal_capture
+  run_flatten: true
+  run_score: false
