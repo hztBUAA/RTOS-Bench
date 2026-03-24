@@ -35,6 +35,23 @@ OPTIONS:
   -q              安静模式，减少输出
 ```
 
+### 单 stressor 模式
+
+除了预定义的 job 模式外，还支持直接运行单个 stressor：
+
+```bash
+rtbench test-stress -s <stressor> [OPTIONS]
+
+通用选项:
+  -t <seconds>     执行时长（秒）
+  --ops <max>      最大操作次数限制
+  -c <workers>     工作线程数（默认: 1）
+  --method <name>  特定算法/方法（默认: all）
+  -q               安静模式
+
+Stressor 特定选项根据选择的 stressor 而定。
+```
+
 ### 示例
 
 ```bash
@@ -52,6 +69,19 @@ msh /> rtbench test-stress --job file
 
 # 列出所有可用 job
 msh /> rtbench test-stress -l
+
+# 单 stressor 模式示例
+# CPU 压力测试，50% 负载，30秒，2个工作线程，使用 ackermann 方法
+msh /> rtbench test-stress -s cpu -t 30 -c 2 --cpu-load 50 --method ackermann
+
+# 矩阵运算测试，矩阵大小 128，最大操作次数 1000
+msh /> rtbench test-stress -s matrix --matrix-size 128 --ops 1000
+
+# 二分查找测试，数组大小 10K，使用 ternary 方法
+msh /> rtbench test-stress -s bsearch --bsearch-size 10000 --method ternary
+
+# 上下文切换测试，8个线程，10秒
+msh /> rtbench test-stress -s context -t 10 --context-threads 8
 ```
 
 ## 内置 Job 说明
