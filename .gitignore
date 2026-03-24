@@ -19,3 +19,4 @@ extern/
 *.txt
 docs/deliver
 *.docx
+*.pyc

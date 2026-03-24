@@ -1,5 +1,111 @@
 # RTOS-Bench 进度记录
 
+## 2026-03-24: 分支整合 & 全流程审计
+
+### 一、分支合并
+
+将 `score-cal` 和 `feat/remote-deploy` 合入 main 并推送远端，清理已合并分支。
+
+| 来源分支 | 操作 | 合入内容 |
+|----------|------|----------|
+| `score-cal` | cherry-pick 有效增量 | `docs/STRESS.md` 单 stressor 文档更新 |
+| `feat/scoring-integration` | 已通过 PR#12 合入 | `score_single_json()` API、`--db` CLI |
+| `feat/raw-log-capture` | 已通过 PR#11 合入 | raw log capture 模块 |
+| `feat/remote-deploy` | `merge --no-ff` | deploy.py 编排 + config_schema + file_transfer + board_config |
+
+> `score-cal` 的其余变更（删除主线程修复、删除 score_single_json API）是相对 main 的倒退，未合入。
+
+### 二、端到端流程完成度审计
+
+#### 总览
+
+```
+  被测板 (RTOS)                    宿主机 (Host)
+ ┌───────────────┐        ┌──────────────────────────────────────────────┐
+ │ rtbench        │        │  deploy.py (编排)                            │
+ │ test-all       │        │    ↓                                        │
+ │    ↓           │  SSH/  │  1. 上传固件到 DUT                           │
+ │ result_export  │ Serial │  2. 连接 DUT (SSH/Serial/Telnet)            │
+ │    ↓           │ Telnet │  3. 发送 test-all 命令                      │
+ │ JSON 文件      │ ←────→ │  4. 等待完成 (end_regex)                    │
+ │ + 终端日志     │        │  5. 取回 JSON (sftp / terminal_capture)     │
+ └───────────────┘        │  6. 终端日志自动保存到文件                    │
+                           │  7. flatten → 标准格式 (可选)               │
+                           │  8. score_single_json → 评分 (可选)         │
+                           └──────────────────────────────────────────────┘
+```
+
+#### 各模块完成度
+
+| 模块 | 文件 | 状态 | 说明 |
+|------|------|------|------|
+| **C 端结构化 JSON 输出** | `generator/result_export.c/.h` | **完成** | 5 个模块全部序列化，无遗漏字段 |
+| **C 端 test-all 调用链** | `generator/rtthread_entry.c` | **完成** | 5 模块全部 run + collect |
+| **终端日志输出到文件** | `utils/remote-test/dut_connection.py` | **完成** | SSH/Serial/Telnet 三种连接均支持 `log_file` 参数 |
+| **日志文件名生成** | `utils/remote-test/log_utils.py` | **完成** | 北京时间戳 `rtbench_raw_YYYYMMDD_HHMMSS_CST.log` |
+| **远程编排** | `utils/remote-test/deploy.py` | **完成** | 12 步流水线，SSH happy-path 可用 |
+| **配置加载/校验** | `utils/remote-test/config_schema.py` | **基本完成** | 有默认值填充，缺字段级/类型级校验 |
+| **文件传输 (SFTP)** | `utils/remote-test/file_transfer.py` | **完成** | upload/download 正常 |
+| **终端 JSON 提取** | `utils/remote-test/file_transfer.py` | **有缺陷** | 正则只支持 2 层嵌套，实际 JSON 3+ 层，会返回 None |
+| **展平脚本** | `utils/flatten_rtbench_result.py` | **基本完成** | 4/5 模块有显式映射，test-cmd 走 fallback 也能工作 |
+| **评分脚本** | `utils/score_caculate.py` | **完成** | `score_single_json()` API + CLI `import-json` 均可用 |
+| **示例配置** | `utils/remote-test/board_config_example.yaml` | **有问题** | `end_regex` 不匹配实际 C 输出 |
+
+### 三、rtbench_result.json 结构化输出完整性
+
+`result_export.c` 的 `rtbench_result_to_json()` 对数据模型中的**所有字段**均有序列化，无遗漏。`docs/reference/rtbench_result_example.json` 展示了完整的 5 模块输出结构。
+
+**JSON 序列化：完整。** 但 `collect_*_result()` 数据填充有以下空洞：
+
+| 字段 | 问题 | 影响 |
+|------|------|------|
+| `test-realtime.duration_sec` | 未赋值，始终 0 | 不影响评分（评分不读此字段） |
+| `test-schedule.duration_sec` | 未赋值，始终 0 | 同上 |
+| `test-schedule.wcet_measurements` | 未填充，始终空数组 | WCET 数据有测量但未转入 result struct |
+| `test-schedule.config` | 硬编码默认值 | quick 模式下不反映实际参数 |
+| `test-schedule.gradients[].task_stats[].utilization/period_ms` | 未填充，始终 0 | 源数据在 `schedule_task_config` 而非 `schedule_task_stats` |
+| `typical-workload.duration_sec` | 未赋值，始终 0 | 不影响评分 |
+
+> 这些空洞不影响评分流程（评分读取的是 single_core 指标、miss_rate、workload exec_time 等实际填充的字段），但会影响展平输出的完整性。
+
+### 四、评分集成状态
+
+`score_caculate.py` 的 `score_single_json()` 可直接消费 `rtbench_result.json`，路径硬编码提取各指标：
+
+| 评分维度 | 权重 | 数据来源 | 是否有数据 |
+|----------|------|----------|-----------|
+| RT_Score (实时性能) | 30% | test-realtime: context_switch, interrupt, syscall, service_cost | 有 |
+| T_Score (典型负载) | 40% | typical-workload: exec_time_ms / avg_time_ms | 有 |
+| Sched_Score (可调度性) | RT 内 50% | test-schedule: summary.average_miss_rate | 有 |
+| P_Score (功耗) | 10% | 外部功耗仪数据 | 无（占位 0） |
+| F_Score (功能) | 20% | test-cmd: pass_count/cmd_count | 占位 60 |
+
+**关键限制**: 评分使用跨 OS min-max 归一化。单 OS 数据库中 R_max == R_min，所有 `item_score` 为 null。需至少 2 个不同 OS 在同一板子上的结果才能产生有效分数。
+
+### 五、已知缺陷 & 待修项
+
+| # | 严重度 | 模块 | 问题 | 状态 |
+|---|--------|------|------|------|
+| 1 | HIGH | `file_transfer.py` | `extract_json_from_buffer` 正则只支持 2 层 JSON 嵌套，实际 3+ 层 → terminal_capture 模式失效 | 待修 |
+| 2 | MEDIUM | `board_config_example.yaml` | `end_regex` 写 `\[result-export\] JSON result saved`，C 代码实际输出 `[RTOS-Bench] Results saved to:` | 待修 |
+| 3 | MEDIUM | `deploy.py` | SFTP upload/download 硬编码 SSH 字段，Serial 连接会 KeyError | 待修 |
+| 4 | MEDIUM | `config_schema.py` | 无字段级校验，缺少必填字段检查 | 待改善 |
+| 5 | MEDIUM | `flatten_rtbench_result.py` | `bogo_ops` 被无条件跳过，stress 主指标丢失 | 待修 |
+| 6 | LOW | `collect_schedule_result()` | wcet、task utilization/period_ms 未填充 | 待修 |
+| 7 | LOW | `collect_*_result()` | realtime/schedule/workload 模块级 duration_sec 未赋值 | 待修 |
+| 8 | LOW | `deploy.py` | `run_score` 默认 false，需 YAML 显式开启 | 设计如此 |
+| 9 | LOW | 项目整体 | 无 `requirements.txt`（paramiko, pyyaml, pandas, openpyxl） | 待补 |
+
+### 六、结论
+
+**能跑通的路径**: SSH 连接 → test-all → SFTP 取回 JSON → 终端日志落盘。这条 happy path 是完整的。
+
+**展平**: `flatten_rtbench_result.py` 能将 JSON 转为标准格式记录，但 bogo_ops 被跳过、test-cmd 映射不一致。输出面向外部平台（阿里云 schema），与评分脚本是**并行的两条管线**。
+
+**评分**: `score_single_json()` 能消费 JSON 并计算得分，但需 ≥2 个 OS 数据才有意义。deploy.py 已集成调用入口，默认关闭需配置开启。
+
+---
+
 ## 2026-03-04: E2E 测试修复 (feat/e2e-test-rtt)
 
 ### 修复的 Bug
@@ -104,171 +210,3 @@ rtbench test-realtime
 #### 5. test-schedule: 未本次验证
 
 此前已验证框架可用（见 docs/TEST_REPORT.md），WCET 测量阶段正常，但 FAST workload 单次约 575 秒，完整测试在 QEMU 下不现实。
-
----
-
-### 二、框架与板子的关系（架构边界）
-
-#### 框架负责什么
-
-RTOS-Bench 是一个**运行在被测 RTOS 上**的基准测试框架，其职责边界：
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ 被测板子 (Target)                                                │
-│                                                                  │
-│   RTOS-Bench 框架 (编译链接到 RTOS 固件中)                       │
-│   ┌──────────────────────────────────────────────────────┐      │
-│   │  test-realtime  test-schedule  test-stress  test-cmd │      │
-│   │  typical-workload  periodic-benchmark                │      │
-│   ├──────────────────────────────────────────────────────┤      │
-│   │  result_export.c → 生成 /rtbench_result.json         │      │
-│   │  (存储在板子本地文件系统)                              │      │
-│   └──────────────────────────────────────────────────────┘      │
-│                                                                  │
-│   输出: /rtbench_result.json (中间格式 JSON)                     │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ SCP / 串口传输 / SD卡拷贝
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 宿主机 (Host)                                                    │
-│                                                                  │
-│   1. 收集 rtbench_result.json                                   │
-│   2. 展平转换 → standard_results_example.json (阿里云 schema)    │
-│   3. 上传到阿里云数据库                                          │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**框架边界说明**:
-
-| 层次 | 负责方 | 说明 |
-|------|--------|------|
-| 测试执行 | 框架 (Target 上) | 运行 5 个测试模块，收集性能数据 |
-| 中间结果 JSON 生成 | 框架 (Target 上) | `result_export.c` 序列化为 JSON |
-| 中间结果持久化 | 框架 (Target 上) | 写入 Target 本地文件系统 |
-| 结果传输 (Target→Host) | **SOP / 外部工具** | SCP、串口文件传输、SD 卡 |
-| 展平转换 (中间→标准格式) | **Host 端脚本** (TODO) | Python 脚本，将嵌套 JSON 展平为一条一条记录 |
-| 上传阿里云 | **Host 端脚本** (TODO) | 待阿里云 API 对接后实现 |
-
----
-
-### 三、板级测试 SOP 工作流
-
-#### 3.1 现有能力
-
-- [x] 框架在 Target 上运行测试并生成 JSON (`test-all -o /rtbench_result.json`)
-- [x] JSON Schema 定义 (`docs/reference/rtbench_result_schema.json`)
-- [x] 标准格式示例 (`docs/reference/standard_results_example.json`)
-- [x] 多平台入口 (RT-Thread / SylixOS / OneOS / Dongtu / Ruihua)
-- [x] Host 端展平转换脚本 (`utils/flatten_rtbench_result.py`，已验证: 252 行 → 270 条标准记录)
-- [ ] Host 端结果收集脚本 (SCP 拷贝)
-- [ ] 阿里云 API 上传脚本
-
-#### 3.2 完整 SOP 流程
-
-```
-Phase 1: 准备 (宿主机)
-  1. 交叉编译 RTOS 固件 (含 RTOS-Bench)
-  2. 烧录到目标板 / 通过 JTAG/TFTP 加载
-
-Phase 2: 执行 (被测板子)
-  3. 上电启动，进入 Shell
-  4. 运行: rtbench test-all -o /rtbench_result.json
-  5. 结果保存在板子文件系统中
-
-Phase 3: 收集 (宿主机←被测板子)
-  6. SCP 拷贝:
-     scp user@target:/rtbench_result.json ./results/<board>_<date>.json
-     或: 串口 YMODEM 传输
-     或: 拔 SD 卡读取
-
-Phase 4: 转换 (宿主机)
-  7. 展平转换:
-     python3 utils/flatten_rtbench_result.py \
-       results/<board>_<date>.json \
-       -o results/<board>_<date>_flat.json -p
-
-Phase 5: 上传 (宿主机→阿里云)   [TODO]
-  8. python3 utils/upload_results.py \
-       --input results/<board>_<date>_flat.json \
-       --api-endpoint <阿里云API>
-```
-
-#### 3.3 龙芯 + SylixOS 适配示例
-
-```
-# 1. 在宿主机交叉编译 (SylixOS IDE 或 Makefile)
-make PLATFORM=sylixos ARCH=mips64 BOARD=loongson-2k1000
-
-# 2. 通过 TFTP/NFS 部署到板子
-tftp -g -r rtbench <host_ip>
-
-# 3. 在板子上运行
-./rtbench test-all -o /tmp/rtbench_result.json
-
-# 4. SCP 回宿主机
-scp root@<board_ip>:/tmp/rtbench_result.json ./results/
-
-# 5. 展平 + 上传
-python3 utils/flatten_rtbench_result.py results/rtbench_result.json -o results/standard.json -p
-```
-
----
-
-### 四、当前阻塞问题与 TODO
-
-#### 4.1 需修复的 Bug
-
-| # | 问题 | 严重度 | 状态 | 修复说明 |
-|---|------|--------|------|----------|
-| 1 | test-cmd 在无文件系统时崩溃 (mv → dfs_file_rename null deref) | HIGH | **FIXED** | 新增 `test_cmd_has_filesystem()` 通过 `dfs_filesystem_lookup("/")` 检测 FS，无 FS 时跳过文件命令 |
-| 2 | test-all 在 tshell 线程栈溢出 | HIGH | **FIXED** | test-all 逻辑抽取到 `test_all_thread_entry()`，在独立 32KB 栈线程中运行，tshell 线程仅等待信号量 |
-| 3 | test-realtime 中断延迟数据无效 (需内核插桩) | MEDIUM | **已知限制** | QEMU 环境下中断延迟数据无意义，真实板子上正常。文档已说明 |
-| 4 | collect_realtime_result() 使用 placeholder 值 | MEDIUM | **FIXED** | bench_init.c 新增 getter 函数暴露 static 数组，collect_realtime_result() 读取实际测量值并转换 ns→us |
-| 5 | collect_stress_result() bogo_ops 为 0 | MEDIUM | **FIXED** | stress-ng.c 新增 `g_last_bogo` 累加器，通过 `stress_ng_get_last_bogo_ops()` → `test_stress_get_last_bogo_ops()` 链式暴露 |
-
-#### 4.2 Host 端工具 (TODO)
-
-| # | 工具 | 说明 | 状态 |
-|---|------|------|------|
-| 1 | `utils/flatten_rtbench_result.py` | 中间格式 JSON → 阿里云标准格式 (一条记录/指标) | DONE (已验证) |
-| 2 | `utils/upload_results.py` | 标准格式 → 阿里云 API | TODO (待对方 API ready) |
-| 3 | `utils/collect_from_board.sh` | SCP 自动收集脚本 | TODO |
-
-#### 4.3 阿里云对接 (TODO)
-
-**数据格式已确认**: `docs/reference/standard_results_example.json` 中的展平格式，每个指标一条记录，包含:
-- `flow_job_history_id` (UUID)
-- `sw_info` (sdk_type, version, kernel_version)
-- `hw_info` (platform_type, cpu_type, soc_info)
-- `test_case_info` (test_suite, test_dir, test_case, test_data_source)
-- `test_config_info` (test_mcpu, test_cpu_core_num, test_option_alias)
-- `test_result_info` (test_result, test_unit, test_optimal_type, test_result_valid)
-
-**待对方提供**: API endpoint、认证方式、batch upload 是否支持。
-
----
-
-### 五、数据流总览
-
-```
-   被测板 (RTOS)                    宿主机 (Linux)                 阿里云
-  ┌───────────┐               ┌─────────────────────┐        ┌──────────┐
-  │ test-all  │               │                     │        │          │
-  │    ↓      │   SCP/串口    │  rtbench_result.json│  API   │ 数据库   │
-  │ JSON 文件 │ ──────────→ │         ↓            │ ────→ │          │
-  │ (中间格式) │              │  flatten_results.py │        │          │
-  └───────────┘               │         ↓            │        │          │
-                              │  标准格式 JSON       │        │          │
-                              │  (展平, 一条/指标)    │        │          │
-                              │         ↓            │        │          │
-                              │  upload_results.py   │        │          │
-                              └─────────────────────┘        └──────────┘
-
-  框架边界 ←──────────────→  SOP + Host 工具 ←──────→ 阿里云联调
-  (已完成)                    (本次梳理)               (TODO)
-```
-
-### 六、验证用原始日志
-
-原始 QEMU 测试日志保存在 `/tmp/qemu_test_output.log` (test-cmd 崩溃) 和 `/tmp/qemu_test_output2.log` (test-stress + test-realtime 通过)。
