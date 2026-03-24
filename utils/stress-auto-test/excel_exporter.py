@@ -3,9 +3,9 @@ import pandas as pd
 from datetime import datetime
 
 def export_test_result(board_name, os_name, job_type, data_records, summary_info):
-    os.makedirs("record", exist_ok=True)
+    os.makedirs("data", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"record/{os_name}_{board_name}_{job_type.upper()}_{timestamp}.xlsx"
+    filename = f"data/{os_name}_{board_name}_{job_type.upper()}_{timestamp}.xlsx"
 
     df_data = pd.DataFrame(data_records, columns=["Time(s)", "Voltage(V)", "Current(A)", "Power(W)"])
     df_summary = pd.DataFrame([summary_info])

@@ -38,6 +38,7 @@ static inline int read(int fd, void *b, size_t c) { (void)fd; (void)b; (void)c; 
 static inline int rename(const char *o, const char *n) { (void)o; (void)n; return -1; }
 static inline int unlink(const char *p) { (void)p; return -1; }
 static inline int fsync(int fd) { (void)fd; return -1; }
+static inline int ftruncate(int fd, off_t length) { (void)fd; (void)length; return -1; }
 #endif
 #endif
 
@@ -269,6 +270,34 @@ int stress_osal_fsync(int fd)
     return fsync(fd);
 }
 int stress_osal_read(int fd, void *buf, size_t count) {return read(fd, buf, count);}
+int stress_osal_ftruncate(int fd, off_t  length) {return ftruncate(fd, length);}
+int stress_osal_stat(const char *path, struct stat *buf)
+{
+#if defined(RT_USING_POSIX) || defined(RT_USING_DFS)
+    if (!path || !buf) {
+        return -1;
+    }
+    return stat(path, buf);
+#else
+    (void)path;
+    (void)buf;
+    return -1;
+#endif
+}
+
+int stress_osal_fstat(int fd, struct stat *buf)
+{
+#if defined(RT_USING_POSIX) || defined(RT_USING_DFS)
+    if (fd < 0 || !buf) {
+        return -1;
+    }
+    return fstat(fd, buf);
+#else
+    (void)fd;
+    (void)buf;
+    return -1;
+#endif
+}
 
 /* =========================================================================
  * 9. 字符串与字符操作

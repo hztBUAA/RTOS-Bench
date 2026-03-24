@@ -1015,7 +1015,7 @@ static void collect_workload_results(int quick_mode)
 		}
 
 		/* Run workload and measure time */
-		int rounds = quick_mode ? 5 : 100;
+		int rounds = quick_mode ? 5 : 10;
 		uint64_t start_tick = rt_tick_get();
 
 		for (int j = 0; j < rounds; j++) {

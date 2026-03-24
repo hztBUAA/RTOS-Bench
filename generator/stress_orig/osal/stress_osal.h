@@ -134,6 +134,9 @@ int stress_osal_write(int fd, const void *buf, size_t count);
 int stress_osal_rename(const char *oldpath, const char *newpath);
 int stress_osal_unlink(const char *path);
 int stress_osal_fsync(int fd);
+int stress_osal_ftruncate(int fd, off_t  length);
+int stress_osal_stat(const char *path, struct stat *buf);
+int stress_osal_fstat(int fd, struct stat *buf);
 
 /* =========================================================================
  * 9. 字符串与字符操作 (String & Char)

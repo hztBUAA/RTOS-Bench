@@ -19,6 +19,7 @@
 
 #define FILENAME_TEMPLATE   "o%d_%d.tmp"
 
+
 static const int open_flags[] = {
     0,
 #if defined(O_APPEND)
@@ -26,12 +27,6 @@ static const int open_flags[] = {
 #endif
 #if defined(O_TRUNC)
     O_TRUNC,
-#endif
-#if defined(O_EXCL)
-    O_EXCL,
-#endif
-#if defined(O_NONBLOCK)
-    O_NONBLOCK,
 #endif
 };
 
@@ -54,19 +49,28 @@ const stress_opt_t stress_open_opts[] = {
     { NULL, NULL }
 };
 
-static uint32_t stress_mwc32(void) { return (uint32_t)stress_osal_rand(); }
+static uint32_t stress_mwc32(void)
+{
+    return (uint32_t)stress_osal_rand();
+}
 
 static int do_open_creat(stress_args_t *args, char *filename, size_t file_idx)
 {
     int flags = O_CREAT | O_RDWR;
 
-    if (sizeof(open_flags) > 0) {
-        flags |= open_flags[stress_mwc32() % (sizeof(open_flags) / sizeof(open_flags[0]))];
+    if (sizeof(open_flags) / sizeof(open_flags[0]) > 0) {
+        flags |= open_flags[stress_mwc32() %
+                            (sizeof(open_flags) / sizeof(open_flags[0]))];
     }
 
-    stress_osal_snprintf(filename, PATH_MAX, FILENAME_TEMPLATE, (int)args->instance, (int)file_idx);
+    stress_osal_snprintf(filename, PATH_MAX, FILENAME_TEMPLATE,
+                         (int)args->instance, (int)file_idx);
 
-    return stress_osal_open(filename, flags, 0666);
+    int fd = stress_osal_open(filename, flags, 0666);
+    if (fd < 0) {
+        filename[0] = '\0';
+    }
+    return fd;
 }
 
 static int do_open_dev_null(stress_args_t *args, char *filename, size_t file_idx)
@@ -86,8 +90,10 @@ static const stress_open_func_t open_funcs[] = {
     do_open_creat,
     do_open_creat,
     do_open_dev_null,
-    do_open_dev_zero
+    do_open_dev_zero,
 };
+
+#define NUM_OPEN_FUNCS  (sizeof(open_funcs) / sizeof(open_funcs[0]))
 
 static void stress_open_clean_files(int *fds, char *filenames, size_t count)
 {
@@ -96,11 +102,17 @@ static void stress_open_clean_files(int *fds, char *filenames, size_t count)
             stress_osal_close(fds[i]);
             fds[i] = -1;
         }
-        char *fname = filenames + (i * PATH_MAX);
 
+        char *fname = filenames + (i * PATH_MAX);
         if (fname[0] != '\0') {
+            /* 不删除 /dev/ 节点 */
             if (stress_osal_strncmp(fname, "/dev/", 5) != 0) {
-                stress_osal_unlink(fname);
+                if (stress_osal_unlink(fname) != 0 && errno != ENOENT) {
+                    /* 仅在非"文件不存在"的情况下记录警告 */
+                    stress_osal_print("rtos_stress: warn: [open] unlink '%s'"
+                                      " failed (errno=%d)\n",
+                                      fname, errno);
+                }
             }
             fname[0] = '\0';
         }
@@ -109,54 +121,63 @@ static void stress_open_clean_files(int *fds, char *filenames, size_t count)
 
 void stress_open(stress_args_t *args)
 {
-    int *fds = NULL;
-    char *filenames = NULL;
-    size_t open_max = (size_t)s_open_max;
-    size_t fds_alloc_len = 0;
+    int   *fds       = NULL;
+    char  *filenames = NULL;
+    size_t open_max  = (size_t)s_open_max;
 
-    if (open_max < 1) open_max = 1;
+    if (open_max < 1)        open_max = 1;
     if (open_max > MAX_OPEN_MAX) open_max = MAX_OPEN_MAX;
 
-    fds_alloc_len = open_max * sizeof(int);
-    fds = (int *)stress_osal_malloc(fds_alloc_len);
+    fds = (int *)stress_osal_malloc(open_max * sizeof(int));
     if (!fds) {
-        stress_osal_print("rtos_stress: error: [open] OOM allocating fds array\n");
+        stress_osal_print("rtos_stress: error: [open-%d] OOM allocating"
+                          " fds array (%zu bytes)\n",
+                          args->instance, open_max * sizeof(int));
         return;
     }
 
-    size_t names_alloc_len = open_max * PATH_MAX;
-    filenames = (char *)stress_osal_malloc(names_alloc_len);
+    filenames = (char *)stress_osal_malloc(open_max * PATH_MAX);
     if (!filenames) {
         stress_osal_free(fds);
-        stress_osal_print("rtos_stress: error: [open] OOM allocating filenames array\n");
+        stress_osal_print("rtos_stress: error: [open-%d] OOM allocating"
+                          " filenames array (%zu bytes)\n",
+                          args->instance, open_max * PATH_MAX);
         return;
     }
 
-    stress_osal_memset(fds, -1, fds_alloc_len);
-    stress_osal_memset(filenames, 0, names_alloc_len);
+    stress_osal_memset(fds,       -1, open_max * sizeof(int));
+    stress_osal_memset(filenames,  0, open_max * PATH_MAX);
 
-    stress_osal_print("rtos_stress: info: [open-%d] attempting to open up to %d files\n", args->instance, (int)open_max);
+    stress_osal_print("rtos_stress: info: [open-%d] opening up to %zu files"
+                      " per round\n",
+                      args->instance, open_max);
 
-    while (stress_continue(args))
-    {
+    while (stress_continue(args)) {
+
         for (size_t i = 0; i < open_max; i++) {
             if (!stress_continue(args)) break;
 
-            int func_idx = stress_mwc32() % (sizeof(open_funcs) / sizeof(open_funcs[0]));
-
-            char *current_filename = filenames + (i * PATH_MAX);
+            int    func_idx        = (int)(stress_mwc32() % NUM_OPEN_FUNCS);
+            char  *current_filename = filenames + (i * PATH_MAX);
 
             current_filename[0] = '\0';
 
             fds[i] = open_funcs[func_idx](args, current_filename, i);
 
             if (fds[i] >= 0) {
+                args->bogo.current_ops++;
             } else {
                 if (errno == EMFILE || errno == ENFILE) {
+                    stress_osal_print("rtos_stress: info: [open-%d] fd limit"
+                                      " reached at slot %zu (errno=%d),"
+                                      " flushing\n",
+                                      args->instance, i, errno);
                     break;
                 }
+                stress_osal_print("rtos_stress: warn: [open-%d] open failed"
+                                  " at slot %zu (errno=%d)\n",
+                                  args->instance, i, errno);
             }
-            args->bogo.current_ops++;
         }
 
         stress_open_clean_files(fds, filenames, open_max);
