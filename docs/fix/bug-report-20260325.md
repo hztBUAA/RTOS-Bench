@@ -5,3 +5,5 @@
 [root@Sylixos:/apps/rtos-bench]# ./rtos-bench
 [ld]Library /apps/rtos-bench/rtos-bench can not find symbol: __fdlib_version
 ```
+
++ 当前解决方式：在sylixos_entry.c（或其他文件）中补充__fdlib_version符号的定义
