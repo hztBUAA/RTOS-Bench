@@ -16,7 +16,13 @@ typedef unsigned int rt_uint32_t;
 #include <string.h>
 #include <errno.h>
 
-/* Standard printf for workload output */
+/* Quiet-aware printf for workload output (suppresses when scheduler requests) */
+#ifdef RT_THREAD_PLATFORM
+extern int g_sched_suppress_output;
+#define MDB_PRINTF(...) do { if (!g_sched_suppress_output) printf(__VA_ARGS__); } while (0)
+#else
+#define MDB_PRINTF printf
+#endif
 
 #if MDB_HAVE_PTHREAD
 #include <pthread.h>
@@ -41,7 +47,7 @@ typedef unsigned int rt_uint32_t;
 // 本地测试服务器地址和端口
 #define PORT 5020
 #define SERVER_IP "127.0.0.1"
-#define TEST_ROUNDS 5
+#define TEST_ROUNDS 1
 
 #define THREAD_STACK_SIZE (16*1024)
 
@@ -56,13 +62,13 @@ static double diff_timespec_us(const struct timespec *start, const struct timesp
 
 static void print_nmbs_error(nmbs_error err) {
     switch (err) {
-        case NMBS_ERROR_NONE: printf("NONE"); break;
-        case NMBS_ERROR_INVALID_ARGUMENT: printf("INVALID_ARGUMENT"); break;
-        case NMBS_ERROR_TIMEOUT: printf("TIMEOUT"); break;
-        case NMBS_ERROR_INVALID_TCP_MBAP: printf("INVALID_TCP_MBAP"); break;
-        case NMBS_ERROR_INVALID_RESPONSE: printf("INVALID_RESPONSE"); break;
-        case NMBS_ERROR_TRANSPORT: printf("TRANSPORT"); break;
-        default: printf("UNKNOWN(%d)", err); break;
+        case NMBS_ERROR_NONE: MDB_PRINTF("NONE"); break;
+        case NMBS_ERROR_INVALID_ARGUMENT: MDB_PRINTF("INVALID_ARGUMENT"); break;
+        case NMBS_ERROR_TIMEOUT: MDB_PRINTF("TIMEOUT"); break;
+        case NMBS_ERROR_INVALID_TCP_MBAP: MDB_PRINTF("INVALID_TCP_MBAP"); break;
+        case NMBS_ERROR_INVALID_RESPONSE: MDB_PRINTF("INVALID_RESPONSE"); break;
+        case NMBS_ERROR_TRANSPORT: MDB_PRINTF("TRANSPORT"); break;
+        default: MDB_PRINTF("UNKNOWN(%d)", err); break;
     }
 }
 
@@ -273,7 +279,7 @@ static void* client_thread_entry(void* parameter) {
 
         bool read_val = (r_coils[0] & 0x01) ? true : false;
         if (read_val != coil_val) {
-            printf("[Err] Coil Verify Fail!\n");
+            MDB_PRINTF("[Err] Coil Verify Fail!\n");
             errors++;
         }
     }
@@ -284,19 +290,19 @@ static void* client_thread_entry(void* parameter) {
 
     double total_reqs = TEST_ROUNDS * 4.0;
 
-    printf("\n=== R/W Benchmark Result ===\n");
-    printf("Time:       %.3f s\n", time_s);
-    printf("Requests:   %.0f (Write+Read)\n", total_reqs);
-    printf("Errors:     %d\n", errors);
-    printf("TPS:        %.2f\n", total_reqs / time_s);
+    MDB_PRINTF("\n=== R/W Benchmark Result ===\n");
+    MDB_PRINTF("Time:       %.3f s\n", time_s);
+    MDB_PRINTF("Requests:   %.0f (Write+Read)\n", total_reqs);
+    MDB_PRINTF("Errors:     %d\n", errors);
+    MDB_PRINTF("TPS:        %.2f\n", total_reqs / time_s);
 
-    double avg_us = time_us / total_reqs;
-    printf("[modbus] samples=%.0f total_time=%.3f ms avg_latency=%.3f us/request\n",
-           total_reqs, time_us / 1000.0, avg_us);
+    double avg_ms = time_us / total_reqs / 1000.0;
+    MDB_PRINTF("[modbus] samples=%.0f total_time=%.3f ms avg_latency=%.3f ms/request\n",
+           total_reqs, time_us / 1000.0, avg_ms);
 
     close(sock);
 
-    printf("[Client] Finished\n");
+    MDB_PRINTF("[Client] Finished\n");
     return NULL;
 }
 
@@ -320,14 +326,14 @@ int modbus_test(int argc, char** argv) {
     // printf("Creating Server thread...\n");
     ret = pthread_create(&s_tid, &attr, server_thread_entry, NULL);
     if (ret != 0) {
-        printf("Error creating server thread: %d\n", ret);
+        MDB_PRINTF("Error creating server thread: %d\n", ret);
         return -1;
     }
     // pthread_detach(s_tid);
 
     ret = pthread_create(&c_tid, &attr, client_thread_entry, NULL);
     if (ret != 0) {
-        printf("Error creating client thread: %d\n", ret);
+        MDB_PRINTF("Error creating client thread: %d\n", ret);
         return -1;
     }
     pthread_join(c_tid, NULL);
