@@ -41,7 +41,7 @@ cd RTOS-Bench
 
 ```bash
 # 实时性能测试 - 测量上下文切换、IPC 延迟等
-msh /> rtbench test-realtime
+msh /> rtbench test-realtime --multicore
 
 # 可调度性测试 - UUniFast 任务集验证
 msh /> rtbench test-schedule --cycles 100
@@ -153,11 +153,11 @@ RTOS-Bench/
 rtbench [子命令] [选项]
 
 子命令:
-  test-realtime [--multicore]     实时性能测试
-  test-schedule [--cycles N]      可调度性测试
-  test-stress -s <stressor> -t N  压力测试
-  test-cmd                        Shell 命令支持测试
-  test-all [-o <file>]            运行所有测试
+  test-realtime [--verify][--multicore]    实时性能测试
+  test-schedule [--cycles N]               可调度性测试
+  test-stress -s <stressor> -t N           压力测试
+  test-cmd                                 Shell 命令支持测试
+  test-all [-o <file>]                     运行所有测试
 
 通用选项:
   -b, --workload <name>    指定 workload

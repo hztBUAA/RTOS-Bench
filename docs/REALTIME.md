@@ -30,6 +30,7 @@ msh /> rtbench test-realtime
 rtbench test-realtime [OPTIONS]
 
 OPTIONS:
+  -v, --verify       对测试所需系统功能进行验证
   -m, --multicore    运行多核测试（需要 SMP 支持）
   -q                 安静模式，减少输出
 ```
@@ -42,6 +43,9 @@ msh /> rtbench test-realtime
 
 # 运行单核+多核测试
 msh /> rtbench test-realtime --multicore
+
+# 运行测试前先进行验证
+msh /> rtbench test-realtime -v
 
 # 安静模式
 msh /> rtbench test-realtime -q
@@ -193,7 +197,7 @@ Finish test 10_1, 11_1.
 
 **方法**:
 1. 创建 N 个工作线程
-2. 每个工作线程重复创建/删除 500 个临时线程
+2. 每个工作线程重复创建/删除多个临时线程
 3. 测量总时间并计算平均延迟
 
 **并发度**: 1/2/4/8 个工作线程
@@ -278,8 +282,8 @@ mq_open(), mq_send(), mq_receive()
 | 平台 | 状态 | 说明 |
 |------|------|------|
 | RT-Thread | ✅ 支持 | 使用 POSIX pthreads/semaphore/mqueue |
-| Linux | 🔄 待验证 | 使用 POSIX threads |
-| SylixOS | 🔄 待验证 | 应该可用（POSIX 兼容） |
+| Linux | ✅ 支持 | 使用 POSIX threads |
+| SylixOS | ✅ 支持 | 使用 POSIX threads |
 | OneOS | 🔄 待验证 | 需要测试 |
 
 ## 与原始测试套件的对应关系
@@ -291,19 +295,19 @@ mq_open(), mq_send(), mq_receive()
 | test1 | ✅ | 上下文切换延迟 | 已实现 |
 | test2 | ⏸ | 中断延迟 | 需内核插桩 |
 | test3 | ⏸ | 系统调用延迟 | 需内核插桩 |
-| test4_1 | ✅ | 信号量获取（立即） | 已实现 |
+| test4_1 | ✅ | 信号量获取（立即执行） | 已实现 |
 | test4_2 | ✅ | 信号量获取（挂起睡眠） | 已实现 |
 | test5_3 | ✅ | 信号量释放（低优就绪） | 已实现 |
 | test5_4 | ✅ | 信号量释放（高优恢复） | 已实现 |
-| test6_1 | ✅ | 消息发送（立即） | 已实现 |
+| test6_1 | ✅ | 消息发送（立即执行） | 已实现 |
 | test6_2 | ✅ | 消息发送（挂起睡眠） | 已实现（条件执行） |
 | test6_3 | ✅ | 消息发送（低优就绪） | 已实现 |
 | test6_4 | ✅ | 消息发送（高优恢复） | 已实现 |
-| test7_1 | ✅ | 消息接收（立即） | 已实现 |
+| test7_1 | ✅ | 消息接收（立即执行） | 已实现 |
 | test7_2 | ✅ | 消息接收（挂起睡眠） | 已实现 |
 | test7_3 | ✅ | 消息接收（低优就绪） | 已实现（条件执行） |
 | test7_4 | ✅ | 消息接收（高优恢复） | 已实现（条件执行） |
-| test8_1, 9_1 | ✅ | 互斥锁操作（立即） | 已实现 |
+| test8_1, 9_1 | ✅ | 互斥锁操作（立即执行） | 已实现 |
 | test8_2 | ✅ | 互斥锁获取（挂起睡眠） | 已实现 |
 | test9_3 | ✅ | 互斥锁释放（低优就绪） | 已实现 |
 | test9_4 | ✅ | 互斥锁释放（高优恢复） | 已实现 |
