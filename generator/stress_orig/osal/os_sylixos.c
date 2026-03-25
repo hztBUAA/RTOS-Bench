@@ -1,6 +1,4 @@
 /* osal/os_sylixos.c */
-#define _GNU_SOURCE
-
 #include <SylixOS.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -327,8 +325,11 @@ int stress_osal_rand(void) { return rand(); }
 
 void stress_osal_mb(void)
 {
-    /* GCC 内置内存屏障 */
+#if defined(__loongarch__)
+    __asm__ volatile("dbar 0" ::: "memory");
+#else
     __sync_synchronize();
+#endif
 }
 
 void stress_osal_cache_flush(void *addr, size_t len)

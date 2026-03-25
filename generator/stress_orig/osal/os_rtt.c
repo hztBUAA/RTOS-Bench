@@ -359,11 +359,11 @@ int stress_osal_rand(void)
 
 void stress_osal_mb(void)
 {
-    /*
-     * [修复] 使用 GCC 内置函数生成真正的硬件内存屏障 (如 DMB ISH)
-     * 原来的 "" ::: "memory" 只是编译器屏障
-     */
+#if defined(__riscv)
+    __asm__ volatile("fence iorw,iorw" ::: "memory");
+#else
     __sync_synchronize();
+#endif
 }
 
 void stress_osal_cache_flush(void *addr, size_t len)

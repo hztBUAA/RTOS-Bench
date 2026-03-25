@@ -118,26 +118,26 @@ const char JOB_DATA_MEMORY[] =
     /* --- Stage 3: 60% --- */
     "memcpy    --ops 2300     -c 3 --memcpy-size 131072\n"
     "stream    --ops 9000     -c 3 --stream-elem 8192\n"
-    "vm        --ops 39000000 -c 2 --vm-bytes 2097152\n"
-    "malloc    --ops 920000   -c 3 --malloc-bytes 4096\n"
+    "vm        --ops 39000000 -c 3 --vm-bytes 2097152\n"
+    "malloc    --ops 920000   -c 3 --malloc-bytes 2048\n"
     "memthrash --ops 1800     -c 3 --mem-size 131072\n"
     "ptr-chase --ops 27500000 -c 3 --ptr-chase-pages 512\n"
 
     /* --- Stage 4: 80% --- */
     "memcpy    --ops 700      -c 4 --memcpy-size 262144\n"
     "stream    --ops 2700     -c 4 --stream-elem 16384\n"
-    "vm        --ops 37500000 -c 2 --vm-bytes 4194304\n"
-    "malloc    --ops 660000   -c 4 --malloc-bytes 8192\n"
+    "vm        --ops 37500000 -c 4 --vm-bytes 4194304\n"
+    "malloc    --ops 660000   -c 4 --malloc-bytes 4096\n"
     "memthrash --ops 1100     -c 4 --mem-size 262144\n"
     "ptr-chase --ops 20000000 -c 4 --ptr-chase-pages 256\n"
 
     /* --- Stage 5: 100% --- */
-    "memcpy    --ops 280      -c 5 --memcpy-size 524288\n"
-    "stream    --ops 1100     -c 5 --stream-elem 32768\n"
-    "vm        --ops 29000000 -c 3 --vm-bytes 8388608\n"
-    "malloc    --ops 400000   -c 5 --malloc-bytes 16384\n"
-    "memthrash --ops 900      -c 5 --mem-size 524288\n"
-    "ptr-chase --ops 26000000 -c 5 --ptr-chase-pages 128\n";
+    "memcpy    --ops 280      -c 4 --memcpy-size 524288\n"
+    "stream    --ops 1100     -c 4 --stream-elem 32768\n"
+    "vm        --ops 29000000 -c 4 --vm-bytes 8388608\n"
+    "malloc    --ops 400000   -c 4 --malloc-bytes 8192\n"
+    "memthrash --ops 900      -c 4 --mem-size 524288\n"
+    "ptr-chase --ops 26000000 -c 4 --ptr-chase-pages 128\n";
 
 const char JOB_DATA_FILE[] =
     /* --- Stage 1: 20% --- */
@@ -185,7 +185,7 @@ const char JOB_DATA_FILE[] =
     "open      --ops 700  -c 5 --open-max 40\n"
     "copy-file --ops 5    -c 5 --copy-file-bytes 4194304\n"
     "unlink    --ops 400  -c 5\n"
-    "fstat     --ops 1100 -c 5 --fstat-files 5\n"
+    "fstat     --ops 1100 -c 4 --fstat-files 7\n"
     "dentry    --ops 600  -c 2 --dentries 128\n"
     "rename    --ops 300  -c 5\n"
     "pipe      --ops 300  -c 5 --pipe-data-size 32768\n";

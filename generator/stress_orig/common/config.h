@@ -73,14 +73,16 @@
 /* memcpy */
 #define MIN_MEMCPY_MEMSIZE      64
 #define DEFAULT_MEMCPY_MEMSIZE  (32 * 1024)
+#define MAX_MEMCPY_MEMSIZE      (1024 * 1024)
 
 #define MIN_MEMCPY_LOOPS        1
 #define DEFAULT_MEMCPY_LOOPS    64
+#define MAX_MEMCPY_LOOPS        65536
 
 /* memthrash */
 #define MIN_MEM_SIZE            (1 * 1024)
-#define DEFAULT_MEM_SIZE        (64 * 1024)
-#define MAX_MEM_SIZE            (4 * 1024 * 1024)
+#define DEFAULT_MEM_SIZE        (1 * 1024 * 1024)
+#define MAX_MEM_SIZE            (64 * 1024 * 1024)
 
 /* open */
 #define DEFAULT_OPEN_MAX        32
@@ -97,9 +99,9 @@
 #define DEFAULT_PRIME_START     10000000ULL
 
 /* ptr-chase */
-#define MIN_PTR_CHASE_PAGES    4
-#define DEFAULT_PTR_CHASE_PAGES 4096
-#define MAX_PTR_CHASE_PAGES     65536
+#define DEFAULT_PTR_CHASE_PAGES   (256ULL)
+#define MIN_PTR_CHASE_PAGES       (1ULL)
+#define MAX_PTR_CHASE_PAGES       (16384ULL)
 
 /* qsort */
 #define MIN_QSORT_SIZE          128

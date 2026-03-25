@@ -67,28 +67,28 @@ extern const stress_opt_t stress_vm_opts[];
 
 static const stressor_info_t stress_registry[] = {
     /* --- 计算密集型 --- */
-    {"vecmath",    stress_vecmath,    16384,  20,   stress_vecmath_opts},
-    {"cpu",        stress_cpu,        65536,  20,   stress_cpu_opts},      /* 64KB: ackermann(3,2) needs ~25KB stack */
-    {"bitops",     stress_bitops,     16384,  20,   stress_bitops_opts},
-    {"prime",      stress_prime,      16384,  19,   stress_prime_opts},
+    {"vecmath",    stress_vecmath,    8192,  20,   stress_vecmath_opts},
+    {"cpu",        stress_cpu,        8192,  20,   stress_cpu_opts},
+    {"bitops",     stress_bitops,     8192,  20,   stress_bitops_opts},
+    {"prime",      stress_prime,      8192,  19,   stress_prime_opts},
     {"fp",         stress_fp,         16384,  20,   stress_fp_opts},
-    {"trig",       stress_trig,       16384,  20,   stress_trig_opts},
-    {"atomic",     stress_atomic,     16384,  20,   stress_atomic_opts},
+    {"trig",       stress_trig,       8192,  20,   stress_trig_opts},
+    {"atomic",     stress_atomic,     8192,  20,   stress_atomic_opts},
     {"context",    stress_context,    16384,  20,   stress_context_opts},
-    {"ptr-chase",  stress_ptr_chase,  16384,  20,   stress_ptr_chase_opts},
+    {"ptr-chase",  stress_ptr_chase,  8192,  20,   stress_ptr_chase_opts},
 
     /* --- 递归/重逻辑型 (32KB) --- */
-    {"matrix",     stress_matrix,     32768,  21,   stress_matrix_opts},
-    {"qsort",      stress_qsort,      32768,  20,   stress_qsort_opts},
-    {"bsearch",    stress_bsearch,    32768,  20,   stress_bsearch_opts},
-    {"str",        stress_str,        32768,  20,   stress_str_opts},
+    {"matrix",     stress_matrix,     16384,  21,   stress_matrix_opts},
+    {"qsort",      stress_qsort,      16384,  20,   stress_qsort_opts},
+    {"bsearch",    stress_bsearch,    16384,  20,   stress_bsearch_opts},
+    {"str",        stress_str,        16384,  20,   stress_str_opts},
 
-    /* --- 内存操作型 (64KB ) --- */
-    {"vm",         stress_vm,         65536,  20,   stress_vm_opts},
-    {"malloc",     stress_malloc,     65536,  20,   stress_malloc_opts},
-    {"memcpy",     stress_memcpy,     65536,  20,   stress_memcpy_opts},
-    {"memthrash",  stress_memthrash,  65536,  20,   stress_memthrash_opts},
-    {"stream",     stress_stream,     65536,  20,   stress_stream_opts},
+    /* --- 内存操作型 (8KB ) --- */
+    {"vm",         stress_vm,         8192,  20,   stress_vm_opts},
+    {"malloc",     stress_malloc,     12800,  20,   stress_malloc_opts},
+    {"memcpy",     stress_memcpy,     8192,  20,   stress_memcpy_opts},
+    {"memthrash",  stress_memthrash,  8192,  20,   stress_memthrash_opts},
+    {"stream",     stress_stream,     8192,  20,   stress_stream_opts},
 
     /* --- 文件系统型 (16KB) --- */
     {"hdd",        stress_hdd,        16384,  25,   stress_hdd_opts},
@@ -99,8 +99,7 @@ static const stressor_info_t stress_registry[] = {
     {"dentry",     stress_dentry,     16384,  20,   stress_dentry_opts},
     {"rename",     stress_rename,     16384,  20,   stress_rename_opts},
     {"pipe",       stress_pipe,       16384,  20,   stress_pipe_opts},
-
-    {"stack",      stress_stack,      65536,  20,   stress_stack_opts},
+    {"stack",      stress_stack,      16384,  20,   stress_stack_opts},
 
     {NULL, NULL, 0, 0, NULL}
 };

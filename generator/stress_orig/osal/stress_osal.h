@@ -188,4 +188,13 @@ long double stress_osal_tanl(long double x);
 double stress_osal_fabs(double x);
 long double stress_osal_fabsl(long double x);
 
+
+#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__)  || \
+    defined(__aarch64__) || defined(__arm__)                         || \
+    defined(__riscv)     || defined(__mips__)  || defined(__loongarch__))
+#  define STRESS_HAVE_ATOMIC 1
+#else
+#  define STRESS_HAVE_ATOMIC 0
+#endif
+
 #endif /* __STRESS_OSAL_H__ */
