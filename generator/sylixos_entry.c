@@ -165,20 +165,28 @@ int main(int argc, char **argv)
 	/* Handle test-realtime subcommand */
 	if (argc >= 2 && strcmp(argv[1], "test-realtime") == 0) {
 		int run_multicore = 0;
+		int run_verify = 0;
 
-		for (int i = 2; i < argc; i++) {
-			if (strcmp(argv[i], "--multicore") == 0 ||
-			    strcmp(argv[i], "-m") == 0) {
-				run_multicore = 1;
-			} else if (strcmp(argv[i], "-q") == 0) {
-				benchmark_verbosity = LOG_LEVEL_INFO;
-			}
-		}
+        for (int i = 2; i < argc; i++) {
+            if (strcmp(argv[i], "--verify") == 0 ||
+                strcmp(argv[i], "-v") == 0) {
+                run_verify = 1;
+            } else if (strcmp(argv[i], "--multicore") == 0 ||
+                strcmp(argv[i], "-m") == 0) {
+                run_multicore = 1;
+            } else if (strcmp(argv[i], "-q") == 0) {
+                benchmark_verbosity = LOG_LEVEL_INFO;
+            }
+        }
 
 		printf("[test-realtime] Starting realtime performance test on SylixOS\n");
 		if (run_multicore) {
 			printf("  Multicore tests: enabled\n");
 		}
+
+        if (run_verify) {
+            test_realtime_verify();
+        }
 
 		return test_realtime_run(run_multicore);
 	}

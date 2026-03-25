@@ -102,7 +102,6 @@ rtos-bench/
 │   ├── workloads/
 │   └── platforms/
 ├── src/
-│   ├── sylixos_stubs.c      # Stub 函数 (不可用模块的占位)
 │   └── cusum_workload.c     # 示例自定义工作负载
 ├── Makefile
 ├── config.mk
@@ -203,6 +202,9 @@ cd /apps
 ### 5.3 系统测试
 
 ```bash
+# 实时性能测试（-v: 前置条件的验证, -m: 进行含“多核并发开销”的完整测试）
+./rtos-bench test-realtime -v -m
+
 # 可调度性测试
 ./rtos-bench test-schedule --cycles 100
 
@@ -260,10 +262,6 @@ make WORKSPACE_base=/path/to/base
 1. 确保执行了 **Clean Build**（不是增量编译）
 2. 检查是否缺少源文件
 3. 确认 OSAL 实现 (`os_sylixos.c`) 已包含在编译中
-
-### Q: test-realtime 不工作？
-
-test-realtime 模块依赖 RT-Thread 特定 API，目前不支持 SylixOS。这是已知限制。
 
 ### Q: 如何添加自定义工作负载？
 

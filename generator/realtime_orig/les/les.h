@@ -81,12 +81,16 @@ static inline void LES_start_timer(void) {
 
 /* 计时器频率获取函数 */
 static inline uint64_t freqGet(void) {
-    uint64_t freq = 0;
+    uint64_t freq = 100000000;
 #if defined(__aarch64__)
     __asm__ volatile("mrs %0, cntfrq_el0" : "=r"(freq));
 
 #elif defined(_M_X64) || defined(__x86_64__)
-    /* ... */
+    #if defined(SYLIXOS_PLATFORM)
+        freq = 3599453234;
+    #else
+        freq = 3599453234;
+    #endif
 
 #elif defined(__riscv)
     /* ... */

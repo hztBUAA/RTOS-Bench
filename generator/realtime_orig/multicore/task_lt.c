@@ -30,7 +30,7 @@ static void *son_thread(void* parameter) {
 
     pthread_attr_init(&attr);
     
-    pthread_attr_setstacksize(&attr, 8192);
+    pthread_attr_setstacksize(&attr, 4096);
     
 	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
     param.sched_priority = BENCHMARK_LOW_PRIO;
@@ -84,6 +84,7 @@ static void *son_thread(void* parameter) {
 static void *father_thread(void* parameter) {
 	BIND_THREAD_TO_CPU(0);
 	int pair_count = (int)(long)parameter;
+	int success_count = 0;
 
 	pthread_t tid[MAX_WORKERS];
     pthread_attr_t attr;
@@ -99,43 +100,54 @@ static void *father_thread(void* parameter) {
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
 	for (int i = 0; i < pair_count; i++) {
-		if (pthread_create(&tid[i], &attr, son_thread, (void *)(long)i) != 0) {
-		    return 0;
+		if (pthread_create(&tid[i], &attr, son_thread, (void *)(long)i) == 0) {
+		    success_count = success_count + 1;
+		} else {
+		    printf("[task_lt]: son create fail\n");
+            break;
 		}
 	}
 	
+	if (success_count == pair_count) {
+	    // wait for sons to be prepared
+	    for (int i = 0; i < pair_count; i++) {
+	        sem_wait(&son_to_father);
+	    }
 
-	// wait for sons to be prepared
-	for (int i = 0; i < pair_count; i++) {
-		sem_wait(&son_to_father);
-	}
-	
 
-	uint64_t t0, t1;
-	
-	t0 = timeGet();
-	
-	// notify all
-	for (int i = 0; i < pair_count; i++) {
-		sem_post(&father_to_son);
+	    uint64_t t0, t1;
+
+	    t0 = timeGet();
+
+	    // notify all
+	    for (int i = 0; i < pair_count; i++) {
+	        sem_post(&father_to_son);
+	    }
+
+	    // wait for all
+	    for (int i = 0; i < pair_count; i++) {
+	        sem_wait(&son_to_father);
+	    }
+
+	    t1 = timeGet();
+	    cycles = t1 - t0;
+	} else {
+	    for (int i = 0; i < success_count; i++) {
+	        sem_post(&father_to_son);
+	    }
+	    cycles = 0;
 	}
-	
-	// wait for all
-	for (int i = 0; i < pair_count; i++) {
-		sem_wait(&son_to_father);
-	}
-	
-	t1 = timeGet();
+
 	
 	// clear
-	for (int i = 0; i < pair_count; i++) {
+	for (int i = 0; i < success_count; i++) {
 		pthread_join(tid[i], NULL);
 	}
 	
 	pthread_attr_destroy(&attr);
 	
-	cycles = t1 - t0;
 	
+
     return NULL;
 }
 

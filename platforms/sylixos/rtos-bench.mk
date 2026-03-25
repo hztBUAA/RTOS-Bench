@@ -71,6 +71,37 @@ RTOS-Bench/generator/stress_orig/stressor/stress-trig.c \
 RTOS-Bench/generator/stress_orig/stressor/stress-unlink.c \
 RTOS-Bench/generator/stress_orig/stressor/stress-vecmath.c \
 RTOS-Bench/generator/stress_orig/stressor/stress-vm.c \
+RTOS-Bench/generator/realtime_orig/les/bench_init.c \
+RTOS-Bench/generator/realtime_orig/les/cpu_affinity.c \
+RTOS-Bench/generator/realtime_orig/les/data_tools.c \
+RTOS-Bench/generator/realtime_orig/les/les.c \
+RTOS-Bench/generator/realtime_orig/les/reworks_int.c \
+RTOS-Bench/generator/realtime_orig/les/safe_sleep.c \
+RTOS-Bench/generator/realtime_orig/multicore/ipc_bw.c \
+RTOS-Bench/generator/realtime_orig/multicore/mem_bw.c \
+RTOS-Bench/generator/realtime_orig/multicore/task_lt.c \
+RTOS-Bench/generator/realtime_orig/realtime/test1.c \
+RTOS-Bench/generator/realtime_orig/realtime/test10_1.c \
+RTOS-Bench/generator/realtime_orig/realtime/test2.c \
+RTOS-Bench/generator/realtime_orig/realtime/test3.c \
+RTOS-Bench/generator/realtime_orig/realtime/test4_1.c \
+RTOS-Bench/generator/realtime_orig/realtime/test4_2.c \
+RTOS-Bench/generator/realtime_orig/realtime/test5_3.c \
+RTOS-Bench/generator/realtime_orig/realtime/test6_0.c \
+RTOS-Bench/generator/realtime_orig/realtime/test6_1.c \
+RTOS-Bench/generator/realtime_orig/realtime/test6_2.c \
+RTOS-Bench/generator/realtime_orig/realtime/test6_3.c \
+RTOS-Bench/generator/realtime_orig/realtime/test6_4.c \
+RTOS-Bench/generator/realtime_orig/realtime/test7_3.c \
+RTOS-Bench/generator/realtime_orig/realtime/test8_1.c \
+RTOS-Bench/generator/realtime_orig/realtime/test8_2.c \
+RTOS-Bench/generator/realtime_orig/realtime/test9_3.c \
+RTOS-Bench/generator/realtime_orig/verify/all_realtime_verify.c \
+RTOS-Bench/generator/realtime_orig/verify/cpu_bind_verify.c \
+RTOS-Bench/generator/realtime_orig/verify/freq_verify.c \
+RTOS-Bench/generator/realtime_orig/verify/interrupt_stub_verify.c \
+RTOS-Bench/generator/realtime_orig/verify/schedule_stub_verify.c \
+RTOS-Bench/generator/realtime_orig/verify/time_verify.c \
 RTOS-Bench/generator/periodic_benchmark.c \
 RTOS-Bench/generator/workload_registry.c \
 RTOS-Bench/generator/workload_stub.c \
@@ -91,8 +122,7 @@ RTOS-Bench/workloads/MODBUS/modbus_bench.c \
 RTOS-Bench/workloads/MODBUS/nanomodbus.c \
 RTOS-Bench/workloads/MQTT/mongoose.c \
 RTOS-Bench/workloads/MQTT/mqtt_bench.c \
-src/cusum_workload.c \
-src/sylixos_stubs.c
+src/cusum_workload.c
 
 #*********************************************************************************************************
 # C++ Source list
@@ -164,7 +194,8 @@ LOCAL_INC_PATH :=  \
 -I"./RTOS-Bench/workloads/MQTT" \
 -I"./RTOS-Bench/generator/stress_orig/common" \
 -I"./RTOS-Bench/generator/stress_orig/osal" \
--I"./RTOS-Bench/generator/stress_orig/stressor"
+-I"./RTOS-Bench/generator/stress_orig/stressor" \
+-I"./RTOS-Bench/generator/realtime_orig/les"
 
 #*********************************************************************************************************
 # Pre-defined macro (eg. -DYOUR_MARCO=1)
