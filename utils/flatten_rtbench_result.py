@@ -94,13 +94,13 @@ def extract_metrics(data: Any, prefix: str = "") -> Generator[Tuple[str, Any, st
             else:
                 yield from extract_metrics(item, f"{prefix}[{i}]")
 
+    elif isinstance(data, bool):
+        yield (prefix, 1 if data else 0, "bool")
+
     elif isinstance(data, (int, float)):
         # 根据路径推断单位
         unit = infer_unit_from_path(prefix)
         yield (prefix, data, unit)
-
-    elif isinstance(data, bool):
-        yield (prefix, 1 if data else 0, "bool")
 
 
 def infer_unit_from_path(path: str) -> str:
