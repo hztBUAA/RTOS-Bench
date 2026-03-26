@@ -34,6 +34,11 @@ OPTIMAL_TYPE_RULES = {
     "pass": "max", "success": "max", "gb/s": "max", "mb/s": "max",
 }
 
+# 路径关键词覆盖规则（优先于 OPTIMAL_TYPE_RULES，用于修正子串误匹配）
+OPTIMAL_TYPE_OVERRIDES = {
+    "memory_bandwidth": "max",  # memset 含子串 "ms" 会误匹配 ms→min
+}
+
 
 def generate_uuid() -> str:
     """生成唯一的 flow_job_history_id"""
@@ -44,6 +49,11 @@ def infer_optimal_type(path: str, unit: str = "") -> str:
     """根据路径和单位推断指标优化方向"""
     path_lower = path.lower()
     unit_lower = unit.lower()
+
+    # 优先检查覆盖规则
+    for keyword, opt_type in OPTIMAL_TYPE_OVERRIDES.items():
+        if keyword in path_lower:
+            return opt_type
 
     for keyword, opt_type in OPTIMAL_TYPE_RULES.items():
         if keyword in path_lower or keyword in unit_lower:
