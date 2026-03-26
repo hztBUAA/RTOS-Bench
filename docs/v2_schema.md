@@ -384,7 +384,7 @@ ElasticSearch / 下游消费方
 
 ---
 
-### 4.2 `schedule` — 可调度性测试 (158 条)
+### 4.2 `schedule` — 可调度性测试 (262 条)
 
 中间 JSON 模块名：`test-schedule`
 
@@ -402,7 +402,7 @@ ElasticSearch / 下游消费方
 |----------------|------|----------|------|
 | `wcet_measurements_{N}_wcet_ms` | ms | min | 第 N 个 workload 的最坏执行时间 |
 
-标准配置下 N 取 0..4，共 5 条。
+标准配置下 N 取 0..8，共 9 条。
 
 #### 4.2.3 梯度调度 (gradients)
 
@@ -428,7 +428,7 @@ ElasticSearch / 下游消费方
 | `gradients_{G}_task_stats_{task}_misses` | (空) | min | 任务未命中数 |
 | `gradients_{G}_task_stats_{task}_max_response_ms` | ms | min | 任务最大响应时间 |
 
-> 其中 `{task}` 来自 `task_stats[].name`（如 `pid`, `ekf`, `fft`, `matrix`, `crc`），`{G}` 为梯度数组索引 0..4。
+> 其中 `{task}` 来自 `task_stats[].name`（如 `pid`, `ekf`, `fast`, `epnp`, `icp`, `modbus`, `mqtt`, `cusum`, `ewma`），`{G}` 为梯度数组索引 0..4。
 
 注意 `utilization` 字段缺少 `period_ms` 等后缀，`infer_unit_from_path()` 无法匹配单位，因此 `test_unit` 为空。
 
@@ -439,9 +439,9 @@ ElasticSearch / 下游消费方
 | `summary_average_miss_rate` | ratio | min | 所有梯度的平均未命中率 |
 | `summary_final_score` | score | max | 可调度性最终得分 (0-100) |
 
-**记录数计算**：1 (duration) + 5 (wcet) + 5×(5 + 5×6) (gradients) + 2 (summary) = 1 + 5 + 175 - 25 + 2... 实际为 **158 条**（与 standard_results_example.json 一致）。
+**记录数计算**：1 (duration) + 9 (wcet) + 5×(5 + 9×5) (gradients) + 2 (summary) = 1 + 9 + 250 + 2 = **262 条**（与 standard_results_example.json 一致）。
 
-梯度部分详细计算：5 个梯度 × (5 梯度级字段 + 5 任务 × 5 任务字段) = 5 × 30 = 150 条。加模块级 1 + WCET 5 + summary 2 = 158 条。
+梯度部分详细计算：5 个梯度 × (5 梯度级字段 + 9 任务 × 5 任务字段) = 5 × 50 = 250 条。加模块级 1 + WCET 9 + summary 2 = 262 条。
 
 > 注：每个任务实际产生 5 个字段（不是 6 个）：`utilization`, `period_ms`, `jobs`, `misses`, `max_response_ms`。`name` 字段用作标识键，不产生记录。
 
@@ -559,7 +559,7 @@ test_case 命名规则：`stressors_{name}_s{stage}_{field}`
 
 ---
 
-### 4.5 `workload` — 典型工业负载测试 (25 条)
+### 4.5 `workload` — 典型工业负载测试 (45 条)
 
 中间 JSON 模块名：`typical-workload`
 
@@ -582,16 +582,21 @@ test_case 命名规则：`stressors_{name}_s{stage}_{field}`
 
 > \* `success` 和 `rounds` 的优化方向由 `infer_optimal_type` 推断。`success` 命中关键词 `"success"` → max。`rounds` 无匹配关键词 → 默认 max。
 
-标准配置下的 workload 列表（6 个 × 4 字段 = 24 条 + 1 模块级 = 25 条）：
+标准配置下的 workload 列表（11 个 × 4 字段 = 44 条 + 1 模块级 = 45 条）：
 
 | workload name | 说明 |
 |---------------|------|
-| `pid` | PID 控制器 |
-| `ekf` | 扩展卡尔曼滤波 |
-| `fft` | 快速傅里叶变换 |
-| `matrix` | 矩阵运算 |
-| `crc` | CRC 校验 |
+| `stub` | 空操作（校准用） |
 | `busywait` | 忙等待（校准用） |
+| `fast` | FAST 特征检测 |
+| `epnp` | EPnP 位姿估计 |
+| `ekf` | 扩展卡尔曼滤波 |
+| `icp` | ICP 点云配准 |
+| `modbus` | Modbus 协议解析 |
+| `mqtt` | MQTT 协议处理 |
+| `pid` | PID 控制器 |
+| `cusum` | CUSUM 变点检测 |
+| `ewma` | EWMA 指数加权移动平均 |
 
 ---
 
@@ -647,7 +652,7 @@ Flatten 脚本按以下优先级扫描 `path` 和 `unit` 中的关键词：
 
 ## 6. 完整 test_case 枚举
 
-基于 `standard_results_example.json` 中 **412 条记录**的完整 test_case 列表。
+基于 `standard_results_example.json` 中 **536 条记录**的完整 test_case 列表。
 
 ### 6.1 `realtime` (70 条)
 
@@ -724,7 +729,7 @@ multi_core_core_comm_intra_core
 multi_core_core_comm_inter_core
 ```
 
-### 6.2 `schedule` (158 条)
+### 6.2 `schedule` (262 条)
 
 ```
 duration_sec
@@ -733,6 +738,10 @@ wcet_measurements_1_wcet_ms
 wcet_measurements_2_wcet_ms
 wcet_measurements_3_wcet_ms
 wcet_measurements_4_wcet_ms
+wcet_measurements_5_wcet_ms
+wcet_measurements_6_wcet_ms
+wcet_measurements_7_wcet_ms
+wcet_measurements_8_wcet_ms
 gradients_0_utilization_percent
 gradients_0_actual_utilization
 gradients_0_total_jobs
@@ -748,21 +757,41 @@ gradients_0_task_stats_ekf_period_ms
 gradients_0_task_stats_ekf_jobs
 gradients_0_task_stats_ekf_misses
 gradients_0_task_stats_ekf_max_response_ms
-gradients_0_task_stats_fft_utilization
-gradients_0_task_stats_fft_period_ms
-gradients_0_task_stats_fft_jobs
-gradients_0_task_stats_fft_misses
-gradients_0_task_stats_fft_max_response_ms
-gradients_0_task_stats_matrix_utilization
-gradients_0_task_stats_matrix_period_ms
-gradients_0_task_stats_matrix_jobs
-gradients_0_task_stats_matrix_misses
-gradients_0_task_stats_matrix_max_response_ms
-gradients_0_task_stats_crc_utilization
-gradients_0_task_stats_crc_period_ms
-gradients_0_task_stats_crc_jobs
-gradients_0_task_stats_crc_misses
-gradients_0_task_stats_crc_max_response_ms
+gradients_0_task_stats_fast_utilization
+gradients_0_task_stats_fast_period_ms
+gradients_0_task_stats_fast_jobs
+gradients_0_task_stats_fast_misses
+gradients_0_task_stats_fast_max_response_ms
+gradients_0_task_stats_epnp_utilization
+gradients_0_task_stats_epnp_period_ms
+gradients_0_task_stats_epnp_jobs
+gradients_0_task_stats_epnp_misses
+gradients_0_task_stats_epnp_max_response_ms
+gradients_0_task_stats_icp_utilization
+gradients_0_task_stats_icp_period_ms
+gradients_0_task_stats_icp_jobs
+gradients_0_task_stats_icp_misses
+gradients_0_task_stats_icp_max_response_ms
+gradients_0_task_stats_modbus_utilization
+gradients_0_task_stats_modbus_period_ms
+gradients_0_task_stats_modbus_jobs
+gradients_0_task_stats_modbus_misses
+gradients_0_task_stats_modbus_max_response_ms
+gradients_0_task_stats_mqtt_utilization
+gradients_0_task_stats_mqtt_period_ms
+gradients_0_task_stats_mqtt_jobs
+gradients_0_task_stats_mqtt_misses
+gradients_0_task_stats_mqtt_max_response_ms
+gradients_0_task_stats_cusum_utilization
+gradients_0_task_stats_cusum_period_ms
+gradients_0_task_stats_cusum_jobs
+gradients_0_task_stats_cusum_misses
+gradients_0_task_stats_cusum_max_response_ms
+gradients_0_task_stats_ewma_utilization
+gradients_0_task_stats_ewma_period_ms
+gradients_0_task_stats_ewma_jobs
+gradients_0_task_stats_ewma_misses
+gradients_0_task_stats_ewma_max_response_ms
 gradients_1_utilization_percent
 gradients_1_actual_utilization
 gradients_1_total_jobs
@@ -778,21 +807,41 @@ gradients_1_task_stats_ekf_period_ms
 gradients_1_task_stats_ekf_jobs
 gradients_1_task_stats_ekf_misses
 gradients_1_task_stats_ekf_max_response_ms
-gradients_1_task_stats_fft_utilization
-gradients_1_task_stats_fft_period_ms
-gradients_1_task_stats_fft_jobs
-gradients_1_task_stats_fft_misses
-gradients_1_task_stats_fft_max_response_ms
-gradients_1_task_stats_matrix_utilization
-gradients_1_task_stats_matrix_period_ms
-gradients_1_task_stats_matrix_jobs
-gradients_1_task_stats_matrix_misses
-gradients_1_task_stats_matrix_max_response_ms
-gradients_1_task_stats_crc_utilization
-gradients_1_task_stats_crc_period_ms
-gradients_1_task_stats_crc_jobs
-gradients_1_task_stats_crc_misses
-gradients_1_task_stats_crc_max_response_ms
+gradients_1_task_stats_fast_utilization
+gradients_1_task_stats_fast_period_ms
+gradients_1_task_stats_fast_jobs
+gradients_1_task_stats_fast_misses
+gradients_1_task_stats_fast_max_response_ms
+gradients_1_task_stats_epnp_utilization
+gradients_1_task_stats_epnp_period_ms
+gradients_1_task_stats_epnp_jobs
+gradients_1_task_stats_epnp_misses
+gradients_1_task_stats_epnp_max_response_ms
+gradients_1_task_stats_icp_utilization
+gradients_1_task_stats_icp_period_ms
+gradients_1_task_stats_icp_jobs
+gradients_1_task_stats_icp_misses
+gradients_1_task_stats_icp_max_response_ms
+gradients_1_task_stats_modbus_utilization
+gradients_1_task_stats_modbus_period_ms
+gradients_1_task_stats_modbus_jobs
+gradients_1_task_stats_modbus_misses
+gradients_1_task_stats_modbus_max_response_ms
+gradients_1_task_stats_mqtt_utilization
+gradients_1_task_stats_mqtt_period_ms
+gradients_1_task_stats_mqtt_jobs
+gradients_1_task_stats_mqtt_misses
+gradients_1_task_stats_mqtt_max_response_ms
+gradients_1_task_stats_cusum_utilization
+gradients_1_task_stats_cusum_period_ms
+gradients_1_task_stats_cusum_jobs
+gradients_1_task_stats_cusum_misses
+gradients_1_task_stats_cusum_max_response_ms
+gradients_1_task_stats_ewma_utilization
+gradients_1_task_stats_ewma_period_ms
+gradients_1_task_stats_ewma_jobs
+gradients_1_task_stats_ewma_misses
+gradients_1_task_stats_ewma_max_response_ms
 gradients_2_utilization_percent
 gradients_2_actual_utilization
 gradients_2_total_jobs
@@ -808,21 +857,41 @@ gradients_2_task_stats_ekf_period_ms
 gradients_2_task_stats_ekf_jobs
 gradients_2_task_stats_ekf_misses
 gradients_2_task_stats_ekf_max_response_ms
-gradients_2_task_stats_fft_utilization
-gradients_2_task_stats_fft_period_ms
-gradients_2_task_stats_fft_jobs
-gradients_2_task_stats_fft_misses
-gradients_2_task_stats_fft_max_response_ms
-gradients_2_task_stats_matrix_utilization
-gradients_2_task_stats_matrix_period_ms
-gradients_2_task_stats_matrix_jobs
-gradients_2_task_stats_matrix_misses
-gradients_2_task_stats_matrix_max_response_ms
-gradients_2_task_stats_crc_utilization
-gradients_2_task_stats_crc_period_ms
-gradients_2_task_stats_crc_jobs
-gradients_2_task_stats_crc_misses
-gradients_2_task_stats_crc_max_response_ms
+gradients_2_task_stats_fast_utilization
+gradients_2_task_stats_fast_period_ms
+gradients_2_task_stats_fast_jobs
+gradients_2_task_stats_fast_misses
+gradients_2_task_stats_fast_max_response_ms
+gradients_2_task_stats_epnp_utilization
+gradients_2_task_stats_epnp_period_ms
+gradients_2_task_stats_epnp_jobs
+gradients_2_task_stats_epnp_misses
+gradients_2_task_stats_epnp_max_response_ms
+gradients_2_task_stats_icp_utilization
+gradients_2_task_stats_icp_period_ms
+gradients_2_task_stats_icp_jobs
+gradients_2_task_stats_icp_misses
+gradients_2_task_stats_icp_max_response_ms
+gradients_2_task_stats_modbus_utilization
+gradients_2_task_stats_modbus_period_ms
+gradients_2_task_stats_modbus_jobs
+gradients_2_task_stats_modbus_misses
+gradients_2_task_stats_modbus_max_response_ms
+gradients_2_task_stats_mqtt_utilization
+gradients_2_task_stats_mqtt_period_ms
+gradients_2_task_stats_mqtt_jobs
+gradients_2_task_stats_mqtt_misses
+gradients_2_task_stats_mqtt_max_response_ms
+gradients_2_task_stats_cusum_utilization
+gradients_2_task_stats_cusum_period_ms
+gradients_2_task_stats_cusum_jobs
+gradients_2_task_stats_cusum_misses
+gradients_2_task_stats_cusum_max_response_ms
+gradients_2_task_stats_ewma_utilization
+gradients_2_task_stats_ewma_period_ms
+gradients_2_task_stats_ewma_jobs
+gradients_2_task_stats_ewma_misses
+gradients_2_task_stats_ewma_max_response_ms
 gradients_3_utilization_percent
 gradients_3_actual_utilization
 gradients_3_total_jobs
@@ -838,21 +907,41 @@ gradients_3_task_stats_ekf_period_ms
 gradients_3_task_stats_ekf_jobs
 gradients_3_task_stats_ekf_misses
 gradients_3_task_stats_ekf_max_response_ms
-gradients_3_task_stats_fft_utilization
-gradients_3_task_stats_fft_period_ms
-gradients_3_task_stats_fft_jobs
-gradients_3_task_stats_fft_misses
-gradients_3_task_stats_fft_max_response_ms
-gradients_3_task_stats_matrix_utilization
-gradients_3_task_stats_matrix_period_ms
-gradients_3_task_stats_matrix_jobs
-gradients_3_task_stats_matrix_misses
-gradients_3_task_stats_matrix_max_response_ms
-gradients_3_task_stats_crc_utilization
-gradients_3_task_stats_crc_period_ms
-gradients_3_task_stats_crc_jobs
-gradients_3_task_stats_crc_misses
-gradients_3_task_stats_crc_max_response_ms
+gradients_3_task_stats_fast_utilization
+gradients_3_task_stats_fast_period_ms
+gradients_3_task_stats_fast_jobs
+gradients_3_task_stats_fast_misses
+gradients_3_task_stats_fast_max_response_ms
+gradients_3_task_stats_epnp_utilization
+gradients_3_task_stats_epnp_period_ms
+gradients_3_task_stats_epnp_jobs
+gradients_3_task_stats_epnp_misses
+gradients_3_task_stats_epnp_max_response_ms
+gradients_3_task_stats_icp_utilization
+gradients_3_task_stats_icp_period_ms
+gradients_3_task_stats_icp_jobs
+gradients_3_task_stats_icp_misses
+gradients_3_task_stats_icp_max_response_ms
+gradients_3_task_stats_modbus_utilization
+gradients_3_task_stats_modbus_period_ms
+gradients_3_task_stats_modbus_jobs
+gradients_3_task_stats_modbus_misses
+gradients_3_task_stats_modbus_max_response_ms
+gradients_3_task_stats_mqtt_utilization
+gradients_3_task_stats_mqtt_period_ms
+gradients_3_task_stats_mqtt_jobs
+gradients_3_task_stats_mqtt_misses
+gradients_3_task_stats_mqtt_max_response_ms
+gradients_3_task_stats_cusum_utilization
+gradients_3_task_stats_cusum_period_ms
+gradients_3_task_stats_cusum_jobs
+gradients_3_task_stats_cusum_misses
+gradients_3_task_stats_cusum_max_response_ms
+gradients_3_task_stats_ewma_utilization
+gradients_3_task_stats_ewma_period_ms
+gradients_3_task_stats_ewma_jobs
+gradients_3_task_stats_ewma_misses
+gradients_3_task_stats_ewma_max_response_ms
 gradients_4_utilization_percent
 gradients_4_actual_utilization
 gradients_4_total_jobs
@@ -868,21 +957,41 @@ gradients_4_task_stats_ekf_period_ms
 gradients_4_task_stats_ekf_jobs
 gradients_4_task_stats_ekf_misses
 gradients_4_task_stats_ekf_max_response_ms
-gradients_4_task_stats_fft_utilization
-gradients_4_task_stats_fft_period_ms
-gradients_4_task_stats_fft_jobs
-gradients_4_task_stats_fft_misses
-gradients_4_task_stats_fft_max_response_ms
-gradients_4_task_stats_matrix_utilization
-gradients_4_task_stats_matrix_period_ms
-gradients_4_task_stats_matrix_jobs
-gradients_4_task_stats_matrix_misses
-gradients_4_task_stats_matrix_max_response_ms
-gradients_4_task_stats_crc_utilization
-gradients_4_task_stats_crc_period_ms
-gradients_4_task_stats_crc_jobs
-gradients_4_task_stats_crc_misses
-gradients_4_task_stats_crc_max_response_ms
+gradients_4_task_stats_fast_utilization
+gradients_4_task_stats_fast_period_ms
+gradients_4_task_stats_fast_jobs
+gradients_4_task_stats_fast_misses
+gradients_4_task_stats_fast_max_response_ms
+gradients_4_task_stats_epnp_utilization
+gradients_4_task_stats_epnp_period_ms
+gradients_4_task_stats_epnp_jobs
+gradients_4_task_stats_epnp_misses
+gradients_4_task_stats_epnp_max_response_ms
+gradients_4_task_stats_icp_utilization
+gradients_4_task_stats_icp_period_ms
+gradients_4_task_stats_icp_jobs
+gradients_4_task_stats_icp_misses
+gradients_4_task_stats_icp_max_response_ms
+gradients_4_task_stats_modbus_utilization
+gradients_4_task_stats_modbus_period_ms
+gradients_4_task_stats_modbus_jobs
+gradients_4_task_stats_modbus_misses
+gradients_4_task_stats_modbus_max_response_ms
+gradients_4_task_stats_mqtt_utilization
+gradients_4_task_stats_mqtt_period_ms
+gradients_4_task_stats_mqtt_jobs
+gradients_4_task_stats_mqtt_misses
+gradients_4_task_stats_mqtt_max_response_ms
+gradients_4_task_stats_cusum_utilization
+gradients_4_task_stats_cusum_period_ms
+gradients_4_task_stats_cusum_jobs
+gradients_4_task_stats_cusum_misses
+gradients_4_task_stats_cusum_max_response_ms
+gradients_4_task_stats_ewma_utilization
+gradients_4_task_stats_ewma_period_ms
+gradients_4_task_stats_ewma_jobs
+gradients_4_task_stats_ewma_misses
+gradients_4_task_stats_ewma_max_response_ms
 summary_average_miss_rate
 summary_final_score
 ```
@@ -1056,34 +1165,54 @@ commands_cat_supported
 commands_rm_supported
 ```
 
-### 6.5 `workload` (25 条)
+### 6.5 `workload` (45 条)
 
 ```
 duration_sec
-workloads_pid_success
-workloads_pid_rounds
-workloads_pid_exec_time_ms
-workloads_pid_avg_time_ms
-workloads_ekf_success
-workloads_ekf_rounds
-workloads_ekf_exec_time_ms
-workloads_ekf_avg_time_ms
-workloads_fft_success
-workloads_fft_rounds
-workloads_fft_exec_time_ms
-workloads_fft_avg_time_ms
-workloads_matrix_success
-workloads_matrix_rounds
-workloads_matrix_exec_time_ms
-workloads_matrix_avg_time_ms
-workloads_crc_success
-workloads_crc_rounds
-workloads_crc_exec_time_ms
-workloads_crc_avg_time_ms
+workloads_stub_success
+workloads_stub_rounds
+workloads_stub_exec_time_ms
+workloads_stub_avg_time_ms
 workloads_busywait_success
 workloads_busywait_rounds
 workloads_busywait_exec_time_ms
 workloads_busywait_avg_time_ms
+workloads_fast_success
+workloads_fast_rounds
+workloads_fast_exec_time_ms
+workloads_fast_avg_time_ms
+workloads_epnp_success
+workloads_epnp_rounds
+workloads_epnp_exec_time_ms
+workloads_epnp_avg_time_ms
+workloads_ekf_success
+workloads_ekf_rounds
+workloads_ekf_exec_time_ms
+workloads_ekf_avg_time_ms
+workloads_icp_success
+workloads_icp_rounds
+workloads_icp_exec_time_ms
+workloads_icp_avg_time_ms
+workloads_modbus_success
+workloads_modbus_rounds
+workloads_modbus_exec_time_ms
+workloads_modbus_avg_time_ms
+workloads_mqtt_success
+workloads_mqtt_rounds
+workloads_mqtt_exec_time_ms
+workloads_mqtt_avg_time_ms
+workloads_pid_success
+workloads_pid_rounds
+workloads_pid_exec_time_ms
+workloads_pid_avg_time_ms
+workloads_cusum_success
+workloads_cusum_rounds
+workloads_cusum_exec_time_ms
+workloads_cusum_avg_time_ms
+workloads_ewma_success
+workloads_ewma_rounds
+workloads_ewma_exec_time_ms
+workloads_ewma_avg_time_ms
 ```
 
 ### 总计
@@ -1091,11 +1220,11 @@ workloads_busywait_avg_time_ms
 | test_dir | 记录数 |
 |----------|--------|
 | `realtime` | 70 |
-| `schedule` | 158 |
+| `schedule` | 262 |
 | `stress` | 146 |
 | `test-cmd` | 13 |
-| `workload` | 25 |
-| **合计** | **412** |
+| `workload` | 45 |
+| **合计** | **536** |
 
 ---
 
@@ -1154,7 +1283,7 @@ workloads_busywait_avg_time_ms
 
 ### 8.1 记录数量为动态
 
-412 条是标准配置下的参考值。实际记录数取决于：
+536 条是标准配置下的参考值。实际记录数取决于：
 - service_cost 中注册的操作数量
 - 内存带宽测试的访问模式数量
 - 调度测试的梯度数量和任务数量
