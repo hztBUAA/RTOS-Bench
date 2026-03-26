@@ -67,8 +67,11 @@ def extract_metrics(data: Any, prefix: str = "") -> Generator[Tuple[str, Any, st
         return
 
     if isinstance(data, dict):
-        # 检查是否为叶子对象（包含值和单位）
-        if 'unit' in data and any(k in data for k in ['value', 'c1', 'c2', 'c4', 'c8']):
+        # 检查是否为叶子对象（包含 unit 键且至少一个非 unit 的数值键）
+        if 'unit' in data and any(
+            isinstance(v, (int, float)) and not isinstance(v, bool)
+            for k, v in data.items() if k != 'unit'
+        ):
             unit = data.get('unit', '')
             for k, v in data.items():
                 if k != 'unit' and isinstance(v, (int, float)):
