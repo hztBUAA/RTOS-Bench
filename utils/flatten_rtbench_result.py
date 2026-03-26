@@ -31,7 +31,7 @@ OPTIMAL_TYPE_RULES = {
     "miss": "min", "fail": "min", "error": "min",
     # 吞吐类指标 -> 越大越好
     "bandwidth": "max", "throughput": "max", "ops": "max", "score": "max",
-    "pass": "max", "success": "max", "GB/s": "max", "MB/s": "max",
+    "pass": "max", "success": "max", "gb/s": "max", "mb/s": "max",
 }
 
 
