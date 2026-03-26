@@ -21,6 +21,37 @@ ElasticSearch / 下游消费方
 - **flatten 脚本** 递归遍历 `modules` 下所有叶子数值节点，每个节点生成一条独立的平坦记录。
 - **平坦记录数组** 是一个 JSON Array，每个元素为一条评估指标记录。
 
+### 1.1 数据溯源标记
+
+平坦记录中的每个字段来源不同，读者需区分三类数据源：
+
+| 标记 | 来源 | 含义 |
+|------|------|------|
+| **C** | `result_export.c` | C 代码在目标机上直接输出的测量值 |
+| **F** | `flatten_rtbench_result.py` | flatten 脚本推断或映射生成的字段 |
+| **P** | `性能数据结构.yaml` | 为兼容上游平台格式而填充的固定值/模板字段 |
+
+**各字段溯源**：
+
+| 字段 | 来源 | 说明 |
+|------|------|------|
+| `flow_job_history_id` | F | UUID v4，每条记录由 flatten 生成 |
+| `sw_info.*` | F+C | 从 C 输出的 `env.os_version` 映射，结构来自 P |
+| `hw_info.*` | F+C | 从 C 输出的 `env` 字段映射，结构来自 P |
+| `test_case_info.test_suite` | P | 固定值 `"rtbench"` |
+| `test_case_info.test_dir` | F | 由模块名经 `MODULE_TO_DIR` 映射 |
+| `test_case_info.test_case` | F | 由中间 JSON 路径经 `path_to_case_name` 转换 |
+| `test_config_info.*` | F+C | 从 `env` 映射，结构来自 P |
+| `test_result_info.test_result` | C | 叶子节点值（经 `str()` 转换为字符串） |
+| `test_result_info.test_result_static_info.test_unit` | C/F | 对象内 `unit` 键来自 C；无 `unit` 时由 F 路径推断 |
+| `test_result_info.test_result_static_info.test_optimal_type` | F | 关键词启发式推断 |
+| `test_result_info.test_result_static_info.test_run_times` | P | 固定值 `"1"` |
+| `test_result_info.test_result_static_info.test_result_calculate` | P | 固定值 `"direct"` |
+| `test_result_info.test_result_valid` | P | 固定值 `"valid"` |
+| `test_result_info.test_result_type` | P | 固定值 `"daily"` |
+
+> **未填充的上游规范字段**：`性能数据结构.yaml` 中定义的 `sdk_static_info`、`kernel_static_info`、`tools_*`、`soc_id`、`test_data_cv`、`test_threshold` 等字段在当前 flatten 脚本中均未填充。
+
 ---
 
 ## 2. 平坦记录 Schema 定义
@@ -287,6 +318,8 @@ ElasticSearch / 下游消费方
 |-----------|------|----------|------|
 | `duration_sec` | sec | max | 实时测试总耗时 |
 
+> ⚠ `duration_sec` 的 `optimal_type=max` 是关键词推断的结果（未命中任何 min 关键词，默认 max）。实际上 duration 是元数据记录（测试执行了多长时间），并非性能优化目标。下游消费时应当作元数据处理，不参与性能排名。此注释同样适用于其他模块的 `duration_sec`。
+
 #### 4.1.2 单核性能 (single_core)
 
 | test_case | 单位 | 优化方向 | 语义 |
@@ -353,7 +386,7 @@ ElasticSearch / 下游消费方
 |----------------|------|----------|
 | `multi_core_memory_bandwidth_{type}_c{N}` | GB/s | max |
 
-> 注：`memset` 类型因路径中包含 `"set"` 子串未命中 `OPTIMAL_TYPE_RULES` 中的吞吐关键词，flatten 脚本推断为 `min`。这是已知的推断偏差（实际含义应为 max），但平坦记录中确实为 `min`。
+> 注：在 v2 修复之前，`memset` 类型因路径 `"memset"` 包含子串 `"ms"` 而命中 `OPTIMAL_TYPE_RULES` 中的 `"ms"→min` 规则，导致 optimal_type 被错误推断为 `min`。现已通过 `OPTIMAL_TYPE_OVERRIDES` 机制修正为 `max`。
 
 **IPC 带宽**（4 条）：
 
@@ -377,10 +410,10 @@ ElasticSearch / 下游消费方
 
 | test_case | 单位 | 优化方向 | 语义 |
 |-----------|------|----------|------|
-| `multi_core_core_comm_intra_core` | (空) | max | 核内通信带宽 |
-| `multi_core_core_comm_inter_core` | (空) | max | 核间通信带宽 |
+| `multi_core_core_comm_intra_core` | GB/s | max | 核内通信带宽 |
+| `multi_core_core_comm_inter_core` | GB/s | max | 核间通信带宽 |
 
-> 注：核间通信记录的 `test_unit` 为空字符串。这是因为 `core_comm` 的值是直接从 C 结构体中输出的 double，并非包含 `unit` 键的对象，因此 `infer_unit_from_path()` 未能匹配到任何单位模式。实际物理单位为 GB/s。
+> 注：C 代码确实在 `core_comm` 对象中输出了 `unit: "GB/s"` 字段。在 v2 修复之前，flatten 脚本的叶子对象检测仅识别 `value/c1/c2/c4/c8` 等硬编码键名，`core_comm` 的 `intra_core/inter_core` 不在列表中，导致其 `unit` 被忽略、`test_unit` 为空。现已通过泛化叶子对象检测逻辑修正。
 
 ---
 
@@ -464,6 +497,10 @@ ElasticSearch / 下游消费方
 - 可选：`metric_value` — 额外吞吐指标（仅当 `metric_unit` 非空时产生）
 
 > flatten 脚本跳过 `stage` 和 `bogo_ops` 字段（在 `extract_metrics` 中显式排除）。
+>
+> ⚠ **stressor `metric_unit` 未被提取**：C 代码输出的 stressor 对象中包含 `metric_unit` 字段（如 `"Mflop/sec"`），但该键名不是 `unit`，不会被叶子对象检测识别。因此 `metric_value` 记录的 `test_unit` 为空字符串。
+>
+> ⚠ **per-stressor `duration_sec` 语义歧义**：每个 stressor 的 `duration_sec` 表示该 stage 的实际执行时间。`optimal_type` 被推断为 `max`（默认规则），但"压力测试执行时间"并非越大越好的性能指标——它是元数据。下游消费时应注意区分。
 
 test_case 命名规则：`stressors_{name}_s{stage}_{field}`
 
@@ -533,7 +570,7 @@ test_case 命名规则：`stressors_{name}_s{stage}_{field}`
 
 #### 4.4.2 命令支持状态
 
-每条命令产生一条 `supported` 布尔记录。布尔值在 flatten 中转换为 `1`（true）或 `0`（false）。
+每条命令产生一条 `supported` 布尔记录。布尔值在 flatten 中转换为 `1`（true）或 `0`（false），`test_result` 值为字符串 `"1"` 或 `"0"`。
 
 | test_case 模式 | 单位 | 优化方向 | 语义 |
 |----------------|------|----------|------|
@@ -554,8 +591,6 @@ test_case 命名规则：`stressors_{name}_s{stage}_{field}`
 | `commands_ls_supported` |
 | `commands_cat_supported` |
 | `commands_rm_supported` |
-
-> 注：`test_result` 值为字符串 `"True"` 或 `"False"`（Python `str(bool)` 的结果），而非 `"1"` / `"0"`。这是 flatten 脚本的实际行为 — 布尔值先经 `extract_metrics` 转为 1/0 int，但因外层 `isinstance(value, (int, float))` 的 True 是 int 的子类，最终 `str(True)` 产生 `"True"`。
 
 ---
 
@@ -627,9 +662,12 @@ Flatten 脚本按以下优先级扫描 `path` 和 `unit` 中的关键词：
 
 无匹配时默认 `max`。
 
-> **已知推断偏差**：
-> - `memset` 类型的内存带宽：路径含 `"set"` 但未命中任何吞吐关键词，也未命中延迟关键词中的 `"time"`（因为 `"memset"` 不包含独立的 `"time"`）。实际通过 `infer_unit_from_path` 路径匹配得到 unit 为 `GB/s`，但 `infer_optimal_type` 检查 `path_lower` 先命中 `"time"` → `min`。实际物理含义应为 max（带宽越大越好）。
-> - `busywait` workload 的 `success` 和 `rounds`：路径含 `"busywait"`，其中 `"time"` 子串未命中（`busywait` 不含 `time`），但检查实际输出可见 `busywait` 的 `exec_time_ms` 和 `avg_time_ms` 正确为 `min`，而 `success` 的路径 `workloads_busywait_success` 命中 `success` → `min`？不——实际上 `OPTIMAL_TYPE_RULES` 是 dict，遍历顺序在 Python 3.7+ 为插入顺序，`"success": "max"` 出现在 `"miss": "min"` 之后，因此如果路径同时包含多个关键词会命中第一个匹配。`busywait_success` 在路径中只命中 `success` → max；但 `busywait` 不含任何 min 关键词，所以 opt 为 max。而实际 example 中 busywait 的 success/rounds 的 opt 为 `min`——这说明 example 中存在 `busywait` 路径命中了某个 min 关键词。检查路径 `workloads.busywait.success`：`"busywait"` 不含 min 关键词，但 `path_to_case_name` 转换后为 `workloads_busywait_success`，此时 `infer_optimal_type` 扫描时… 需注意实际 flatten 传入的 `path` 是原始点分隔路径（如 `workloads.busywait.success`），不是转换后的 test_case 名。
+> **已修复的推断偏差**（v2 版本）：
+> - `memset` 内存带宽：路径 `"memset"` 包含子串 `"ms"`，误命中 `"ms"→min` 规则。现通过 `OPTIMAL_TYPE_OVERRIDES` 中的 `"memory_bandwidth"→max` 修正。
+> - `GB/s` / `MB/s` 单位规则：`OPTIMAL_TYPE_RULES` 中原为大写 `"GB/s"` / `"MB/s"`，但 `infer_optimal_type` 将 unit 转小写后比较，永远不匹配。现已改为小写 `"gb/s"` / `"mb/s"`。
+>
+> **残留已知偏差**：
+> - 所有模块的 `duration_sec` 被推断为 `optimal_type=max`（默认值），但 duration 是测试执行时间的元数据记录，不应参与性能排名。
 
 ### 5.2 单位推断 (`infer_unit_from_path`)
 
@@ -1300,7 +1338,7 @@ workloads_ewma_avg_time_ms
 所有 `test_result` 和 `test_result_rawdata` 值为 Python `str()` 转换的结果：
 - 浮点数：`"1.489"`, `"0.00024"`
 - 整数：`"50000"`, `"11"`
-- 布尔值：`"True"`, `"False"`（非 `"1"` / `"0"`）
+- 布尔值：`"1"`, `"0"`（flatten 中 `extract_metrics` 将 `True` → `1`、`False` → `0`，再经 `str()` 转换）
 
 ### 8.4 null 值处理
 
@@ -1324,6 +1362,6 @@ C 层用 `-1` 表示 N/A。JSON 序列化时输出 `null`。flatten 脚本中 `e
 
 为避免同名 stressor 在不同 stage 产生重名 test_case，flatten 脚本将 stage 号拼接到标识中：`{name}_s{stage}`。因此 test_case 形如 `stressors_cpu_s1_duration_sec` 而非 `stressors_cpu_duration_sec`。
 
-### 8.8 `memset` 带宽优化方向偏差
+### 8.8 `memset` 带宽优化方向（已修复）
 
-`multi_core_memory_bandwidth_memset_c*` 在 standard_results_example.json 中 optimal_type 为 `min`。这是因为 flatten 脚本在 `infer_optimal_type` 中扫描 path 时，`"memset"` 包含子串 `"set"`，但字典遍历先命中了 `"time"` → `min`（Python dict 插入序下 `"time"` 在 `"GB/s"` 之前）。实际物理含义（内存填充带宽）应为 max。下游消费方如需修正，可对 `test_case` 包含 `memory_bandwidth` 的记录强制覆盖 `optimal_type` 为 `max`。
+在 v2 修复之前，`multi_core_memory_bandwidth_memset_c*` 的 optimal_type 为 `min`。根因是 `"memset"` 包含子串 `"ms"`（me**ms**et），在 `infer_optimal_type` 中命中了 `"ms"→min` 规则（Python dict 插入序下 `"ms"` 在 `"bandwidth"` 之前）。现通过 `OPTIMAL_TYPE_OVERRIDES` 中 `"memory_bandwidth"→max` 覆盖规则修正。
