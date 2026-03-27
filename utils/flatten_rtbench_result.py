@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Tuple, Generator
 MODULE_TO_DIR = {
     "test-realtime": "realtime",
     "test-schedule": "schedule",
-    "test-stress": "stress",
+    "test-stress":   "stress",
     "typical-workload": "workload",
 }
 
@@ -28,10 +28,13 @@ MODULE_TO_DIR = {
 OPTIMAL_TYPE_RULES = {
     # 延迟类指标 -> 越小越好
     "latency": "min", "delay": "min", "time": "min", "us": "min", "ms": "min",
-    "miss": "min", "fail": "min", "error": "min",
+    "miss":    "min", "fail":  "min", "error": "min",
+    # 功耗类指标 -> 越小越好
+    # power_data 路径含 "power"，power_unit 含 "j"（焦耳）或 "wh"
+    "power":   "min", "energy": "min", "joule": "min", "watt": "min",
     # 吞吐类指标 -> 越大越好
     "bandwidth": "max", "throughput": "max", "ops": "max", "score": "max",
-    "pass": "max", "success": "max", "gb/s": "max", "mb/s": "max",
+    "pass":      "max", "success":    "max", "gb/s": "max", "mb/s": "max",
 }
 
 # 路径关键词覆盖规则（优先于 OPTIMAL_TYPE_RULES，用于修正子串误匹配）
@@ -64,7 +67,6 @@ def infer_optimal_type(path: str, unit: str = "") -> str:
 
 def path_to_case_name(path: str) -> str:
     """将路径转换为 test_case 名称"""
-    # 移除数组索引，转换为下划线分隔
     import re
     name = re.sub(r'\[(\d+)\]', r'_\1', path)
     name = name.replace('.', '_').replace('-', '_')
@@ -72,20 +74,51 @@ def path_to_case_name(path: str) -> str:
 
 
 def extract_metrics(data: Any, prefix: str = "") -> Generator[Tuple[str, Any, str], None, None]:
-    """递归提取所有叶子节点指标"""
+    """递归提取所有叶子节点指标。
+
+    对 power 条目（含 power_data 和 power_unit 键）单独处理：
+      - 以 power_unit 字段作为单位，不依赖路径推断
+      - 路径直接使用 prefix（即 "power.<name>"），不再向下展开子键
+    这样生成的 test_case 为 "power_cpu" / "power_memory" 等，unit 为 "J"。
+    """
     if data is None:
         return
 
     if isinstance(data, dict):
-        # 检查是否为叶子对象（包含 unit 键且至少一个非 unit 的数值键）
+        # ----------------------------------------------------------------
+        # 1. 功耗条目：含 power_data（数值）和 power_unit（字符串）
+        #    这是 export_test_result 注入的结构：
+        #      { "name": "cpu", "power_data": 18650.48, "power_unit": "J" }
+        #    list 层已用 name 作为 item_id，所以 prefix 已为 "power.cpu" 等。
+        #    此处直接以 prefix 为路径，power_unit 为单位，yield 单条记录。
+        # ----------------------------------------------------------------
+        if (
+            'power_data' in data
+            and 'power_unit' in data
+            and isinstance(data.get('power_data'), (int, float))
+            and not isinstance(data.get('power_data'), bool)
+        ):
+            value = data['power_data']
+            unit  = str(data.get('power_unit', 'J'))
+            yield (prefix, value, unit)
+            return  # 不再向下递归
+
+        # ----------------------------------------------------------------
+        # 2. 通用叶子对象：含 unit 键且有数值子键
+        #    例如 { "avg_us": 4.418, "unit": "us" }
+        # ----------------------------------------------------------------
         if 'unit' in data and any(
             isinstance(v, (int, float)) and not isinstance(v, bool)
             for k, v in data.items() if k != 'unit'
         ):
             unit = data.get('unit', '')
             for k, v in data.items():
-                if k != 'unit' and isinstance(v, (int, float)):
+                if k != 'unit' and isinstance(v, (int, float)) and not isinstance(v, bool):
                     yield (f"{prefix}.{k}" if prefix else k, v, unit)
+
+        # ----------------------------------------------------------------
+        # 3. 普通中间节点：递归展开
+        # ----------------------------------------------------------------
         else:
             for key, value in data.items():
                 new_prefix = f"{prefix}.{key}" if prefix else key
@@ -98,11 +131,16 @@ def extract_metrics(data: Any, prefix: str = "") -> Generator[Tuple[str, Any, st
         for i, item in enumerate(data):
             if isinstance(item, dict):
                 # 尝试用 name/type/operation 作为标识
-                item_id = item.get('name') or item.get('type') or item.get('operation') or str(i)
+                item_id = (
+                    item.get('name')
+                    or item.get('type')
+                    or item.get('operation')
+                    or str(i)
+                )
                 # 若存在 stage 字段，拼接到 id 中避免重名冲突
                 if 'stage' in item:
                     item_id = f"{item_id}_s{item['stage']}"
-                item_id = item_id.replace(' ', '_').lower()
+                item_id = str(item_id).replace(' ', '_').lower()
                 yield from extract_metrics(item, f"{prefix}.{item_id}")
             else:
                 yield from extract_metrics(item, f"{prefix}[{i}]")
@@ -111,7 +149,6 @@ def extract_metrics(data: Any, prefix: str = "") -> Generator[Tuple[str, Any, st
         yield (prefix, 1 if data else 0, "bool")
 
     elif isinstance(data, (int, float)):
-        # 根据路径推断单位
         unit = infer_unit_from_path(prefix)
         yield (prefix, data, unit)
 
@@ -146,9 +183,9 @@ def flatten_rtbench_result(
     将 RTOS-Bench 中间格式展平为标准记录列表
 
     Args:
-        rtbench_json: RTOS-Bench 中间格式 JSON
-        sw_info: 软件信息（可选，从 rtbench_json 推断）
-        hw_info: 硬件信息（可选，从 rtbench_json 推断）
+        rtbench_json:     RTOS-Bench 中间格式 JSON
+        sw_info:          软件信息（可选，从 rtbench_json 推断）
+        hw_info:          硬件信息（可选，从 rtbench_json 推断）
         test_config_info: 测试配置信息（可选）
 
     Returns:
@@ -160,8 +197,8 @@ def flatten_rtbench_result(
     if sw_info is None:
         env = rtbench_json.get('env', {})
         sw_info = {
-            "sdk_type": "RTOS",
-            "sdk_version": env.get('os_version', ''),
+            "sdk_type":       "RTOS",
+            "sdk_version":    env.get('os_version', ''),
             "kernel_version": env.get('os_version', ''),
         }
 
@@ -176,8 +213,8 @@ def flatten_rtbench_result(
             "cpu_type": env.get('cpu_type', ''),
             "soc_info": {
                 "cpu_total_core_num": str(env.get('cpu_core_num', 1)),
-                "bit_freq": str(env.get('cpu_freq_mhz', '')),
-                "bit_freq_unit": "MHz",
+                "bit_freq":           str(env.get('cpu_freq_mhz', '')),
+                "bit_freq_unit":      "MHz",
             }
         }
 
@@ -185,9 +222,9 @@ def flatten_rtbench_result(
     if test_config_info is None:
         env = rtbench_json.get('env', {})
         test_config_info = {
-            "test_mcpu": env.get('cpu_type', ''),
-            "test_cpu_core_num": str(env.get('cpu_core_num', 1)),
-            "test_option_alias": "default",
+            "test_mcpu":          env.get('cpu_type', ''),
+            "test_cpu_core_num":  str(env.get('cpu_core_num', 1)),
+            "test_option_alias":  "default",
             "test_option_detail": "",
         }
 
@@ -199,7 +236,7 @@ def flatten_rtbench_result(
 
         test_dir = MODULE_TO_DIR.get(module_name, module_name)
 
-        # 递归提取所有叶子节点指标
+        # 递归提取所有叶子节点指标（含新增的 power 条目）
         for path, value, unit in extract_metrics(module_data):
             # 跳过非数值类型
             if not isinstance(value, (int, float)):
@@ -210,23 +247,23 @@ def flatten_rtbench_result(
                 "sw_info": sw_info,
                 "hw_info": hw_info,
                 "test_case_info": {
-                    "test_suite": "rtbench",
-                    "test_dir": test_dir,
-                    "test_case": path_to_case_name(path),
+                    "test_suite":       "rtbench",
+                    "test_dir":         test_dir,
+                    "test_case":        path_to_case_name(path),
                     "test_data_source": "RTOS-Bench"
                 },
                 "test_config_info": test_config_info,
                 "test_result_info": {
                     "test_result": str(value),
                     "test_result_static_info": {
-                        "test_unit": unit,
-                        "test_run_times": "1",
-                        "test_optimal_type": infer_optimal_type(path, unit),
-                        "test_result_rawdata": str(value),
+                        "test_unit":             unit,
+                        "test_run_times":        "1",
+                        "test_optimal_type":     infer_optimal_type(path, unit),
+                        "test_result_rawdata":   str(value),
                         "test_result_calculate": "direct",
                     },
                     "test_result_valid": "valid",
-                    "test_result_type": "daily"
+                    "test_result_type":  "daily"
                 }
             }
             records.append(record)
@@ -238,7 +275,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='将 RTOS-Bench 中间格式转换为标准性能数据格式'
     )
-    parser.add_argument('input', help='输入的 rtbench_result.json 文件')
+    parser.add_argument('input',  help='输入的 rtbench_result.json 文件')
     parser.add_argument('--output', '-o', default='standard_results.json',
                         help='输出的标准格式 JSON 文件')
     parser.add_argument('--sw-info', help='软件信息 JSON 文件（可选）')
@@ -248,11 +285,9 @@ def main():
 
     args = parser.parse_args()
 
-    # 读取输入文件
     with open(args.input, 'r', encoding='utf-8') as f:
         rtbench_json = json.load(f)
 
-    # 读取可选的 sw_info 和 hw_info
     sw_info = None
     hw_info = None
 
@@ -264,10 +299,8 @@ def main():
         with open(args.hw_info, 'r', encoding='utf-8') as f:
             hw_info = json.load(f)
 
-    # 转换
     records = flatten_rtbench_result(rtbench_json, sw_info, hw_info)
 
-    # 输出
     with open(args.output, 'w', encoding='utf-8') as f:
         if args.pretty:
             json.dump(records, f, ensure_ascii=False, indent=2)

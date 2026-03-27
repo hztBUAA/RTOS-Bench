@@ -6,6 +6,9 @@ from excel_exporter import export_test_result
 import time
 import subprocess
 import platform
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
 def wait_for_ping(ip, check_interval=3):
     param = '-n' if platform.system().lower() == 'windows' else '-c'
@@ -28,8 +31,9 @@ def run_automation():
     board_cfg = config.BOARD_PROFILES[board_name]
     os_cfg = config.OS_PROFILES[os_name]
     stress_cfg = config.STRESS_CONFIG
+    exporter_cfg = config.EXCEL_EXPORTER
 
-    print(f"[Test]启动测试 | 板卡: {board_name} | 系统: {os_name} | 任务: {job_type}")
+    logging.info(f"[Test]启动测试 | 板卡: {board_name} | 系统: {os_name} | 任务: {job_type}")
 
     power = UDP6720(port=task["power_port"], baudrate=9600)
     recorder = PowerRecorder(power)
@@ -44,9 +48,9 @@ def run_automation():
 
         power.turn_on()
 
-        print("[Test]请手动按下龙芯派上的[电源按钮]启动设备。正在等待网络连通...")
+        logging.info("[Test]请手动按下龙芯派上的[电源按钮]启动设备。正在等待网络连通...")
         wait_for_ping(task["dut_conn_params"]["ip"])
-        print("[Test]设备网络已就绪，正在建立连接...")
+        logging.info("[Test]设备网络已就绪，正在建立连接...")
 
         if task["dut_conn_type"] == "SSH":
             dut = SSHConnection(**task["dut_conn_params"])
@@ -56,12 +60,12 @@ def run_automation():
             dut = SerialConnection(**task["dut_conn_params"])
 
         if job_type.lower() == "standby" or job_type == "待机模式":
-            print("[Test]进入待机模式，开始录制10分钟...")
+            logging.info("[Test]进入待机模式，开始录制10分钟...")
             recorder.start()
             time.sleep(600)
-            print("[Test]待机结束，停止录制。")
+            logging.info("[Test]待机结束，停止录制。")
         else:
-            print("[Test]发送测试启动指令...")
+            logging.info("[Test]发送测试启动指令...")
             cmds = list(os_cfg["start_cmd"])
             target_cmd = f"{cmds[-1]} --job {job_type.lower()}"
             if is_debug:
@@ -70,12 +74,12 @@ def run_automation():
 
             dut.send_cmd(cmds)
 
-            print("[Test]等待测试开始信号...")
+            logging.info("[Test]等待测试开始信号...")
             dut.wait_for_regex(stress_cfg["start_regex"])
             recorder.start()
 
             dut.wait_for_regex(stress_cfg["end_regex"])
-            print("[Test]监听到结束信号，停止录制。")
+            logging.info("[Test]监听到结束信号，停止录制。")
 
         data = recorder.stop()
         total_joules = calculate_energy(data)
@@ -96,21 +100,33 @@ def run_automation():
             "总功耗(Wh)": round(total_wh, 6)
         }
 
-        export_test_result(board_name, os_name, job_type, data, summary_info)
+        # 调用导出器，使用 config 中的设置
+        try:
+            if exporter_cfg.get("use_module"):
+                excel_path = exporter_cfg.get("output_path")
+                merge_json = exporter_cfg.get("merge_result_json")
+                power_unit = exporter_cfg.get("power_unit", "J")
+                out_file = export_test_result(board_name, os_name, job_type, data, summary_info, excel_path=excel_path, result_json=merge_json, power_unit=power_unit)
+                logging.info(f"[Test] 导出完成: {out_file}")
+            else:
+                # TODO: support calling external cmd template if needed
+                logging.warning("[Test] 未启用内置 exporter 模块。请配置 EXCEL_EXPORTER.cmd")
+        except Exception as e:
+            logging.error(f"[Test] 导出失败: {e}")
 
     except Exception as e:
-        print(f"[Test]异常: {e}")
+        logging.error(f"[Test]异常: {e}")
 
     finally:
         if dut:
             try:
                 time.sleep(5)
-                print("[Test] 正在执行系统安全关机...")
+                logging.info("[Test] 正在执行系统安全关机...")
                 if "shutdown_cmd" in os_cfg:
                     dut.send_cmd(os_cfg["shutdown_cmd"])
                     time.sleep(5)
             except Exception as e:
-                print(f"[Test] 安全关机指令发送失败: {e}")
+                logging.error(f"[Test] 安全关机指令发送失败: {e}")
         try:
             power.turn_off()
         except:
@@ -125,7 +141,8 @@ def run_automation():
                 dut.disconnect()
         except:
             pass
-        print("[Test]测试结束，设备已断开连接。")
+        logging.info("[Test]测试结束，设备已断开连接。")
+
 
 if __name__ == "__main__":
     run_automation()
