@@ -37,6 +37,7 @@ OPTIMAL_TYPE_RULES = {
 # 路径关键词覆盖规则（优先于 OPTIMAL_TYPE_RULES，用于修正子串误匹配）
 OPTIMAL_TYPE_OVERRIDES = {
     "memory_bandwidth": "max",  # memset 含子串 "ms" 会误匹配 ms→min
+    "duration_sec": "-",        # 执行耗时是元数据，不参与性能排名
 }
 
 
