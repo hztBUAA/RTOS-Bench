@@ -31,7 +31,12 @@ OPTIMAL_TYPE_RULES = {
     "miss": "min", "fail": "min", "error": "min",
     # 吞吐类指标 -> 越大越好
     "bandwidth": "max", "throughput": "max", "ops": "max", "score": "max",
-    "pass": "max", "success": "max", "GB/s": "max", "MB/s": "max",
+    "pass": "max", "success": "max", "gb/s": "max", "mb/s": "max",
+}
+
+# 路径关键词覆盖规则（优先于 OPTIMAL_TYPE_RULES，用于修正子串误匹配）
+OPTIMAL_TYPE_OVERRIDES = {
+    "memory_bandwidth": "max",  # memset 含子串 "ms" 会误匹配 ms→min
 }
 
 
@@ -44,6 +49,11 @@ def infer_optimal_type(path: str, unit: str = "") -> str:
     """根据路径和单位推断指标优化方向"""
     path_lower = path.lower()
     unit_lower = unit.lower()
+
+    # 优先检查覆盖规则
+    for keyword, opt_type in OPTIMAL_TYPE_OVERRIDES.items():
+        if keyword in path_lower:
+            return opt_type
 
     for keyword, opt_type in OPTIMAL_TYPE_RULES.items():
         if keyword in path_lower or keyword in unit_lower:
@@ -67,8 +77,11 @@ def extract_metrics(data: Any, prefix: str = "") -> Generator[Tuple[str, Any, st
         return
 
     if isinstance(data, dict):
-        # 检查是否为叶子对象（包含值和单位）
-        if 'unit' in data and any(k in data for k in ['value', 'c1', 'c2', 'c4', 'c8']):
+        # 检查是否为叶子对象（包含 unit 键且至少一个非 unit 的数值键）
+        if 'unit' in data and any(
+            isinstance(v, (int, float)) and not isinstance(v, bool)
+            for k, v in data.items() if k != 'unit'
+        ):
             unit = data.get('unit', '')
             for k, v in data.items():
                 if k != 'unit' and isinstance(v, (int, float)):
@@ -94,13 +107,13 @@ def extract_metrics(data: Any, prefix: str = "") -> Generator[Tuple[str, Any, st
             else:
                 yield from extract_metrics(item, f"{prefix}[{i}]")
 
+    elif isinstance(data, bool):
+        yield (prefix, 1 if data else 0, "bool")
+
     elif isinstance(data, (int, float)):
         # 根据路径推断单位
         unit = infer_unit_from_path(prefix)
         yield (prefix, data, unit)
-
-    elif isinstance(data, bool):
-        yield (prefix, 1 if data else 0, "bool")
 
 
 def infer_unit_from_path(path: str) -> str:
