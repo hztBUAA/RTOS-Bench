@@ -7,20 +7,22 @@
 
 #if defined(RTBENCH_PLATFORM_ONEOS)
 
-#include <os_clock.h>
-#include <oneos_config.h>
+#include <time.h>
 
 unsigned long long rtbench_get_rdtsc(void)
 {
-    os_tick_t ticks = os_tick_get();
-    /* Convert ticks to nanoseconds */
-    return (unsigned long long)ticks * (1000000000ULL / OS_TICK_PER_SECOND);
+    struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (unsigned long long)ts.tv_sec * 1000000000ULL +
+	       (unsigned long long)ts.tv_nsec;
 }
 
 long double rtbench_get_timestamp(void)
 {
-    os_tick_t ticks = os_tick_get();
-    return (long double)ticks / (long double)OS_TICK_PER_SECOND;
+    struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (long double)ts.tv_sec +
+	       (long double)ts.tv_nsec / 1000000000.0L;
 }
 
 #endif /* RTBENCH_PLATFORM_ONEOS */

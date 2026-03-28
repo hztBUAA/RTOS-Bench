@@ -7,14 +7,24 @@
  *   rtbench -l           List all workloads
  *   rtbench -b <name>    Run specific workload
  *   rtbench -A           Run all workloads
+ *   rtbench test-realtime         Run realtime performance test
+ *   rtbench test-cmd              Run cmd test
+ *   # TODO
+ *   rtbench test-schedule         Run schedulability test
+ *   rtbench test-stress           Run stress test
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <os_task.h>
 #include <shell.h>
 
+#include "logging.h"
 #include "workload_registry.h"
+#include "test_schedule.h"
+#include "test_realtime.h"
+#include "test_stress.h"
 #include "test_cmd.h"
 
 /* External workload declarations */
@@ -126,11 +136,51 @@ static int cmd_rtbench(int argc, char **argv)
         }
     }
 
-    /* Handle test-cmd subcommand */
-    if (argc >= 2 && strcmp(argv[1], "test-cmd") == 0) {
-        printf("[test-cmd] Starting shell command support test on OneOS\n");
-        return test_cmd_run();
-    }
+    /* Handle test-schedule subcommand */
+    /* TODO */
+
+	/* Handle test-realtime subcommand */
+	if (argc >= 2 && strcmp(argv[1], "test-realtime") == 0) {
+		int run_multicore = 0;
+		int run_verify = 0;
+
+        for (int i = 2; i < argc; i++) {
+            if (strcmp(argv[i], "--verify") == 0 ||
+                strcmp(argv[i], "-v") == 0) {
+                run_verify = 1;
+            } else if (strcmp(argv[i], "--multicore") == 0 ||
+                strcmp(argv[i], "-m") == 0) {
+                run_multicore = 1;
+            } else if (strcmp(argv[i], "-q") == 0) {
+                benchmark_verbosity = LOG_LEVEL_INFO;
+            }
+        }
+
+		printf("[test-realtime] Starting realtime performance test on OneOS\n");
+		if (run_multicore) {
+			printf("  Multicore tests: enabled\n");
+		}
+
+        if (run_verify) {
+            test_realtime_verify();
+        }
+
+		return test_realtime_run(run_multicore);
+	}
+
+	/* Handle test-stress subcommand */
+	/* TODO */
+
+	/* Handle test-cmd subcommand */
+	if (argc >= 2 && strcmp(argv[1], "test-cmd") == 0) {
+		for (int i = 2; i < argc; i++) {
+			if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+		printf("[test-cmd] Starting shell command support test on OneOS\n");
+		return test_cmd_run();
+	}
 
     /* List workloads */
     if (list_only) {
@@ -178,4 +228,4 @@ static int rtbench_auto_init(void)
            rtosbench_workload_count());
     return 0;
 }
-OS_APP_INIT(rtbench_auto_init, OS_INIT_SUBLEVEL_LOW);
+OS_APP_INIT(rtbench_auto_init);

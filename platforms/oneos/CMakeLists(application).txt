@@ -1,0 +1,17 @@
+# 添加应用程序组的源文件
+file(GLOB APP_SOURCES "./*.c")
+
+# 创建应用程序静态库
+add_library(application STATIC 
+    ${APP_SOURCES}
+    )
+
+# 设置包含目录
+target_include_directories(application
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+remove_c_compile_target(application "-mgeneral-regs-only")
+
+oneos_add_subdirectories()

@@ -24,7 +24,7 @@
     #define RTBENCH_PLATFORM_ONEOS
     /* Provide minimal typedef guards in case libc omits them */
     #ifndef _CLOCK_T_DECLARED
-    typedef unsigned long clock_t;
+    //typedef unsigned long clock_t;
     #define _CLOCK_T_DECLARED
     #endif
     #ifndef _SUSECONDS_T_DECLARED
@@ -32,11 +32,11 @@
     #define _SUSECONDS_T_DECLARED
     #endif
     #ifndef _CLOCKID_T_DECLARED
-    typedef unsigned long clockid_t;
+    //typedef unsigned long clockid_t;
     #define _CLOCKID_T_DECLARED
     #endif
     #ifndef _TIMER_T_DECLARED
-    typedef unsigned long timer_t;
+    //typedef unsigned long timer_t;
     #define _TIMER_T_DECLARED
     #endif
     #ifndef _PID_T_DECLARED
