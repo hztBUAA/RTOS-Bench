@@ -287,7 +287,24 @@ int stress_osal_rename(const char *oldpath, const char *newpath) { return rename
 int stress_osal_unlink(const char *path) { return unlink(path); }
 int stress_osal_fsync(int fd) { return fsync(fd); }
 int stress_osal_read(int fd, void *buf, size_t count) {return read(fd, buf, count);}
+int stress_osal_ftruncate(int fd, off_t  length) {return ftruncate(fd, length);}
+int stress_osal_stat(const char *path, struct stat *buf)
+{
+    if (!path || !buf) {
+        errno = EINVAL;
+        return -1;
+    }
+    return stat(path, buf);
+}
 
+int stress_osal_fstat(int fd, struct stat *buf)
+{
+    if (fd < 0 || !buf) {
+        errno = EINVAL;
+        return -1;
+    }
+    return fstat(fd, buf);
+}
 /* =========================================================================
  * 8. 字符串与字符操作
  * ========================================================================= */

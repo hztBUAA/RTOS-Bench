@@ -17,6 +17,8 @@
 #define UNLIKELY(x)             __builtin_expect(!!(x), 0)
 #define LIKELY(x)               __builtin_expect(!!(x), 1)
 
+#define FSYNC_STRIDE            (1 << 5)
+
 static int32_t s_unlink_files = DEFAULT_UNLINK_FILES;
 
 static int stress_unlink_opt_files(const char *opt_name, const char *opt_arg)
@@ -26,7 +28,8 @@ static int stress_unlink_opt_files(const char *opt_name, const char *opt_arg)
     if (val > MAX_UNLINK_FILES) val = MAX_UNLINK_FILES;
 
     s_unlink_files = val;
-    stress_osal_print("rtos_stress: debug: unlink-files set to %d\n", s_unlink_files);
+    stress_osal_print("rtos_stress: debug: unlink-files set to %d\n",
+                      s_unlink_files);
     return 0;
 }
 
@@ -40,46 +43,62 @@ static uint32_t stress_mwc32(void) { return (uint32_t)stress_osal_rand(); }
 static void stress_unlink_shuffle(int *idx, int size)
 {
     for (int i = 0; i < size; i++) {
-        int j = stress_mwc32() % size;
+        int j   = (int)(stress_mwc32() % (uint32_t)size);
         int tmp = idx[i];
-        idx[i] = idx[j];
-        idx[j] = tmp;
+        idx[i]  = idx[j];
+        idx[j]  = tmp;
+    }
+}
+
+static void safe_unlink(const char *path, int instance, const char *tag)
+{
+    if (stress_osal_unlink(path) != 0 && errno != ENOENT) {
+        stress_osal_print("rtos_stress: warn: [unlink-%d] %s unlink '%s'"
+                          " failed (errno=%d)\n",
+                          instance, tag, path, errno);
     }
 }
 
 void stress_unlink(stress_args_t *args)
 {
-    int num_files = s_unlink_files;
+    int   num_files = s_unlink_files;
     char **filenames = NULL;
-    int *fds = NULL;
-    int *perm_idx = NULL;
+    int   *fds       = NULL;
+    int   *perm_idx  = NULL;
+    int    i;
 
     filenames = (char **)stress_osal_malloc(num_files * sizeof(char *));
-    fds = (int *)stress_osal_malloc(num_files * sizeof(int));
-    perm_idx = (int *)stress_osal_malloc(num_files * sizeof(int));
+    fds       = (int  *)stress_osal_malloc(num_files * sizeof(int));
+    perm_idx  = (int  *)stress_osal_malloc(num_files * sizeof(int));
 
     if (!filenames || !fds || !perm_idx) {
-        stress_osal_print("rtos_stress: error: [unlink] OOM allocating arrays\n");
+        stress_osal_print("rtos_stress: error: [unlink-%d] OOM allocating"
+                          " arrays\n", args->instance);
         goto cleanup;
     }
 
     stress_osal_memset(filenames, 0, num_files * sizeof(char *));
-    for (int i = 0; i < num_files; i++) {
-        fds[i] = -1;
+    for (i = 0; i < num_files; i++) {
+        fds[i]      = -1;
         perm_idx[i] = i;
+
         filenames[i] = (char *)stress_osal_malloc(PATH_MAX);
         if (!filenames[i]) {
-            stress_osal_print("rtos_stress: error: [unlink] OOM allocating filename buffers\n");
+            stress_osal_print("rtos_stress: error: [unlink-%d] OOM"
+                              " allocating filename buffer %d\n",
+                              args->instance, i);
             goto cleanup;
         }
-        stress_osal_snprintf(filenames[i], PATH_MAX, FILENAME_TEMPLATE, (int)args->instance, i);
+        stress_osal_snprintf(filenames[i], PATH_MAX,
+                             FILENAME_TEMPLATE,
+                             (int)args->instance, i);
     }
 
-    stress_osal_print("rtos_stress: info: [unlink-%d] starting with %d files\n", args->instance, num_files);
+    stress_osal_print("rtos_stress: info: [unlink-%d] starting with"
+                      " %d files\n",
+                      args->instance, num_files);
 
-    while (stress_continue(args))
-    {
-        int i;
+    while (stress_continue(args)) {
         int files_opened = 0;
 
         for (i = 0; i < num_files; i++) {
@@ -87,29 +106,37 @@ void stress_unlink(stress_args_t *args)
 
             int flags = O_CREAT | O_RDWR;
             if (stress_mwc32() & 1) flags |= O_TRUNC;
-            if (stress_mwc32() & 1) flags |= O_EXCL;
 
             fds[i] = stress_osal_open(filenames[i], flags, 0666);
 
             if (fds[i] < 0) {
-                if (errno == EEXIST) {
-                    fds[i] = stress_osal_open(filenames[i], O_RDWR, 0666);
-                } else if (errno == EMFILE || errno == ENFILE) {
+                if (errno == EMFILE || errno == ENFILE) {
+                    stress_osal_print("rtos_stress: info: [unlink-%d]"
+                                      " fd limit at slot %d (errno=%d),"
+                                      " flushing\n",
+                                      args->instance, i, errno);
                     break;
                 }
+                /* 其他失败：记录 warn，不自增 ops */
+                stress_osal_print("rtos_stress: warn: [unlink-%d]"
+                                  " open '%s' failed (errno=%d)\n",
+                                  args->instance, filenames[i], errno);
+                continue;
             }
 
-            if (fds[i] >= 0) {
-                files_opened++;
+            files_opened++;
 
-                if ((i & 0x1F) == 0) {
-                    stress_osal_fsync(fds[i]);
+            if ((i & (FSYNC_STRIDE - 1)) == 0) {
+                if (stress_osal_fsync(fds[i]) != 0) {
+                    stress_osal_print("rtos_stress: warn: [unlink-%d]"
+                                      " fsync fd[%d] failed (errno=%d)\n",
+                                      args->instance, i, errno);
                 }
             }
             args->bogo.current_ops++;
         }
 
-        if (files_opened == 0 && i > 0) {
+        if (files_opened == 0) {
             stress_osal_sleep_ms(10);
         }
 
@@ -125,9 +152,16 @@ void stress_unlink(stress_args_t *args)
         stress_unlink_shuffle(perm_idx, num_files);
         for (i = 0; i < num_files; i++) {
             if (UNLIKELY(!stress_continue(args))) break;
+
             int idx = perm_idx[i];
-            stress_osal_unlink(filenames[idx]);
-            args->bogo.current_ops++;
+
+            if (stress_osal_unlink(filenames[idx]) == 0) {
+                args->bogo.current_ops++;
+            } else if (errno != ENOENT) {
+                stress_osal_print("rtos_stress: warn: [unlink-%d]"
+                                  " unlink '%s' failed (errno=%d)\n",
+                                  args->instance, filenames[idx], errno);
+            }
         }
 
         for (i = 0; i < num_files; i++) {
@@ -138,7 +172,7 @@ void stress_unlink(stress_args_t *args)
         }
 
         for (i = 0; i < num_files; i++) {
-            stress_osal_unlink(filenames[i]);
+            safe_unlink(filenames[i], args->instance, "loop-cleanup");
         }
 
         stress_osal_sleep_ms(1);
@@ -146,19 +180,25 @@ void stress_unlink(stress_args_t *args)
 
 cleanup:
     if (fds) {
-        for (int i = 0; i < num_files; i++) {
-            if (fds[i] >= 0) stress_osal_close(fds[i]);
+        for (i = 0; i < num_files; i++) {
+            if (fds[i] >= 0) {
+                stress_osal_close(fds[i]);
+            }
         }
         stress_osal_free(fds);
     }
+
     if (filenames) {
-        for (int i = 0; i < num_files; i++) {
+        for (i = 0; i < num_files; i++) {
             if (filenames[i]) {
-                stress_osal_unlink(filenames[i]);
+                safe_unlink(filenames[i], args->instance, "final-cleanup");
                 stress_osal_free(filenames[i]);
             }
         }
         stress_osal_free(filenames);
     }
-    if (perm_idx) stress_osal_free(perm_idx);
+
+    if (perm_idx) {
+        stress_osal_free(perm_idx);
+    }
 }
