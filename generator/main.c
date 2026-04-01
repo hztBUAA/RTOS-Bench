@@ -80,6 +80,8 @@ static char field_to_abbrv_mapping(char *arg)
 		return 'A';
 	else if (!strcmp(arg, "list"))
 		return 'L';
+	else if (!strcmp(arg, "run-workload-suite"))
+		return 's';
 	else {
 		printf("Invalid/unsupported parameter \"%s\" in configuration file!\n",
 		       arg);
@@ -150,6 +152,9 @@ static int interpret_opt(int key, const char *arg, struct argp_state *state)
 		break;
 	case 'A':
 		parsed_args->run_all_workloads = 1;
+		break;
+	case 's':
+		parsed_args->run_workload_suite = 1;
 		break;
 	case 'L':
 		parsed_args->list_only = 1;
@@ -364,6 +369,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		parsed_args->category_filter = NULL;
 		parsed_args->run_all_workloads = 0;
 		parsed_args->list_only = 0;
+		parsed_args->run_workload_suite = 0;
 		break;
 #ifdef JSON_SUPPORT
 	case 'g':
@@ -390,6 +396,9 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 #endif
 	case ARGP_KEY_END:
+		if (parsed_args->run_workload_suite) {
+			return 0;
+		}
 		if (parsed_args->deadline_nsec == 0 &&
 		    parsed_args->deadline_sec == 0)
 			argp_error(state, "Missing required deadline value.");
@@ -528,6 +537,8 @@ int main(int argc, char **argv)
 		  "Run all registered workloads sequentially." },
 		{ "category", 'G', "cat[,cat2,...]", 0,
 		  "Run all workloads whose category matches any of the given comma-separated names." },
+		{ "run-workload-suite", 's', 0, 0,
+		  "Run all workloads in simple sequential mode and exit." },
 		{ 0, 0, 0, 0, "Scheduling options:\n\n", 4 },
 		{ "fifo", 'f', "0<=prio<=99", 0,
 		  "Set SCHED_FIFO priority with specified priority. Need root." },
@@ -572,6 +583,11 @@ int main(int argc, char **argv)
 	if (res != 0) {
 		perror("Error during argument parsing");
 		return EXIT_FAILURE;
+	}
+
+	if (parsed_args.run_workload_suite) {
+		extern int run_all_workloads();
+		return run_all_workloads();
 	}
 
 	/* Keep a pristine copy of user-specified output path; periodic_benchmark frees its own copy */
