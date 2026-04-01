@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <config.h>
+#include <stress-config.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 256

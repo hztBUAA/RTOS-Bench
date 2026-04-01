@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <errno.h>
-#include <config.h>
+#include <stress-config.h>
 
 #define HDD_WRITE_SIZE      (64 * 1024)
 #define HDD_FILENAME_FMT    "%d.tmp"

@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include <config.h>
+#include <stress-config.h>
 
 #if defined(__SIZEOF_INT128__)
 #define HAVE_INT128_T

@@ -2,7 +2,7 @@
 #include "stress-ng.h"
 #include "stress_osal.h"
 #include <stdlib.h>
-#include <config.h>
+#include <stress-config.h>
 
 #define PAGE_SIZE_4K            (4096)
 #define PTRS_PER_4K_PAGE        (PAGE_SIZE_4K / sizeof(void *))

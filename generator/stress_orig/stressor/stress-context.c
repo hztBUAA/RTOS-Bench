@@ -2,7 +2,7 @@
 #include "stress-ng.h"
 #include "stress_osal.h"
 #include <stdlib.h>
-#include <config.h>
+#include <stress-config.h>
 
 #define STACK_SIZE          (16384)
 #define THREAD_PRIORITY     (20)

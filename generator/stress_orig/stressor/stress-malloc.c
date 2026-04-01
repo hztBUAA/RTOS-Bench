@@ -3,7 +3,7 @@
 #include "stress_osal.h"
 #include <stdlib.h>
 #include <string.h>
-#include <config.h>
+#include <stress-config.h>
 
 #define UNLIKELY(x)         __builtin_expect(!!(x), 0)
 #define LIKELY(x)           __builtin_expect(!!(x), 1)

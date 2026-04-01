@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <config.h>
+#include <stress-config.h>
 
 static int32_t s_cpu_load = DEFAULT_CPU_LOAD;
 

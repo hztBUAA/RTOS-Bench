@@ -3,7 +3,7 @@
 #include "stress_osal.h"
 #include <stdlib.h>
 #include <string.h>
-#include <config.h>
+#include <stress-config.h>
 
 #define STACK_FRAME_DATA_SIZE   (1024)
 #define STACK_SAFETY_MARGIN     (4096)

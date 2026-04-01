@@ -3,7 +3,7 @@
 #include "stress_osal.h"
 #include <string.h>
 #include <stdlib.h>
-#include <config.h>
+#include <stress-config.h>
 
 #define SIEVE_BUFFER_SIZE 8192
 

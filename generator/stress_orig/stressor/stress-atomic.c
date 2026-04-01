@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <string.h>
-#include <config.h>
+#include <stress-config.h>
 
 #if defined(__SIZEOF_POINTER__) && __SIZEOF_POINTER__ == 8
     #define STRESS_ATOMIC_64BIT

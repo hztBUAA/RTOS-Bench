@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <config.h>
+#include <stress-config.h>
 
 #define STREAM_STACK_SIZE       (64 * 1024)
 

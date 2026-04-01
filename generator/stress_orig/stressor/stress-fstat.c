@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <config.h>
+#include <stress-config.h>
 
 /*
  * NUM_WORKER_THREADS：当前固定为 1，与 sem_done 逻辑对应。

@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
-#include <config.h>
+#include <stress-config.h>
 
 #ifndef EXIT_NO_RESOURCE
 #define EXIT_NO_RESOURCE EXIT_FAILURE

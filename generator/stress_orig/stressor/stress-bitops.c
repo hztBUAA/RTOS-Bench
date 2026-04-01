@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
-#include <config.h>
+#include <stress-config.h>
 
 /* ==================================================================
  * 宏定义与兼容性层

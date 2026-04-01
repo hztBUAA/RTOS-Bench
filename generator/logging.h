@@ -27,6 +27,22 @@
 /** @brief An enum that identifies the available log levels.
  * @details The log level will determine if a particular message will be printed or not.
  */
+#ifdef LOG_LEVEL_TRACE
+#undef LOG_LEVEL_TRACE
+#endif
+#ifdef LOG_LEVEL_DEBUG
+#undef LOG_LEVEL_DEBUG
+#endif
+#ifdef LOG_LEVEL_INFO
+#undef LOG_LEVEL_INFO
+#endif
+#ifdef LOG_LEVEL_WARN
+#undef LOG_LEVEL_WARN
+#endif
+#ifdef LOG_LEVEL_ERROR
+#undef LOG_LEVEL_ERROR
+#endif
+
 enum log_level {
 	LOG_LEVEL_ERR = 1, ///< Only print error messages.
 	LOG_LEVEL_FILE, ///< Print benchmark stats to file.

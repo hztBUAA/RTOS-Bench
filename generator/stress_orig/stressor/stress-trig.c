@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "stress_osal.h"
-#include <config.h>
+#include <stress-config.h>
 
 #define PI                  (3.14159265358979323846264338327950288419716939937511L)
 #define TANSUM              (-710.4128636743199902703338466380955651402473L)

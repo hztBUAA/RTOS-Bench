@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "config.h"
+#include "stress-config.h"
 #include "stress_osal.h"
 #include "stress-ng.h"
 

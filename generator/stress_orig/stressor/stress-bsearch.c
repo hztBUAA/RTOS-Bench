@@ -3,7 +3,7 @@
 #include "stress_osal.h"
 #include <stdlib.h>
 #include <string.h>
-#include <config.h>
+#include <stress-config.h>
 
 /* ==================================================================
  * 配置与宏定义

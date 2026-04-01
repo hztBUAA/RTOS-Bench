@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
-#include <config.h>
+#include <stress-config.h>
 
 static int stress_strcasecmp_internal(const char *s1, const char *s2)
 {

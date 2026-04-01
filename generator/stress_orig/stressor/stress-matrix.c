@@ -3,7 +3,7 @@
 #include "stress_osal.h"
 #include <string.h>
 #include <stdlib.h>
-#include <config.h>
+#include <stress-config.h>
 
 typedef float stress_matrix_type_t;
 

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <config.h>
+#include <stress-config.h>
 
 #define FP_ELEMENTS     (8)
 

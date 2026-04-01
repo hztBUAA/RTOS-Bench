@@ -62,9 +62,9 @@
     typedef unsigned long timer_t;
     #define _TIMER_T_DECLARED
     #endif
-    #ifndef _PID_T_DECLARED
-    typedef int pid_t;
-    #define _PID_T_DECLARED
+    #ifndef _PID_T_DEFINED
+    typedef unsigned long pid_t;
+    #define _PID_T_DEFINED
     #endif
 #elif defined(RUIHUA_PLATFORM)
     /* Ruihua RTOS (RHRTOS/RHOS): POSIX extensions assumed when building rt-bench */
