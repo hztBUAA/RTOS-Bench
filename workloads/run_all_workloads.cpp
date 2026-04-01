@@ -2,47 +2,47 @@
 using namespace std;
 
 extern "C" {
-	int fast_test(int argc, char** argv);
-	int ekf_test(int argc, char** argv);
-	int epnp_test(int argc, char** argv);
-	int icp_test(int argc, char** argv);
-	int modbus_test(int argc, char** argv);
-	int mqtt_test(int argc, char** argv);
-	int pid_test(int argc, char **argv);
+	int fast_test(void);
+	int ekf_test(void);
+	int epnp_test(void);
+	int icp_test(void);
+	int modbus_test(void);
+	int mqtt_test(void);
+	int pid_test(void);
 	int cusum_bench_run(void);
 	int ewma_bench_run(void);
 }
 
-int main(int argc, char **argv) {
+extern "C" int run_all_workloads() {
     cout << "=== Benchmark Suite Start ===" << endl;
 
     // 1. FAST Feature Detection
     cout << "\n[1/9] Running FAST benchmark..." << endl;
-    fast_test(argc, argv);
+    fast_test();
 
     // 2. EKF (Extended Kalman Filter)
     cout << "\n[2/9] Running EKF benchmark..." << endl;
-    ekf_test(argc, argv);
+    ekf_test();
 
     // 3. EPNP (Efficient Perspective-n-Point)
     cout << "\n[3/9] Running EPNP benchmark..." << endl;
-    epnp_test(argc, argv);
+    epnp_test();
 
     // 4. ICP (Iterative Closest Point)
     cout << "\n[4/9] Running ICP benchmark..." << endl;
-    icp_test(argc, argv);
+    icp_test();
 
     // 5. MODBUS Protocol
     cout << "\n[5/9] Running MODBUS benchmark..." << endl;
-    modbus_test(argc, argv);
+    modbus_test();
 
     // 6. MQTT Protocol
     cout << "\n[6/9] Running MQTT benchmark..." << endl;
-    mqtt_test(argc, argv);
+    mqtt_test();
 
     // 7. PID Controller
     cout << "\n[7/9] Running PID benchmark..." << endl;
-    pid_test(argc, argv);
+    pid_test();
 
     // 8. CUSUM
     cout << "\n[8/9] Running CUMSUM benchmark..." << endl;

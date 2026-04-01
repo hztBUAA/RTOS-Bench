@@ -64,7 +64,7 @@ static void* icp_thread_entry(void* parameter) {
     return NULL;
 }
 
-extern "C" int icp_test(int argc, char** argv) {
+extern "C" int icp_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     int ret;
@@ -89,7 +89,7 @@ extern "C" int icp_test(int argc, char** argv) {
     if (ret != 0) {
         cout << "Failed to create pthread. Error code: " << ret << endl;
     } else {
-        pthread_detach(tid);
+        pthread_join(tid, NULL);
     }
 
     return 0;

@@ -306,7 +306,7 @@ static void* client_thread_entry(void* parameter) {
     return NULL;
 }
 
-int modbus_test(int argc, char** argv) {
+int modbus_test(void) {
     pthread_t s_tid, c_tid;
     pthread_attr_t attr;
     int ret;
@@ -351,5 +351,5 @@ MSH_CMD_EXPORT(modbus_test, Modbus TCP Benchmark);
 int modbus_bench_run(void)
 {
     /* Run the benchmark inline (no shell arguments) */
-    return modbus_test(0, NULL);
+    return modbus_test();
 }

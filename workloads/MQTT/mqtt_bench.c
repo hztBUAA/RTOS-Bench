@@ -186,7 +186,7 @@ static void* mqtt_thread_entry(void *parameter) {
     return NULL;
 }
 
-int mqtt_test(int argc, char** argv) {
+int mqtt_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     struct sched_param param;

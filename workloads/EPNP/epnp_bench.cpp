@@ -118,12 +118,12 @@ extern "C" int epnp_bench_run(size_t iterations) {
  * 实际执行 ePnP 测试的线程入口函数
  */
 static void* epnp_thread_entry(void* parameter) {
-    size_t iterations = parameter ? *((size_t*)parameter) : 1000;
+    size_t iterations = parameter ? *((size_t*)parameter) : 1;
     epnp_bench_run(iterations);
     return nullptr;
 }
 
-int epnp_test(void) {
+extern "C" int epnp_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     int ret;
@@ -149,7 +149,7 @@ int epnp_test(void) {
     pthread_attr_destroy(&attr);
     
     if (ret == 0) {
-        pthread_detach(tid);
+        pthread_join(tid, NULL);
         printf("ePnP benchmark thread created successfully (POSIX).\n");
     }
     else {

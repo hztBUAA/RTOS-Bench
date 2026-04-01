@@ -85,7 +85,7 @@ extern "C" int pid_bench_run(void)
     return pid_thread_entry(NULL) == NULL ? 0 : 0;
 }
 
-extern "C" int pid_test(int argc, char **argv) {
+extern "C" int pid_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     int ret;
@@ -108,7 +108,7 @@ extern "C" int pid_test(int argc, char **argv) {
     if (ret != 0) {
         printf("Failed to create pthread. Error: %d\n", ret);
     } else {
-        pthread_detach(tid); 
+        pthread_join(tid, NULL); 
     }
 
     return 0;
