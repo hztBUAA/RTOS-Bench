@@ -124,6 +124,8 @@ static void debug_print_context(const struct execution_options *opts)
 	       (unsigned long long)opts->tasks_to_launch);
 }
 
+extern int run_all_workloads(void);
+
 /**
  * @brief Main entry point for SylixOS
  */
@@ -131,6 +133,11 @@ int main(int argc, char **argv)
 {
 	struct execution_options opts;
 
+	if (argc == 2 && strcmp(argv[1], "-s") == 0) {
+        run_all_workloads();
+        return 0; // 执行完毕后直接退出，不再走后续的 argp 解析和 benchmark 流程
+    }
+	
 	/* Register workloads */
 	rtosbench_register_rtos_workloads();
 

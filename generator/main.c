@@ -499,6 +499,8 @@ static int category_matches(const struct rtosbench_workload *wl,
 	return 0;
 }
 
+extern int run_all_workloads(void);
+
 /** @brief The program entry point, which will parse the given parameters and start the benchmark.
  * @param[in] argc Number of given parameters.
  * @param[in] argv given parameters array.
@@ -508,6 +510,11 @@ int main(int argc, char **argv)
 {
 	int res = 0, i;
 	struct execution_options parsed_args;
+
+	if (argc == 2 && strcmp(argv[1], "-s") == 0) {
+        run_all_workloads();
+        return 0; // 执行完毕后直接退出，不再走后续的 argp 解析和 benchmark 流程
+    }
 
 	//argp variables
 	const char *argp_doc =
@@ -586,7 +593,6 @@ int main(int argc, char **argv)
 	}
 
 	if (parsed_args.run_workload_suite) {
-		extern int run_all_workloads();
 		return run_all_workloads();
 	}
 
