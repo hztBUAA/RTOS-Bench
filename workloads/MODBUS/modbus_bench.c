@@ -351,5 +351,5 @@ MSH_CMD_EXPORT(modbus_test, Modbus TCP Benchmark);
 int modbus_bench_run(void)
 {
     /* Run the benchmark inline (no shell arguments) */
-    return modbus_test(0, NULL);
+    return modbus_test();
 }
