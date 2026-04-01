@@ -157,7 +157,7 @@ static void* ekf_thread_entry(void *parameter) {
 
 
 /* 导出命令到 MSH（仅在具备 pthread 的主机侧调试时使用） */
-int ekf_test(void) {
+extern "C" int ekf_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     struct sched_param param;

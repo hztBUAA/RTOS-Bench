@@ -128,6 +128,7 @@ src/cusum_workload.c
 # C++ Source list
 #*********************************************************************************************************
 LOCAL_SRCS += \
+RTOS-Bench/generator/run_all_workloads.cpp \
 RTOS-Bench/workloads/rtbench_workloads.cpp \
 RTOS-Bench/workloads/PID/PID_v1.cpp \
 RTOS-Bench/workloads/PID/pid_bench.cpp \

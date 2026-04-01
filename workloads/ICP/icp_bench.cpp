@@ -64,7 +64,7 @@ static void* icp_thread_entry(void* parameter) {
     return NULL;
 }
 
-extern "C" int icp_test(int argc, char** argv) {
+extern "C" int icp_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     int ret;

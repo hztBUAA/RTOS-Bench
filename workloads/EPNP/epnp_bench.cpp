@@ -123,7 +123,7 @@ static void* epnp_thread_entry(void* parameter) {
     return nullptr;
 }
 
-int epnp_test(void) {
+extern "C" int epnp_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     int ret;

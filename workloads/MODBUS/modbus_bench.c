@@ -306,7 +306,7 @@ static void* client_thread_entry(void* parameter) {
     return NULL;
 }
 
-int modbus_test(int argc, char** argv) {
+int modbus_test(void) {
     pthread_t s_tid, c_tid;
     pthread_attr_t attr;
     int ret;
