@@ -140,7 +140,7 @@ int cusum_test(void) {
     if (ret != 0) {
         printf("Failed to create pthread. Error: %d\n", ret);
     } else {
-        pthread_detach(tid);
+        pthread_join(tid, NULL); 
     }
 
     return 0;

@@ -89,7 +89,7 @@ extern "C" int icp_test(void) {
     if (ret != 0) {
         cout << "Failed to create pthread. Error code: " << ret << endl;
     } else {
-        pthread_detach(tid);
+        pthread_join(tid, NULL);
     }
 
     return 0;
