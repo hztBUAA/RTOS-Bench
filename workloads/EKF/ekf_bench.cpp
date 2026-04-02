@@ -172,8 +172,8 @@ extern "C" int ekf_test(void) {
 
     ret = pthread_create(&tid, &attr, ekf_thread_entry, NULL);
     if (ret == 0) {
-        pthread_join(tid, NULL);
         printf("EKF simulation thread created successfully (pthread).\n");
+        pthread_join(tid, NULL);
     } else {
         printf("Failed to create EKF simulation thread! Error code: %d\n", ret);
     }

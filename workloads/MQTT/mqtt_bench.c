@@ -178,7 +178,7 @@ static void* mqtt_thread_entry(void *parameter) {
         double avg_us = (double)total_us / g_total_count;
         printf("\n====== Benchmark Finished ======\n");
         printf("Total Sent: %lu\n", (unsigned long)g_total_count);
-        printf("[mqtt] samples=%lu total_time=%.3f ms avg_latency=%.3f us/msg\n",
+        printf("[MQTT] samples=%lu total_time=%.3f ms avg_latency=%.3f us/msg\n",
                (unsigned long)g_total_count, (double)total_us / 1000.0, avg_us);
     }
 

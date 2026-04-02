@@ -108,7 +108,7 @@ extern "C" int epnp_bench_run(size_t iterations) {
     double avg_time_us = total_time_us / loops;
 
     /* Unified format timing output */
-    printf("[epnp] samples=%zu total_time=%.3f ms avg_latency=%.3f us/iter\n",
+    printf("[EPNP] samples=%zu total_time=%.3f ms avg_latency=%.3f us/iter\n",
            loops, total_time_us / 1000.0, avg_time_us);
 
     return 0;
