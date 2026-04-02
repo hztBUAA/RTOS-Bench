@@ -96,7 +96,7 @@ extern "C" int epnp_bench_run(size_t iterations) {
     // 记录开始时间
     clock_gettime(CLOCK_MONOTONIC, &start_time);
     
-    size_t loops = iterations > 0 ? iterations : 1000;
+    size_t loops = iterations > 0 ? iterations : 1;
     for(size_t i = 0; i < loops; i++) {
         epnp_transformation = absolute_pose::epnp(adapter);
     }
