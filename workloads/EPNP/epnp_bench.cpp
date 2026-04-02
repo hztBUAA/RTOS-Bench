@@ -30,8 +30,7 @@ using namespace std;
 using namespace Eigen;
 using namespace opengv;
 
-// 定义测试线程的栈大小，Eigen 矩阵运算给大一点，这里给 16KB
-#define THREAD_STACK_SIZE (4 * 1024)
+#define THREAD_STACK_SIZE (5 * 1024)
 
 static double diff_timespec_us(const struct timespec *start, const struct timespec *end)
 {

@@ -29,6 +29,7 @@
 
 /* Forward declarations */
 extern void rtosbench_register_rtos_workloads(void);
+__attribute__((weak)) int __fdlib_version = -1;
 
 static int ci_equal(const char *a, const char *b)
 {
