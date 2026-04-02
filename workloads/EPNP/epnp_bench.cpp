@@ -108,7 +108,7 @@ extern "C" int epnp_bench_run(size_t iterations) {
     double avg_time_us = total_time_us / loops;
 
     /* Unified format timing output */
-    printf("[epnp] samples=%zu total_time=%.3f ms avg_latency=%.3f us/iter\n",
+    printf("[EPNP] samples=%zu total_time=%.3f ms avg_latency=%.3f us/iter\n",
            loops, total_time_us / 1000.0, avg_time_us);
 
     return 0;
@@ -149,8 +149,8 @@ extern "C" int epnp_test(void) {
     pthread_attr_destroy(&attr);
     
     if (ret == 0) {
-        pthread_join(tid, NULL);
         printf("ePnP benchmark thread created successfully (POSIX).\n");
+        pthread_join(tid, NULL);
     }
     else {
         printf("Failed to create epnp benchmark thread. Error: %d\n", ret);

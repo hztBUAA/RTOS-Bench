@@ -75,7 +75,7 @@ static void* pid_thread_entry(void *parameter) {
     double avg_latency_ns = (double)total_duration_ns / TEST_ROUNDS;
 
     // 统一格式计时输出
-    printf("[pid] samples=%d total_time=%.3f ms avg_latency=%.3f us/op\n",
+    printf("[PID] samples=%d total_time=%.3f ms avg_latency=%.3f us/op\n",
            TEST_ROUNDS, (double)total_duration_ns / 1000000.0, avg_latency_ns / 1000.0);
     return NULL;
 }

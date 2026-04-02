@@ -52,7 +52,7 @@ extern "C" int icp_bench_run(void) {
 
     double total_time_us = diff_timespec_us(&start_time, &end_time);
 
-    printf("[icp] samples=1 total_time=%.3f ms avg_latency=%.3f ms/run\n",
+    printf("[ICP] samples=1 total_time=%.3f ms avg_latency=%.3f ms/run\n",
            total_time_us / 1000.0, total_time_us / 1000.0);
 
     return 0;

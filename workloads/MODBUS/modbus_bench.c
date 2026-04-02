@@ -297,7 +297,7 @@ static void* client_thread_entry(void* parameter) {
     MDB_PRINTF("TPS:        %.2f\n", total_reqs / time_s);
 
     double avg_ms = time_us / total_reqs / 1000.0;
-    MDB_PRINTF("[modbus] samples=%.0f total_time=%.3f ms avg_latency=%.3f ms/request\n",
+    MDB_PRINTF("[MODBUS] samples=%.0f total_time=%.3f ms avg_latency=%.3f ms/request\n",
            total_reqs, time_us / 1000.0, avg_ms);
 
     close(sock);

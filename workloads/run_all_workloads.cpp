@@ -32,25 +32,25 @@ extern "C" int run_all_workloads() {
     cout << "\n[4/9] Running ICP benchmark..." << endl;
     icp_test();
 
-    // 5. MODBUS Protocol
-    cout << "\n[5/9] Running MODBUS benchmark..." << endl;
-    modbus_test();
-
-    // 6. MQTT Protocol
-    cout << "\n[6/9] Running MQTT benchmark..." << endl;
-    mqtt_test();
-
     // 7. PID Controller
-    cout << "\n[7/9] Running PID benchmark..." << endl;
+    cout << "\n[5/9] Running PID benchmark..." << endl;
     pid_test();
 
     // 8. CUSUM
-    cout << "\n[8/9] Running CUMSUM benchmark..." << endl;
+    cout << "\n[6/9] Running CUMSUM benchmark..." << endl;
     cusum_bench_run();
 
     // 9. EWMA
-    cout << "\n[9/9] Running EWMA benchmark..." << endl;
+    cout << "\n[7/9] Running EWMA benchmark..." << endl;
     ewma_bench_run();
+
+    // 5. MODBUS Protocol
+    cout << "\n[8/9] Running MODBUS benchmark..." << endl;
+    modbus_test();
+
+    // 6. MQTT Protocol
+    cout << "\n[9/9] Running MQTT benchmark..." << endl;
+    mqtt_test();
 
     cout << "\n=== All Benchmarks Completed ===" << endl;
     return 0;
