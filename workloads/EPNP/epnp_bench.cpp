@@ -149,8 +149,8 @@ extern "C" int epnp_test(void) {
     pthread_attr_destroy(&attr);
     
     if (ret == 0) {
-        pthread_join(tid, NULL);
         printf("ePnP benchmark thread created successfully (POSIX).\n");
+        pthread_join(tid, NULL);
     }
     else {
         printf("Failed to create epnp benchmark thread. Error: %d\n", ret);
