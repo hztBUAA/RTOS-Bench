@@ -94,6 +94,9 @@ POSIX_ENTRY_SRC := $(GENERATOR_DIR)/main.c \
 # POSIX-lite entry (no argp/perf) for lightweight RTOS ports
 POSIXLITE_ENTRY_SRC := $(GENERATOR_DIR)/posixlite_entry.c
 
+# SylixOS specific entry
+SYLIXOS_ENTRY_SRC := $(GENERATOR_DIR)/sylixos_entry.c
+
 # RT-Thread specific sources
 RTTHREAD_ENTRY_SRC := $(GENERATOR_DIR)/rtthread_entry.c \
 	$(GENERATOR_DIR)/rtthread_fini_stub.c
@@ -121,8 +124,8 @@ GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_S
 else ifeq ($(PLATFORM),ruihua)
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),sylixos)
-# SylixOS uses Linux-style entry (main.c with argp)
-GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
+# SylixOS uses dedicated entry
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(SYLIXOS_ENTRY_SRC) $(PLATFORM_SRC)
 else
 # Linux default
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIX_ENTRY_SRC) $(PLATFORM_SRC)

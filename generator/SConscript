@@ -8,6 +8,8 @@ cwd = GetCurrentDir()
 # RT-Thread detection: check for RT_THREAD_PRIORITY_MAX which is always defined
 if GetDepend(['ONEOS_PLATFORM']):
     platform = 'oneos'
+elif GetDepend(['SYLIXOS_PLATFORM']):
+    platform = 'sylixos'
 elif GetDepend(['RT_THREAD_PRIORITY_32']) or GetDepend(['RT_THREAD_PRIORITY_256']):
     platform = 'rt-thread'
 elif GetDepend(['RT_USING_LIBC']):
@@ -35,6 +37,8 @@ src_files = [
 if platform == 'rt-thread':
     src_files.append('rtthread_entry.c')
     src_files.append('rtthread_fini_stub.c')
+elif platform == 'sylixos':
+    src_files.append('sylixos_entry.c')
 elif platform == 'oneos':
     src_files.append('oneos_entry.c')
 else:

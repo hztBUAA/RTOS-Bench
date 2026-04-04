@@ -26,10 +26,15 @@
 #include "test_realtime.h"
 #include "test_stress.h"
 #include "test_cmd.h"
+#include "result_export.h"
+
+#if defined(SYLIXOS_PLATFORM) || defined(RTBENCH_PLATFORM_SYLIXOS)
 
 /* Forward declarations */
 extern void rtosbench_register_rtos_workloads(void);
 __attribute__((weak)) int __fdlib_version = -1;
+
+#define SYLIXOS_DEFAULT_OUTPUT_PATH "./rtbench_result.json"
 
 static int ci_equal(const char *a, const char *b)
 {
@@ -119,6 +124,11 @@ static void parse_args(int argc, char **argv, struct execution_options *opts)
 
 static void debug_print_context(const struct execution_options *opts)
 {
+	static int printed_entry = 0;
+	if (!printed_entry) {
+		printf("[rtbench][entry] sylixos\n");
+		printed_entry = 1;
+	}
 	printf("[rtbench] workload=%s period=%ld.%09ld tasks=%llu\n",
 	       rtosbench_current_workload(),
 	       opts->period_sec, opts->period_nsec,
@@ -127,12 +137,282 @@ static void debug_print_context(const struct execution_options *opts)
 
 extern int run_all_workloads(void);
 
+/* External references to realtime benchmark results (bench_init.c) */
+extern uint64_t *get_realtime_service_cost(void);
+extern uint64_t *get_realtime_interrupt(void);
+extern uint64_t get_realtime_context_switch(void);
+extern uint64_t *get_realtime_syscall(void);
+extern uint64_t *get_multicore_memory_bandwidth(void);
+extern uint64_t *get_multicore_ipc_bandwidth(void);
+extern uint64_t *get_multicore_intra_inter_bandwidth(void);
+extern uint64_t *get_multicore_init_dlt_latency(void);
+
+#define NS_TO_US(ns) ((double)(ns) / 1000.0)
+#define RAW_TO_GBS(v) ((double)(v) / 1000.0)
+
+static void collect_realtime_result(int run_multicore)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_realtime_result *rt = &r->realtime;
+	uint64_t ctx_sw = get_realtime_context_switch();
+	uint64_t *interrupt = get_realtime_interrupt();
+	uint64_t *syscall = get_realtime_syscall();
+	uint64_t *svc = get_realtime_service_cost();
+
+	if (!interrupt || !syscall || !svc) {
+		rt->valid = 0;
+		return;
+	}
+
+	rt->valid = 1;
+	rt->multicore_valid = run_multicore ? 1 : 0;
+
+	rt->context_switch_avg_us = NS_TO_US(ctx_sw);
+	rt->interrupt_min_us = NS_TO_US(interrupt[0]);
+	rt->interrupt_max_us = NS_TO_US(interrupt[1]);
+	rt->interrupt_avg_us = NS_TO_US(interrupt[2]);
+	rt->syscall_min_us = NS_TO_US(syscall[0]);
+	rt->syscall_max_us = NS_TO_US(syscall[1]);
+	rt->syscall_avg_us = NS_TO_US(syscall[2]);
+
+	static const char *svc_ops[] = {
+		"sem_take", "sem_release",
+		"mq_send", "mq_recv",
+		"mutex_take", "mutex_release",
+		"mempool_alloc", "mempool_free"
+	};
+	for (int i = 0; i < 8; i++) {
+		rtbench_realtime_add_service_cost(
+			rt, svc_ops[i],
+			NS_TO_US(svc[i * 4 + 0]),
+			NS_TO_US(svc[i * 4 + 1]),
+			NS_TO_US(svc[i * 4 + 2]),
+			NS_TO_US(svc[i * 4 + 3]));
+	}
+
+	if (run_multicore) {
+		uint64_t *mem_bw = get_multicore_memory_bandwidth();
+		uint64_t *ipc_bw = get_multicore_ipc_bandwidth();
+		uint64_t *intra_inter = get_multicore_intra_inter_bandwidth();
+		uint64_t *task_lat = get_multicore_init_dlt_latency();
+
+		if (!mem_bw || !ipc_bw || !intra_inter || !task_lat) {
+			rt->multicore_valid = 0;
+			return;
+		}
+
+		static const char *mem_types[] = {
+			"rd", "wr", "cp", "frd", "fwr", "fcp", "memset", "memcpy"
+		};
+		for (int i = 0; i < 8; i++) {
+			rtbench_realtime_add_mem_bw(rt, mem_types[i],
+						    RAW_TO_GBS(mem_bw[i * 4 + 0]),
+						    RAW_TO_GBS(mem_bw[i * 4 + 1]),
+						    RAW_TO_GBS(mem_bw[i * 4 + 2]),
+						    RAW_TO_GBS(mem_bw[i * 4 + 3]));
+		}
+
+		rt->ipc_bw_c1 = RAW_TO_GBS(ipc_bw[0]);
+		rt->ipc_bw_c2 = RAW_TO_GBS(ipc_bw[1]);
+		rt->ipc_bw_c4 = RAW_TO_GBS(ipc_bw[2]);
+		rt->ipc_bw_c8 = RAW_TO_GBS(ipc_bw[3]);
+		rt->core_comm_intra = RAW_TO_GBS(intra_inter[0]);
+		rt->core_comm_inter = RAW_TO_GBS(intra_inter[1]);
+		rt->task_lat_c1 = NS_TO_US(task_lat[0]);
+		rt->task_lat_c2 = NS_TO_US(task_lat[1]);
+		rt->task_lat_c4 = NS_TO_US(task_lat[2]);
+		rt->task_lat_c8 = NS_TO_US(task_lat[3]);
+	}
+}
+
+static int collect_schedule_result(void)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_schedule_result *sched = &r->schedule;
+	const struct test_schedule_result *src = test_schedule_get_result();
+
+	if (src == NULL) {
+		sched->valid = 0;
+		return -1;
+	}
+
+	sched->valid = 1;
+	sched->cycles = TEST_SCHEDULE_CYCLES;
+	sched->util_start = TEST_SCHEDULE_UTIL_START;
+	sched->util_end = TEST_SCHEDULE_UTIL_END;
+	sched->util_step = TEST_SCHEDULE_UTIL_STEP;
+	sched->average_miss_rate = src->average_miss_rate;
+	sched->final_score = src->final_score;
+
+	sched->gradient_count = src->num_gradients;
+	if (sched->gradient_count > RTBENCH_MAX_GRADIENTS) {
+		sched->gradient_count = RTBENCH_MAX_GRADIENTS;
+	}
+
+	for (int i = 0; i < sched->gradient_count; i++) {
+		const struct schedule_gradient_result *g = &src->gradients[i];
+		struct rtbench_gradient_result *out = &sched->gradients[i];
+
+		out->utilization_percent = g->utilization_percent;
+		out->actual_utilization = g->actual_utilization;
+		out->total_jobs = g->total_jobs;
+		out->deadline_misses = g->total_misses;
+		out->miss_rate = g->miss_rate;
+		out->task_count = g->num_tasks;
+		if (out->task_count > RTBENCH_MAX_WORKLOADS) {
+			out->task_count = RTBENCH_MAX_WORKLOADS;
+		}
+
+		for (int j = 0; j < out->task_count; j++) {
+			const struct schedule_task_stats *src_task = &g->task_stats[j];
+			struct rtbench_task_stat *dst_task = &out->task_stats[j];
+
+			if (src_task->name) {
+				strncpy(dst_task->name, src_task->name,
+					sizeof(dst_task->name) - 1);
+			}
+			dst_task->jobs = src_task->total_jobs;
+			dst_task->misses = src_task->deadline_misses;
+			dst_task->max_response_ms =
+				(double)src_task->max_response_ns / 1000000.0;
+		}
+	}
+	return 0;
+}
+
+static int collect_stress_result(int module_ret)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_stress_result *stress = &r->stress;
+	int count = 0;
+	int has_failure = (module_ret != 0) ? 1 : 0;
+	double total_duration = 0.0;
+	const struct test_stress_job_result *results =
+		test_stress_get_job_results(&count);
+
+	if (!results || count <= 0) {
+		stress->valid = 0;
+		return -1;
+	}
+
+	stress->valid = 1;
+
+	for (int i = 0; i < count; i++) {
+		const struct test_stress_job_result *jr = &results[i];
+
+		total_duration += jr->duration_sec;
+		rtbench_stress_add_stressor(stress, jr->name, jr->type, jr->stage,
+					    jr->bogo_ops, jr->duration_sec,
+					    jr->metric_value, jr->metric_unit);
+		if (!jr->success) {
+			has_failure = 1;
+		}
+	}
+
+	stress->duration_sec = total_duration;
+	return has_failure ? -1 : 0;
+}
+
+static int collect_cmd_result(int module_ret)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_cmd_module_result *dst = &r->cmd;
+	const struct test_cmd_module_result *src = test_cmd_get_result();
+
+	if (!src || !src->valid) {
+		dst->valid = 0;
+		return -1;
+	}
+
+	dst->valid = 1;
+	dst->cmd_count = src->cmd_count;
+	dst->pass_count = src->pass_count;
+
+	for (int i = 0; i < src->cmd_count && i < RTBENCH_MAX_CMD_COMMANDS; i++) {
+		if (src->results[i].command) {
+			strncpy(dst->results[i].command, src->results[i].command,
+				sizeof(dst->results[i].command) - 1);
+		}
+		if (src->results[i].name) {
+			strncpy(dst->results[i].name, src->results[i].name,
+				sizeof(dst->results[i].name) - 1);
+		}
+		dst->results[i].supported = src->results[i].supported;
+	}
+
+	if (module_ret != 0 || dst->pass_count < dst->cmd_count) {
+		return -1;
+	}
+	return 0;
+}
+
+static int collect_workload_results(void)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_workload_module_result *wl = &r->workload;
+	int has_failure = 0;
+	int executed = 0;
+	long double start = rtbench_get_timestamp();
+
+	wl->valid = 1;
+
+	for (int i = 0; i < rtosbench_workload_count(); i++) {
+		const struct rtosbench_workload *w = rtosbench_get_workload(i);
+		long double run_start, run_end;
+		double total_ms;
+
+		if (!w || !w->name || !w->exec) {
+			continue;
+		}
+		if (w->category && strcmp(w->category, "synthetic") == 0) {
+			continue;
+		}
+
+		printf("  Running workload: %s\n", w->name);
+
+		if (w->init && w->init(0, NULL) != 0) {
+			rtbench_workload_add_result(wl, w->name,
+						    w->category ? w->category : "",
+						    0, 0, 0.0, 0.0);
+			has_failure = 1;
+			continue;
+		}
+
+		run_start = rtbench_get_timestamp();
+		w->exec(0, NULL);
+		run_end = rtbench_get_timestamp();
+		total_ms = (double)(run_end - run_start) * 1000.0;
+		executed++;
+
+		if (w->teardown) {
+			w->teardown(0, NULL);
+		}
+
+		rtbench_workload_add_result(wl, w->name,
+					    w->category ? w->category : "",
+					    1, 1, total_ms, total_ms);
+		printf("    %s: %.3f ms\n", w->name, total_ms);
+	}
+
+	wl->duration_sec = (double)(rtbench_get_timestamp() - start);
+
+	if (executed == 0) {
+		wl->valid = 0;
+		return -1;
+	}
+	if (has_failure) {
+		return -1;
+	}
+	return 0;
+}
+
 /**
  * @brief Main entry point for SylixOS
  */
 int main(int argc, char **argv)
 {
 	struct execution_options opts;
+	const char *output_path = SYLIXOS_DEFAULT_OUTPUT_PATH;
 
 	if (argc == 2 && strcmp(argv[1], "-s") == 0) {
         run_all_workloads();
@@ -141,6 +421,135 @@ int main(int argc, char **argv)
 	
 	/* Register workloads */
 	rtosbench_register_rtos_workloads();
+
+	/* Handle export-result subcommand */
+	if (argc >= 2 && strcmp(argv[1], "export-result") == 0) {
+		for (int i = 2; i < argc; i++) {
+			if ((strcmp(argv[i], "-o") == 0 ||
+			     strcmp(argv[i], "--output") == 0) &&
+			    (i + 1 < argc)) {
+				output_path = argv[++i];
+			}
+		}
+		int ret = rtbench_result_export_json(output_path);
+		if (ret == 0) {
+			printf("[RTOS-Bench] Results exported to: %s\n",
+			       output_path);
+		}
+		return ret;
+	}
+
+	/* Handle test-all subcommand */
+	if (argc >= 2 && strcmp(argv[1], "test-all") == 0) {
+		int run_realtime = 1;
+		int run_schedule = 1;
+		int run_stress = 1;
+		int run_cmd = 1;
+		int run_workload = 1;
+		int run_multicore = 0;
+		int overall_fail = 0;
+		int mod_ret = 0;
+
+		for (int i = 2; i < argc; i++) {
+			if ((strcmp(argv[i], "-o") == 0 ||
+			     strcmp(argv[i], "--output") == 0) &&
+			    (i + 1 < argc)) {
+				output_path = argv[++i];
+			} else if (strcmp(argv[i], "--no-realtime") == 0) {
+				run_realtime = 0;
+			} else if (strcmp(argv[i], "--no-schedule") == 0) {
+				run_schedule = 0;
+			} else if (strcmp(argv[i], "--no-stress") == 0) {
+				run_stress = 0;
+			} else if (strcmp(argv[i], "--no-cmd") == 0) {
+				run_cmd = 0;
+			} else if (strcmp(argv[i], "--no-workload") == 0) {
+				run_workload = 0;
+			} else if (strcmp(argv[i], "--multicore") == 0 ||
+				   strcmp(argv[i], "-m") == 0) {
+				run_multicore = 1;
+			} else if (strcmp(argv[i], "-q") == 0) {
+				benchmark_verbosity = LOG_LEVEL_INFO;
+			}
+		}
+
+		rtbench_result_init();
+		rtbench_result_set_env("SylixOS", "unknown", "unknown", "unknown",
+				       0, 0);
+		rtbench_result_start();
+
+		printf("\n=============================================================\n");
+		printf("[RTOS-Bench] Comprehensive Test Suite (SylixOS)\n");
+		printf("=============================================================\n");
+		printf("Output: %s\n", output_path);
+		printf("Modules: realtime=%s schedule=%s stress=%s cmd=%s workload=%s\n",
+		       run_realtime ? "yes" : "no",
+		       run_schedule ? "yes" : "no",
+		       run_stress ? "yes" : "no",
+		       run_cmd ? "yes" : "no",
+		       run_workload ? "yes" : "no");
+
+		if (run_realtime) {
+			printf("\n>>> Running test-realtime...\n");
+			mod_ret = test_realtime_run(run_multicore);
+			if (mod_ret == 0) {
+				collect_realtime_result(run_multicore);
+			} else {
+				overall_fail = 1;
+			}
+		}
+
+		if (run_schedule) {
+			printf("\n>>> Running test-schedule...\n");
+			mod_ret = test_schedule_run();
+			if (collect_schedule_result() != 0 || mod_ret != 0) {
+				overall_fail = 1;
+			}
+		}
+
+		if (run_stress) {
+			printf("\n>>> Running test-stress (job: all)...\n");
+			mod_ret = test_stress_run_job("all");
+			if (collect_stress_result(mod_ret) != 0) {
+				overall_fail = 1;
+			}
+		}
+
+		if (run_cmd) {
+			printf("\n>>> Running test-cmd...\n");
+			mod_ret = test_cmd_run();
+			if (collect_cmd_result(mod_ret) != 0) {
+				overall_fail = 1;
+			}
+		}
+
+		if (run_workload) {
+			printf("\n>>> Running typical workloads...\n");
+			mod_ret = collect_workload_results();
+			if (mod_ret != 0) {
+				overall_fail = 1;
+			}
+		}
+
+		rtbench_result_end();
+		mod_ret = rtbench_result_export_json(output_path);
+		if (mod_ret == 0) {
+			printf("\n=============================================================\n");
+			printf("[RTOS-Bench] Results saved to: %s\n", output_path);
+			if (overall_fail) {
+				printf("[RTOS-Bench] One or more modules failed\n");
+			}
+			printf("=============================================================\n");
+		} else {
+			printf("\n[RTOS-Bench] Failed to save results: %d\n", mod_ret);
+		}
+		rtbench_result_cleanup();
+
+		if (mod_ret != 0) {
+			return mod_ret;
+		}
+		return overall_fail ? -1 : 0;
+	}
 
 	/* Handle test-schedule subcommand */
 	if (argc >= 2 && strcmp(argv[1], "test-schedule") == 0) {
@@ -416,3 +825,4 @@ int main(int argc, char **argv)
 	}
 	return ret;
 }
+#endif /* SYLIXOS_PLATFORM || RTBENCH_PLATFORM_SYLIXOS */

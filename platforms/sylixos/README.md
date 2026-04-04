@@ -267,6 +267,15 @@ make WORKSPACE_base=/path/to/base
 
 参考 `src/cusum_workload.c`，实现 `init`、`exec`、`teardown` 函数，使用 `RTOSBENCH_REGISTER_WORKLOAD` 宏注册。
 
+### Q: 为什么 `rtbench -b fast` 没有真正跑到 fast？
+
+通常是入口文件混用导致：`rtbench` 实际跑到了通用 Linux `main.c`（其 workload 参数是 `-w`），而不是 SylixOS 专用入口。
+
+排查建议：
+1. 确认 `rtos-bench.mk` 只使用 `generator/sylixos_entry.c` 作为入口。
+2. 不要让 IDE 自动扫描并额外加入 `generator/main.c` / `generator/posixlite_entry.c`。
+3. 运行时看到 `[rtbench][entry] sylixos` 即表示入口正确。
+
 ---
 
 ## 文件说明

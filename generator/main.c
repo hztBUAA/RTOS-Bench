@@ -1,3 +1,5 @@
+#if defined(LINUX_PLATFORM) || defined(RTBENCH_PLATFORM_LINUX)
+
 #include "periodic_benchmark.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -736,3 +738,4 @@ int main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 }
+#endif /* LINUX_PLATFORM || RTBENCH_PLATFORM_LINUX */

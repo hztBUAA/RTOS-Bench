@@ -27,6 +27,8 @@
 #include "test_stress.h"
 #include "test_cmd.h"
 
+#if defined(DONGTU_PLATFORM) || defined(RTBENCH_PLATFORM_DONGTU)
+
 /* Forward declarations */
 extern void rtosbench_register_rtos_workloads(void);
 
@@ -394,3 +396,4 @@ int main(int argc, char **argv)
 {
 	return rtbench_dongtu_entry(argc, argv);
 }
+#endif /* DONGTU_PLATFORM || RTBENCH_PLATFORM_DONGTU */

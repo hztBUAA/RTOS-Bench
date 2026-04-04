@@ -32,6 +32,10 @@
 #include <string.h>
 #include <ctype.h>
 
+#if defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM) ||                    \
+	defined(RUIHUA_PLATFORM) || defined(RTBENCH_PLATFORM_ONEOS) ||       \
+	defined(RTBENCH_PLATFORM_DONGTU) || defined(RTBENCH_PLATFORM_RUIHUA)
+
 static int ci_equal(const char *a, const char *b)
 {
 	if (a == NULL || b == NULL) {
@@ -223,3 +227,4 @@ int main(int argc, char **argv)
 	}
 	return ret;
 }
+#endif /* ONEOS/DONGTU/RUIHUA entry */
