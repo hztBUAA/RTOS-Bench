@@ -220,6 +220,10 @@ static int cmd_rtbench(int argc, char **argv)
 /* Register shell command */
 SH_CMD_EXPORT(rtbench, cmd_rtbench, "RTOS-Bench workload runner");
 
+int cmd_rtbench_stub(int argc, char **argv) {
+    return cmd_rtbench(argc, argv);
+}
+
 /* Auto-init on system startup */
 static int rtbench_auto_init(void)
 {

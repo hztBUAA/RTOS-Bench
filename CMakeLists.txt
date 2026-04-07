@@ -1,3 +1,7 @@
+if(NOT TARGET ${PROJECT_NAME})
+    message(FATAL_ERROR "Base target ${PROJECT_NAME} not found. Ensure project() is called in root.")
+endif()
+
 # QEMU 运行
 option(QEMU_ENABLE "Run on QEMU" OFF)
 
@@ -71,8 +75,8 @@ else()
     set(RTOS_BENCH_WORKLOADS "")
 endif()
 
-# 将以上源文件追加编译到父目录的 application 库中
-target_sources(application PRIVATE
+# 将源文件关联到主项目目标
+target_sources(${PROJECT_NAME} PRIVATE
     ${RTOS_BENCH_CORE}
     ${STRESS_SOURCES}
     ${REALTIME_ORIG_SOURCES}
@@ -80,7 +84,7 @@ target_sources(application PRIVATE
 )
 
 # 添加算法和环境宏
-target_compile_definitions(application PRIVATE
+target_compile_definitions(${PROJECT_NAME} PRIVATE
     _GNU_SOURCE
     ECL_STANDALONE
     __STDC_FORMAT_MACROS
@@ -92,13 +96,13 @@ target_compile_definitions(application PRIVATE
 )
 
 # 添加编译宏
-target_compile_definitions(application PRIVATE
+target_compile_definitions(${PROJECT_NAME} PRIVATE
     ONEOS_PLATFORM
     MULTI_WORKLOAD
 )
 
 # 添加头文件路径
-target_include_directories(application PUBLIC
+target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/generator"
     "${CMAKE_CURRENT_SOURCE_DIR}/workloads"
     "${CMAKE_CURRENT_SOURCE_DIR}/workloads/CUSUM"
@@ -125,7 +129,7 @@ target_include_directories(application PUBLIC
 )
 
 # 强制包含头文件
-target_compile_options(application PRIVATE
+target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-std=c++14>
     $<$<COMPILE_LANGUAGE:CXX>:-Wno-error>
     $<$<COMPILE_LANGUAGE:CXX>:-Wno-literal-suffix>

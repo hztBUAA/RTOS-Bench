@@ -17,113 +17,91 @@
 
 ### 安装 OneOS-Studio-V2.0
 
-1. 从中移对接群中下载 IDE 和模板工程
+1. 从中移对接群中下载 IDE （最新：V2.0）、模板工程及使用说明（最新：V1.4）
 2. 安装到本地 (建议路径不含中文和空格)
 3. 启动 IDE，创建或打开一个工作空间 (Workspace)
+
+### 准备一个tftp工具
+
+可以安装 Tftpd64，以便向开发板传输文件
 
 ---
 
 ## 2. 测试套件移植
 
-### 方法 A：使用QEMU工程
+### 使用飞腾派工程
 
 #### A.1: 导入工程
 
-下载链接中提供了两种模板工程，分别是qemu工程和飞腾派工程，选择**qemu工程**
+1. 将厂家提供的phytium_pi工程复制到工作区下
+2. 在 IDE 中点击左上角“电视”图标，导入工程phytium_pi
+3. 点击左上角“+”号，创建一个新的工程，命名为phytium_pi_out，类型为Out Project，依赖phytium_pi工程
 
-1. 将模板工程复制到工作区下
-2. 在 IDE 中点击左上角“电视”图标，导入工程
-3. 选择相应的工程导入
+（**注**：目前最新版工程为projects V1.4，分为 phytium_pi 和 phytium_pi_out 两个工程，前者编译出系统内核，后者编译出依赖内核的模块，与翼辉系统的base和app类似。在使用时，也要先导入phytium_pi，再创建out。）
 
-#### A.2: 目录结构说明
-
-```
-你的工作空间/
-├── application/                    # 用户程序目录
-│   ├── les/
-│   ├── multicore/
-│   ├── realtime/
-│   ├── verify/                     # les、multicore、realtime、verify都是实时性能测试组件，请直接删除
-│   ├── CMakeLists.txt              # 系统采用cmake进行构建
-│   └── main.c/
-└── ...
-```
-
-#### A.3: 添加 RTOS-Bench 源码
-
-1. 删除实时性能组件（可能没有verify，如果有，也删除掉）
-2. 克隆 git 仓库，切换到 OneOS 分支。
+#### A.2: 添加 RTOS-Bench 源码
 
 **方式 1：Git Submodule（推荐）**
 ```bash
-# 切换到application目录下
+# 切换到phytium_pi_out目录下
 git init  # 如果还不是 git 仓库
 git submodule add https://github.com/hztBUAA/RTOS-Bench.git
+cd RTOS-Bench
 git checkout feat/oneos
 ```
 
 **方式 2：直接克隆**
 ```bash
-# 切换到application目录下
+# 切换到phytium_pi_out目录下
 git clone https://github.com/hztBUAA/RTOS-Bench.git
+cd RTOS-Bench
 git checkout feat/oneos
 ```
 
-#### A.4: 替换文件
+（注：hello.c可直接删除）
 
-1. 打开**application路径下的CMakeLists.txt**（注：不是工作区根目录下，也不是RTOS-Bench下）
-2. 替换为platforms/oneos/CMakeLists(application).txt中的内容：
+#### A.3: 移动文件
+
+1. 将 RTOS-bench/platforms/oneos/rtbench_cmd_stub.c 复制到 phytium_pi/application 下
+2. 最终的目录结构如下：
+
 ```
-# 添加应用程序组的源文件
-file(GLOB APP_SOURCES "./*.c")
-
-# 创建应用程序静态库
-add_library(application STATIC 
-    ${APP_SOURCES}
-    )
-
-# 设置包含目录
-target_include_directories(application
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-remove_c_compile_target(application "-mgeneral-regs-only")
-
-oneos_add_subdirectories()
+phytium_pi/                         # 内核工程
+├── application/
+│   ├── ...
+│   └── rtbench_cmd_stub.c              # 新增
+phytium_pi_out/                     # out工程
+├── include/                            # 默认创建
+│   ├── hello.h
+├── src/                                # 默认创建
+│   └── hello.c
+└── RTOS-Bench/                         # 基准测试框架
 ```
 
-#### A.5: 进行编译设置
-
-1. 进行特殊设置原因：QEMU 似乎没有提供 socket 接口的实现，所以暂时关闭了典型负载中的 modbus
-2. 打开**RTOS-Bench路径下的CMakeLists.txt**（注：不是工作区根目录下，也不是RTOS-Bench下）
-3. 替换为platforms/oneos/CMakeLists(application).txt中的内容：
-```
-# QEMU 运行
-option(QEMU_ENABLE "Run on QEMU" OFF)         # 改为 ON
-```
-
-### 方法 B：使用飞腾派工程
-
-> 注：需要开发板已接入网络，或就在手边。
-
-#### B.1: 导入工程
-
-下载链接中提供了两种模板工程，分别是qemu工程和飞腾派工程，选择**飞腾派工程**
-
-#### B.2-B.4 
-
-与方法A操作类似。
-
-#### B.5 进行编译设置
-
-可正常进行modbus测试，不用进行额外的编译设置。
+（注：可对hello.c中的模块加载入口函数进行修改，或将hello.c整个删掉，以免一直打印重复信息）
 
 ---
 
 ## 3. 编译、部署和运行
 
-可参照中移提供的 OneOS使用说明-v1.3 进行编译、部署和运行。
+可参照中移提供的 OneOS使用说明-v1.4 进行编译、部署和运行。
+
+### 3.1 编译
+点击IDE中“锤子”图标编译工程
+
+### 3.2 部署
+请阅读中移**使用说明V1.4 “5.1 动态加载使用用法”**
++ 如果能通过telnet连接到单板，则只需导入out模块并执行（并且应该可以跳过ip设置）
++ 打开电脑上的tftp工具，执行 tftp_client <你的主机ip>  get phytium_pi_out.out  /user/phytium_pi_out.out，将你的主机作为服务端，上传out模块。
++ **注意"phytium_pi_out.out"模块名与"/user/phytium_pi_out.out"路径不要修改**
++ 使用 list_lmodule 查看已导入模块。由于模块可重复导入，可先使用 unld 清除已有的模块。
++ 执行ld /user/phytium_pi_out.out，注意，由于导入的模块名被设置为此命令中的路径，请不要对"/user/phytium_pi_out.out"这一路径进行修改，以免rtbench_cmd_stub.c找不到该模块。
+
+### 3.3 运行
+执行 rtbench 开始运行
+> 常见错误：
+> Error: Module '/user/phytium_pi_out.out' not loaded.
+> 请确保执行ld /user/phytium_pi_out.out这条语句来导入模块
 
 ---
 
@@ -140,10 +118,10 @@ option(QEMU_ENABLE "Run on QEMU" OFF)         # 改为 ON
 进行了适配系统的条件编译设置
 > 5. generator/platform/oneos/timestamp.c
 参考翼辉进行了框架层部分函数的设置
-> 6. platforms/oneos/CMakeLists(application).txt
-编写了覆盖到application文件夹下的CMakeLists.txt的内容
-> 7. platforms/oneos/modbus_stub.c、platforms/oneos/mqtt_stub.c
+> 6. platforms/oneos/modbus_stub.c、platforms/oneos/mqtt_stub.c
 编写了桩函数
+> 7. platforms/oneos/rtbench_cmd_stub.c
+在内核中预留了"rtbench"命令，以便加载模块后能够带参数执行
 > 8. platforms/oneos/README.md
 编写了说明文档 
 
@@ -162,7 +140,6 @@ option(QEMU_ENABLE "Run on QEMU" OFF)         # 改为 ON
 - 对压力测试、可调度性测试及负载测试的命令的支持（在oneos_entry.c中）
 > 目前负载测试基础命令已支持，但尚未实现"rtbench -b pid -p 0.1 -t 10"中的 -p/-t 等附加选项
 - mqtt模块的调试
-- 文件系统和网络的调试（可参照 OneOS使用说明-v1.3 章节6.3进行）
 
 ---
 
