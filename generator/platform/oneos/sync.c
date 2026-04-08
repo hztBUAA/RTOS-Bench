@@ -10,8 +10,24 @@
 #include <stddef.h>
 #include <os_sem.h>
 #include <os_memory.h>
-#include <os_errno.h>
-#include <os_stddef.h>
+
+/* Header compatibility for OneOS V2.0 ARM64 */
+#if defined(ONEOS_V2_ARM64)
+    /* V2.0 ARM64 may not have these headers; define fallback constants */
+    #ifndef OS_EOK
+    #define OS_EOK 0
+    #endif
+    #ifndef OS_WAIT_FOREVER
+    #define OS_WAIT_FOREVER ((os_tick_t)-1)
+    #endif
+    #ifndef OS_SEM_MAX_VALUE
+    #define OS_SEM_MAX_VALUE 0xFFFFFFFF
+    #endif
+#else
+    /* V1.x ARM32: use original headers */
+    #include <os_errno.h>
+    #include <os_stddef.h>
+#endif
 
 struct rtbench_sem_internal {
     os_sem_t *sem;
