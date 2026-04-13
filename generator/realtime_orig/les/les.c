@@ -4,7 +4,7 @@
 #include "les.h"
 #include "cpu_affinity.h"
 
-#if defined (SYLIXOS_PLATFORM)
+#if defined (SYLIXOS_PLATFORM) || defined (ONEOS_PLATFORM)
 /*
 volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
 volatile uint32_t LES_offset = 0;

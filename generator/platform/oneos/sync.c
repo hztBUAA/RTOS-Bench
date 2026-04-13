@@ -30,7 +30,7 @@
 #endif
 
 struct rtbench_sem_internal {
-    os_sem_t *sem;
+    os_semaphore_id sem;
 };
 
 rtbench_sem_t rtbench_sem_create(unsigned int initial_value)
@@ -42,7 +42,7 @@ rtbench_sem_t rtbench_sem_create(unsigned int initial_value)
         return NULL;
     }
 
-    s->sem = os_sem_create("rtbench_sem", initial_value, OS_SEM_MAX_VALUE);
+    s->sem = os_semaphore_create(NULL, "rtbench_sem", initial_value, OS_SEM_MAX_VALUE);
     if (s->sem == NULL) {
         os_free(s);
         return NULL;
@@ -59,7 +59,7 @@ int rtbench_sem_wait(rtbench_sem_t sem)
         return -1;
     }
 
-    return (os_sem_wait(s->sem, OS_WAIT_FOREVER) == OS_EOK) ? 0 : -1;
+    return (os_semaphore_wait(s->sem, OS_WAIT_FOREVER) == OS_EOK) ? 0 : -1;
 }
 
 int rtbench_sem_post(rtbench_sem_t sem)
@@ -70,7 +70,7 @@ int rtbench_sem_post(rtbench_sem_t sem)
         return -1;
     }
 
-    return (os_sem_post(s->sem) == OS_EOK) ? 0 : -1;
+    return (os_semaphore_post(s->sem) == OS_EOK) ? 0 : -1;
 }
 
 int rtbench_sem_destroy(rtbench_sem_t sem)
@@ -82,7 +82,7 @@ int rtbench_sem_destroy(rtbench_sem_t sem)
     }
 
     if (s->sem != NULL) {
-        os_sem_destroy(s->sem);
+        os_semaphore_destroy(s->sem);
     }
 
     os_free(s);

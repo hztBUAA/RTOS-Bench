@@ -14,8 +14,8 @@
 int rtbench_set_priority(unsigned int priority)
 {
 #if defined(ONEOS_V2_ARM64)
-    /* V2.0 ARM64: os_task_id is int type, use os_task_current() */
-    os_task_id current = os_task_current();
+    /* V2.0 ARM64: os_task_id is int type, use os_get_current_task() */
+    os_task_id current = os_get_current_task();
     if (current == OS_NULL) {
         return -1;
     }
