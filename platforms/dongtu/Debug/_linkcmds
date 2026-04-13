@@ -1,0 +1,141 @@
+/* memory-config generate by ccgtools*/
+
+ENTRY(_start)
+
+MEMORY 
+{
+	partition :  ORIGIN = 0x40000000, LENGTH = 0x01000000
+	shm :  ORIGIN = 0x79c00000, LENGTH = 0x06400000
+	ram :  ORIGIN = 0x41000000, LENGTH = 0x02000000
+}
+
+SECTIONS 
+{
+
+.text   ((0x40000000 + 0x00001000 - 1) & ~(0x00001000 - 1))	:
+{
+_text_start = .;
+
+__start_start = .;
+     *(._start);
+      . = . + 0x120 - ( . - "__start_start" );
+      *(.image_info);
+         . = ALIGN(16);
+         CREATE_OBJECT_SYMBOLS;
+          *( .text ) ;
+          *(.text.*);
+          *(.text.lock );
+           *(.m_hdr) ;
+		. = ALIGN(4);
+		__EH_FRAME_BEGIN__ = .;
+		KEEP (*(.eh_frame .eh_frame.*));
+		LONG (0);
+		KEEP (*(.gcc_except_table .gcc_except_table.*));
+		*(.gnu.linkonce.t*) ;
+		. = ALIGN(4);
+           __CTOR_LIST__ = .;
+           LONG (-1);
+         KEEP (*(.ctors .ctor));
+           LONG (0);
+           __CTOR_END__ = .;
+           __DTOR_LIST__ = .;
+           LONG (-1);
+        KEEP (*(.dtors .dtor));
+           LONG (0);
+           __DTOR_END__ = .;
+           *(.gnu.linkonce.r*);
+           *(.rodata*);
+           *(.jcr);
+           *(.init_begin);
+           *(.init);
+           *(.init_end);
+           *(.fini);
+           __GOT_START__ = .;
+           *(.got);
+           __GOT_END__ = .;
+           __GOT2_START__ = .;
+           *(.got2);
+           __GOT2_END__ = .;
+           *(.gcc_except_table);
+           . = ALIGN(16);
+           *(.fixup);
+           *(.interface);
+           . = ALIGN(0x1000);
+           
+_text_end = .;
+}	>partition
+_text_size = SIZEOF(.text);
+
+
+.sidata   ((_text_end + 0x00001000 - 1) & ~(0x00001000 - 1))	:
+{
+_sidata_start = .;
+
+load__data_start = .;
+_sidata_end = .;
+}	>partition
+_sidata_size = SIZEOF(.sidata);
+
+
+.iplt   ((_sidata_end + 0x00001000 - 1) & ~(0x00001000 - 1))	:
+{
+_iplt_start = .;
+
+load__iplt_start = .;
+_iplt_end = .;
+}	>partition
+_iplt_size = SIZEOF(.iplt);
+
+
+.data   (((0x41000000 + 0x00001000 - 1) & ~(0x00001000 - 1)))	:	AT(((((_sidata_end + 0x00001000 - 1) & ~(0x00001000 - 1)) + SIZEOF(.iplt) + 0x00001000 - 1) & ~(0x00001000 - 1)))
+{
+_data_start = .;
+
+ *(.data);  *(.data.*);   __shell_root_cmds_start = .;   KEEP(*(SORT(.shell_root_cmd_*)));   __shell_root_cmds_end = .;     *(.gnu.linkonce.d*);     *(.gcc_except_table);     *(.data.rel.local);     __SDATA_START__ = .;     *(.sdata);      *(.sdata.*);     __SDATA2_START__ = .;     *(.sdata2);     *(.flash*);     __FIXUP_START__ = .;     __FIXUP_END__ = .;     __EXCEPT_START__ = .;     __EXCEPT_END__ = .;     . = ALIGN(0x1000);   
+_data_end = .;
+}	>ram
+_sidata_size = SIZEOF(.data);
+_sidata_start = ((((_sidata_end + 0x00001000 - 1) & ~(0x00001000 - 1)) + SIZEOF(.iplt) + 0x00001000 - 1) & ~(0x00001000 - 1));
+_sidata_end = ((((_sidata_end + 0x00001000 - 1) & ~(0x00001000 - 1)) + SIZEOF(.iplt) + 0x00001000 - 1) & ~(0x00001000 - 1)) + SIZEOF(.data);
+
+
+.bss   ((_data_end + 0x00001000 - 1) & ~(0x00001000 - 1))	(NOLOAD)	:
+{
+_bss_start = .;
+
+    *(.bss);     *(.bss.*);     *(COMMON);     *(.gnu.linkonce.b*);     *(.sbss);     *(.sbss.*);     __SBSS_END__ = .;     *(.sbss2);     __SBSS2_END__ = .;     . = ALIGN(0x1000);     
+_bss_end = .;
+}	>ram
+_bss_size = SIZEOF(.bss);
+
+
+init_stack_start = ((_bss_end + 0x00001000 - 1) & ~(0x00001000 - 1));
+init_stack_end = (((_bss_end + 0x00001000 - 1) & ~(0x00001000 - 1)) + 0x00002000);
+init_stack_size = 0x00002000;
+
+
+
+partition_start = 0x40000000;
+partition_end = 0x40000000 + 0x01000000;
+
+shm_start = 0x79c00000;
+shm_end = 0x79c00000 + 0x06400000;
+
+
+}
+
+load__text_start = (0x40000000 + (0x00001000 - 1))& ~(0x00001000 - 1);
+store__text_size = ((_text_size + (0x00001000 - 1)) & ~(0x00001000 - 1));
+
+load__sidata_start = (0x40000000 + _text_size + (0x00001000 - 1))& ~(0x00001000 - 1);
+store__sidata_size = ((_sidata_size + (0x00001000 - 1)) & ~(0x00001000 - 1));
+
+load__iplt_start = (0x40000000 + ((_text_size + (0x00001000 -1))& ~(0x00001000 -1)) + _sidata_size + (0x00001000 - 1))& ~(0x00001000 - 1);
+store__iplt_size = (((0x40000000 + (0x01000000 - 1) - _iplt_start + 1) + (0x00001000 - 1)) & ~(0x00001000 - 1));
+
+load__bss_start = (0x40000000 + (0x41000000 - 0x40000000)  + _sidata_size + (0x00001000 - 1))& ~(0x00001000 - 1);
+store__bss_size = ((_bss_size + (0x00001000 - 1)) & ~(0x00001000 - 1));
+
+load_init_stack_start = (0x40000000 + (0x41000000 - 0x40000000)  + ((_sidata_size + (0x00001000 -1))& ~(0x00001000 -1)) + _bss_size + (0x00001000 - 1))& ~(0x00001000 - 1);
+store_init_stack_size = (0x79c00000 - init_stack_start);
+
