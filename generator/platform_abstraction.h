@@ -22,22 +22,32 @@
 #elif defined(ONEOS_PLATFORM)
     /* OneOS: POSIX-lite profile; prefer POSIX APIs when available */
     #define RTBENCH_PLATFORM_ONEOS
-    /* Provide minimal typedef guards in case libc omits them */
-    #ifndef _CLOCK_T_DECLARED
-    typedef unsigned long clock_t;
-    #define _CLOCK_T_DECLARED
+
+    /* Auto-detect OneOS V2.0 ARM64 (uses musl libc with pre-defined types) */
+    #if defined(__aarch64__) || defined(_M_ARM64)
+        #define ONEOS_V2_ARM64 1
     #endif
+
+    /* For musl libc (OneOS V2.0 ARM64), these types are already defined
+     * in bits/alltypes.h. Only define for non-musl systems (V1.x ARM32). */
+    #ifndef ONEOS_V2_ARM64
+        #ifndef _CLOCK_T_DECLARED
+        typedef unsigned long clock_t;
+        #define _CLOCK_T_DECLARED
+        #endif
+        #ifndef _CLOCKID_T_DECLARED
+        typedef unsigned long clockid_t;
+        #define _CLOCKID_T_DECLARED
+        #endif
+        #ifndef _TIMER_T_DECLARED
+        typedef unsigned long timer_t;
+        #define _TIMER_T_DECLARED
+        #endif
+    #endif
+
     #ifndef _SUSECONDS_T_DECLARED
     typedef long suseconds_t;
     #define _SUSECONDS_T_DECLARED
-    #endif
-    #ifndef _CLOCKID_T_DECLARED
-    typedef unsigned long clockid_t;
-    #define _CLOCKID_T_DECLARED
-    #endif
-    #ifndef _TIMER_T_DECLARED
-    typedef unsigned long timer_t;
-    #define _TIMER_T_DECLARED
     #endif
     #ifndef _PID_T_DECLARED
     typedef int pid_t;
