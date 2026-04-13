@@ -30,7 +30,7 @@ file(GLOB_RECURSE STRESS_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/stress_orig/common/stress-ng.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/stress_orig/common/core-helper.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/stress_orig/common/stress_stored_job.c"
-#   "${CMAKE_CURRENT_SOURCE_DIR}/generator/stress_orig/osal/os_oneos.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generator/stress_orig/osal/os_oneos.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/stress_orig/stressor/*.c"
 )
 

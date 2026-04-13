@@ -17,6 +17,8 @@
 #include <errno.h>
 #include <stdarg.h>
 
+#include <limits.h>
+
 #include <pthread.h>
 #include <semaphore.h>
 #include <sched.h>
