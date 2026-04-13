@@ -73,10 +73,40 @@ static void set_default_exec_opts(struct execution_options *opts)
 	benchmark_verbosity = LOG_LEVEL_TRACE;
 }
 
+static void print_help(const char *prog_name)
+{
+	printf("Usage: %s [OPTIONS] [COMMAND]\n\n", prog_name);
+	printf("RTOS-Bench: Industrial RTOS Benchmark Framework\n\n");
+	printf("Commands:\n");
+	printf("  test-schedule [--cycles N]    Run schedulability test\n");
+	printf("  test-realtime [--multicore]   Run realtime performance test\n");
+	printf("  test-stress [--job NAME]      Run stress test\n");
+	printf("  test-cmd                      Run shell command support test\n");
+	printf("\nOptions:\n");
+	printf("  -h, --help                    Show this help message\n");
+	printf("  -L, -l, --list                List available workloads\n");
+	printf("  -b, -w <name>                 Select workload by name\n");
+	printf("  -A                            Run all workloads\n");
+	printf("  -G <category>                 Run workloads by category\n");
+	printf("  -p <seconds>                  Period (e.g., 0.1 = 100ms)\n");
+	printf("  -d <seconds>                  Deadline\n");
+	printf("  -t <count>                    Number of tasks\n");
+	printf("  -c <cpu>                      CPU affinity\n");
+	printf("  -f <priority>                 FIFO priority\n");
+	printf("  -q                            Quiet mode\n");
+	printf("\nExamples:\n");
+	printf("  %s -L                         # List workloads\n", prog_name);
+	printf("  %s test-schedule --cycles 10  # Quick schedule test\n", prog_name);
+	printf("  %s -b pid -p 0.1 -t 5         # Run PID workload\n", prog_name);
+}
+
 static void parse_args(int argc, char **argv, struct execution_options *opts)
 {
 	for (int i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-p") && (i + 1 < argc)) {
+		if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
+			print_help(argv[0]);
+			exit(0);
+		} else if (!strcmp(argv[i], "-p") && (i + 1 < argc)) {
 			double v = atof(argv[++i]);
 			long sec = (long)v;
 			long nsec = (long)((v - (double)sec) * 1000000000.0);
