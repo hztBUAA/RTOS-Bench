@@ -30,6 +30,10 @@
 #else
 #include <pthread.h>
 #define SCHED_PRINTF printf
+/* Large stack for POSIX threads to support Eigen-based workloads (EPNP/EKF/ICP)
+ * which need substantial stack space for JacobiSVD and matrix operations.
+ * ARM64 requires more stack than x86 due to larger stack frames. */
+#define SCHED_POSIX_STACK_SIZE (4 * 1024 * 1024)
 #endif
 
 /**
@@ -292,8 +296,18 @@ static void *pthread_entry_wrapper(void *param)
 
 static int create_task_thread(struct task_thread_ctx *ctx, const char *name)
 {
+	pthread_attr_t attr;
+	int ret;
+
 	(void)name;
-	return pthread_create(&ctx->thread, NULL, pthread_entry_wrapper, ctx);
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, SCHED_POSIX_STACK_SIZE);
+
+	ret = pthread_create(&ctx->thread, &attr, pthread_entry_wrapper, ctx);
+	pthread_attr_destroy(&attr);
+
+	return ret;
 }
 
 static void wait_task_thread(struct task_thread_ctx *ctx)

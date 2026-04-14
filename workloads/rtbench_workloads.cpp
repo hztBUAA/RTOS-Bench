@@ -3,6 +3,15 @@
 #include "../generator/workload_registry.h"
 #include <stddef.h>
 
+/* For EPNP thread wrapper on SylixOS/POSIX */
+#if defined(ENABLE_EPNP_WORKLOAD) && !defined(RT_THREAD_PLATFORM)
+#include <pthread.h>
+/* Large stack for Eigen JacobiSVD operations in EPNP.
+ * ARM64 requires more stack than x86 due to larger stack frames.
+ * Eigen's JacobiSVD with dynamic matrices needs substantial stack space. */
+#define EPNP_THREAD_STACK_SIZE (4 * 1024 * 1024)
+#endif
+
 /* Built-in workloads (ensure available even if constructors are skipped) */
 extern const struct rtosbench_workload rtosbench_stub_workload;
 extern const struct rtosbench_workload rtosbench_busywait_workload;
@@ -54,6 +63,20 @@ const struct rtosbench_workload rtosbench_fast_workload = {
 
 /* EPNP */
 #ifdef ENABLE_EPNP_WORKLOAD
+
+/* Thread arguments for EPNP execution */
+static size_t epnp_iterations_arg = 1000;
+
+#ifndef RT_THREAD_PLATFORM
+/* Thread wrapper to run EPNP with large stack on SylixOS/POSIX */
+static void *epnp_thread_wrapper(void *arg)
+{
+	size_t iters = *(size_t *)arg;
+	epnp_bench_run(iters);
+	return NULL;
+}
+#endif
+
 static int epnp_init(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
@@ -65,7 +88,29 @@ static void epnp_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
+
+#ifdef RT_THREAD_PLATFORM
+	/* RT-Thread: direct call (handled by rt_thread stack) */
 	epnp_bench_run(1000);
+#else
+	/* SylixOS/POSIX: spawn thread with large stack for Eigen operations */
+	pthread_t tid;
+	pthread_attr_t attr;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, EPNP_THREAD_STACK_SIZE);
+
+	epnp_iterations_arg = 1000;
+	int ret = pthread_create(&tid, &attr, epnp_thread_wrapper, &epnp_iterations_arg);
+	pthread_attr_destroy(&attr);
+
+	if (ret == 0) {
+		pthread_join(tid, NULL);
+	} else {
+		/* Fallback: direct call (may crash on small stack) */
+		epnp_bench_run(1000);
+	}
+#endif
 }
 
 static void epnp_teardown(int parameters_num, void **parameters)
@@ -297,8 +342,7 @@ const struct rtosbench_workload rtosbench_ewma_workload = {
 /* Registration helpers */
 static void register_all_workloads(void)
 {
-	rtosbench_register_workload(&rtosbench_stub_workload);
-	rtosbench_register_workload(&rtosbench_busywait_workload);
+	/* Note: stub and busywait are registered via workload_registry.c constructor */
 	rtosbench_register_workload(&rtosbench_fast_workload);
 #ifdef ENABLE_EPNP_WORKLOAD
 	rtosbench_register_workload(&rtosbench_epnp_workload);
@@ -312,7 +356,10 @@ static void register_all_workloads(void)
 	rtosbench_register_workload(&rtosbench_ewma_workload);
 }
 
-#if defined(__GNUC__) && !defined(RT_THREAD_PLATFORM)
+/* Disable constructor-based auto-registration on SylixOS due to static
+ * initialization order issues with position-independent code.
+ * Registration happens explicitly via rtosbench_register_rtos_workloads(). */
+#if defined(__GNUC__) && !defined(RT_THREAD_PLATFORM) && !defined(SYLIXOS)
 __attribute__((constructor))
 static void auto_register_workloads(void)
 {
