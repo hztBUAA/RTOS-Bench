@@ -52,7 +52,7 @@ extern "C" int icp_bench_run(void) {
 
     double total_time_us = diff_timespec_us(&start_time, &end_time);
 
-    printf("[icp] samples=1 total_time=%.3f ms avg_latency=%.3f ms/run\n",
+    printf("[ICP] samples=1 total_time=%.3f ms avg_latency=%.3f ms/run\n",
            total_time_us / 1000.0, total_time_us / 1000.0);
 
     return 0;
@@ -64,7 +64,7 @@ static void* icp_thread_entry(void* parameter) {
     return NULL;
 }
 
-extern "C" int icp_test(int argc, char** argv) {
+extern "C" int icp_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     int ret;
@@ -89,7 +89,7 @@ extern "C" int icp_test(int argc, char** argv) {
     if (ret != 0) {
         cout << "Failed to create pthread. Error code: " << ret << endl;
     } else {
-        pthread_detach(tid);
+        pthread_join(tid, NULL);
     }
 
     return 0;

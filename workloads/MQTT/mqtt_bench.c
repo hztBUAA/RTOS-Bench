@@ -178,7 +178,7 @@ static void* mqtt_thread_entry(void *parameter) {
         double avg_us = (double)total_us / g_total_count;
         printf("\n====== Benchmark Finished ======\n");
         printf("Total Sent: %lu\n", (unsigned long)g_total_count);
-        printf("[mqtt] samples=%lu total_time=%.3f ms avg_latency=%.3f us/msg\n",
+        printf("[MQTT] samples=%lu total_time=%.3f ms avg_latency=%.3f us/msg\n",
                (unsigned long)g_total_count, (double)total_us / 1000.0, avg_us);
     }
 
@@ -186,7 +186,7 @@ static void* mqtt_thread_entry(void *parameter) {
     return NULL;
 }
 
-int mqtt_test(int argc, char** argv) {
+int mqtt_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     struct sched_param param;

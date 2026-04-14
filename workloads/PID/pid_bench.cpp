@@ -75,7 +75,7 @@ static void* pid_thread_entry(void *parameter) {
     double avg_latency_ns = (double)total_duration_ns / TEST_ROUNDS;
 
     // 统一格式计时输出
-    printf("[pid] samples=%d total_time=%.3f ms avg_latency=%.3f us/op\n",
+    printf("[PID] samples=%d total_time=%.3f ms avg_latency=%.3f us/op\n",
            TEST_ROUNDS, (double)total_duration_ns / 1000000.0, avg_latency_ns / 1000.0);
     return NULL;
 }
@@ -85,7 +85,7 @@ extern "C" int pid_bench_run(void)
     return pid_thread_entry(NULL) == NULL ? 0 : 0;
 }
 
-extern "C" int pid_test(int argc, char **argv) {
+extern "C" int pid_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     int ret;
@@ -108,7 +108,7 @@ extern "C" int pid_test(int argc, char **argv) {
     if (ret != 0) {
         printf("Failed to create pthread. Error: %d\n", ret);
     } else {
-        pthread_detach(tid); 
+        pthread_join(tid, NULL); 
     }
 
     return 0;

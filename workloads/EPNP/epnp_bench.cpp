@@ -30,8 +30,7 @@ using namespace std;
 using namespace Eigen;
 using namespace opengv;
 
-// 定义测试线程的栈大小，Eigen 矩阵运算给大一点，这里给 16KB
-#define THREAD_STACK_SIZE   16384
+#define THREAD_STACK_SIZE (5 * 1024)
 
 static double diff_timespec_us(const struct timespec *start, const struct timespec *end)
 {
@@ -96,7 +95,7 @@ extern "C" int epnp_bench_run(size_t iterations) {
     // 记录开始时间
     clock_gettime(CLOCK_MONOTONIC, &start_time);
     
-    size_t loops = iterations > 0 ? iterations : 1000;
+    size_t loops = iterations > 0 ? iterations : 1;
     for(size_t i = 0; i < loops; i++) {
         epnp_transformation = absolute_pose::epnp(adapter);
     }
@@ -108,7 +107,7 @@ extern "C" int epnp_bench_run(size_t iterations) {
     double avg_time_us = total_time_us / loops;
 
     /* Unified format timing output */
-    printf("[epnp] samples=%zu total_time=%.3f ms avg_latency=%.3f us/iter\n",
+    printf("[EPNP] samples=%zu total_time=%.3f ms avg_latency=%.3f us/iter\n",
            loops, total_time_us / 1000.0, avg_time_us);
 
     return 0;
@@ -118,12 +117,12 @@ extern "C" int epnp_bench_run(size_t iterations) {
  * 实际执行 ePnP 测试的线程入口函数
  */
 static void* epnp_thread_entry(void* parameter) {
-    size_t iterations = parameter ? *((size_t*)parameter) : 1000;
+    size_t iterations = parameter ? *((size_t*)parameter) : 1;
     epnp_bench_run(iterations);
     return nullptr;
 }
 
-int epnp_test(void) {
+extern "C" int epnp_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     int ret;
@@ -149,8 +148,8 @@ int epnp_test(void) {
     pthread_attr_destroy(&attr);
     
     if (ret == 0) {
-        pthread_detach(tid);
         printf("ePnP benchmark thread created successfully (POSIX).\n");
+        pthread_join(tid, NULL);
     }
     else {
         printf("Failed to create epnp benchmark thread. Error: %d\n", ret);

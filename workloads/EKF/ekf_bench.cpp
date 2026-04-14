@@ -156,9 +156,8 @@ static void* ekf_thread_entry(void *parameter) {
 }
 
 
-#if EKF_HAVE_PTHREAD
 /* 导出命令到 MSH（仅在具备 pthread 的主机侧调试时使用） */
-int ekf_test(int argc, char **argv) {
+extern "C" int ekf_test(void) {
     pthread_t tid;
     pthread_attr_t attr;
     struct sched_param param;
@@ -173,12 +172,11 @@ int ekf_test(int argc, char **argv) {
 
     ret = pthread_create(&tid, &attr, ekf_thread_entry, NULL);
     if (ret == 0) {
-        pthread_detach(tid); 
         printf("EKF simulation thread created successfully (pthread).\n");
+        pthread_join(tid, NULL);
     } else {
         printf("Failed to create EKF simulation thread! Error code: %d\n", ret);
     }
     return 0;
 }
 MSH_CMD_EXPORT(ekf_test, Run EKF benchmark);
-#endif

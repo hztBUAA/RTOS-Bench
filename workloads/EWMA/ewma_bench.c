@@ -111,7 +111,7 @@ int ewma_bench_run(void)
 	uint64_t total_ns = end_time - start_time;
 	double avg_ns = (double)total_ns / stream_len;
 
-	printf("[ewma] samples=%zu total_time=%.3f ms avg_latency=%.3f us/sample\n",
+	printf("[EWMA] samples=%zu total_time=%.3f ms avg_latency=%.3f us/sample\n",
 	       stream_len, (double)total_ns / 1000000.0, avg_ns / 1000.0);
 
 	return alarms;
@@ -144,7 +144,7 @@ int ewma_test(void) {
     if (ret != 0) {
         printf("Failed to create pthread. Error: %d\n", ret);
     } else {
-        pthread_detach(tid);
+        pthread_join(tid, NULL);
     }
 
     return 0;
