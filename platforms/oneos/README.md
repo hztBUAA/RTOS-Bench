@@ -41,24 +41,20 @@
 
 #### A.2: 添加 RTOS-Bench 源码
 
+*（已合并至主分支）*
+
 **方式 1：Git Submodule（推荐）**
 ```bash
 # 切换到phytium_pi_out目录下
 git init  # 如果还不是 git 仓库
 git submodule add https://github.com/hztBUAA/RTOS-Bench.git
-cd RTOS-Bench
-git checkout feat/oneos
 ```
 
 **方式 2：直接克隆**
 ```bash
 # 切换到phytium_pi_out目录下
 git clone https://github.com/hztBUAA/RTOS-Bench.git
-cd RTOS-Bench
-git checkout feat/oneos
 ```
-
-（注：hello.c可直接删除）
 
 #### A.3: 移动和修改文件
 
@@ -101,10 +97,9 @@ phytium_pi_out/                     # out工程
 ### 3.2 部署
 请阅读中移**使用说明V1.4 “5.1 动态加载使用用法”**
 + 如果能通过telnet连接到单板，则只需导入out模块并执行（并且应该可以跳过ip设置）
-+ 打开电脑上的tftp工具，执行 tftp_client <你的主机ip>  get phytium_pi_out.out  /user/phytium_pi_out.out，将你的主机作为服务端，上传out模块。
-+ **注意"phytium_pi_out.out"模块名与"/user/phytium_pi_out.out"路径不要修改**
++ 打开电脑上的tftp工具，执行 tftp_client <你的主机ip>  get phytium_pi_out.out  /user/phytium_pi_out.out，将你的主机作为服务端，上传out模块。**注意"phytium_pi_out.out"模块名与"/user/phytium_pi_out.out"路径不要修改**
 + 使用 list_lmodule 查看已导入模块。由于模块可重复导入，可先使用 unld 清除已有的模块。
-+ 执行ld /user/phytium_pi_out.out，注意，由于导入的模块名被设置为此命令中的路径，请不要对"/user/phytium_pi_out.out"这一路径进行修改，以免rtbench_cmd_stub.c找不到该模块。
++ 执行ld /user/phytium_pi_out.out，**注意，由于导入的模块名被设置为此命令中的路径，请不要对"/user/phytium_pi_out.out"这一路径进行修改**，以免内核工程中的rtbench_cmd_stub.c找不到该模块。
 
 ### 3.3 运行
 执行 rtbench 命令，开始运行
@@ -133,9 +128,6 @@ phytium_pi_out/                     # out工程
 
 **待完成的任务**
 
-- 框架层代码编译
-> 报错信息请见 BUILDLOG.md
-- 压力测试的系统入口补充
 - 对压力测试、可调度性测试及负载测试的命令的支持（在oneos_entry.c中）
 > 目前负载测试基础命令已支持，但尚未实现"rtbench -b pid -p 0.1 -t 10"中的 -p/-t 等附加选项
 - mqtt模块的调试
@@ -144,7 +136,8 @@ phytium_pi_out/                     # out工程
 
 ## 5. 常见问题
 
-+ **修改代码后编译未更新**：请尝试清理编译，再重新编译。
+**修改代码后编译未更新**：
++ 请尝试清理编译，再重新编译。
 
 ---
 
