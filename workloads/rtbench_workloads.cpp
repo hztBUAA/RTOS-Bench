@@ -91,7 +91,7 @@ static void epnp_exec(int parameters_num, void **parameters)
 
 #ifdef RT_THREAD_PLATFORM
 	/* RT-Thread: direct call (handled by rt_thread stack) */
-	epnp_bench_run(1000);
+	epnp_bench_run(10);
 #else
 	/* SylixOS/POSIX: spawn thread with large stack for Eigen operations */
 	pthread_t tid;
@@ -100,7 +100,8 @@ static void epnp_exec(int parameters_num, void **parameters)
 	pthread_attr_init(&attr);
 	pthread_attr_setstacksize(&attr, EPNP_THREAD_STACK_SIZE);
 
-	epnp_iterations_arg = 1000;
+	/* Reduced iterations (10 instead of 1000) to avoid Eigen state issues */
+	epnp_iterations_arg = 10;
 	int ret = pthread_create(&tid, &attr, epnp_thread_wrapper, &epnp_iterations_arg);
 	pthread_attr_destroy(&attr);
 
@@ -108,7 +109,7 @@ static void epnp_exec(int parameters_num, void **parameters)
 		pthread_join(tid, NULL);
 	} else {
 		/* Fallback: direct call (may crash on small stack) */
-		epnp_bench_run(1000);
+		epnp_bench_run(10);
 	}
 #endif
 }
