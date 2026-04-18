@@ -149,7 +149,7 @@ void stress_pipe(stress_args_t *args)
     stress_osal_snprintf(sem_rd, sizeof(sem_rd), "prd_%u", run_id);
     stress_osal_snprintf(sem_wr, sizeof(sem_wr), "pwr_%u", run_id);
 
-    if (pipe(ctx->fds) < 0) {
+    if (stress_osal_pipe(ctx->fds) < 0) {
         stress_osal_print("rtos_stress: error: [pipe] pipe() failed errno=%d\n", errno);
         stress_osal_free(ctx);
         return;
