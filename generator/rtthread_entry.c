@@ -682,6 +682,16 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		return test_cmd_run();
 	}
 
+	/* Intercept unknown subcommands before falling through to workload mode */
+	if (argc >= 2 && argv[1][0] != '-') {
+		rt_kprintf("\n");
+		rt_kprintf("******************************************************\n");
+		rt_kprintf("* ERROR: Unknown command '%s'\n", argv[1]);
+		rt_kprintf("******************************************************\n");
+		print_usage();
+		return -1;
+	}
+
 	set_default_exec_opts(&opts);
 	rtosbench_register_rtos_workloads();
 	int help_requested = 0;
