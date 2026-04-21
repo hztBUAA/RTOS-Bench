@@ -48,6 +48,10 @@ extern "C" {
 #define MG_ARCH_NEWLIB MG_ARCH_ARMGCC  // Alias, deprecate in 2025
 #define MG_ARCH MG_ARCH_UNIX
 
+#ifdef ONEOS_PLATFORM
+#define MG_ARCH MG_ARCH_CUSTOM
+#endif
+
 #if !defined(MG_ARCH)
 #if defined(__unix__) || defined(__APPLE__)
 #define MG_ARCH MG_ARCH_UNIX
