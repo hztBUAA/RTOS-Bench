@@ -19,6 +19,8 @@
 /* Minimal CUSUM implementation for step/drift mean shifts.
  * Keeps state small and uses only standard C/POSIX math/stdio APIs.
  */
+extern volatile int g_sched_suppress_output;
+#define CUSUM_PRINTF(...) do { if (!g_sched_suppress_output) printf(__VA_ARGS__); } while (0)
 
 static uint64_t get_time_ns(void)
 {
@@ -107,8 +109,8 @@ int cusum_bench_run(void)
 	uint64_t total_ns = end_time - start_time;
 	double avg_ns = (double)total_ns / stream_len;
 
-	printf("[CUSUM] samples=%zu total_time=%.3f ms avg_latency=%.3f us/sample\n",
-	       stream_len, (double)total_ns / 1000000.0, avg_ns / 1000.0);
+	CUSUM_PRINTF("[CUSUM] samples=%zu total_time=%.3f ms avg_latency=%.3f us/sample\n",
+		     stream_len, (double)total_ns / 1000000.0, avg_ns / 1000.0);
 
 	return alarms;
 }

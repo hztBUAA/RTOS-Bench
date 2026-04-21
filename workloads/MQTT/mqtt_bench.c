@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 /* Defined in test_schedule.c — when nonzero, suppress printf output */
@@ -33,6 +34,8 @@ static inline int _mqtt_printf(const char *fmt, ...) {
 #define MQTT_URL "tcp://44.232.241.40:1883"
 #define TOPIC_DATA "car/tracker/location"
 #define PUB_INTERVAL_MS 2000
+#define MQTT_CONNECT_TIMEOUT_MS 5000
+#define MQTT_HARD_TIMEOUT_MS    30000
 
 // 线程配置
 #define THREAD_PRIORITY         20
@@ -54,6 +57,30 @@ static int g_login_sent = 0;
 static int g_tcp_connected = 0;
 static uint64_t g_start_time = 0;
 static int g_benchmark_started = 0;
+
+static void mqtt_pack_only_fallback(void)
+{
+    char json_payload[128];
+    uint64_t start_us = get_time_us();
+    int i;
+
+    g_total_count = 0;
+    for (i = 0; i < GEOLIFE_COUNT; i++) {
+        GeoLifeRecord p = g_geolife_track[i];
+        snprintf(json_payload, sizeof(json_payload),
+                 "{\"lat\":%.6f,\"lon\":%.6f,\"alt\":%.1f,\"ts\":%u}",
+                 p.lat, p.lon, p.alt, p.ts);
+        g_total_count++;
+    }
+
+    g_total_pack_send_us = get_time_us() - start_us;
+    g_start_time = start_us;
+    g_benchmark_started = 1;
+    g_stop_flag = 1;
+
+    printf("[MQTT] Offline fallback: pack-only mode (%lu samples)\n",
+           (unsigned long)g_total_count);
+}
 
 static void fn(struct mg_connection* c, int ev, void* ev_data) {
     if (ev == MG_EV_ERROR) {
@@ -141,6 +168,7 @@ static void fn(struct mg_connection* c, int ev, void* ev_data) {
 
 static void* mqtt_thread_entry(void *parameter) {
     struct mg_mgr mgr;
+    uint64_t wall_start_us;
 
     /* Reset global state for fresh benchmark run */
     g_cursor = 0;
@@ -165,8 +193,20 @@ static void* mqtt_thread_entry(void *parameter) {
         return NULL;
     }
 
+    wall_start_us = get_time_us();
     while (g_stop_flag == 0) {
         mg_mgr_poll(&mgr, 20); 
+
+        uint64_t elapsed_us = get_time_us() - wall_start_us;
+        if (!g_mqtt_ready && elapsed_us > (uint64_t)MQTT_CONNECT_TIMEOUT_MS * 1000ULL) {
+            mqtt_pack_only_fallback();
+            break;
+        }
+        if (elapsed_us > (uint64_t)MQTT_HARD_TIMEOUT_MS * 1000ULL) {
+            printf("[MQTT] Hard timeout reached, stopping benchmark\n");
+            g_stop_flag = 1;
+            break;
+        }
     }
 
     uint64_t end_time = get_time_us();

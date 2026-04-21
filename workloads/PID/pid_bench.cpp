@@ -15,6 +15,8 @@
 #include "PID_v1.h"
 
 static unsigned long g_mock_millis = 0;
+extern "C" { extern volatile int g_sched_suppress_output; }
+#define PID_PRINTF(...) do { if (!g_sched_suppress_output) printf(__VA_ARGS__); } while(0)
 
 extern "C" unsigned long millis(void) {
     return g_mock_millis;
@@ -33,7 +35,7 @@ static uint64_t get_time_ns() {
 // }
 
 static void* pid_thread_entry(void *parameter) {
-    printf("--- PID Simulation Start ---\n");
+    PID_PRINTF("--- PID Simulation Start ---\n");
 
     /* PID 参数设置 */
     double Kp = 5.5, Ki = 0.02, Kd = 2.5;
@@ -75,8 +77,8 @@ static void* pid_thread_entry(void *parameter) {
     double avg_latency_ns = (double)total_duration_ns / TEST_ROUNDS;
 
     // 统一格式计时输出
-    printf("[PID] samples=%d total_time=%.3f ms avg_latency=%.3f us/op\n",
-           TEST_ROUNDS, (double)total_duration_ns / 1000000.0, avg_latency_ns / 1000.0);
+    PID_PRINTF("[PID] samples=%d total_time=%.3f ms avg_latency=%.3f us/op\n",
+               TEST_ROUNDS, (double)total_duration_ns / 1000000.0, avg_latency_ns / 1000.0);
     return NULL;
 }
 

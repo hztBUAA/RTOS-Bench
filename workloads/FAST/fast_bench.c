@@ -92,8 +92,8 @@ int fast_bench_run_once(int loops) {
     int total_samples = benchmark_suite_len * loops;
     double total_ms = total_us / 1000.0;
     double avg_us_per_img = total_us / total_samples;
-    printf("[FAST] samples=%d total_time=%.3f ms avg_latency=%.3f us/img\n",
-           total_samples, total_ms, avg_us_per_img);
+    FAST_PRINTF("[FAST] samples=%d total_time=%.3f ms avg_latency=%.3f us/img\n",
+                total_samples, total_ms, avg_us_per_img);
 
     // 3. 释放全局缓冲区
     free(img_buffer);

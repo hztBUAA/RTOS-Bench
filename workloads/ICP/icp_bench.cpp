@@ -19,6 +19,9 @@
 
 using namespace std;
 
+extern "C" { extern volatile int g_sched_suppress_output; }
+#define ICP_PRINTF(...) do { if (!g_sched_suppress_output) printf(__VA_ARGS__); } while(0)
+
 static double diff_timespec_us(const struct timespec *start, const struct timespec *end) {
     double start_us = (double)start->tv_sec * 1000000.0 + (double)start->tv_nsec / 1000.0;
     double end_us   = (double)end->tv_sec   * 1000000.0 + (double)end->tv_nsec   / 1000.0;
@@ -41,7 +44,9 @@ extern "C" int icp_bench_run(void) {
     Matrix t(3, 1);
 
     // run point-to-plane ICP (-1 = no outlier threshold)
-    cout << endl << "[ICP] Running ICP (point-to-plane)" << endl;
+    if (!g_sched_suppress_output) {
+        cout << endl << "[ICP] Running ICP (point-to-plane)" << endl;
+    }
 
     clock_gettime(CLOCK_MONOTONIC, &start_time);
     
@@ -52,8 +57,8 @@ extern "C" int icp_bench_run(void) {
 
     double total_time_us = diff_timespec_us(&start_time, &end_time);
 
-    printf("[ICP] samples=1 total_time=%.3f ms avg_latency=%.3f ms/run\n",
-           total_time_us / 1000.0, total_time_us / 1000.0);
+    ICP_PRINTF("[ICP] samples=1 total_time=%.3f ms avg_latency=%.3f ms/run\n",
+               total_time_us / 1000.0, total_time_us / 1000.0);
 
     return 0;
 }

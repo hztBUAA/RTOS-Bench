@@ -18,6 +18,8 @@
 /* Simple EWMA (with EW variance) residual thresholding benchmark.
  * Uses only standard C/POSIX math/stdio, no dynamic allocation.
  */
+extern volatile int g_sched_suppress_output;
+#define EWMA_PRINTF(...) do { if (!g_sched_suppress_output) printf(__VA_ARGS__); } while (0)
 
 static uint64_t get_time_ns(void)
 {
@@ -111,8 +113,8 @@ int ewma_bench_run(void)
 	uint64_t total_ns = end_time - start_time;
 	double avg_ns = (double)total_ns / stream_len;
 
-	printf("[EWMA] samples=%zu total_time=%.3f ms avg_latency=%.3f us/sample\n",
-	       stream_len, (double)total_ns / 1000000.0, avg_ns / 1000.0);
+	EWMA_PRINTF("[EWMA] samples=%zu total_time=%.3f ms avg_latency=%.3f us/sample\n",
+		    stream_len, (double)total_ns / 1000000.0, avg_ns / 1000.0);
 
 	return alarms;
 }

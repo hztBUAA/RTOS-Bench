@@ -17,12 +17,8 @@ typedef unsigned int rt_uint32_t;
 #include <errno.h>
 
 /* Quiet-aware printf for workload output (suppresses when scheduler requests) */
-#ifdef RT_THREAD_PLATFORM
-extern int g_sched_suppress_output;
+extern volatile int g_sched_suppress_output;
 #define MDB_PRINTF(...) do { if (!g_sched_suppress_output) printf(__VA_ARGS__); } while (0)
-#else
-#define MDB_PRINTF printf
-#endif
 
 #if MDB_HAVE_PTHREAD
 #include <pthread.h>
@@ -204,7 +200,7 @@ static void* client_thread_entry(void* parameter) {
     int sock;
     struct sockaddr_in serv_addr;
     
-    printf("[Client] Waiting for server...\n");
+    MDB_PRINTF("[Client] Waiting for server...\n");
     sleep(1);
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -218,15 +214,15 @@ static void* client_thread_entry(void* parameter) {
     serv_addr.sin_port = htons(PORT);
     serv_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
 
-    printf("[Client] Connecting to %s:%d...\n", SERVER_IP, PORT);
+    MDB_PRINTF("[Client] Connecting to %s:%d...\n", SERVER_IP, PORT);
     
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        printf("[Client] Connect fail: %d\n", errno);
+        MDB_PRINTF("[Client] Connect fail: %d\n", errno);
         close(sock);
         return NULL;
     }
 
-    printf("[Client] Connected!\n");
+    MDB_PRINTF("[Client] Connected!\n");
 
     nmbs_t nmbs;
     nmbs_platform_conf conf;
@@ -238,7 +234,7 @@ static void* client_thread_entry(void* parameter) {
     conf.arg = (void*)(intptr_t)sock;
     nmbs_client_create(&nmbs, &conf);
     nmbs_set_read_timeout(&nmbs, 100);
-    printf("[Client] Modbus client created\n");
+    MDB_PRINTF("[Client] Modbus client created\n");
 
     uint16_t r_regs[10];
     uint16_t w_regs[10];
@@ -256,25 +252,25 @@ static void* client_thread_entry(void* parameter) {
         }
 
         if (nmbs_write_multiple_registers(&nmbs, 50, 10, w_regs) != NMBS_ERROR_NONE) {
-            errors++; printf("E1");
+            errors++; MDB_PRINTF("E1");
         }
 
         if (nmbs_read_holding_registers(&nmbs, 50, 10, r_regs) != NMBS_ERROR_NONE) {
-            errors++; printf("E2");
+            errors++; MDB_PRINTF("E2");
         }
         
         if (r_regs[0] != i || r_regs[9] != i + 9) {
-            printf("[Err] Data Verify Fail! Exp: %d, Got: %d\n", i, r_regs[0]);
+            MDB_PRINTF("[Err] Data Verify Fail! Exp: %d, Got: %d\n", i, r_regs[0]);
             errors++;
         }
 
         bool coil_val = (i % 2 == 0);
         if (nmbs_write_single_coil(&nmbs, 10, coil_val) != NMBS_ERROR_NONE) {
-            errors++; printf("E3");
+            errors++; MDB_PRINTF("E3");
         }
 
         if (nmbs_read_coils(&nmbs, 10, 1, r_coils) != NMBS_ERROR_NONE) {
-            errors++; printf("E4");
+            errors++; MDB_PRINTF("E4");
         }
 
         bool read_val = (r_coils[0] & 0x01) ? true : false;

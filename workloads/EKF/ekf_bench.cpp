@@ -141,7 +141,7 @@ extern "C" int ekf_bench_run(void) {
     // EKF_PRINTF("Total Successful Updates: %d\n", update_success_count);
 
     /* Print timing results (only in non-quiet mode) */
-    printf("[EKF] samples=%d total_time=%.3f ms avg_latency=%.3f us/update\n",
+    EKF_PRINTF("[EKF] samples=%d total_time=%.3f ms avg_latency=%.3f us/update\n",
                update_success_count,
                (double)total_ns / 1000000.0,
                avg_ns / 1000.0);
