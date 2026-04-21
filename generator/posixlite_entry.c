@@ -132,6 +132,30 @@ int main(int argc, char **argv)
 {
 	struct execution_options opts;
 
+	/* Intercept unsupported subcommands with clear error message */
+	if (argc >= 2 && (strcmp(argv[1], "test-all") == 0 ||
+	                  strcmp(argv[1], "test-realtime") == 0 ||
+	                  strcmp(argv[1], "test-schedule") == 0 ||
+	                  strcmp(argv[1], "test-stress") == 0 ||
+	                  strcmp(argv[1], "test-cmd") == 0 ||
+	                  strcmp(argv[1], "export-result") == 0)) {
+		printf("\n");
+		printf("******************************************************\n");
+		printf("* ERROR: '%s' is not supported on this platform\n", argv[1]);
+		printf("* This is a POSIX-lite entry with workload-only support.\n");
+		printf("* Supported options: -b, -A, -G, -l, -p, -t, -f, -c, -q\n");
+		printf("******************************************************\n");
+		return -1;
+	}
+	/* Intercept other unknown subcommands */
+	if (argc >= 2 && argv[1][0] != '-') {
+		printf("\n");
+		printf("******************************************************\n");
+		printf("* ERROR: Unknown command '%s'\n", argv[1]);
+		printf("******************************************************\n");
+		return -1;
+	}
+
 	set_default_exec_opts(&opts);
 	parse_posixlite_args(argc, argv, &opts);
 
