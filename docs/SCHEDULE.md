@@ -117,13 +117,13 @@ UUniFast 算法用于生成均匀分布的任务利用率，确保生成的任�
 
 ### WCET 测量
 
-最坏执行时间 (WCET) 通过多次运行负载取最大值获得：
+最坏执行时间 (WCET) 通过“目标迭代数 + 时间预算”自适应测量：
 
 ```
-WCET = max(execution_time[i]) for i in 1..N iterations
+WCET = max(execution_time[i]) for i in sampled iterations
 ```
 
-默认运行 50 次迭代。
+默认目标迭代数为 50 次，但每个 workload 存在阶段预算（常规 20s，quick 8s），达到最小样本后若预算耗尽会提前收敛；若测量异常（如返回 0），会使用保守 WCET 兜底，保证后续调度阶段可继续执行。
 
 ### 周期计算
 

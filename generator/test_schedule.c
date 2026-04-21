@@ -60,7 +60,12 @@ struct task_thread_ctx {
 };
 
 /* Forward declarations */
-static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterations);
+static uint64_t measure_wcet_ns_budgeted(const struct rtosbench_workload *wl,
+					int target_iterations,
+					int min_samples,
+					int budget_sec,
+					int *samples_taken,
+					int *budget_limited);
 static void task_thread_entry(void *param);
 static int compare_double_desc(const void *a, const void *b);
 static int compare_wcet_desc(const void *a, const void *b);
@@ -146,30 +151,81 @@ static void period_timer_callback(void *user_data)
 }
 
 /**
- * @brief Measure WCET by running workload multiple times
+ * @brief Measure WCET with iteration and wall-clock budgets
  */
-static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterations)
+static uint64_t measure_wcet_ns_budgeted(const struct rtosbench_workload *wl,
+					int target_iterations,
+					int min_samples,
+					int budget_sec,
+					int *samples_taken,
+					int *budget_limited)
 {
 	uint64_t max_duration = 0;
+	long double phase_start;
+	int prev_suppress;
+	int i;
 
-	if (!wl || !wl->exec) {
+	if (samples_taken) {
+		*samples_taken = 0;
+	}
+	if (budget_limited) {
+		*budget_limited = 0;
+	}
+
+	if (!wl || !wl->name || !wl->exec || target_iterations <= 0) {
 		return 0;
 	}
+	if (min_samples <= 0) {
+		min_samples = 1;
+	}
+	if (min_samples > target_iterations) {
+		min_samples = target_iterations;
+	}
+	if (budget_sec <= 0) {
+		budget_sec = TEST_SCHEDULE_WCET_BUDGET_SEC;
+	}
+
+	/* Phase 1 also suppresses workload output to avoid console lock contention. */
+	prev_suppress = g_sched_suppress_output;
+	g_sched_suppress_output = 1;
 
 	/* Initialize workload */
 	if (wl->init) {
-		wl->init(0, NULL);
+		if (wl->init(0, NULL) != 0) {
+			SCHED_PRINTF("[test-schedule] WCET init failed for %s\n", wl->name);
+			g_sched_suppress_output = prev_suppress;
+			return 0;
+		}
 	}
 
+	phase_start = rtbench_get_timestamp();
+
 	/* Run iterations and record max */
-	for (int i = 0; i < iterations; i++) {
+	for (i = 0; i < target_iterations; i++) {
 		long double start = rtbench_get_timestamp();
 		wl->exec(0, NULL);
 		long double end = rtbench_get_timestamp();
 
 		uint64_t duration_ns = (uint64_t)((end - start) * 1000000000.0L);
+		if (duration_ns == 0) {
+			duration_ns = 1;
+		}
 		if (duration_ns > max_duration) {
 			max_duration = duration_ns;
+		}
+
+		if (samples_taken) {
+			*samples_taken = i + 1;
+		}
+
+		if ((i + 1) >= min_samples) {
+			long double elapsed_sec = rtbench_get_timestamp() - phase_start;
+			if (elapsed_sec >= (long double)budget_sec) {
+				if (budget_limited) {
+					*budget_limited = 1;
+				}
+				break;
+			}
 		}
 	}
 
@@ -178,6 +234,7 @@ static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterati
 		wl->teardown(0, NULL);
 	}
 
+	g_sched_suppress_output = prev_suppress;
 	return max_duration;
 }
 
@@ -607,6 +664,11 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	int excluded_count;
 	int is_quick;
 	int gradient_timeout_sec;
+	int wcet_iters;
+	int wcet_min_samples;
+	int wcet_budget_sec;
+	int wcet_budget_limited_count;
+	uint64_t max_observed_wcet;
 	int ret;
 
 	/* Clear previous results */
@@ -681,35 +743,56 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	if (is_quick && gradient_timeout_sec > 20) {
 		gradient_timeout_sec = 20;
 	}
+	wcet_iters = is_quick
+		? TEST_SCHEDULE_QUICK_WCET_ITERATIONS
+		: TEST_SCHEDULE_WCET_ITERATIONS;
+	wcet_min_samples = is_quick
+		? TEST_SCHEDULE_QUICK_WCET_MIN_SAMPLES
+		: TEST_SCHEDULE_WCET_MIN_SAMPLES;
+	wcet_budget_sec = is_quick
+		? TEST_SCHEDULE_QUICK_WCET_BUDGET_SEC
+		: TEST_SCHEDULE_WCET_BUDGET_SEC;
+	wcet_budget_limited_count = 0;
+	max_observed_wcet = 0;
 
 	valid_idx = 0;
 	for (i = 0; i < total_workloads && valid_idx < num_workloads; i++) {
 		const struct rtosbench_workload *wl = rtosbench_get_workload(i);
 		uint64_t wcet;
-		int wcet_iters;
+		int samples_taken = 0;
+		int budget_limited = 0;
 
 		if (!is_schedule_eligible_workload(wl)) {
 			continue;
 		}
 
-		wcet_iters = is_quick
-			? TEST_SCHEDULE_QUICK_WCET_ITERATIONS
-			: TEST_SCHEDULE_WCET_ITERATIONS;
-		wcet = measure_wcet_ns(wl, wcet_iters);
-
-		SCHED_PRINTF("  [%s]: WCET = %.3f ms (%d iters)\n",
-			     wl->name, (double)wcet / 1000000.0, wcet_iters);
-
-		if (wcet == 0) {
-			SCHED_PRINTF("    -> skipped (WCET=0)\n");
-			continue;
+		wcet = measure_wcet_ns_budgeted(wl, wcet_iters, wcet_min_samples,
+						wcet_budget_sec, &samples_taken,
+						&budget_limited);
+		if (budget_limited) {
+			wcet_budget_limited_count++;
 		}
 
-		/* In quick mode, skip workloads with long WCET (>2s)
-		 * to keep the schedule test within a reasonable time */
-		if (is_quick && wcet > 2000000000ULL) {
-			SCHED_PRINTF("    -> skipped for quick schedule (WCET > 2s)\n");
-			continue;
+		if (wcet > max_observed_wcet) {
+			max_observed_wcet = wcet;
+		}
+
+		if (wcet == 0) {
+			uint64_t fallback_wcet = max_observed_wcet;
+			if (fallback_wcet == 0) {
+				fallback_wcet = TEST_SCHEDULE_WCET_FALLBACK_NS;
+			}
+			wcet = fallback_wcet;
+			SCHED_PRINTF("  [%s]: WCET unavailable, fallback = %.3f ms\n",
+				     wl->name, (double)wcet / 1000000.0);
+		} else {
+			SCHED_PRINTF("  [%s]: WCET = %.3f ms (%d/%d iters%s)\n",
+				     wl->name, (double)wcet / 1000000.0,
+				     samples_taken, wcet_iters,
+				     budget_limited ? ", budget-limited" : "");
+		}
+		if (wcet > max_observed_wcet) {
+			max_observed_wcet = wcet;
 		}
 
 		tasks[valid_idx].name = wl->name;
@@ -719,7 +802,8 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	}
 
 	num_workloads = valid_idx;
-	SCHED_PRINTF("[Phase 1] %d workloads measured\n", num_workloads);
+	SCHED_PRINTF("[Phase 1] %d workloads measured (%d budget-limited)\n",
+		     num_workloads, wcet_budget_limited_count);
 	if (num_workloads <= 0) {
 		SCHED_PRINTF("[test-schedule] No workloads left after WCET filtering\n");
 		goto cleanup;
