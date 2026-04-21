@@ -425,7 +425,11 @@ int rtbench_result_to_json(char *buf, size_t bufsize)
             JSON_APPEND("          \"deadline_misses\": %llu,\n", (unsigned long long)g->deadline_misses);
             JSON_APPEND("          \"miss_rate\": %.6f,\n", g->miss_rate);
             JSON_APPEND("          \"attempts\": %d,\n", g->attempts);
-            JSON_APPEND("          \"status\": \"%s\",\n", g->passed ? "passed" : "fallback_failed");
+            if (g->degraded && g->failure_reason == 1) {
+                JSON_APPEND("          \"status\": \"partial_timeout\",\n");
+            } else {
+                JSON_APPEND("          \"status\": \"%s\",\n", g->passed ? "passed" : "fallback_failed");
+            }
             JSON_APPEND("          \"degraded\": %s,\n", g->degraded ? "true" : "false");
             JSON_APPEND("          \"failure_reason\": \"%s\",\n",
                         schedule_failure_reason_to_string(g->failure_reason));

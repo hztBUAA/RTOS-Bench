@@ -9,9 +9,9 @@
 默认会纳入所有工业负载（仅排除 `stub`、`busywait` 等 utility 负载）。
 
 为保证端到端可收敛出分数，`test-schedule` 采用以下鲁棒性策略：
-- 每个利用率梯度最多尝试 3 次（中途失败会自动重试）。
-- 单次尝试存在超时保护（常规默认 45s，quick 模式 20s）。
-- 若该梯度多次尝试仍失败，不中断全流程；该梯度按 fallback 记分（`MR=1.0`），并在结果中标记 `fallback_failed`。
+- 每个利用率梯度最多尝试 3 次（仅在线程创建/初始化失败等硬错误时自动重试）。
+- 每个梯度有运行窗口（常规默认 20s，quick 模式 12s）；窗口到达后会收集当前样本并继续下一个梯度。
+- 仅当硬错误重试耗尽时，才使用 fallback 记分（`MR=1.0`，标记 `fallback_failed`）。
 - 最终仍会输出总分；如存在 fallback，模块状态为 `passed_with_degradation`。
 
 **核心指标**：
@@ -79,7 +79,7 @@ ekf          | 150.000    | 15.00    | 1000.0000
 modbus       | 45.678     | 8.00     | 571.0000
 fast         | 12.345     | 4.00     | 308.6250
 ...
-Running task set for 100 cycles (timeout: 45s, max attempts: 3)...
+Running task set for 100 cycles (timeout: 20s, max attempts: 3)...
 Gradient 30% complete: MR = 0.0000 (0/500)
 
 ... (重复每个梯度) ...
@@ -90,14 +90,14 @@ Gradient 30% complete: MR = 0.0000 (0/500)
 U= 30%: MR=0.0000 (0 misses / 500 jobs)
 U= 40%: MR=0.0012 (1 misses / 500 jobs)
 U= 50%: MR=0.0040 (2 misses / 500 jobs)
-Gradient 70% failed after 3 attempts (timeout), fallback MR=1.0000
+Gradient 70% complete (time-window): MR = 0.1250 (40/320)
 ...
 
 ------------------------------------------------------
 Average Miss Rate: 0.0420
 Final Score: 95.80 / 100
-Failed Gradients: 1 / 8
-Retries Used: 2
+Failed Gradients: 0 / 8
+Retries Used: 0
 Status: PASSED_WITH_DEGRADATION
 ------------------------------------------------------
 ```

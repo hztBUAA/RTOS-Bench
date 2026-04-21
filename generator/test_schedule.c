@@ -265,7 +265,10 @@ static void task_thread_entry(void *param)
 	}
 
 	/* Create period semaphore */
-	ctx->period_sem = rtbench_sem_create(0);
+	/* Start with one token so each task executes one immediate first job,
+	 * then follows periodic activations from the timer. This avoids long
+	 * initial idle waits for tasks with very large periods. */
+	ctx->period_sem = rtbench_sem_create(1);
 	if (!ctx->period_sem) {
 		SCHED_PRINTF("[test-schedule] Task %s: sem_create failed\n",
 			     ctx->config->name);
@@ -531,6 +534,7 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 	int i;
 	int started_count = 0;
 	int ret = -1;
+	int timed_out = 0;
 	int timeout_ms;
 	int stop_grace_ms;
 
@@ -592,8 +596,10 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 	}
 
 	if (wait_for_tasks_completion(contexts, num_tasks, timeout_ms) != 0) {
-		SCHED_PRINTF("[test-schedule] Gradient runtime timeout (%d sec)\n",
+		SCHED_PRINTF("[test-schedule] Gradient runtime window reached (%d sec), collecting partial samples\n",
 			     timeout_sec);
+		timed_out = 1;
+		ret = 0;
 		if (failure_reason) {
 			*failure_reason = SCHEDULE_GRADIENT_REASON_TIMEOUT;
 		}
@@ -629,8 +635,10 @@ cleanup_threads:
 		result->total_misses = 0;
 		result->num_tasks = num_tasks;
 		result->passed = 1;
-		result->degraded = 0;
-		result->failure_reason = SCHEDULE_GRADIENT_REASON_NONE;
+		result->degraded = timed_out ? 1 : 0;
+		result->failure_reason = timed_out
+			? SCHEDULE_GRADIENT_REASON_TIMEOUT
+			: SCHEDULE_GRADIENT_REASON_NONE;
 
 		for (i = 0; i < num_tasks; i++) {
 			result->total_jobs += stats[i].total_jobs;
@@ -740,8 +748,8 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 
 	is_quick = (cycles <= TEST_SCHEDULE_QUICK_CYCLES);
 	gradient_timeout_sec = TEST_SCHEDULE_GRADIENT_TIMEOUT_SEC;
-	if (is_quick && gradient_timeout_sec > 20) {
-		gradient_timeout_sec = 20;
+	if (is_quick) {
+		gradient_timeout_sec = TEST_SCHEDULE_QUICK_GRADIENT_TIMEOUT_SEC;
 	}
 	wcet_iters = is_quick
 		? TEST_SCHEDULE_QUICK_WCET_ITERATIONS
@@ -913,12 +921,23 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 				     u_percent, attempts_used,
 				     gradient_failure_reason_to_string(failure_reason));
 		} else {
-			SCHED_PRINTF("Gradient %d%% complete%s: MR = %.4f (%llu/%llu)\n",
-				     u_percent,
-				     (attempts_used > 1) ? " (after retry)" : "",
-				     g_result.gradients[gradient_idx].miss_rate,
-				     (unsigned long long)g_result.gradients[gradient_idx].total_misses,
-				     (unsigned long long)g_result.gradients[gradient_idx].total_jobs);
+			if (g_result.gradients[gradient_idx].degraded) {
+				g_result.failed_gradients++;
+				g_result.completed_with_degradation = 1;
+				SCHED_PRINTF("Gradient %d%% complete%s (time-window): MR = %.4f (%llu/%llu)\n",
+					     u_percent,
+					     (attempts_used > 1) ? " (after retry)" : "",
+					     g_result.gradients[gradient_idx].miss_rate,
+					     (unsigned long long)g_result.gradients[gradient_idx].total_misses,
+					     (unsigned long long)g_result.gradients[gradient_idx].total_jobs);
+			} else {
+				SCHED_PRINTF("Gradient %d%% complete%s: MR = %.4f (%llu/%llu)\n",
+					     u_percent,
+					     (attempts_used > 1) ? " (after retry)" : "",
+					     g_result.gradients[gradient_idx].miss_rate,
+					     (unsigned long long)g_result.gradients[gradient_idx].total_misses,
+					     (unsigned long long)g_result.gradients[gradient_idx].total_jobs);
+			}
 		}
 
 		gradient_idx++;
@@ -946,7 +965,11 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 			     gr->miss_rate,
 			     (unsigned long long)gr->total_misses,
 			     (unsigned long long)gr->total_jobs,
-			     gr->degraded ? " [fallback]" : "");
+			     gr->degraded
+				? (gr->failure_reason == SCHEDULE_GRADIENT_REASON_TIMEOUT
+					? " [time-window]"
+					: " [fallback]")
+				: "");
 	}
 
 	g_result.average_miss_rate = sum_mr / (double)g_result.num_gradients;
