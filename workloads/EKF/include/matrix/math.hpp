@@ -1,5 +1,4 @@
 #pragma once
-
 #include <assert.h>
 #include "stdlib_imports.hpp"
 #ifdef __PX4_QURT

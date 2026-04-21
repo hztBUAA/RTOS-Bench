@@ -528,7 +528,11 @@ static inline int mg_mkdir(const char *path, mode_t mode) {
 #endif
 
 #ifndef MG_PATH_MAX
+#ifndef FILENAME_MAX
+#define MG_PATH_MAX 256
+#else
 #define MG_PATH_MAX FILENAME_MAX
+#endif
 #endif
 
 #ifndef MG_ENABLE_POSIX_FS

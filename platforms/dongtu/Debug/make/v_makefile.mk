@@ -26,6 +26,11 @@ TOOLS_VERSION := gcc-9.3.0
 
 CROSS_COMPILE :=x86_64-intewell-elf-
 
+CC  := $(TOOLS_CHAIN_PATH)/$(TOOLS_VERSION)/x86/bin/$(CROSS_COMPILE)gcc.exe
+CXX := $(TOOLS_CHAIN_PATH)/$(TOOLS_VERSION)/x86/bin/$(CROSS_COMPILE)g++.exe
+AR  := $(TOOLS_CHAIN_PATH)/$(TOOLS_VERSION)/x86/bin/$(CROSS_COMPILE)ar.exe
+LD  := $(TOOLS_CHAIN_PATH)/$(TOOLS_VERSION)/x86/bin/$(CROSS_COMPILE)ld.exe
+
 
 # Every subdirectory with source files must be described here
 SUBDIR := \
@@ -56,6 +61,7 @@ COMPILE_OTHER := -c -fno-builtin -ffunction-sections -fdata-sections
 # 追加 RTOS-Bench 头文件路径
 COMPILE_INCLUDE += \
 		-I"../../src" \
+		-I"../../src/osal" \
 		-I"../../RTOS-Bench/generator" \
 		-I"../../RTOS-Bench/workloads" \
 		-I"../../RTOS-Bench/workloads/CUSUM" \

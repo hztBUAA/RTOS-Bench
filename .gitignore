@@ -17,6 +17,7 @@ docs/conf/doxygen-awesome
 extern/
 
 *.txt
+!CMakeLists.txt
 docs/deliver
 *.docx
 *.pyc

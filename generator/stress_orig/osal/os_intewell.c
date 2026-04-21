@@ -1,5 +1,7 @@
 /* osal/os_intewell.c */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +18,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <limits.h>
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -95,7 +98,7 @@ static void *stress_posix_thread_entry(void *arg)
 }
 
 /* =========================================================================
- * 1. 系统与日志
+ * 1. 缁崵绮烘稉搴㈡）韫囷拷
  * ========================================================================= */
 
 void stress_osal_print(const char *fmt, ...)
@@ -118,7 +121,7 @@ int stress_osal_snprintf(char *str, size_t size, const char *format, ...)
 }
 
 /* =========================================================================
- * 2. 内存管理
+ * 2. 閸愬懎鐡ㄧ粻锛勬倞
  * ========================================================================= */
 
 void *stress_osal_malloc(size_t size) { return malloc(size); }
@@ -134,7 +137,7 @@ char *stress_osal_strdup(const char *str)
 }
 
 /* =========================================================================
- * 3. 线程管理
+ * 3. 缁捐法鈻肩粻锛勬倞
  * ========================================================================= */
 
 stress_tid_t stress_osal_thread_spawn(const char *name,
@@ -248,7 +251,7 @@ void stress_osal_thread_delete(stress_tid_t tid)
 }
 
 /* =========================================================================
- * 4. 同步机制
+ * 4. 閸氬本顒為張鍝勫煑
  * ========================================================================= */
 
 stress_sem_t stress_osal_sem_create(const char *name, int initial_value)
@@ -332,7 +335,7 @@ void stress_osal_sem_release(stress_sem_t sem)
 }
 
 /* =========================================================================
- * 5. 时间与时钟
+ * 5. 閺冨爼妫挎稉搴㈡闁斤拷
  * ========================================================================= */
 
 stress_tick_t stress_osal_tick_get(void)
@@ -382,7 +385,7 @@ double stress_osal_time_now(void)
 }
 
 /* =========================================================================
- * 6. 排序
+ * 6. 閹烘帒绨�
  * ========================================================================= */
 
 void stress_osal_qsort(void *base, size_t nmemb, size_t size,
@@ -392,7 +395,7 @@ void stress_osal_qsort(void *base, size_t nmemb, size_t size,
 }
 
 /* =========================================================================
- * 7. 文件系统接口
+ * 7. 閺傚洣娆㈢化鑽ょ埠閹恒儱褰�
  * ========================================================================= */
 
 int stress_osal_mkdir(const char *path, int mode) { return mkdir(path, (mode_t)mode); }
@@ -440,9 +443,11 @@ int stress_osal_fstat(int fd, struct stat *buf)
     }
     return fstat(fd, buf);
 }
-
+int stress_osal_pipe(int fd[2]){
+    return pipe(fd);
+}
 /* =========================================================================
- * 8. 字符串与字符操作
+ * 8. 鐎涙顑佹稉韫瑢鐎涙顑侀幙宥勭稊
  * ========================================================================= */
 
 int stress_osal_strcmp(const char *s1, const char *s2) { return strcmp(s1, s2); }
@@ -454,7 +459,7 @@ char *stress_osal_strchr(const char *s, int c) { return strchr(s, c); }
 int stress_osal_tolower(int c) { return tolower(c); }
 
 /* =========================================================================
- * 9. 常用算法与硬件抽象
+ * 9. 鐢摜鏁ょ粻妤佺《娑撳海鈥栨禒鑸靛▕鐠烇拷
  * ========================================================================= */
 
 void *stress_osal_memset(void *s, int c, size_t n) { return memset(s, c, n); }
@@ -478,7 +483,7 @@ void stress_osal_cache_flush(void *addr, size_t len)
 }
 
 /* =========================================================================
- * 10. 数学运算接口
+ * 10. 閺佹澘顒熸潻鎰暬閹恒儱褰�
  * ========================================================================= */
 
 double stress_osal_cos(double x) { return cos(x); }

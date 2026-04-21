@@ -17,6 +17,8 @@
 #include <errno.h>
 #include <stdarg.h>
 
+#include <limits.h>
+
 #include <pthread.h>
 #include <semaphore.h>
 #include <sched.h>
@@ -30,7 +32,6 @@ __attribute__((weak)) uint64_t os_tick_get_value(void);
 __attribute__((weak)) uint32_t os_get_ticks_per_second(void);
 __attribute__((weak)) uint64_t os_clocksource_gettime(void);
 __attribute__((weak)) void     os_arch_clean_invalidate_cache_range(uintptr_t start, size_t len);
-__attribute__((weak)) void     os_arch_cache_pipe_flush(void);
 #endif
 
 #ifndef STRESS_OSAL_DEFAULT_STACK_SIZE
@@ -502,6 +503,10 @@ int stress_osal_fstat(int fd, struct stat *buf)
     }
     return fstat(fd, buf);
 }
+int stress_osal_pipe(int fd[2])
+{
+    return -1;
+}
 
 /* =========================================================================
  * 8. 字符串与字符操作
@@ -532,23 +537,30 @@ void stress_osal_mb(void)
 #endif
 }
 
+static void stress_osal_cache_barrier(void)
+{
+#if defined(__aarch64__) || defined(__arm__)
+    __asm__ volatile("dsb sy" ::: "memory");
+    __asm__ volatile("isb" ::: "memory");
+#else
+    stress_osal_mb();
+#endif
+}
 void stress_osal_cache_flush(void *addr, size_t len)
 {
 #if defined(__GNUC__)
     if ((os_arch_clean_invalidate_cache_range != NULL) &&
-        (os_arch_cache_pipe_flush != NULL))
+        (addr != NULL) && (len > 0U))
     {
-        if ((addr != NULL) && (len > 0U)) {
-            os_arch_clean_invalidate_cache_range((uintptr_t)addr, len);
-        }
-        os_arch_cache_pipe_flush();
+        os_arch_clean_invalidate_cache_range((uintptr_t)addr, len);
+        stress_osal_cache_barrier();
         return;
     }
 #endif
 
     (void)addr;
     (void)len;
-    stress_osal_mb();
+    stress_osal_cache_barrier();
 }
 
 /* =========================================================================

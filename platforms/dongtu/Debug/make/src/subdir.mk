@@ -85,7 +85,7 @@ C_SRCS += \
 ../../RTOS-Bench/workloads/MODBUS/nanomodbus.c \
 ../../RTOS-Bench/workloads/MQTT/mongoose.c \
 ../../RTOS-Bench/workloads/MQTT/mqtt_bench.c \
-../../RTOS-Bench/generator/stress_orig/osal/os_dongtu.c \
+../../RTOS-Bench/generator/stress_orig/osal/os_intewell.c \
 ../../RTOS-Bench/generator/platform/dongtu/timer.c \
 ../../RTOS-Bench/generator/platform/dongtu/sync.c \
 ../../RTOS-Bench/generator/platform/dongtu/scheduler.c \
@@ -219,7 +219,7 @@ OBJS += \
 ./RTOS-Bench/workloads/MODBUS/nanomodbus.o \
 ./RTOS-Bench/workloads/MQTT/mongoose.o \
 ./RTOS-Bench/workloads/MQTT/mqtt_bench.o \
-./RTOS-Bench/generator/stress_orig/osal/os_dongtu.o \
+./RTOS-Bench/generator/stress_orig/osal/os_intewell.o \
 ./RTOS-Bench/generator/platform/dongtu/timer.o \
 ./RTOS-Bench/generator/platform/dongtu/sync.o \
 ./RTOS-Bench/generator/platform/dongtu/scheduler.o \
@@ -281,6 +281,7 @@ BENCH_DSYMBOL := \
 
 BENCH_INC := \
 -I"../../src" \
+-I"../../src/osal" \
 -I"../../RTOS-Bench/generator" \
 -I"../../RTOS-Bench/workloads" \
 -I"../../RTOS-Bench/workloads/CUSUM" \
@@ -305,67 +306,76 @@ BENCH_INC := \
 -I"../../RTOS-Bench/generator/stress_orig/stressor" \
 -I"../../RTOS-Bench/generator/realtime_orig/les"
 
-CXX_EXTRA_FLAGS := -std=c++14 -Wno-error -Wno-literal-suffix \
-    -include ../../RTOS-Bench/workloads/EPNP/fix_opengv.h
+CXX_EXTRA_FLAGS := -std=c++14 -Wno-error -Wno-literal-suffix
+
+TARGET_CPU_FLAGS := \
+    -march=i386 -m32 \
+    -D_X86_ -D_X86_32_ -D_I386_ -D__X86__ \
+    -DCONFIG_CORE_SMP -DCONFIG_OS_LP32 -DCONFIG_VM_R_GLOBAL_INT_EN_MASK \
+    -fshort-wchar \
+    -DCONFIG_TTOS_SMP=1 -DCONFIG_ACCESS_VAR_MACRO_SMP=1 \
+    -DCPU_BIT=32 -DINTEWELL \
+    -D_LITTLE_ENDIAN_ -mhard-float -D_HARD_FLOAT_ \
+    -DBOARD_newpre3101_i7
+
+EPNP_EXTRA_FLAGS := -include ../../RTOS-Bench/workloads/EPNP/fix_opengv.h
+
 
 RTOS-Bench/%.o: ../../RTOS-Bench/%.c
 	@mkdir -p $(dir $@)
-	@echo 'Ê≠£Âú®ÊûÑÂª∫Êñá‰ª∂Ôºö $<'
+	@echo '’˝‘⁄ππΩ®Œƒº˛£∫ $<'
 	$(CC) $(COMPILE_SYMBOL) $(BENCH_DSYMBOL) \
 	      $(COMPILE_INCLUDE) $(BENCH_INC) \
 	      $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) \
 	      $(COMPILE_WARNING) $(COMPILE_OTHER) \
-	      ${OTHER_OPTION} $(USER_OPTION) -D${ARCH} \
-	      -o $@ $< && \
-	$(CC) $(COMPILE_SYMBOL) $(BENCH_DSYMBOL) \
-	      $(COMPILE_INCLUDE) $(BENCH_INC) \
-	      $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) \
-	      $(COMPILE_WARNING) $(COMPILE_OTHER) \
-	      ${OTHER_OPTION} $(USER_OPTION) -D${ARCH} \
-	      -MM -MG -P -w $< > $(@:%.o=%.d)
-	sed -i '1s|^|./RTOS-Bench/|' $(@:%.o=%.d)
-	@echo 'Â∑≤ÁªìÊùüÊûÑÂª∫Ôºö $<'
+	      ${OTHER_OPTION} -D${ARCH} \
+	      -MMD -MP -MF $(@:%.o=%.d) -MT ./$@ \
+	      -o $@ $<
+	@echo '“—Ω· ¯ππΩ®£∫ $<'
+	@echo ' '
+
+RTOS-Bench/workloads/EPNP/%.o: ../../RTOS-Bench/workloads/EPNP/%.cpp
+	@mkdir -p $(dir $@)
+	@echo '’˝‘⁄ππΩ®Œƒº˛£®C++/EPNP£©£∫ $<'
+	$(CXX) $(COMPILE_SYMBOL) $(BENCH_DSYMBOL) \
+	       $(COMPILE_INCLUDE) $(BENCH_INC) \
+	       $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) \
+	       $(COMPILE_WARNING) $(COMPILE_OTHER) \
+	       $(CXX_EXTRA_FLAGS) $(EPNP_EXTRA_FLAGS) \
+	       ${OTHER_OPTION} $(TARGET_CPU_FLAGS) -D${ARCH} \
+	       -MMD -MP -MF $(@:%.o=%.d) -MT ./$@ \
+	       -o $@ $<
+	@echo '“—Ω· ¯ππΩ®£®C++/EPNP£©£∫ $<'
 	@echo ' '
 
 RTOS-Bench/%.o: ../../RTOS-Bench/%.cpp
 	@mkdir -p $(dir $@)
-	@echo 'Ê≠£Âú®ÊûÑÂª∫Êñá‰ª∂ÔºàC++ÔºâÔºö $<'
+	@echo '’˝‘⁄ππΩ®Œƒº˛£®C++£©£∫ $<'
 	$(CXX) $(COMPILE_SYMBOL) $(BENCH_DSYMBOL) \
 	       $(COMPILE_INCLUDE) $(BENCH_INC) \
 	       $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) \
 	       $(COMPILE_WARNING) $(COMPILE_OTHER) \
 	       $(CXX_EXTRA_FLAGS) \
-	       ${OTHER_OPTION} $(USER_OPTION) -D${ARCH} \
-	       -o $@ $< && \
-	$(CXX) $(COMPILE_SYMBOL) $(BENCH_DSYMBOL) \
-	       $(COMPILE_INCLUDE) $(BENCH_INC) \
-	       $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) \
-	       $(COMPILE_WARNING) $(COMPILE_OTHER) \
-	       $(CXX_EXTRA_FLAGS) \
-	       ${OTHER_OPTION} $(USER_OPTION) -D${ARCH} \
-	       -MM -MG -P -w $< > $(@:%.o=%.d)
-	sed -i '1s|^|./RTOS-Bench/|' $(@:%.o=%.d)
-	@echo 'Â∑≤ÁªìÊùüÊûÑÂª∫ÔºàC++ÔºâÔºö $<'
+	       ${OTHER_OPTION} $(TARGET_CPU_FLAGS) -D${ARCH} \
+	       -MMD -MP -MF $(@:%.o=%.d) -MT ./$@ \
+	       -o $@ $<
+	@echo '“—Ω· ¯ππΩ®£®C++£©£∫ $<'
 	@echo ' '
+
 
 src/%.o: ../../src/%.c
 	@mkdir -p $(dir $@)
-	@echo 'Ê≠£Âú®ÊûÑÂª∫Êñá‰ª∂Ôºö $<'
+	@echo '’˝‘⁄ππΩ®Œƒº˛£∫ $<'
 	$(CC) $(COMPILE_SYMBOL) $(BENCH_DSYMBOL) \
 	      $(COMPILE_INCLUDE) $(BENCH_INC) \
 	      $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) \
 	      $(COMPILE_WARNING) $(COMPILE_OTHER) \
-	      ${OTHER_OPTION} $(USER_OPTION) -D${ARCH} \
-	      -o $@ $< && \
-	$(CC) $(COMPILE_SYMBOL) $(BENCH_DSYMBOL) \
-	      $(COMPILE_INCLUDE) $(BENCH_INC) \
-	      $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) \
-	      $(COMPILE_WARNING) $(COMPILE_OTHER) \
-	      ${OTHER_OPTION} $(USER_OPTION) -D${ARCH} \
-	      -MM -MG -P -w $< > $(@:%.o=%.d)
-	sed -i '1s/^/.\/src\//' $(@:%.o=%.d)
-	@echo 'Â∑≤ÁªìÊùüÊûÑÂª∫Ôºö $<'
+	      ${OTHER_OPTION} -D${ARCH} \
+	      -MMD -MP -MF $(@:%.o=%.d) -MT ./$@ \
+	      -o $@ $<
+	@echo '“—Ω· ¯ππΩ®£∫ $<'
 	@echo ' '
+
 
 COMPILE_COMMAND := $(CC) $(COMPILE_SYMBOL) $(BENCH_DSYMBOL) \
     $(COMPILE_INCLUDE) $(BENCH_INC) \

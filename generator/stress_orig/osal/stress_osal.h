@@ -137,7 +137,7 @@ int stress_osal_fsync(int fd);
 int stress_osal_ftruncate(int fd, off_t  length);
 int stress_osal_stat(const char *path, struct stat *buf);
 int stress_osal_fstat(int fd, struct stat *buf);
-
+int stress_osal_pipe(int fd[2]);
 /* =========================================================================
  * 9. 字符串与字符操作 (String & Char)
  * 封装标准库函数，便于在不同 libc 或裸机环境中移植
