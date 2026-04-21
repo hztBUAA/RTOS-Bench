@@ -6,6 +6,8 @@
 
 可调度性验证基于工业场景任务模型，复用典型负载性能评估中的负载程序，将负载程序封装为周期任务。采用 UUniFast 算法生成利用率 30%-100% 的梯度任务集（步长 10%），每个任务集包含随机周期与最坏执行时间配置。
 
+默认会纳入所有工业负载（仅排除 `stub`、`busywait` 等 utility 负载）。
+
 **核心指标**：
 - 截止时间错失率 (Miss Rate, MR) = 错失任务数 / 总任务数
 - 调度性能评分 = 100 × (1 - 平均MR)
@@ -28,7 +30,7 @@ msh /> rtbench test-schedule
 rtbench test-schedule [OPTIONS]
 
 OPTIONS:
-  --cycles <n>      每个任务集执行的周期数 (默认: 10000)
+  --cycles <n>      每个任务集执行的周期数 (默认: 100)
   --util-start <n>  起始利用率百分比 (默认: 30)
   --util-end <n>    结束利用率百分比 (默认: 100)
   --util-step <n>   利用率步长 (默认: 10)
@@ -44,8 +46,8 @@ msh /> rtbench test-schedule --cycles 100
 # 自定义利用率范围
 msh /> rtbench test-schedule --util-start 50 --util-end 90 --util-step 5
 
-# 完整测试
-msh /> rtbench test-schedule --cycles 10000
+# 完整测试（更高统计置信度）
+msh /> rtbench test-schedule --cycles 1000
 ```
 
 ## 输出格式
@@ -71,22 +73,18 @@ ekf          | 150.000    | 15.00    | 1000.0000
 modbus       | 45.678     | 8.00     | 571.0000
 fast         | 12.345     | 4.00     | 308.6250
 ...
-Running task set for 10000 cycles...
-Gradient 30% complete: MR = 0.0000 (0/50000)
+Running task set for 100 cycles...
+Gradient 30% complete: MR = 0.0000 (0/500)
 
 ... (重复每个梯度) ...
 
 =============================================================
 [Phase 3] Final Results
 =============================================================
-U= 30%: MR=0.0000 (0 misses / 50000 jobs)
-U= 40%: MR=0.0012 (60 misses / 50000 jobs)
-U= 50%: MR=0.0045 (225 misses / 50000 jobs)
-U= 60%: MR=0.0123 (615 misses / 50000 jobs)
-U= 70%: MR=0.0256 (1280 misses / 50000 jobs)
-U= 80%: MR=0.0512 (2560 misses / 50000 jobs)
-U= 90%: MR=0.0890 (4450 misses / 50000 jobs)
-U=100%: MR=0.1523 (7615 misses / 50000 jobs)
+U= 30%: MR=0.0000 (0 misses / 500 jobs)
+U= 40%: MR=0.0012 (1 misses / 500 jobs)
+U= 50%: MR=0.0040 (2 misses / 500 jobs)
+...
 
 ------------------------------------------------------
 Average Miss Rate: 0.0420

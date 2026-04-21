@@ -168,10 +168,10 @@ static void print_usage(void)
     printf("  -q                    Quiet mode\n");
     printf("\n");
     printf("TEST-SCHEDULE OPTIONS:\n");
-    printf("  --cycles <n>          Number of test cycles (default: 100)\n");
-    printf("  --util-start <pct>    Starting utilization percentage (default: 10)\n");
-    printf("  --util-end <pct>      Ending utilization percentage (default: 100)\n");
-    printf("  --util-step <pct>     Utilization step size (default: 10)\n");
+    printf("  --cycles <n>          Number of test cycles (default: %d)\n", TEST_SCHEDULE_CYCLES);
+    printf("  --util-start <pct>    Starting utilization percentage (default: %d)\n", TEST_SCHEDULE_UTIL_START);
+    printf("  --util-end <pct>      Ending utilization percentage (default: %d)\n", TEST_SCHEDULE_UTIL_END);
+    printf("  --util-step <pct>     Utilization step size (default: %d)\n", TEST_SCHEDULE_UTIL_STEP);
     printf("  --quick               Quick mode (fewer cycles)\n");
     printf("  -q                    Quiet mode\n");
     printf("\n");
@@ -343,18 +343,23 @@ static void test_all_thread_entry(void *parameter)
 
     /* Run schedule test */
     if (p->run_schedule) {
+        int sched_ret;
         printf("\n>>> Running test-schedule%s...\n",
                p->quick_mode ? " (quick)" : "");
         if (p->quick_mode) {
-            test_schedule_run_custom(
+            sched_ret = test_schedule_run_custom(
                 TEST_SCHEDULE_QUICK_CYCLES,
                 TEST_SCHEDULE_QUICK_UTIL_START,
                 TEST_SCHEDULE_QUICK_UTIL_END,
                 TEST_SCHEDULE_QUICK_UTIL_STEP);
         } else {
-            test_schedule_run();
+            sched_ret = test_schedule_run();
         }
-        collect_schedule_result();
+        if (sched_ret == 0) {
+            collect_schedule_result();
+        } else {
+            printf("[test-schedule] failed (%d), result collection skipped\n", sched_ret);
+        }
     }
 
     /* Run stress test */
@@ -909,10 +914,10 @@ static void collect_schedule_result(void)
     const struct test_schedule_result *ts_result = test_schedule_get_result();
 
     sched->valid = 1;
-    sched->cycles = TEST_SCHEDULE_CYCLES;
-    sched->util_start = TEST_SCHEDULE_UTIL_START;
-    sched->util_end = TEST_SCHEDULE_UTIL_END;
-    sched->util_step = TEST_SCHEDULE_UTIL_STEP;
+    sched->cycles = ts_result->configured_cycles;
+    sched->util_start = ts_result->configured_util_start;
+    sched->util_end = ts_result->configured_util_end;
+    sched->util_step = ts_result->configured_util_step;
 
     sched->average_miss_rate = ts_result->average_miss_rate;
     sched->final_score = ts_result->final_score;
