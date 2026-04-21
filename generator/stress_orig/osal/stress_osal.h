@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>  /* for SEEK_SET, SEEK_CUR, SEEK_END */
+#include <sys/types.h> /* for off_t */
+#include <sys/stat.h>  /* for struct stat */
 
 /* =========================================================================
  * 1. 基础类型定义 (Types)
