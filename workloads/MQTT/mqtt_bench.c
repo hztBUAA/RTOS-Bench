@@ -81,8 +81,6 @@ static void fn(struct mg_connection* c, int ev, void* ev_data) {
         }
     }
     else if (ev == MG_EV_POLL) {
-        if (c->id > 0) c->is_readable = 1; 
-
         if (g_login_sent == 0) {
             if (c->id > 0 && g_tcp_connected == 1) {
                 
@@ -129,10 +127,6 @@ static void fn(struct mg_connection* c, int ev, void* ev_data) {
         
         pub_opts.message = mg_str(json_payload);
         mg_mqtt_pub(c, &pub_opts); 
-        
-        if (c->send.len > 0) {
-            c->is_writable = 1; 
-        }
 
         g_total_count++;
         // if (g_total_count % 100 == 0) printf("[Bench] Sent: %lu\n", (unsigned long)g_total_count);
