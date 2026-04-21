@@ -913,6 +913,9 @@ static void collect_schedule_result(void)
 	/* Copy summary */
 	sched->average_miss_rate = ts_result->average_miss_rate;
 	sched->final_score = ts_result->final_score;
+	sched->failed_gradients = ts_result->failed_gradients;
+	sched->completed_with_degradation = ts_result->completed_with_degradation;
+	sched->total_retry_count = ts_result->total_retry_count;
 
 	/* Copy gradient results */
 	sched->gradient_count = ts_result->num_gradients;
@@ -925,6 +928,10 @@ static void collect_schedule_result(void)
 		dst->total_jobs = src->total_jobs;
 		dst->deadline_misses = src->total_misses;
 		dst->miss_rate = src->miss_rate;
+		dst->attempts = src->attempts;
+		dst->passed = src->passed;
+		dst->degraded = src->degraded;
+		dst->failure_reason = src->failure_reason;
 		dst->task_count = src->num_tasks;
 
 		/* Copy task stats */

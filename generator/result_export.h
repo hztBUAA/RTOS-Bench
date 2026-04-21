@@ -139,6 +139,10 @@ struct rtbench_gradient_result {
     uint64_t total_jobs;
     uint64_t deadline_misses;
     double miss_rate;
+    int attempts;
+    int passed;
+    int degraded;
+    int failure_reason;
     struct rtbench_task_stat task_stats[RTBENCH_MAX_WORKLOADS];
     int task_count;
 };
@@ -165,6 +169,9 @@ struct rtbench_schedule_result {
     /* Summary */
     double average_miss_rate;
     double final_score;
+    int failed_gradients;
+    int completed_with_degradation;
+    int total_retry_count;
 };
 
 /* ============================================================================

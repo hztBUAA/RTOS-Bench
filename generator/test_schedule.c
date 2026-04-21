@@ -29,6 +29,7 @@
 #define SCHED_THREAD_PRIORITY   15
 #else
 #include <pthread.h>
+#include <unistd.h>
 #define SCHED_PRINTF printf
 #endif
 
@@ -66,6 +67,12 @@ static int compare_wcet_desc(const void *a, const void *b);
 static int is_builtin_workload(const struct rtosbench_workload *wl);
 static int is_schedule_eligible_workload(const struct rtosbench_workload *wl);
 static int validate_schedule_params(int *cycles, int *util_start, int *util_end, int *util_step);
+static void request_stop_all_tasks(struct task_thread_ctx *contexts, int num_tasks);
+static int wait_for_tasks_completion(struct task_thread_ctx *contexts, int num_tasks, int timeout_ms);
+static void fill_failed_gradient_result(struct schedule_gradient_result *result,
+					int num_tasks, const struct schedule_task_config *tasks,
+					int cycles, int attempts, int failure_reason);
+static const char *gradient_failure_reason_to_string(int reason);
 
 /**
  * @brief Check if a workload is a built-in utility workload
@@ -283,6 +290,117 @@ static void task_thread_entry(void *param)
 	ctx->completed = 1;
 }
 
+static void schedule_sleep_ms(int ms)
+{
+	if (ms <= 0) {
+		return;
+	}
+
+#ifdef RT_THREAD_PLATFORM
+	rt_thread_mdelay(ms);
+#else
+	usleep((useconds_t)ms * 1000U);
+#endif
+}
+
+static void request_stop_all_tasks(struct task_thread_ctx *contexts, int num_tasks)
+{
+	int i;
+
+	if (!contexts || num_tasks <= 0) {
+		return;
+	}
+
+	for (i = 0; i < num_tasks; i++) {
+		contexts[i].running = 0;
+		if (contexts[i].period_sem) {
+			rtbench_sem_post(contexts[i].period_sem);
+		}
+	}
+}
+
+static int wait_for_tasks_completion(struct task_thread_ctx *contexts, int num_tasks, int timeout_ms)
+{
+	const int poll_ms = 50;
+	int waited_ms = 0;
+	int all_done;
+
+	if (!contexts || num_tasks <= 0) {
+		return -1;
+	}
+
+	while (1) {
+		all_done = 1;
+		for (int i = 0; i < num_tasks; i++) {
+			if (!contexts[i].completed) {
+				all_done = 0;
+				break;
+			}
+		}
+
+		if (all_done) {
+			return 0;
+		}
+
+		if (timeout_ms >= 0 && waited_ms >= timeout_ms) {
+			return -1;
+		}
+
+		schedule_sleep_ms(poll_ms);
+		waited_ms += poll_ms;
+	}
+}
+
+static void fill_failed_gradient_result(struct schedule_gradient_result *result,
+					int num_tasks, const struct schedule_task_config *tasks,
+					int cycles, int attempts, int failure_reason)
+{
+	int max_tasks;
+
+	if (!result || !tasks || num_tasks <= 0 || cycles <= 0) {
+		return;
+	}
+
+	memset(result->task_stats, 0, sizeof(result->task_stats));
+	result->num_tasks = num_tasks;
+	result->attempts = attempts;
+	result->passed = 0;
+	result->degraded = 1;
+	result->failure_reason = failure_reason;
+	result->total_jobs = 0;
+	result->total_misses = 0;
+
+	max_tasks = num_tasks;
+	if (max_tasks > TEST_SCHEDULE_MAX_TASKS) {
+		max_tasks = TEST_SCHEDULE_MAX_TASKS;
+	}
+
+	for (int i = 0; i < max_tasks; i++) {
+		result->task_stats[i].name = tasks[i].name;
+		result->task_stats[i].total_jobs = (uint64_t)cycles;
+		result->task_stats[i].deadline_misses = (uint64_t)cycles;
+		result->total_jobs += (uint64_t)cycles;
+		result->total_misses += (uint64_t)cycles;
+	}
+
+	result->miss_rate = (result->total_jobs > 0) ? 1.0 : 0.0;
+}
+
+static const char *gradient_failure_reason_to_string(int reason)
+{
+	switch (reason) {
+	case SCHEDULE_GRADIENT_REASON_NONE:
+		return "none";
+	case SCHEDULE_GRADIENT_REASON_TIMEOUT:
+		return "timeout";
+	case SCHEDULE_GRADIENT_REASON_SETUP:
+		return "setup_failure";
+	case SCHEDULE_GRADIENT_REASON_UNKNOWN:
+	default:
+		return "unknown";
+	}
+}
+
 /**
  * @brief Compare doubles descending (for qsort)
  */
@@ -329,14 +447,6 @@ static int create_task_thread(struct task_thread_ctx *ctx, const char *name)
 	return rt_thread_startup(ctx->thread);
 }
 
-static void wait_task_thread(struct task_thread_ctx *ctx)
-{
-	/* RT-Thread doesn't have pthread_join, poll completion flag */
-	while (!ctx->completed) {
-		rt_thread_mdelay(100);
-	}
-}
-
 #else /* Linux/POSIX */
 
 static void *pthread_entry_wrapper(void *param)
@@ -351,31 +461,43 @@ static int create_task_thread(struct task_thread_ctx *ctx, const char *name)
 	return pthread_create(&ctx->thread, NULL, pthread_entry_wrapper, ctx);
 }
 
-static void wait_task_thread(struct task_thread_ctx *ctx)
-{
-	pthread_join(ctx->thread, NULL);
-}
-
 #endif
 
 /**
  * @brief Run one gradient of the schedulability test
  */
 static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
-			struct schedule_task_stats *stats, int cycles,
-			struct schedule_gradient_result *result)
+			struct schedule_task_stats *stats, int cycles, int timeout_sec,
+			struct schedule_gradient_result *result, int *failure_reason)
 {
 	struct task_thread_ctx *contexts;
 	int i;
+	int started_count = 0;
+	int ret = -1;
+	int timeout_ms;
+	int stop_grace_ms;
 
 	if (!tasks || !stats || !result || num_tasks <= 0 || cycles <= 0) {
 		return -1;
 	}
 
+	if (failure_reason) {
+		*failure_reason = SCHEDULE_GRADIENT_REASON_UNKNOWN;
+	}
+
+	if (timeout_sec <= 0) {
+		timeout_sec = TEST_SCHEDULE_GRADIENT_TIMEOUT_SEC;
+	}
+	timeout_ms = timeout_sec * 1000;
+	stop_grace_ms = TEST_SCHEDULE_GRADIENT_STOP_GRACE_SEC * 1000;
+
 	contexts = (struct task_thread_ctx *)calloc(num_tasks,
 						    sizeof(struct task_thread_ctx));
 	if (!contexts) {
 		SCHED_PRINTF("[test-schedule] Failed to allocate thread contexts\n");
+		if (failure_reason) {
+			*failure_reason = SCHEDULE_GRADIENT_REASON_SETUP;
+		}
 		return -1;
 	}
 
@@ -403,49 +525,71 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 		if (create_task_thread(&contexts[i], tasks[i].name) != 0) {
 			SCHED_PRINTF("[test-schedule] Failed to create thread for %s\n",
 				     tasks[i].name);
-			/* Stop already-started threads */
-			for (int j = 0; j < i; j++) {
-				contexts[j].running = 0;
-				if (contexts[j].period_sem) {
-					rtbench_sem_post(contexts[j].period_sem);
-				}
+			if (failure_reason) {
+				*failure_reason = SCHEDULE_GRADIENT_REASON_SETUP;
 			}
-			/* Join already-started threads before releasing contexts */
-			for (int j = 0; j < i; j++) {
-				wait_task_thread(&contexts[j]);
+			started_count = i;
+			goto cleanup_threads;
+		}
+		started_count++;
+	}
+
+	if (wait_for_tasks_completion(contexts, num_tasks, timeout_ms) != 0) {
+		SCHED_PRINTF("[test-schedule] Gradient runtime timeout (%d sec)\n",
+			     timeout_sec);
+		if (failure_reason) {
+			*failure_reason = SCHEDULE_GRADIENT_REASON_TIMEOUT;
+		}
+		goto cleanup_threads;
+	}
+
+	ret = 0;
+	if (failure_reason) {
+		*failure_reason = SCHEDULE_GRADIENT_REASON_NONE;
+	}
+
+cleanup_threads:
+	/* Always request stop to unblock semaphore waits in both success/failure paths. */
+	request_stop_all_tasks(contexts, started_count);
+	if (started_count > 0) {
+		if (wait_for_tasks_completion(contexts, started_count, stop_grace_ms) != 0) {
+			SCHED_PRINTF("[test-schedule] Warning: tasks did not stop within grace period\n");
+			if (failure_reason && *failure_reason == SCHEDULE_GRADIENT_REASON_NONE) {
+				*failure_reason = SCHEDULE_GRADIENT_REASON_UNKNOWN;
 			}
-			g_sched_suppress_output = 0;
-			free(contexts);
-			return -1;
+		}
+	}
+#ifndef RT_THREAD_PLATFORM
+	for (i = 0; i < started_count; i++) {
+		pthread_join(contexts[i].thread, NULL);
+	}
+#endif
+	g_sched_suppress_output = 0;
+
+	if (ret == 0) {
+		/* Aggregate results */
+		result->total_jobs = 0;
+		result->total_misses = 0;
+		result->num_tasks = num_tasks;
+		result->passed = 1;
+		result->degraded = 0;
+		result->failure_reason = SCHEDULE_GRADIENT_REASON_NONE;
+
+		for (i = 0; i < num_tasks; i++) {
+			result->total_jobs += stats[i].total_jobs;
+			result->total_misses += stats[i].deadline_misses;
+			result->task_stats[i] = stats[i];
+		}
+
+		if (result->total_jobs > 0) {
+			result->miss_rate = (double)result->total_misses / (double)result->total_jobs;
+		} else {
+			result->miss_rate = 0.0;
 		}
 	}
 
-	/* Wait for all threads to complete */
-	for (i = 0; i < num_tasks; i++) {
-		wait_task_thread(&contexts[i]);
-	}
-
-	g_sched_suppress_output = 0;
-
-	/* Aggregate results */
-	result->total_jobs = 0;
-	result->total_misses = 0;
-	result->num_tasks = num_tasks;
-
-	for (i = 0; i < num_tasks; i++) {
-		result->total_jobs += stats[i].total_jobs;
-		result->total_misses += stats[i].deadline_misses;
-		result->task_stats[i] = stats[i];
-	}
-
-	if (result->total_jobs > 0) {
-		result->miss_rate = (double)result->total_misses / (double)result->total_jobs;
-	} else {
-		result->miss_rate = 0.0;
-	}
-
 	free(contexts);
-	return 0;
+	return ret;
 }
 
 int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_step)
@@ -462,6 +606,7 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	int valid_idx;
 	int excluded_count;
 	int is_quick;
+	int gradient_timeout_sec;
 	int ret;
 
 	/* Clear previous results */
@@ -532,6 +677,10 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	SCHED_PRINTF("=============================================================\n");
 
 	is_quick = (cycles <= TEST_SCHEDULE_QUICK_CYCLES);
+	gradient_timeout_sec = TEST_SCHEDULE_GRADIENT_TIMEOUT_SEC;
+	if (is_quick && gradient_timeout_sec > 20) {
+		gradient_timeout_sec = 20;
+	}
 
 	valid_idx = 0;
 	for (i = 0; i < total_workloads && valid_idx < num_workloads; i++) {
@@ -638,18 +787,51 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 		}
 
 		/* Run this task set */
-		SCHED_PRINTF("Running task set for %d cycles...\n", cycles);
+		SCHED_PRINTF("Running task set for %d cycles (timeout: %ds, max attempts: %d)...\n",
+			     cycles, gradient_timeout_sec, TEST_SCHEDULE_GRADIENT_MAX_ATTEMPTS);
 
 		g_result.gradients[gradient_idx].utilization_percent = u_percent;
 		g_result.gradients[gradient_idx].actual_utilization = target_u;
+		g_result.gradients[gradient_idx].failure_reason = SCHEDULE_GRADIENT_REASON_NONE;
 
-		if (run_gradient(num_workloads, tasks, stats, cycles,
-				 &g_result.gradients[gradient_idx]) != 0) {
-			SCHED_PRINTF("Failed to run gradient %d%%\n", u_percent);
-			goto cleanup;
+		int attempts_used = 0;
+		int gradient_success = 0;
+		int failure_reason = SCHEDULE_GRADIENT_REASON_UNKNOWN;
+
+		for (int attempt = 1; attempt <= TEST_SCHEDULE_GRADIENT_MAX_ATTEMPTS; attempt++) {
+			attempts_used = attempt;
+			if (run_gradient(num_workloads, tasks, stats, cycles, gradient_timeout_sec,
+					 &g_result.gradients[gradient_idx], &failure_reason) == 0) {
+				gradient_success = 1;
+				break;
+			}
+
+			if (attempt < TEST_SCHEDULE_GRADIENT_MAX_ATTEMPTS) {
+				SCHED_PRINTF("[test-schedule] Gradient %d%% attempt %d failed (%s), retrying...\n",
+					     u_percent, attempt,
+					     gradient_failure_reason_to_string(failure_reason));
+				schedule_sleep_ms(200);
+			}
+		}
+
+		g_result.gradients[gradient_idx].attempts = attempts_used;
+		if (attempts_used > 1) {
+			g_result.total_retry_count += (attempts_used - 1);
+		}
+
+		if (!gradient_success) {
+			fill_failed_gradient_result(&g_result.gradients[gradient_idx],
+						   num_workloads, tasks, cycles,
+						   attempts_used, failure_reason);
+			g_result.failed_gradients++;
+			g_result.completed_with_degradation = 1;
+			SCHED_PRINTF("Gradient %d%% failed after %d attempts (%s), fallback MR=1.0000\n",
+				     u_percent, attempts_used,
+				     gradient_failure_reason_to_string(failure_reason));
 		} else {
-			SCHED_PRINTF("Gradient %d%% complete: MR = %.4f (%llu/%llu)\n",
+			SCHED_PRINTF("Gradient %d%% complete%s: MR = %.4f (%llu/%llu)\n",
 				     u_percent,
+				     (attempts_used > 1) ? " (after retry)" : "",
 				     g_result.gradients[gradient_idx].miss_rate,
 				     (unsigned long long)g_result.gradients[gradient_idx].total_misses,
 				     (unsigned long long)g_result.gradients[gradient_idx].total_jobs);
@@ -673,20 +855,36 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 
 	sum_mr = 0.0;
 	for (i = 0; i < g_result.num_gradients; i++) {
+		const struct schedule_gradient_result *gr = &g_result.gradients[i];
 		sum_mr += g_result.gradients[i].miss_rate;
-		SCHED_PRINTF("U=%3d%%: MR=%.4f (%llu misses / %llu jobs)\n",
-			     g_result.gradients[i].utilization_percent,
-			     g_result.gradients[i].miss_rate,
-			     (unsigned long long)g_result.gradients[i].total_misses,
-			     (unsigned long long)g_result.gradients[i].total_jobs);
+		SCHED_PRINTF("U=%3d%%: MR=%.4f (%llu misses / %llu jobs)%s\n",
+			     gr->utilization_percent,
+			     gr->miss_rate,
+			     (unsigned long long)gr->total_misses,
+			     (unsigned long long)gr->total_jobs,
+			     gr->degraded ? " [fallback]" : "");
 	}
 
 	g_result.average_miss_rate = sum_mr / (double)g_result.num_gradients;
 	g_result.final_score = 100.0 * (1.0 - g_result.average_miss_rate);
+	if (g_result.final_score < 0.0) {
+		g_result.final_score = 0.0;
+	}
+	if (g_result.final_score > 100.0) {
+		g_result.final_score = 100.0;
+	}
 
 	SCHED_PRINTF("\n------------------------------------------------------\n");
 	SCHED_PRINTF("Average Miss Rate: %.4f\n", g_result.average_miss_rate);
 	SCHED_PRINTF("Final Score: %.2f / 100\n", g_result.final_score);
+	SCHED_PRINTF("Failed Gradients: %d / %d\n", g_result.failed_gradients,
+		     g_result.num_gradients);
+	SCHED_PRINTF("Retries Used: %d\n", g_result.total_retry_count);
+	if (g_result.completed_with_degradation) {
+		SCHED_PRINTF("Status: PASSED_WITH_DEGRADATION\n");
+	} else {
+		SCHED_PRINTF("Status: PASSED\n");
+	}
 	SCHED_PRINTF("------------------------------------------------------\n");
 	ret = 0;
 

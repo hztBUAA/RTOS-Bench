@@ -268,11 +268,26 @@ void rtbench_workload_add_result(struct rtbench_workload_module_result *r,
     } \
 } while(0)
 
+static const char *schedule_failure_reason_to_string(int reason)
+{
+    switch (reason) {
+    case 0:
+        return "none";
+    case 1:
+        return "timeout";
+    case 2:
+        return "setup_failure";
+    default:
+        return "unknown";
+    }
+}
+
 int rtbench_result_to_json(char *buf, size_t bufsize)
 {
     char *p = buf;
     size_t remain = bufsize;
     int i, j;
+    const char *schedule_status;
 
     struct rtbench_result *r = &g_result;
 
@@ -372,8 +387,16 @@ int rtbench_result_to_json(char *buf, size_t bufsize)
     JSON_APPEND("    },\n");
 
     /* test-schedule */
+    if (!r->schedule.valid) {
+        schedule_status = "skipped";
+    } else if (r->schedule.completed_with_degradation) {
+        schedule_status = "passed_with_degradation";
+    } else {
+        schedule_status = "passed";
+    }
+
     JSON_APPEND("    \"test-schedule\": {\n");
-    JSON_APPEND("      \"status\": \"%s\",\n", r->schedule.valid ? "passed" : "skipped");
+    JSON_APPEND("      \"status\": \"%s\",\n", schedule_status);
     JSON_APPEND("      \"duration_sec\": %.3f", r->schedule.duration_sec);
 
     if (r->schedule.valid) {
@@ -401,6 +424,11 @@ int rtbench_result_to_json(char *buf, size_t bufsize)
             JSON_APPEND("          \"total_jobs\": %llu,\n", (unsigned long long)g->total_jobs);
             JSON_APPEND("          \"deadline_misses\": %llu,\n", (unsigned long long)g->deadline_misses);
             JSON_APPEND("          \"miss_rate\": %.6f,\n", g->miss_rate);
+            JSON_APPEND("          \"attempts\": %d,\n", g->attempts);
+            JSON_APPEND("          \"status\": \"%s\",\n", g->passed ? "passed" : "fallback_failed");
+            JSON_APPEND("          \"degraded\": %s,\n", g->degraded ? "true" : "false");
+            JSON_APPEND("          \"failure_reason\": \"%s\",\n",
+                        schedule_failure_reason_to_string(g->failure_reason));
 
             /* Task stats */
             JSON_APPEND("          \"task_stats\": [\n");
@@ -420,8 +448,13 @@ int rtbench_result_to_json(char *buf, size_t bufsize)
         JSON_APPEND("      ],\n");
 
         /* Summary */
-        JSON_APPEND("      \"summary\": { \"average_miss_rate\": %.6f, \"final_score\": %.2f }\n",
-                    r->schedule.average_miss_rate, r->schedule.final_score);
+        JSON_APPEND("      \"summary\": { \"average_miss_rate\": %.6f, \"final_score\": %.2f, "
+                    "\"failed_gradients\": %d, \"completed_with_degradation\": %s, "
+                    "\"total_retry_count\": %d }\n",
+                    r->schedule.average_miss_rate, r->schedule.final_score,
+                    r->schedule.failed_gradients,
+                    r->schedule.completed_with_degradation ? "true" : "false",
+                    r->schedule.total_retry_count);
     } else {
         JSON_APPEND("\n");
     }
