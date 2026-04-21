@@ -30,7 +30,11 @@ using namespace std;
 using namespace Eigen;
 using namespace opengv;
 
+#ifdef ONEOS_PLATFORM
+#define THREAD_STACK_SIZE (64 * 1024)
+#else 
 #define THREAD_STACK_SIZE (5 * 1024)
+#endif
 
 static double diff_timespec_us(const struct timespec *start, const struct timespec *end)
 {
