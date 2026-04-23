@@ -35,13 +35,6 @@
 #include "test_cmd.h"
 #include "result_export.h"
 
-/* API compatibility: V2.0 uses os_tick_get_value(), V1.x uses os_tick_get() */
-#if defined(ONEOS_V2_ARM64)
-    #define RTBENCH_GET_TICK()  os_tick_get_value()
-#else
-    #define RTBENCH_GET_TICK()  os_tick_get()
-#endif
-
 /* External workload declarations */
 extern const struct rtosbench_workload rtosbench_stub_workload;
 extern const struct rtosbench_workload rtosbench_busywait_workload;
@@ -1039,16 +1032,16 @@ static void collect_workload_results(int quick_mode)
             w->init(0, NULL);
         }
 
-        /* Run workload and measure time using OneOS ticks */
+        /* Run workload and measure time using platform abstraction */
         int rounds = quick_mode ? 5 : 10;
-        os_tick_t start_tick = RTBENCH_GET_TICK();
+        long double start_time = rtbench_get_timestamp();
 
         for (int j = 0; j < rounds; j++) {
             w->exec(0, NULL);
         }
 
-        os_tick_t end_tick = RTBENCH_GET_TICK();
-        double exec_time_ms = (double)(end_tick - start_tick) * 1000.0 / OS_TICK_PER_SECOND;
+        long double end_time = rtbench_get_timestamp();
+        double exec_time_ms = (double)(end_time - start_time) * 1000.0;
         double avg_time_ms = exec_time_ms / rounds;
 
         /* Teardown */
