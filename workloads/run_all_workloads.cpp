@@ -16,6 +16,7 @@ extern "C" {
 	int pid_test(void);
 	int cusum_bench_run(void);
 	int ewma_bench_run(void);
+	void rtosbench_register_rtos_workloads(void);
 }
 extern "C" long double rtbench_get_timestamp(void);
 extern "C" int epnp_schedule_wcet_test(void) {
@@ -75,6 +76,9 @@ extern "C" int epnp_schedule_wcet_test(void) {
 }
 
 extern "C" int run_all_workloads() {
+    /* The -s suite path can enter here before platform main() registers workloads. */
+    rtosbench_register_rtos_workloads();
+
     cout << "=== Epnp Test Start ===" << endl;
 
     // // 1. FAST Feature Detection
