@@ -2,7 +2,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include "../generator/platform_abstraction.h"
 #include "../generator/workload_registry.h"
 
 using namespace std;
@@ -18,7 +17,7 @@ extern "C" {
 	int cusum_bench_run(void);
 	int ewma_bench_run(void);
 }
-
+extern "C" long double rtbench_get_timestamp(void);
 extern "C" int epnp_schedule_wcet_test(void) {
     static const int kEpnpWcetIterations = 50;
     const struct rtosbench_workload *wl = NULL;
