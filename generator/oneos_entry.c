@@ -35,6 +35,13 @@
 #include "test_cmd.h"
 #include "result_export.h"
 
+/* API compatibility: V2.0 uses os_tick_get_value(), V1.x uses os_tick_get() */
+#if defined(ONEOS_V2_ARM64)
+    #define RTBENCH_GET_TICK()  os_tick_get_value()
+#else
+    #define RTBENCH_GET_TICK()  os_tick_get()
+#endif
+
 /* External workload declarations */
 extern const struct rtosbench_workload rtosbench_stub_workload;
 extern const struct rtosbench_workload rtosbench_busywait_workload;
@@ -463,11 +470,12 @@ static int cmd_rtbench(int argc, char **argv)
         /* Spawn worker task with large stack */
         static os_task_dummy_t test_all_task_cb;
         os_task_id task = os_task_create(&test_all_task_cb,
+                                          RTBENCH_TEST_ALL_STACK_SIZE,
                                           "rtbench",
                                           test_all_thread_entry,
                                           &params,
-                                          RTBENCH_TEST_ALL_STACK_SIZE,
-                                          OS_TASK_PRIORITY_MAX / 2);
+                                          OS_TASK_PRIORITY_MAX / 2,
+                                          10);
         if (task < 0) {
             printf("[RTOS-Bench] Failed to create test-all worker task\n");
             os_semaphore_destroy(params.done_sem);
@@ -809,7 +817,7 @@ static int rtbench_auto_init(void)
            rtosbench_workload_count());
     return 0;
 }
-OS_APP_INIT(rtbench_auto_init, OS_INIT_SUBLEVEL_LOW);
+OS_APP_INIT(rtbench_auto_init);
 
 /* ============================================================================
  * Result Collection Functions
@@ -1033,13 +1041,13 @@ static void collect_workload_results(int quick_mode)
 
         /* Run workload and measure time using OneOS ticks */
         int rounds = quick_mode ? 5 : 10;
-        os_tick_t start_tick = os_tick_get();
+        os_tick_t start_tick = RTBENCH_GET_TICK();
 
         for (int j = 0; j < rounds; j++) {
             w->exec(0, NULL);
         }
 
-        os_tick_t end_tick = os_tick_get();
+        os_tick_t end_tick = RTBENCH_GET_TICK();
         double exec_time_ms = (double)(end_tick - start_tick) * 1000.0 / OS_TICK_PER_SECOND;
         double avg_time_ms = exec_time_ms / rounds;
 
