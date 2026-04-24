@@ -46,12 +46,6 @@ int fast_bench_run_once(int loops) {
 
     FAST_PRINTF("Allocating RAM buffer: %d bytes (KB: %d)\n", max_buffer_size, max_buffer_size/1024);
 
-    unsigned char* img_buffer = (unsigned char*)malloc(max_buffer_size);
-    if (!img_buffer) {
-        FAST_PRINTF("Error: Failed to allocate RAM buffer (OOM).\n");
-        return -1;
-    }
-
     // 打印表头
     // FAST_PRINTF("\n");
     // FAST_PRINTF("| %-15s | %-9s | %-8s | %-9s | %-7s |\n", "Image", "Size", "Corners", "Time(us)", "FPS");
@@ -76,7 +70,7 @@ int fast_bench_run_once(int loops) {
             if (corners) free(corners);
 
             // 核心算法调用
-            corners = fast9_detect(img_buffer, img->w, img->h, img->w, 30, &num_corners);
+            corners = fast9_detect(img, img->w, img->h, img->w, 30, &num_corners);
         }
         // D. 清理最后一次的结果
         if (corners) free(corners);
@@ -95,8 +89,6 @@ int fast_bench_run_once(int loops) {
     printf("[FAST] samples=%d total_time=%.3f ms avg_latency=%.3f us/img\n",
            total_samples, total_ms, avg_us_per_img);
 
-    // 3. 释放全局缓冲区
-    free(img_buffer);
     return 0;
 }
 
