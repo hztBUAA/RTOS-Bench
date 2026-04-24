@@ -35,6 +35,13 @@
 #include "test_cmd.h"
 #include "result_export.h"
 
+/* API compatibility: V2.0 uses os_tick_get_value(), V1.x uses os_tick_get() */
+#if defined(ONEOS_V2_ARM64)
+    #define RTBENCH_GET_TICK()  os_tick_get_value()
+#else
+    #define RTBENCH_GET_TICK()  os_tick_get()
+#endif
+
 /* External workload declarations */
 extern const struct rtosbench_workload rtosbench_stub_workload;
 extern const struct rtosbench_workload rtosbench_busywait_workload;
@@ -303,7 +310,7 @@ struct test_all_params {
     int run_multicore;
     int quick_mode;
     int result;
-    os_sem_t *done_sem;
+    os_semaphore_id done_sem;
 };
 
 static void test_all_thread_entry(void *parameter)
@@ -393,7 +400,7 @@ static void test_all_thread_entry(void *parameter)
     rtbench_result_cleanup();
 
     /* Signal completion */
-    os_sem_post(p->done_sem);
+    os_semaphore_post(p->done_sem);
 }
 
 /* ============================================================================
@@ -454,28 +461,31 @@ static int cmd_rtbench(int argc, char **argv)
         params.output_path = output_path;
 
         /* Create completion semaphore */
-        params.done_sem = os_sem_create("ta_done", 0, OS_SEM_MAX_VALUE);
+        params.done_sem = os_semaphore_create(NULL, "ta_done", 0, OS_SEM_MAX_VALUE);
         if (params.done_sem == NULL) {
             printf("[RTOS-Bench] Failed to create semaphore\n");
             return -1;
         }
 
         /* Spawn worker task with large stack */
-        os_task_t *task = os_task_create("rtbench",
-                                         test_all_thread_entry,
-                                         &params,
-                                         RTBENCH_TEST_ALL_STACK_SIZE,
-                                         OS_TASK_PRIORITY_MAX / 2);
-        if (task == NULL) {
+        static os_task_dummy_t test_all_task_cb;
+        os_task_id task = os_task_create(&test_all_task_cb,
+                                          RTBENCH_TEST_ALL_STACK_SIZE,
+                                          "rtbench",
+                                          test_all_thread_entry,
+                                          &params,
+                                          OS_TASK_PRIORITY_MAX / 2,
+                                          10);
+        if (task < 0) {
             printf("[RTOS-Bench] Failed to create test-all worker task\n");
-            os_sem_destroy(params.done_sem);
+            os_semaphore_destroy(params.done_sem);
             return -1;
         }
         os_task_startup(task);
 
         /* Wait for worker to finish */
-        os_sem_wait(params.done_sem, OS_WAIT_FOREVER);
-        os_sem_destroy(params.done_sem);
+        os_semaphore_wait(params.done_sem, OS_WAIT_FOREVER);
+        os_semaphore_destroy(params.done_sem);
 
         return params.result;
     }
@@ -807,7 +817,7 @@ static int rtbench_auto_init(void)
            rtosbench_workload_count());
     return 0;
 }
-OS_APP_INIT(rtbench_auto_init, OS_INIT_SUBLEVEL_LOW);
+OS_APP_INIT(rtbench_auto_init);
 
 /* ============================================================================
  * Result Collection Functions
@@ -1031,13 +1041,13 @@ static void collect_workload_results(int quick_mode)
 
         /* Run workload and measure time using OneOS ticks */
         int rounds = quick_mode ? 5 : 10;
-        os_tick_t start_tick = os_tick_get();
+        os_tick_t start_tick = RTBENCH_GET_TICK();
 
         for (int j = 0; j < rounds; j++) {
             w->exec(0, NULL);
         }
 
-        os_tick_t end_tick = os_tick_get();
+        os_tick_t end_tick = RTBENCH_GET_TICK();
         double exec_time_ms = (double)(end_tick - start_tick) * 1000.0 / OS_TICK_PER_SECOND;
         double avg_time_ms = exec_time_ms / rounds;
 
