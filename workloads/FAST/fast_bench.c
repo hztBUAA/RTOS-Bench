@@ -70,7 +70,7 @@ int fast_bench_run_once(int loops) {
             if (corners) free(corners);
 
             // 核心算法调用
-            corners = fast9_detect(img, img->w, img->h, img->w, 30, &num_corners);
+            corners = fast9_detect((const byte*)img->data, img->w, img->h, img->w, 30, &num_corners);
         }
         // D. 清理最后一次的结果
         if (corners) free(corners);
