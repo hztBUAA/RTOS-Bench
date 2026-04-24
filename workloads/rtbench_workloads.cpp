@@ -12,9 +12,7 @@ int fast_bench_run_once(int loops);
 int modbus_bench_run(void);
 int mqtt_bench_run(void);
 // C++ workloads exposed as C for simplicity
-#ifdef ENABLE_EPNP_WORKLOAD
 int epnp_bench_run(size_t iterations);
-#endif
 int ekf_bench_run(void);
 int icp_bench_run(void);
 int pid_bench_run(void);
@@ -53,7 +51,6 @@ const struct rtosbench_workload rtosbench_fast_workload = {
 };
 
 /* EPNP */
-#ifdef ENABLE_EPNP_WORKLOAD
 static int epnp_init(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
@@ -65,7 +62,7 @@ static void epnp_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
-	epnp_bench_run(1000);
+	epnp_bench_run(1);
 }
 
 static void epnp_teardown(int parameters_num, void **parameters)
@@ -82,7 +79,6 @@ const struct rtosbench_workload rtosbench_epnp_workload = {
 	.exec = epnp_exec,
 	.teardown = epnp_teardown,
 };
-#endif
 
 /* EKF */
 static int ekf_init(int parameters_num, void **parameters)
@@ -300,9 +296,7 @@ static void register_all_workloads(void)
 	rtosbench_register_workload(&rtosbench_stub_workload);
 	rtosbench_register_workload(&rtosbench_busywait_workload);
 	rtosbench_register_workload(&rtosbench_fast_workload);
-#ifdef ENABLE_EPNP_WORKLOAD
 	rtosbench_register_workload(&rtosbench_epnp_workload);
-#endif
 	rtosbench_register_workload(&rtosbench_ekf_workload);
 	rtosbench_register_workload(&rtosbench_icp_workload);
 	rtosbench_register_workload(&rtosbench_modbus_workload);
