@@ -32,7 +32,9 @@ TEST_SCHEDULE_UTIL_STEP  = 10
 
 All three boards finished with `Final Score: 100.00 / 100` and `Average Miss Rate: 0.0000`.
 
-After this batch, one help-text-only cleanup changed top-level `--help` schedule default descriptions from hard-coded literals to the same `TEST_SCHEDULE_*` macros already used by the parser and `test-schedule --help`. The three binaries were rebuilt locally as `r5`; remote redeployment could not be rerun in the current shell because `RTBENCH_JUMPHOST_PASSWORD` was not present. The r4 remote acceptance remains the behavior baseline for schedule/test-all execution.
+After this batch, one help-text-only cleanup changed top-level `--help` schedule default descriptions from hard-coded literals to the same `TEST_SCHEDULE_*` macros already used by the parser and `test-schedule --help`. The three binaries were rebuilt locally as `r5`.
+
+The branch was then synced with the latest `origin/main` so the PR can merge cleanly. After that sync, the three SylixOS targets were rebuilt locally again as `r6_after_main_merge`. Remote redeployment could not be rerun in the current shell because `RTBENCH_JUMPHOST_PASSWORD` was not present. The r4 remote acceptance remains the behavior baseline for schedule/test-all execution, and r6 confirms the final PR head still builds for the three validated target families.
 
 ## Runtime Snapshot
 
@@ -107,6 +109,9 @@ One more apparent issue after that was not an ELF build corruption: after force-
   - `build_gongkong_r5.log`
   - `build_orangepi_r5.log`
   - `build_loongson_r5.log`
+  - `build_gongkong_r6_after_main_merge.log`
+  - `build_orangepi_r6_after_main_merge.log`
+  - `build_loongson_r6_after_main_merge.log`
 - Board logs:
   - `entry_validation_gongkong_20260427_233446.log`
   - `entry_validation_orangepi_20260427_233446.log`
