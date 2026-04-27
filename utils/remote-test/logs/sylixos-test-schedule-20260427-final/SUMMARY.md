@@ -65,6 +65,26 @@ Entry parser prechecks recorded in each validation log:
 
 No final `cycles=1` result log contains the known bad markers `OS-version`, `Can not find dependent library`, or `timer_create failed`.
 
+## cycles=2 boundary validation
+
+After the `cycles=1` milestone, the runnable boards were re-tested with `test-schedule --cycles 2` using the same latest deployed binaries, unique remote filenames, and `dlconfig refresh` precheck flow.
+
+Batch: `20260427_191911`
+
+| Board | Remote unique path | Result |
+| --- | --- | --- |
+| OrangePi | `/apps/hzt/orangepi-rtos-bench-cycles2-20260427_191911` | PASS, `Average Miss Rate: 0.0000`, `Final Score: 100.00 / 100` |
+| Gongkong | `/apps/hzt/gongkong-rtos-bench-cycles2-20260427_191911` | PASS, `Average Miss Rate: 0.0000`, `Final Score: 100.00 / 100` |
+| Loongson | `/apps/hzt/loongson-rtos-bench-cycles2-20260427_191911` | PASS, `Average Miss Rate: 0.0000`, `Final Score: 100.00 / 100` |
+
+Result logs:
+
+- `test_latest_cycles2_orangepi_20260427_191911.log`
+- `test_latest_cycles2_gongkong_20260427_191911.log`
+- `test_latest_cycles2_loongson_20260427_191911.log`
+
+Each completed utilization gradient reported `MR=0.0000 (0/18)`. No final `cycles=2` result log contains the known bad markers `OS-version`, `Can not find dependent library`, or `timer_create failed`.
+
 ## Loader/cache evidence
 
 The earlier successful validation was based on rebuilt board binaries, not a deliberately old binary. The risk was that SylixOS could keep stale module state when repeatedly using the same remote basename.
