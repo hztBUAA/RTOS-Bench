@@ -107,6 +107,13 @@ BOARDS = {
     }
 }
 
+REMOTE_NAME_SUFFIX = os.environ.get("RTBENCH_REMOTE_SUFFIX", "")
+if REMOTE_NAME_SUFFIX:
+    for _board in BOARDS.values():
+        _board["remote_name"] = f"{_board['remote_name']}{REMOTE_NAME_SUFFIX}"
+        _remote_path = f"{_board['remote_dir'].rstrip('/')}/{_board['remote_name']}"
+        _board["test_cmd"] = f"{_remote_path} test-schedule --cycles 3"
+
 
 PROMPT_RE = r"(\[root@sylixos:.*\]#|sh\s+/\w+>)\s*$"
 

@@ -1,0 +1,2221 @@
+[BOARD] orangepi
+[BINARY] /apps/hzt/orangepi-rtos-bench-r4
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 --help
+/apps/hzt/orangepi-rtos-bench-r4 --help
+
+RTOS-Bench - Cross-platform Industrial RTOS Benchmark Framework
+
+USAGE:
+  rtbench [OPTIONS]                    Run workload benchmark
+  rtbench test-all [OPTIONS]           Run comprehensive test suite
+  rtbench test-realtime [OPTIONS]      Run realtime performance test
+  rtbench test-schedule [OPTIONS]      Run schedulability test
+  rtbench test-stress [OPTIONS]        Run stress test
+  rtbench test-cmd                     Run shell command support test
+  rtbench export-result [OPTIONS]      Export results to JSON
+  rtbench -L | --list                  List available workloads
+  rtbench -h | --help                  Show this help message
+
+WORKLOAD BENCHMARK OPTIONS:
+  -b <name>        Workload name (use -L to list)
+  -p <sec>         Period in seconds (default: 1.0)
+  -t <count>       Number of tasks to launch (0 = infinite, default: 1)
+  -d <sec>         Maximum duration in seconds (0 = unlimited, default: 0)
+  -f <prio>        Task priority for SCHED_FIFO
+  -c <cpu>         CPU affinity (0-31)
+  -q               Quiet mode (reduce verbosity)
+  -A               Run all registered workloads
+  -G <categories>  Filter workloads by comma-separated categories
+
+TEST-ALL OPTIONS:
+  -o, --output <path>   Output JSON path (default: /rtbench_result.json)
+  --no-realtime         Skip realtime performance test
+  --no-schedule         Skip schedulability test
+  --no-stress           Skip stress test
+  --no-cmd              Skip shell command support test
+  --no-workload         Skip typical workload tests
+  -m, --multicore       Enable multicore tests
+  --quick               Quick mode (smoke test)
+  --schedule-cycles <n> Override schedule cycles inside test-all
+  --util-start <pct>    Override schedule start utilization
+  --util-end <pct>      Override schedule end utilization
+  --util-step <pct>     Override schedule utilization step
+  --stress-job <name>   Override stress job (default: all/all-quick)
+  -q                    Quiet mode
+  -h, --help            Show test-all help
+
+TEST-REALTIME OPTIONS:
+  -v, --verify          Run verification tests
+  -m, --multicore       Enable multicore tests
+  -q                    Quiet mode
+
+TEST-SCHEDULE OPTIONS:
+  --cycles <n>          Number of test cycles (default: 100)
+  --util-start <pct>    Starting utilization percentage (default: 10)
+  --util-end <pct>      Ending utilization percentage (default: 100)
+  --util-step <pct>     Utilization step size (default: 10)
+  --quick               Quick mode (fewer cycles)
+  -q                    Quiet mode
+  -h, --help            Show test-schedule help
+
+TEST-STRESS OPTIONS:
+  --job <name>          Run predefined stress job (default: all)
+  -s <stressor>         Run single stressor
+  -t <sec>              Duration in seconds (default: 10)
+  -c <workers>          Number of workers (default: 1)
+  --ops <count>         Maximum operations (default: unlimited)
+  --method <name>       Algorithm/method name for stressor
+  --opts <options>      Extra stressor-specific options
+  -l, --list            List available jobs and stressors
+  --quick               Quick mode
+  -q                    Quiet mode
+
+EXPORT-RESULT OPTIONS:
+  -o, --output <path>   Output JSON path (default: /rtbench_result.json)
+  -h, --help            Show export-result help
+
+EXAMPLES:
+  rtbench -L                                  # List workloads
+  rtbench -b busywait -p 0.5 -t 10 -q         # Run busywait 10 times
+  rtbench -b pid -p 1.0 -t 0 -d 5 -q          # Run pid for 5 seconds
+  rtbench test-all --quick                    # Quick comprehensive test
+  rtbench test-schedule --cycles 50           # Custom schedule test
+  rtbench test-stress -s cpu -t 30            # CPU stress for 30s
+
+[root@sylixos:/root]# [CHECK] top_help: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 test-all --help
+/apps/hzt/orangepi-rtos-bench-r4 test-all --help
+
+Usage: rtbench test-all [OPTIONS]
+
+Options:
+  -o, --output <path>   Output JSON path (default: /rtbench_result.json)
+  --no-realtime         Skip realtime performance test
+  --no-schedule         Skip schedulability test
+  --no-stress           Skip stress test
+  --no-cmd              Skip shell command support test
+  --no-workload         Skip typical workload tests
+  -m, --multicore       Enable multicore tests
+  --quick               Keep all modules but use bounded smoke settings
+  --schedule-cycles <n> Override schedule cycles
+  --util-start <pct>    Override schedule start utilization
+  --util-end <pct>      Override schedule end utilization
+  --util-step <pct>     Override schedule utilization step
+  --stress-job <name>   Override stress job (default: all/all-quick)
+  -q                    Quiet mode
+  -h, --help, help      Show this help message
+
+[root@sylixos:/root]# [CHECK] test_all_help: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 test -schedule --help
+/apps/hzt/orangepi-rtos-bench-r4 test -schedule --help
+
+******************************************************
+* ERROR: Unknown command 'test'
+******************************************************
+
+RTOS-Bench - Cross-platform Industrial RTOS Benchmark Framework
+
+USAGE:
+  rtbench [OPTIONS]                    Run workload benchmark
+  rtbench test-all [OPTIONS]           Run comprehensive test suite
+  rtbench test-realtime [OPTIONS]      Run realtime performance test
+  rtbench test-schedule [OPTIONS]      Run schedulability test
+  rtbench test-stress [OPTIONS]        Run stress test
+  rtbench test-cmd                     Run shell command support test
+  rtbench export-result [OPTIONS]      Export results to JSON
+  rtbench -L | --list                  List available workloads
+  rtbench -h | --help                  Show this help message
+
+WORKLOAD BENCHMARK OPTIONS:
+  -b <name>        Workload name (use -L to list)
+  -p <sec>         Period in seconds (default: 1.0)
+  -t <count>       Number of tasks to launch (0 = infinite, default: 1)
+  -d <sec>         Maximum duration in seconds (0 = unlimited, default: 0)
+  -f <prio>        Task priority for SCHED_FIFO
+  -c <cpu>         CPU affinity (0-31)
+  -q               Quiet mode (reduce verbosity)
+  -A               Run all registered workloads
+  -G <categories>  Filter workloads by comma-separated categories
+
+TEST-ALL OPTIONS:
+  -o, --output <path>   Output JSON path (default: /rtbench_result.json)
+  --no-realtime         Skip realtime performance test
+  --no-schedule         Skip schedulability test
+  --no-stress           Skip stress test
+  --no-cmd              Skip shell command support test
+  --no-workload         Skip typical workload tests
+  -m, --multicore       Enable multicore tests
+  --quick               Quick mode (smoke test)
+  --schedule-cycles <n> Override schedule cycles inside test-all
+  --util-start <pct>    Override schedule start utilization
+  --util-end <pct>      Override schedule end utilization
+  --util-step <pct>     Override schedule utilization step
+  --stress-job <name>   Override stress job (default: all/all-quick)
+  -q                    Quiet mode
+  -h, --help            Show test-all help
+
+TEST-REALTIME OPTIONS:
+  -v, --verify          Run verification tests
+  -m, --multicore       Enable multicore tests
+  -q                    Quiet mode
+
+TEST-SCHEDULE OPTIONS:
+  --cycles <n>          Number of test cycles (default: 100)
+  --util-start <pct>    Starting utilization percentage (default: 10)
+  --util-end <pct>      Ending utilization percentage (default: 100)
+  --util-step <pct>     Utilization step size (default: 10)
+  --quick               Quick mode (fewer cycles)
+  -q                    Quiet mode
+  -h, --help            Show test-schedule help
+
+TEST-STRESS OPTIONS:
+  --job <name>          Run predefined stress job (default: all)
+  -s <stressor>         Run single stressor
+  -t <sec>              Duration in seconds (default: 10)
+  -c <workers>          Number of workers (default: 1)
+  --ops <count>         Maximum operations (default: unlimited)
+  --method <name>       Algorithm/method name for stressor
+  --opts <options>      Extra stressor-specific options
+  -l, --list            List available jobs and stressors
+  --quick               Quick mode
+  -q                    Quiet mode
+
+EXPORT-RESULT OPTIONS:
+  -o, --output <path>   Output JSON path (default: /rtbench_result.json)
+  -h, --help            Show export-result help
+
+EXAMPLES:
+  rtbench -L                                  # List workloads
+  rtbench -b busywait -p 0.5 -t 10 -q         # Run busywait 10 times
+  rtbench -b pid -p 1.0 -t 0 -d 5 -q          # Run pid for 5 seconds
+  rtbench test-all --quick                    # Quick comprehensive test
+  rtbench test-schedule --cycles 50           # Custom schedule test
+  rtbench test-stress -s cpu -t 30            # CPU stress for 30s
+
+[root@sylixos:/root]# [CHECK] bad_split_schedule: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 test-all --bad-option
+/apps/hzt/orangepi-rtos-bench-r4 test-all --bad-option
+[test-all] Unknown option: --bad-option
+
+Usage: rtbench test-all [OPTIONS]
+
+Options:
+  -o, --output <path>   Output JSON path (default: /rtbench_result.json)
+  --no-realtime         Skip realtime performance test
+  --no-schedule         Skip schedulability test
+  --no-stress           Skip stress test
+  --no-cmd              Skip shell command support test
+  --no-workload         Skip typical workload tests
+  -m, --multicore       Enable multicore tests
+  --quick               Keep all modules but use bounded smoke settings
+  --schedule-cycles <n> Override schedule cycles
+  --util-start <pct>    Override schedule start utilization
+  --util-end <pct>      Override schedule end utilization
+  --util-step <pct>     Override schedule utilization step
+  --stress-job <name>   Override stress job (default: all/all-quick)
+  -q                    Quiet mode
+  -h, --help, help      Show this help message
+
+[root@sylixos:/root]# [CHECK] bad_test_all_option: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 export-result --bad-option
+/apps/hzt/orangepi-rtos-bench-r4 export-result --bad-option
+[export-result] Unknown option: --bad-option
+
+Usage: rtbench export-result [OPTIONS]
+
+Options:
+  -o, --output <path>   Output JSON path (default: /rtbench_result.json)
+  -h, --help, help      Show this help message
+
+[root@sylixos:/root]# [CHECK] bad_export_option: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 export-result -o /apps/hzt/orangepi_export_20260427_233446.json
+/apps/hzt/orangepi-rtos-bench-r4 export-result -o /apps/hzt/orangepi_export_20260427_233446.json
+[RTOS-Bench] Results exported to: /apps/hzt/orangepi_export_20260427_233446.json
+[root@sylixos:/root]# [CHECK] export_result_command: PASS
+[FETCH] /apps/hzt/orangepi_export_20260427_233446.json -> C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\sylixos-entry-validation-20260427-final\orangepi_export_20260427_233446.json
+[CHECK] json_parse:orangepi_export_20260427_233446.json: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 test-all --quick --schedule-cycles 1 --util-start 30 --util-end 30 --util-step 30 --stress-job all-quick -o /apps/hzt/orangepi_testall_20260427_233446.json
+/apps/hzt/orangepi-rtos-bench-r4 test-all --quick --schedule-cycles 1 --util-start 30 --util-end 30 --util-step 30 --stress-job all-quick -o /apps/hzt/orangepi_testall_20260427_233446.json
+
+=============================================================
+[RTOS-Bench] Comprehensive Test Suite
+=============================================================
+Output: /apps/hzt/orangepi_testall_20260427_233446.json
+Modules: realtime=yes schedule=yes stress=yes cmd=yes workload=yes
+Mode: QUICK (smoke test)
+
+>>> Running test-realtime...
+
+=============================================================
+[test-realtime] Starting realtime performance benchmark
+=============================================================
+Mode: Single-core tests only
+
+Finish test 1.
+Warning: interrupt latency test only get 99/200 data.
+Finish test 2.
+Finish test 3.
+Finish test 4_1, 4_1.
+Finish test 4_2, 5_4.
+Finish test 5_3.
+Finish test 6_1, 7_1.
+Finish test 6_3.
+Finish test 6_4, 7_2.
+mqueue supports blocking on full queue.
+Finish test 6_2, 7_4.
+Finish test 7_3.
+Finish test 8_1, 9_1.
+Finish test 8_2, 9_4.
+Finish test 9_3.
+Finish test 10_1, 11_1.
+系统延迟（单位：us）:
+指标       | 立即执行   | 挂起睡眠   | 低优就绪   | 高优恢复  
+----------------------------------------------------------------------
+信号量获取 | 0.291      | 0.833      |            |           
+信号量释放 | 0.416      |            | 0.416      | 0.833     
+消息发送   | 1.500      | 1.666      | 1.583      | 1.666     
+消息接收   | 1.458      | 3.166      | 1.625      | 3.208     
+互斥锁获取 | 0.333      | 0.916      |            |           
+互斥锁释放 | 0.416      |            | 0.500      | 0.958     
+内存块申请 | 0.875      |            |            |           
+内存块释放 | 0.791      |            |            |           
+上下文切换延迟    AVG: 0.712
+中断软件延迟    MIN: 0.291  MAX: 0.583  AVG: 0.293
+系统调用延迟    MIN: 0.291  MAX: 0.291  AVG: 0.291
+
+
+=============================================================
+[test-realtime] Benchmark completed with code: 0
+=============================================================
+
+>>> Running test-schedule (quick) (cycles=1 util=30-30 step 30)...
+[test-schedule] Found 9 industrial workloads (excluded 2 utility workloads)
+=============================================================
+[Phase 1] Measuring WCET for 9 workloads...
+=============================================================
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=21.816 ms avg_latency=7271.934 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=14.731 ms avg_latency=4910.311 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=22.160 ms avg_latency=7386.552 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=14.523 ms avg_latency=4840.975 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=42.858 ms avg_latency=14285.836 us/img
+  [fast]: WCET = 42.879 ms (5 iters)
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ -1.0619
+0.727677
+-1.92458
+
+the random rotation is:
+ 0.881981 -0.275701  0.382227
+ 0.383872  0.890767 -0.243264
+-0.273407  0.361281  0.891474
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=12.453 ms avg_latency=12452.680 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-0.505847
+ -1.77555
+ -1.67765
+
+the random rotation is:
+  0.868788   0.403244   0.287404
+ -0.405218   0.912539 -0.0554181
+ -0.284614 -0.0683145   0.956205
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=12.445 ms avg_latency=12444.577 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ 0.0421238
+-0.0257759
+  -1.21541
+
+the random rotation is:
+ 0.963268 -0.241981 -0.116446
+ 0.220646  0.960349 -0.170426
+ 0.153068  0.138473  0.978466
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=12.183 ms avg_latency=12182.613 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ 0.582331
+-0.761487
+  1.68635
+
+the random rotation is:
+ 0.879997  0.276547   0.38617
+-0.387828  0.887729  0.248047
+-0.274218 -0.368048  0.888451
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=12.591 ms avg_latency=12590.921 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  1.13591
+-0.830656
+-0.838004
+
+the random rotation is:
+  0.886489  -0.439524   0.144764
+  0.417543   0.894598   0.159224
+ -0.199488 -0.0807049   0.976571
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=12.209 ms avg_latency=12209.154 us/iter
+  [epnp]: WCET = 17.771 ms (5 iters)
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=678.306 ms avg_latency=199.092 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=727.245 ms avg_latency=213.456 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=623.637 ms avg_latency=183.046 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=700.021 ms avg_latency=205.466 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=676.600 ms avg_latency=198.591 us/update
+  [ekf]: WCET = 727.281 ms (5 iters)
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=599.079 ms avg_latency=599.079 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=650.016 ms avg_latency=650.016 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=682.504 ms avg_latency=682.504 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=624.389 ms avg_latency=624.389 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=624.172 ms avg_latency=624.172 ms/run
+  [icp]: WCET = 687.174 ms (5 iters)
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=8000.026 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.843 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.870 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.880 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.679 ms errors=0
+  [modbus]: WCET = 9100.234 ms (5 iters)
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+2aba723 3 mongoose.c:4800:mg_mgr_init   MG_IO_SIZE: 16384, TLS: none
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] samples=50 total_time=913.702 ms avg=18274.040 us/msg
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Quick mode timeout after 2000.000 ms
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] samples=50 total_time=978.776 ms avg=19575.520 us/msg
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] samples=50 total_time=983.697 ms avg=19673.940 us/msg
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] Quick mode timeout after 2000.000 ms
+[SCHED-MQTT] samples=24 total_time=432.237 ms avg=18009.875 us/msg
+  [mqtt]: WCET = 2012.946 ms (5 iters)
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=68.489 ms avg_latency=0.068 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=61.731 ms avg_latency=0.062 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=68.483 ms avg_latency=0.068 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=75.299 ms avg_latency=0.075 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=117.754 ms avg_latency=0.118 us/op
+  [pid]: WCET = 117.769 ms (5 iters)
+[CUSUM] samples=6000 total_time=54.136 ms avg_latency=9.023 us/sample
+[CUSUM] samples=6000 total_time=54.140 ms avg_latency=9.023 us/sample
+[CUSUM] samples=6000 total_time=54.157 ms avg_latency=9.026 us/sample
+[CUSUM] samples=6000 total_time=47.918 ms avg_latency=7.986 us/sample
+[CUSUM] samples=6000 total_time=26.025 ms avg_latency=4.337 us/sample
+  [cusum]: WCET = 54.167 ms (5 iters)
+[EWMA] samples=5000 total_time=41.976 ms avg_latency=8.395 us/sample
+[EWMA] samples=5000 total_time=34.826 ms avg_latency=6.965 us/sample
+[EWMA] samples=5000 total_time=49.144 ms avg_latency=9.829 us/sample
+[EWMA] samples=5000 total_time=34.814 ms avg_latency=6.963 us/sample
+[EWMA] samples=5000 total_time=65.032 ms avg_latency=13.006 us/sample
+  [ewma]: WCET = 65.044 ms (5 iters)
+[Phase 1] 9 workloads measured
+
+=============================================================
+[Phase 2] Running Task Sets (U: 30% - 30%, step 30%)
+=============================================================
+
+>>> Utilization Gradient: 30% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9100.234   | 5.99     | 151799.068  
+mqtt         | 2012.946   | 4.98     | 40398.801   
+ekf          | 727.281    | 4.72     | 15423.932   
+icp          | 687.174    | 4.49     | 15298.195   
+pid          | 117.769    | 2.84     | 4142.384    
+ewma         | 65.044     | 2.81     | 2316.161    
+cusum        | 54.167     | 2.34     | 2311.145    
+fast         | 42.879     | 1.44     | 2980.787    
+epnp         | 17.771     | 0.38     | 4655.416    
+Running task set for 1 cycles...
+[CUSUM] samples=6000 total_time=19.001 ms avg_latency=3.167 us/sample
+[EWMA] samples=5000 total_time=54.366 ms avg_latency=10.873 us/sample
+[FAST] samples=3 total_time=14.745 ms avg_latency=4914.880 us/img
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=111.406 ms avg_latency=0.111 us/op
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-0.114696
+ 0.305536
+-0.852985
+
+the random rotation is:
+  0.893879   0.393706  -0.214419
+ -0.374937   0.918735   0.123886
+  0.245769 -0.0303459   0.968853
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.006 ms avg_latency=4006.333 us/iter
+
+[ICP] Running ICP (point-to-plane)
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[ICP] samples=1 total_time=644.516 ms avg_latency=644.516 ms/run
+[EKF] samples=3407 total_time=561.103 ms avg_latency=164.691 us/update
+Gradient 30% complete: MR = 0.0000 (0/9)
+
+=============================================================
+[Phase 3] Final Results
+=============================================================
+U= 30%: MR=0.0000 (0 misses / 9 jobs)
+
+------------------------------------------------------
+Average Miss Rate: 0.0000
+Final Score: 100.00 / 100
+------------------------------------------------------
+
+>>> Running test-stress (job: all-quick)...
+
+=============================================================
+[test-stress] Running job: all-quick
+=============================================================
+Initializing Job: stored_jobfile_cpu_quick.txt...
+Running Job: [>                             ] 0/13 (0%) -> cpu      Running Job: [==>                           ] 1/13 (7%) -> matrix      Running Job: [====>                         ] 2/13 (15%) -> qsort      Running Job: [======>                       ] 3/13 (23%) -> atomic      Running Job: [=========>                    ] 4/13 (30%) -> bitops      Running Job: [===========>                  ] 5/13 (38%) -> bsearch      Running Job: [=============>                ] 6/13 (46%) -> context      Running Job: [================>             ] 7/13 (53%) -> fp      Running Job: [==================>           ] 8/13 (61%) -> prime      Running Job: [====================>         ] 9/13 (69%) -> stack      Running Job: [=======================>      ] 10/13 (76%) -> str      Running Job: [=========================>    ] 11/13 (84%) -> trig      Running Job: [===========================>  ] 12/13 (92%) -> vecmath      Running Job: [==============================] 13/13 (100%) -> Finished      
+
+========================================================================
+ Job: stored_jobfile_cpu_quick.txt [Built-in]
+========================================================================
+ Stressor    | Stage | Bogo Ops     | Time(s)  | Metric
+------------------------------------------------------------------------
+ cpu         | 1     | 280          | 0.26     | N/A
+ matrix      | 1     | 640          | 0.74     | N/A
+ qsort       | 1     | 250          | 0.39     | N/A
+ atomic      | 1     | 300000       | 0.13     | N/A
+ bitops      | 1     | 2400         | 0.50     | N/A
+ bsearch     | 1     | 310          | 0.42     | N/A
+ context     | 1     | 69000        | 0.20     | N/A
+ fp          | 1     | 105          | 0.99     | N/A
+ prime       | 1     | 270840       | 0.79     | N/A
+ stack       | 1     | 690          | 0.75     | N/A
+ str         | 1     | 130000       | 0.14     | N/A
+ trig        | 1     | 21           | 0.19     | N/A
+ vecmath     | 1     | 270          | 0.46     | N/A
+------------------------------------------------------------------------
+Total Run Time: 0m 5s
+Initializing Job: stored_jobfile_memory_quick.txt...
+Running Job: [>                             ] 0/6 (0%) -> memcpy      Running Job: [=====>                        ] 1/6 (16%) -> stream      Running Job: [==========>                   ] 2/6 (33%) -> vm      Running Job: [===============>              ] 3/6 (50%) -> malloc      Running Job: [====================>         ] 4/6 (66%) -> memthrash      Running Job: [=========================>    ] 5/6 (83%) -> ptr-chase      Running Job: [==============================] 6/6 (100%) -> Finished      
+
+========================================================================
+ Job: stored_jobfile_memory_quick.txt [Built-in]
+========================================================================
+ Stressor    | Stage | Bogo Ops     | Time(s)  | Metric
+------------------------------------------------------------------------
+ memcpy      | 1     | 1500         | 0.33     | N/A
+ stream      | 1     | 5200         | 0.41     | 2251.96 Mflop/sec
+ vm          | 1     | 4200704      | 0.30     | N/A
+ malloc      | 1     | 170000       | 0.29     | N/A
+ memthrash   | 1     | 230          | 1.03     | N/A
+ ptr-chase   | 1     | 8600576      | 0.27     | N/A
+------------------------------------------------------------------------
+Total Run Time: 0m 2s
+Initializing Job: stored_jobfile_file_quick.txt...
+Running Job: [>                             ] 0/8 (0%) -> hdd      Running Job: [===>                          ] 1/8 (12%) -> open      Running Job: [=======>                      ] 2/8 (25%) -> copy-file      Running Job: [===========>                  ] 3/8 (37%) -> unlink      Running Job: [===============>              ] 4/8 (50%) -> fstat      Running Job: [==================>           ] 5/8 (62%) -> dentry      Running Job: [======================>       ] 6/8 (75%) -> rename      Running Job: [==========================>   ] 7/8 (87%) -> pipe      Running Job: [==============================] 8/8 (100%) -> Finished      
+
+========================================================================
+ Job: stored_jobfile_file_quick.txt [Built-in]
+========================================================================
+ Stressor    | Stage | Bogo Ops     | Time(s)  | Metric
+------------------------------------------------------------------------
+ hdd         | 1     | 42           | 0.90     | N/A
+ open        | 1     | 250          | 3.62     | N/A
+ copy-file   | 1     | 220          | 1.27     | N/A
+ unlink      | 1     | 250          | 3.73     | N/A
+ fstat       | 1     | 600          | 0.78     | N/A
+ dentry      | 1     | 300          | 6.21     | N/A
+ rename      | 1     | 200          | 2.54     | N/A
+ pipe        | 1     | 12825        | 0.20     | 64096.99 KB/sec
+------------------------------------------------------------------------
+Total Run Time: 0m 19s
+
+[test-stress] Job 'all-quick' completed: 27 stressor runs
+=============================================================
+
+>>> Running test-cmd...
+Sat Jan 01 20:32:24 2000
+
+      NAME            FATHER      STAT  PID   GRP    MEMORY    UID   GID   USER
+---------------- ---------------- ---- ----- ----- ---------- ----- ----- ------
+kernel           <orphan>         R        0     0        0KB     0     0 root
+orangepi-rtos-bench-r4 <orphan>         R       54    54    11648KB     0     0 root
+orangepi-rtos-bench <orphan>         R       39    39    14016KB     0     0 root
+orangepi-rtos-bench <orphan>         R        5     5    14016KB     0     0 root
+
+total vprocess: 4
+arguments error!
+/root
+can not process redirect.
+can not open source file!
+./test_cmd_dir/backup.txt error: No such file or directory
+file error No such file or directory!
+option error!
+=======================================================================
+>> Result: Command 'date' finished.
+>> Result: Command 'ps' finished.
+>> Result: Command 'mkdir -p test_cmd_dir' failed.
+>> Result: Command 'cd .' finished.
+>> Result: Command 'pwd' finished.
+>> Result: Command 'echo 'HELLO' > ./test_cmd_dir/original.txt' failed.
+>> Result: Command 'cp ./test_cmd_dir/original.txt ./test_cmd_dir/backup.txt' failed.
+>> Result: Command 'mv ./test_cmd_dir/backup.txt ./test_cmd_dir/final_target.txt' failed.
+>> Result: Command 'ls' finished.
+>> Result: Command 'cat ./test_cmd_dir/original.txt' failed.
+>> Result: Command 'rm -rf ./test_cmd_dir' failed.
+=======================================================================
+Supported commands: date ps cd pwd ls 
+Unsupported commands: mkdir echo cp mv cat rm 
+[test-cmd] Result: 5/11 commands supported
+
+>>> Running typical workloads (quick)...
+  Running workload: stub
+    stub: 0.003 ms total, 0.001 ms avg
+  Running workload: busywait
+    busywait: 0.501 ms total, 0.100 ms avg
+  Running workload: fast
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=17.944 ms avg_latency=5981.404 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=17.417 ms avg_latency=5805.519 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=17.664 ms avg_latency=5887.882 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=34.850 ms avg_latency=11616.600 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=24.420 ms avg_latency=8140.019 us/img
+    fast: 112.389 ms total, 22.478 ms avg
+  Running workload: epnp
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+    1.635
+-0.491613
+  1.45993
+
+the random rotation is:
+ 0.863883 -0.260713   0.43097
+ 0.343653  0.930622 -0.125881
+-0.368251  0.256851  0.893543
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.074 ms avg_latency=4074.287 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ 1.81523
+0.560572
+ 1.53929
+
+the random rotation is:
+  0.883739   0.194466  -0.425662
+-0.0649438   0.951735   0.299973
+  0.463452  -0.237454   0.853714
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=5.663 ms avg_latency=5663.313 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-1.96319
+ 0.65843
+-1.76282
+
+the random rotation is:
+ 0.867558  0.298626  0.397701
+-0.249691  0.953109 -0.170989
+-0.430114 0.0490408  0.901441
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=6.941 ms avg_latency=6941.379 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  -1.58793
+ -0.367704
+0.00116463
+
+the random rotation is:
+   0.892628   -0.345351   -0.289737
+   0.360188    0.932877 -0.00226523
+   0.271071   -0.102338    0.957104
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=3.945 ms avg_latency=3945.379 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ -1.42114
+ -1.03436
+-0.538209
+
+the random rotation is:
+   0.952534    -0.12199     0.27892
+-0.00183223    0.913888    0.405961
+  -0.304426   -0.387203    0.870287
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=12.619 ms avg_latency=12618.982 us/iter
+    epnp: 47.649 ms total, 9.530 ms avg
+  Running workload: ekf
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=627.127 ms avg_latency=184.070 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=504.750 ms avg_latency=148.151 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=535.750 ms avg_latency=157.250 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=535.539 ms avg_latency=157.188 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=749.036 ms avg_latency=219.852 us/update
+    ekf: 2952.402 ms total, 590.480 ms avg
+  Running workload: icp
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=616.635 ms avg_latency=616.635 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=606.692 ms avg_latency=606.692 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=593.332 ms avg_latency=593.332 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=608.227 ms avg_latency=608.227 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=551.594 ms avg_latency=551.594 ms/run
+    icp: 3008.767 ms total, 601.753 ms avg
+  Running workload: modbus (quick wrapper)
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.267 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.873 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.874 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.822 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.873 ms errors=0
+    modbus: 45499.452 ms total, 9099.890 ms avg
+  Running workload: mqtt (quick wrapper)
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Quick mode timeout after 2000.000 ms
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Error: socket error
+[SCHED-MQTT] Quick mode timeout after 2000.000 ms
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] samples=50 total_time=601.604 ms avg=12032.080 us/msg
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] samples=50 total_time=767.931 ms avg=15358.620 us/msg
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Quick mode timeout after 2000.000 ms
+    mqtt: 8541.087 ms total, 1708.217 ms avg
+  Running workload: pid
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=117.418 ms avg_latency=0.117 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=68.690 ms avg_latency=0.069 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=60.243 ms avg_latency=0.060 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=62.800 ms avg_latency=0.063 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=124.712 ms avg_latency=0.125 us/op
+    pid: 433.906 ms total, 86.781 ms avg
+  Running workload: cusum
+[CUSUM] samples=6000 total_time=18.921 ms avg_latency=3.153 us/sample
+[CUSUM] samples=6000 total_time=42.941 ms avg_latency=7.157 us/sample
+[CUSUM] samples=6000 total_time=27.442 ms avg_latency=4.574 us/sample
+[CUSUM] samples=6000 total_time=18.842 ms avg_latency=3.140 us/sample
+[CUSUM] samples=6000 total_time=26.034 ms avg_latency=4.339 us/sample
+    cusum: 134.241 ms total, 26.848 ms avg
+  Running workload: ewma
+[EWMA] samples=5000 total_time=50.054 ms avg_latency=10.011 us/sample
+[EWMA] samples=5000 total_time=58.920 ms avg_latency=11.784 us/sample
+[EWMA] samples=5000 total_time=40.970 ms avg_latency=8.194 us/sample
+[EWMA] samples=5000 total_time=50.567 ms avg_latency=10.113 us/sample
+[EWMA] samples=5000 total_time=45.210 ms avg_latency=9.042 us/sample
+    ewma: 245.761 ms total, 49.152 ms avg
+
+=============================================================
+[RTOS-Bench] Results saved to: /apps/hzt/orangepi_testall_20260427_233446.json
+=============================================================
+[root@sylixos:/root]# [CHECK] test_all_quick_export: PASS
+[FETCH] /apps/hzt/orangepi_testall_20260427_233446.json -> C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\sylixos-entry-validation-20260427-final\orangepi_testall_20260427_233446.json
+[CHECK] json_parse:orangepi_testall_20260427_233446.json: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 test-schedule --cycles 3
+/apps/hzt/orangepi-rtos-bench-r4 test-schedule --cycles 3
+[test-schedule] Starting schedulability test on SylixOS
+  Cycles: 3, Utilization: 30% - 100% (step 10%)
+[test-schedule] Found 9 industrial workloads (excluded 2 utility workloads)
+=============================================================
+[Phase 1] Measuring WCET for 9 workloads...
+=============================================================
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=15.988 ms avg_latency=5329.236 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=31.572 ms avg_latency=10523.926 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=23.119 ms avg_latency=7706.317 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=14.527 ms avg_latency=4842.357 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=23.168 ms avg_latency=7722.649 us/img
+  [fast]: WCET = 31.595 ms (5 iters)
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ 1.99025
+-1.81057
+ 1.69764
+
+the random rotation is:
+  0.84628  0.456111  0.275267
+-0.410971  0.887729  -0.20746
+-0.338988 0.0624428  0.938716
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=12.470 ms avg_latency=12469.596 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ -1.45207
+-0.953941
+ -0.88952
+
+the random rotation is:
+  0.994352   -0.05061  0.0932928
+  0.086595   0.895094  -0.437388
+-0.0613696   0.442996    0.89442
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=8.073 ms avg_latency=8073.037 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ -1.0426
+ 1.10313
+0.380937
+
+the random rotation is:
+ 0.939198 0.0622491 -0.337687
+ 0.068707  0.929475  0.362431
+ 0.336433 -0.363596  0.868683
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.042 ms avg_latency=4041.622 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-0.872043
+-0.425386
+ -1.46788
+
+the random rotation is:
+  0.984424   0.090905   0.150486
+-0.0367637   0.943464   -0.32943
+ -0.171925   0.318767    0.93211
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=8.399 ms avg_latency=8399.454 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-0.564592
+ -1.09492
+   1.7316
+
+the random rotation is:
+  0.82995 -0.454675  0.323193
+ 0.313193  0.859231  0.404516
+-0.461621 -0.234506  0.855519
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=5.232 ms avg_latency=5231.610 us/iter
+  [epnp]: WCET = 17.819 ms (5 iters)
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=573.913 ms avg_latency=168.451 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=780.744 ms avg_latency=229.159 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=645.297 ms avg_latency=189.403 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=630.574 ms avg_latency=185.082 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=726.421 ms avg_latency=213.214 us/update
+  [ekf]: WCET = 780.815 ms (5 iters)
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=593.347 ms avg_latency=593.347 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=585.014 ms avg_latency=585.014 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=562.515 ms avg_latency=562.515 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=591.575 ms avg_latency=591.575 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=579.681 ms avg_latency=579.681 ms/run
+  [icp]: WCET = 598.003 ms (5 iters)
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.386 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.879 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.662 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.874 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.846 ms errors=0
+  [modbus]: WCET = 9100.004 ms (5 iters)
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+2b2957d 3 mongoose.c:4800:mg_mgr_init   MG_IO_SIZE: 16384, TLS: none
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] samples=50 total_time=890.759 ms avg=17815.180 us/msg
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] samples=50 total_time=908.274 ms avg=18165.480 us/msg
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] samples=50 total_time=814.008 ms avg=16280.160 us/msg
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] samples=50 total_time=997.806 ms avg=19956.120 us/msg
+[SCHED-MQTT] Quick mode started (max 50 msgs)...
+[SCHED-MQTT] Connecting to tcp://44.232.241.40:1883...
+[SCHED-MQTT] Socket Created
+[SCHED-MQTT] TCP Connected!
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Sending login (24 bytes)...
+[SCHED-MQTT] Login sent
+[SCHED-MQTT] Received CONNACK!
+[SCHED-MQTT] Quick mode timeout after 2000.000 ms
+[SCHED-MQTT] samples=44 total_time=777.664 ms avg=17674.182 us/msg
+  [mqtt]: WCET = 2014.076 ms (5 iters)
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=82.789 ms avg_latency=0.083 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=66.315 ms avg_latency=0.066 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=66.264 ms avg_latency=0.066 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=73.516 ms avg_latency=0.074 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=64.966 ms avg_latency=0.065 us/op
+  [pid]: WCET = 82.802 ms (5 iters)
+[CUSUM] samples=6000 total_time=29.260 ms avg_latency=4.877 us/sample
+[CUSUM] samples=6000 total_time=21.502 ms avg_latency=3.584 us/sample
+[CUSUM] samples=6000 total_time=20.277 ms avg_latency=3.380 us/sample
+[CUSUM] samples=6000 total_time=21.557 ms avg_latency=3.593 us/sample
+[CUSUM] samples=6000 total_time=28.007 ms avg_latency=4.668 us/sample
+  [cusum]: WCET = 29.266 ms (5 iters)
+[EWMA] samples=5000 total_time=40.048 ms avg_latency=8.010 us/sample
+[EWMA] samples=5000 total_time=41.297 ms avg_latency=8.259 us/sample
+[EWMA] samples=5000 total_time=68.415 ms avg_latency=13.683 us/sample
+[EWMA] samples=5000 total_time=49.479 ms avg_latency=9.896 us/sample
+[EWMA] samples=5000 total_time=45.232 ms avg_latency=9.046 us/sample
+  [ewma]: WCET = 68.426 ms (5 iters)
+[Phase 1] 9 workloads measured
+
+=============================================================
+[Phase 2] Running Task Sets (U: 30% - 100%, step 10%)
+=============================================================
+
+>>> Utilization Gradient: 30% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9100.004   | 12.87    | 70681.507   
+mqtt         | 2014.076   | 4.48     | 44930.084   
+ekf          | 780.815    | 3.34     | 23402.240   
+icp          | 598.003    | 2.78     | 21496.279   
+pid          | 82.802     | 2.51     | 3298.779    
+ewma         | 68.426     | 1.88     | 3649.122    
+fast         | 31.595     | 0.96     | 3288.285    
+cusum        | 29.266     | 0.62     | 4694.353    
+epnp         | 17.819     | 0.55     | 3211.770    
+Running task set for 3 cycles...
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ -1.56316
+-0.086817
+ 0.866664
+
+the random rotation is:
+ 0.954919  0.249601 -0.160713
+-0.137993  0.852531  0.504132
+ 0.262844 -0.459228  0.848542
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.166 ms avg_latency=4165.865 us/iter
+--- PID Simulation Start ---
+[FAST] samples=3 total_time=24.508 ms avg_latency=8169.205 us/img
+[PID] samples=1000000 total_time=78.593 ms avg_latency=0.079 us/op
+[EWMA] samples=5000 total_time=50.378 ms avg_latency=10.076 us/sample
+[CUSUM] samples=6000 total_time=25.865 ms avg_latency=4.311 us/sample
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+   1.0664
+ -1.05724
+-0.977011
+
+the random rotation is:
+ 0.976946  0.176931 -0.119463
+-0.154278  0.971901  0.177781
+ 0.147562 -0.155251  0.976792
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=5.383 ms avg_latency=5382.976 us/iter
+--- PID Simulation Start ---
+[FAST] samples=3 total_time=27.251 ms avg_latency=9083.564 us/img
+[PID] samples=1000000 total_time=66.315 ms avg_latency=0.066 us/op
+[EWMA] samples=5000 total_time=42.528 ms avg_latency=8.506 us/sample
+[CUSUM] samples=6000 total_time=39.687 ms avg_latency=6.614 us/sample
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-0.304104
+ 0.920041
+-0.865529
+
+the random rotation is:
+ 0.919781 -0.392173 0.0142871
+ 0.380604  0.882595 -0.275984
+0.0956237  0.259283  0.961056
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=3.977 ms avg_latency=3977.459 us/iter
+[FAST] samples=3 total_time=14.516 ms avg_latency=4838.566 us/img
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=63.832 ms avg_latency=0.064 us/op
+[EWMA] samples=5000 total_time=43.891 ms avg_latency=8.778 us/sample
+[CUSUM] samples=6000 total_time=20.138 ms avg_latency=3.356 us/sample
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=567.465 ms avg_latency=567.465 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=759.679 ms avg_latency=222.976 us/update
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=664.723 ms avg_latency=664.723 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=581.939 ms avg_latency=170.807 us/update
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=638.600 ms avg_latency=638.600 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=585.404 ms avg_latency=171.824 us/update
+Gradient 30% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 40% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9100.004   | 11.73    | 77546.884   
+mqtt         | 2014.076   | 9.79     | 20562.327   
+ekf          | 780.815    | 7.88     | 9915.083    
+icp          | 598.003    | 3.13     | 19087.310   
+pid          | 82.802     | 2.31     | 3591.701    
+ewma         | 68.426     | 2.26     | 3021.465    
+fast         | 31.595     | 1.73     | 1831.104    
+cusum        | 29.266     | 1.02     | 2858.745    
+epnp         | 17.819     | 0.14     | 12464.768   
+Running task set for 3 cycles...
+[FAST] samples=3 total_time=16.044 ms avg_latency=5347.902 us/img
+[CUSUM] samples=6000 total_time=18.934 ms avg_latency=3.156 us/sample
+[EWMA] samples=5000 total_time=47.685 ms avg_latency=9.537 us/sample
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=82.021 ms avg_latency=0.082 us/op
+[FAST] samples=3 total_time=40.436 ms avg_latency=13478.706 us/img
+[FAST] samples=3 total_time=17.403 ms avg_latency=5801.068 us/img
+[CUSUM] samples=6000 total_time=26.637 ms avg_latency=4.440 us/sample
+[EWMA] samples=5000 total_time=37.371 ms avg_latency=7.474 us/sample
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=80.377 ms avg_latency=0.080 us/op
+[CUSUM] samples=6000 total_time=31.749 ms avg_latency=5.291 us/sample
+[EWMA] samples=5000 total_time=50.146 ms avg_latency=10.029 us/sample
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=602.344 ms avg_latency=176.796 us/update
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=71.324 ms avg_latency=0.071 us/op
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+   1.11511
+   1.62741
+-0.0550769
+
+the random rotation is:
+  0.980748  -0.169371 -0.0971916
+  0.194233   0.897476   0.395993
+ 0.0201572  -0.407247   0.913095
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=3.905 ms avg_latency=3905.131 us/iter
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=596.435 ms avg_latency=596.435 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=541.742 ms avg_latency=159.009 us/update
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+0.359384
+0.167569
+0.331265
+
+the random rotation is:
+  0.931134  -0.051674   0.360998
+ 0.0124221    0.99383   0.110218
+ -0.364466 -0.0981432    0.92603
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=3.995 ms avg_latency=3994.667 us/iter
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=715.726 ms avg_latency=210.075 us/update
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  -1.09093
+  0.807994
+-0.0384547
+
+the random rotation is:
+  0.91117   0.34902 -0.218986
+-0.407369  0.842816 -0.351726
+0.0618051   0.40969  0.910129
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.022 ms avg_latency=4022.374 us/iter
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=578.819 ms avg_latency=578.819 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=641.085 ms avg_latency=641.085 ms/run
+Gradient 40% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 50% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9100.004   | 17.65    | 51554.530   
+mqtt         | 2014.076   | 11.29    | 17835.911   
+ekf          | 780.815    | 10.18    | 7667.359    
+icp          | 598.003    | 4.06     | 14716.162   
+pid          | 82.802     | 2.81     | 2944.397    
+ewma         | 68.426     | 1.83     | 3739.418    
+fast         | 31.595     | 1.49     | 2120.318    
+cusum        | 29.266     | 0.59     | 4924.782    
+epnp         | 17.819     | 0.08     | 10000.000   
+Running task set for 3 cycles...
+[FAST] samples=3 total_time=27.560 ms avg_latency=9186.731 us/img
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=63.276 ms avg_latency=0.063 us/op
+[EWMA] samples=5000 total_time=38.615 ms avg_latency=7.723 us/sample
+[FAST] samples=3 total_time=20.118 ms avg_latency=6705.997 us/img
+[CUSUM] samples=6000 total_time=36.968 ms avg_latency=6.161 us/sample
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=71.151 ms avg_latency=0.071 us/op
+[FAST] samples=3 total_time=18.828 ms avg_latency=6275.969 us/img
+[EWMA] samples=5000 total_time=43.878 ms avg_latency=8.776 us/sample
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=744.497 ms avg_latency=218.520 us/update
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=77.339 ms avg_latency=0.077 us/op
+[CUSUM] samples=6000 total_time=26.740 ms avg_latency=4.457 us/sample
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  0.464028
+  -1.08669
+-0.0437036
+
+the random rotation is:
+  0.989256  -0.146142 0.00376231
+  0.137521   0.921555  -0.363077
+ 0.0495936   0.359694   0.931751
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=3.993 ms avg_latency=3992.854 us/iter
+[EWMA] samples=5000 total_time=45.238 ms avg_latency=9.048 us/sample
+
+[ICP] Running ICP (point-to-plane)
+[CUSUM] samples=6000 total_time=21.581 ms avg_latency=3.597 us/sample
+[ICP] samples=1 total_time=590.817 ms avg_latency=590.817 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=573.479 ms avg_latency=168.324 us/update
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+0.463965
+ 1.86101
+ 1.91145
+
+the random rotation is:
+ 0.949072  0.217919 -0.227538
+-0.293363  0.874615 -0.385988
+ 0.114894  0.433082  0.894002
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=8.031 ms avg_latency=8030.810 us/iter
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=587.206 ms avg_latency=172.353 us/update
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=549.200 ms avg_latency=549.200 ms/run
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+0.464216
+-1.92979
+-1.90918
+
+the random rotation is:
+  0.889925   -0.41769   0.183218
+  0.431953   0.900798 -0.0444868
+ -0.146461   0.118731   0.982065
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.130 ms avg_latency=4129.700 us/iter
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=566.381 ms avg_latency=566.381 ms/run
+Gradient 50% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 60% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9100.004   | 19.55    | 46556.150   
+mqtt         | 2014.076   | 13.13    | 15343.199   
+ekf          | 780.815    | 6.59     | 11855.261   
+icp          | 598.003    | 6.57     | 9106.434    
+pid          | 82.802     | 6.04     | 1370.864    
+ewma         | 68.426     | 4.56     | 1500.123    
+fast         | 31.595     | 2.22     | 1421.808    
+cusum        | 29.266     | 0.96     | 3057.176    
+epnp         | 17.819     | 0.39     | 4535.417    
+Running task set for 3 cycles...
+--- PID Simulation Start ---
+[FAST] samples=3 total_time=14.590 ms avg_latency=4863.238 us/img
+[PID] samples=1000000 total_time=66.301 ms avg_latency=0.066 us/op
+[EWMA] samples=5000 total_time=52.999 ms avg_latency=10.600 us/sample
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=72.371 ms avg_latency=0.072 us/op
+[FAST] samples=3 total_time=14.604 ms avg_latency=4867.925 us/img
+[EWMA] samples=5000 total_time=45.893 ms avg_latency=9.179 us/sample
+[CUSUM] samples=6000 total_time=21.513 ms avg_latency=3.586 us/sample
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=58.997 ms avg_latency=0.059 us/op
+[FAST] samples=3 total_time=14.670 ms avg_latency=4889.896 us/img
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ 0.778251
+0.0699904
+ 0.328109
+
+the random rotation is:
+  0.932278   0.355437 -0.0672433
+  -0.30146   0.866127    0.39868
+  0.199947   -0.35141   0.914621
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=7.944 ms avg_latency=7944.420 us/iter
+[EWMA] samples=5000 total_time=55.556 ms avg_latency=11.111 us/sample
+[CUSUM] samples=6000 total_time=24.118 ms avg_latency=4.020 us/sample
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ -1.76618
+-0.177041
+ 0.464606
+
+the random rotation is:
+  0.961752  0.0520772  -0.268924
+-0.0905141   0.987033  -0.132566
+  0.258533   0.151837   0.953995
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.139 ms avg_latency=4139.033 us/iter
+
+[ICP] Running ICP (point-to-plane)
+[CUSUM] samples=6000 total_time=20.178 ms avg_latency=3.363 us/sample
+[ICP] samples=1 total_time=584.009 ms avg_latency=584.009 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=766.229 ms avg_latency=224.898 us/update
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-1.00457
+ 0.19922
+0.293466
+
+the random rotation is:
+ 0.852268 -0.281566 -0.440863
+ 0.220041  0.957558 -0.186183
+ 0.474575   0.06167  0.878052
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=10.850 ms avg_latency=10850.301 us/iter
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=536.580 ms avg_latency=536.580 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=776.478 ms avg_latency=227.907 us/update
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=563.750 ms avg_latency=563.750 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=549.308 ms avg_latency=161.229 us/update
+Gradient 60% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 70% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9100.004   | 17.49    | 52017.718   
+mqtt         | 2014.076   | 14.73    | 13673.791   
+ekf          | 780.815    | 12.00    | 6504.379    
+icp          | 598.003    | 8.64     | 6924.058    
+pid          | 82.802     | 6.76     | 1225.385    
+ewma         | 68.426     | 6.19     | 1105.278    
+fast         | 31.595     | 2.82     | 1119.270    
+cusum        | 29.266     | 1.22     | 2405.786    
+epnp         | 17.819     | 0.15     | 12032.989   
+Running task set for 3 cycles...
+[FAST] samples=3 total_time=17.557 ms avg_latency=5852.204 us/img
+[EWMA] samples=5000 total_time=39.273 ms avg_latency=7.855 us/sample
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=93.334 ms avg_latency=0.093 us/op
+[EWMA] samples=5000 total_time=40.024 ms avg_latency=8.005 us/sample
+[FAST] samples=3 total_time=18.988 ms avg_latency=6329.361 us/img
+[CUSUM] samples=6000 total_time=27.957 ms avg_latency=4.660 us/sample
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=82.166 ms avg_latency=0.082 us/op
+[EWMA] samples=5000 total_time=51.609 ms avg_latency=10.322 us/sample
+[FAST] samples=3 total_time=31.227 ms avg_latency=10408.898 us/img
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=66.240 ms avg_latency=0.066 us/op
+[CUSUM] samples=6000 total_time=21.528 ms avg_latency=3.588 us/sample
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+
+[ICP] Running ICP (point-to-plane)
+[EKF] samples=3407 total_time=644.540 ms avg_latency=189.181 us/update
+[CUSUM] samples=6000 total_time=39.486 ms avg_latency=6.581 us/sample
+[ICP] samples=1 total_time=573.275 ms avg_latency=573.275 ms/run
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  0.105664
+ -0.109958
+-0.0639428
+
+the random rotation is:
+ 0.950585 -0.268243 -0.156311
+ 0.197553  0.911011 -0.361982
+   0.2395  0.313215  0.918986
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=3.975 ms avg_latency=3974.835 us/iter
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=576.200 ms avg_latency=169.122 us/update
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=625.090 ms avg_latency=625.090 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=681.478 ms avg_latency=200.023 us/update
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=539.402 ms avg_latency=539.402 ms/run
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ 1.13856
+-0.27883
+ 1.70406
+
+the random rotation is:
+ 0.891536  0.436567 -0.120717
+-0.436947  0.899148 0.0247219
+ 0.119335 0.0307064  0.992379
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.028 ms avg_latency=4027.915 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ -1.82927
+-0.549179
+  1.95637
+
+the random rotation is:
+ 0.957433  0.104178   -0.2692
+-0.147022  0.978566   -0.1442
+ 0.248407   0.17764  0.952228
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.176 ms avg_latency=4176.364 us/iter
+Gradient 70% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 80% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9100.004   | 32.54    | 27968.793   
+mqtt         | 2014.076   | 19.17    | 10507.521   
+ekf          | 780.815    | 12.90    | 6050.836    
+icp          | 598.003    | 6.56     | 9110.669    
+pid          | 82.802     | 6.23     | 1329.209    
+ewma         | 68.426     | 1.10     | 6240.858    
+fast         | 31.595     | 0.78     | 4043.486    
+cusum        | 29.266     | 0.57     | 5138.294    
+epnp         | 17.819     | 0.15     | 11802.670   
+Running task set for 3 cycles...
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=87.691 ms avg_latency=0.088 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=70.721 ms avg_latency=0.071 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=65.955 ms avg_latency=0.066 us/op
+[FAST] samples=3 total_time=14.658 ms avg_latency=4886.007 us/img
+[CUSUM] samples=6000 total_time=30.073 ms avg_latency=5.012 us/sample
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EWMA] samples=5000 total_time=46.991 ms avg_latency=9.398 us/sample
+[EKF] samples=3407 total_time=622.477 ms avg_latency=182.705 us/update
+[FAST] samples=3 total_time=14.566 ms avg_latency=4855.287 us/img
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=566.141 ms avg_latency=566.141 ms/run
+[CUSUM] samples=6000 total_time=33.212 ms avg_latency=5.535 us/sample
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-0.855879
+-0.753827
+ -1.56916
+
+the random rotation is:
+ 0.880268  0.284311 -0.379863
+-0.177172  0.939643  0.292714
+ 0.440158 -0.190366  0.877509
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=3.986 ms avg_latency=3985.918 us/iter
+[FAST] samples=3 total_time=18.823 ms avg_latency=6274.337 us/img
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EWMA] samples=5000 total_time=61.190 ms avg_latency=12.238 us/sample
+[EKF] samples=3407 total_time=605.541 ms avg_latency=177.734 us/update
+[CUSUM] samples=6000 total_time=26.039 ms avg_latency=4.340 us/sample
+
+[ICP] Running ICP (point-to-plane)
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EWMA] samples=5000 total_time=39.970 ms avg_latency=7.994 us/sample
+[ICP] samples=1 total_time=603.714 ms avg_latency=603.714 ms/run
+[EKF] samples=3407 total_time=710.273 ms avg_latency=208.474 us/update
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ 0.27212
+ 1.51796
+0.349127
+
+the random rotation is:
+   0.937448 -0.00908491    0.348006
+-0.00896988    0.998697   0.0502344
+  -0.348009  -0.0502137    0.936145
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.175 ms avg_latency=4175.489 us/iter
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=584.080 ms avg_latency=584.080 ms/run
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  -1.90545
+  -0.94128
+-0.0886301
+
+the random rotation is:
+ 0.892763 -0.423596  0.153432
+ 0.312067  0.827055  0.467541
+-0.324945 -0.369522  0.870554
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.043 ms avg_latency=4042.789 us/iter
+Gradient 80% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 90% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9100.004   | 24.53    | 37098.753   
+mqtt         | 2014.076   | 21.83    | 9226.885    
+ekf          | 780.815    | 14.69    | 5316.470    
+icp          | 598.003    | 10.66    | 5607.939    
+pid          | 82.802     | 10.61    | 780.066     
+ewma         | 68.426     | 4.88     | 1400.830    
+fast         | 31.595     | 1.86     | 1700.587    
+cusum        | 29.266     | 0.53     | 5537.071    
+epnp         | 17.819     | 0.41     | 4384.200    
+Running task set for 3 cycles...
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=74.891 ms avg_latency=0.075 us/op
+[EWMA] samples=5000 total_time=58.754 ms avg_latency=11.751 us/sample
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=61.522 ms avg_latency=0.062 us/op
+[FAST] samples=3 total_time=17.446 ms avg_latency=5815.338 us/img
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=62.598 ms avg_latency=0.063 us/op
+[EWMA] samples=5000 total_time=72.701 ms avg_latency=14.540 us/sample
+[FAST] samples=3 total_time=14.508 ms avg_latency=4836.038 us/img
+[EWMA] samples=5000 total_time=45.264 ms avg_latency=9.053 us/sample
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  1.47279
+  1.25946
+-0.233178
+
+the random rotation is:
+  0.86225  0.403241 -0.306466
+-0.453553  0.884054 -0.112865
+  0.22542  0.236317  0.945167
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.047 ms avg_latency=4047.455 us/iter
+[FAST] samples=3 total_time=28.865 ms avg_latency=9621.600 us/img
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[CUSUM] samples=6000 total_time=18.939 ms avg_latency=3.157 us/sample
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+
+[ICP] Running ICP (point-to-plane)
+[EKF] samples=3407 total_time=722.071 ms avg_latency=211.937 us/update
+[ICP] samples=1 total_time=605.738 ms avg_latency=605.738 ms/run
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  1.50045
+ -1.88927
+-0.906765
+
+the random rotation is:
+  0.859616  -0.288584  -0.421639
+  0.258418   0.957453  -0.128465
+  0.440772 0.00147103   0.897618
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=11.429 ms avg_latency=11428.932 us/iter
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[CUSUM] samples=6000 total_time=22.852 ms avg_latency=3.809 us/sample
+
+[ICP] Running ICP (point-to-plane)
+[EKF] samples=3407 total_time=587.106 ms avg_latency=172.324 us/update
+[ICP] samples=1 total_time=585.873 ms avg_latency=585.873 ms/run
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ -1.77746
+ -1.76902
+0.0636045
+
+the random rotation is:
+ 0.865186 -0.104959  0.490344
+ 0.198097  0.969852 -0.141933
+-0.460663  0.219934  0.859894
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=3.965 ms avg_latency=3964.628 us/iter
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=553.792 ms avg_latency=162.545 us/update
+[CUSUM] samples=6000 total_time=29.723 ms avg_latency=4.954 us/sample
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=545.460 ms avg_latency=545.460 ms/run
+Gradient 90% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 100% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9100.004   | 44.95    | 20242.802   
+mqtt         | 2014.076   | 24.39    | 8258.843    
+ekf          | 780.815    | 7.44     | 10491.890   
+icp          | 598.003    | 7.10     | 8420.654    
+pid          | 82.802     | 6.66     | 1243.555    
+ewma         | 68.426     | 4.14     | 1653.580    
+fast         | 31.595     | 2.83     | 1115.212    
+cusum        | 29.266     | 2.10     | 1395.094    
+epnp         | 17.819     | 0.39     | 4595.562    
+Running task set for 3 cycles...
+[FAST] samples=3 total_time=14.674 ms avg_latency=4891.354 us/img
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=67.486 ms avg_latency=0.067 us/op
+[CUSUM] samples=6000 total_time=18.790 ms avg_latency=3.132 us/sample
+[EWMA] samples=5000 total_time=49.005 ms avg_latency=9.801 us/sample
+[FAST] samples=3 total_time=32.804 ms avg_latency=10934.567 us/img
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=82.996 ms avg_latency=0.083 us/op
+[CUSUM] samples=6000 total_time=21.465 ms avg_latency=3.577 us/sample
+[FAST] samples=3 total_time=15.903 ms avg_latency=5301.044 us/img
+[EWMA] samples=5000 total_time=57.928 ms avg_latency=11.586 us/sample
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=69.282 ms avg_latency=0.069 us/op
+[CUSUM] samples=6000 total_time=21.505 ms avg_latency=3.584 us/sample
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+1.17957
+1.06796
+1.24062
+
+the random rotation is:
+ 0.852518  -0.19369 -0.485487
+ 0.271881  0.957592 0.0953834
+ 0.446424 -0.213311  0.869025
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=4.049 ms avg_latency=4048.914 us/iter
+[EWMA] samples=5000 total_time=45.798 ms avg_latency=9.160 us/sample
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=601.569 ms avg_latency=601.569 ms/run
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-0.175888
+-0.142402
+ -1.35727
+
+the random rotation is:
+ 0.869276 -0.412867 -0.271844
+ 0.360782  0.905827 -0.222066
+ 0.337927 0.0949608  0.936369
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=5.827 ms avg_latency=5826.636 us/iter
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=604.641 ms avg_latency=177.470 us/update
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-0.837325
+-0.923758
+ -1.60267
+
+the random rotation is:
+  0.977632   0.209623   0.017157
+ -0.210001   0.977396  0.0244259
+ -0.011649 -0.0274825   0.999554
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=6.725 ms avg_latency=6725.205 us/iter
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=608.786 ms avg_latency=608.786 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=718.310 ms avg_latency=210.834 us/update
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=584.404 ms avg_latency=584.404 ms/run
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=635.249 ms avg_latency=186.454 us/update
+Gradient 100% complete: MR = 0.0000 (0/27)
+
+=============================================================
+[Phase 3] Final Results
+=============================================================
+U= 30%: MR=0.0000 (0 misses / 27 jobs)
+U= 40%: MR=0.0000 (0 misses / 27 jobs)
+U= 50%: MR=0.0000 (0 misses / 27 jobs)
+U= 60%: MR=0.0000 (0 misses / 27 jobs)
+U= 70%: MR=0.0000 (0 misses / 27 jobs)
+U= 80%: MR=0.0000 (0 misses / 27 jobs)
+U= 90%: MR=0.0000 (0 misses / 27 jobs)
+U=100%: MR=0.0000 (0 misses / 27 jobs)
+
+------------------------------------------------------
+Average Miss Rate: 0.0000
+Final Score: 100.00 / 100
+------------------------------------------------------
+[root@sylixos:/root]# [CHECK] test_schedule_cycles_3: PASS
+[BOARD_RESULT] orangepi: PASS

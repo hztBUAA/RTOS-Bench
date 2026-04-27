@@ -37,6 +37,7 @@
 
 /* Configuration for quick schedule mode */
 #define SCHED_MQTT_MAX_MESSAGES   50   /* Much smaller than GEOLIFE_COUNT (~617) */
+#define SCHED_MQTT_MAX_RUNTIME_US 2000000ULL
 #define SCHED_MQTT_URL            "tcp://44.232.241.40:1883"
 #define SCHED_MQTT_TOPIC          "car/tracker/location"
 
@@ -157,6 +158,7 @@ static void sched_mqtt_callback(struct mg_connection *c, int ev, void *ev_data)
 static void *sched_mqtt_thread_entry(void *parameter)
 {
 	struct mg_mgr mgr;
+	uint64_t run_start;
 
 	/* Reset all state for fresh run */
 	s_cursor = 0;
@@ -171,6 +173,7 @@ static void *sched_mqtt_thread_entry(void *parameter)
 	sched_mqtt_printf("[SCHED-MQTT] Quick mode started (max %d msgs)...\n",
 			  SCHED_MQTT_MAX_MESSAGES);
 
+	run_start = sched_mqtt_get_time_us();
 	mg_mgr_init(&mgr);
 	mg_log_set(0);
 
@@ -185,6 +188,11 @@ static void *sched_mqtt_thread_entry(void *parameter)
 
 	while (s_stop_flag == 0) {
 		mg_mgr_poll(&mgr, 20);
+		if ((sched_mqtt_get_time_us() - run_start) >= SCHED_MQTT_MAX_RUNTIME_US) {
+			sched_mqtt_printf("[SCHED-MQTT] Quick mode timeout after %.3f ms\n",
+					  (double)SCHED_MQTT_MAX_RUNTIME_US / 1000.0);
+			s_stop_flag = 1;
+		}
 	}
 
 	uint64_t end_time = sched_mqtt_get_time_us();

@@ -1,0 +1,180 @@
+[START] batch=20260427_233446 boards=orangepi,gongkong,loongson cycles=3
+[BOARD] orangepi
+[BOARD] loongson[BOARD] gongkong[BINARY] /apps/hzt/orangepi-rtos-bench-r4
+
+
+[BINARY] /apps/hzt/loongson-rtos-bench-r4
+[BINARY] /apps/hzt/gongkong-rtos-bench-r4
+Trying 192.168.31.201...
+Connected to 192.168.31.201.
+Escape character is '^]'.
+login: Trying 192.168.31.203...
+Connected to 192.168.31.203.
+Escape character is '^]'.
+login: Trying 192.168.31.200...
+Connected to 192.168.31.200.
+Escape character is '^]'.
+login: root
+password: root
+password: root
+password: ]0;SylixOS Terminal[00m]0;SylixOS Terminal 192.168.31.201
+                          [[                          (R)
+ [[[[           [[[[      [[             [[[[    [[[[ 
+[[  [[            [[                    [[  [[  [[  [[
+[[      [[  [[    [[    [[[[    [[  [[  [[  [[  [[    
+ [[     [[  [[    [[      [[    [[  [[  [[  [[   [[   
+  [[    [[  [[    [[      [[     [[[[   [[  [[    [[  
+   [[   [[  [[    [[      [[      [[    [[  [[     [[ 
+    [[  [[  [[    [[      [[     [[[[   [[  [[      [[
+[[  [[  [[  [[    [[      [[    [[  [[  [[  [[  [[  [[
+ [[[[    [[[[   [[[[[[  [[[[[[  [[  [[   [[[[    [[[[ 
+           [[                                         
+          [[    KERNEL: LongWing(C) 3.9.0
+       [[[[   COPYRIGHT ACOINFO Co. Ltd. 2006 - 2024
+
+SylixOS license: Commercial & GPL.
+SylixOS kernel version: 3.9.0 Code name: Age of Discovery
+
+CPU     : RK3588 (ARMv8-A, 8 Cores: 4x Cortex-A55 @ 1704MHZ + 2x Cortex-A76 @ 2016MHZ + 2x Cortex-A76 @ 2016MHZ)
+CACHE   : L1 Cache: 128KB (A76) / 64KB (A55); L2 Cache: 512KB (A76) / 128KB (A55); Shared L3 Cache: 3MB
+PACKET  : Orange Pi 5
+ROM SIZE: 0x00200000 Bytes (0x00000000 - 0x001fffff)
+RAM SIZE: 0x200000000 Bytes (0x00000000 - 0x1ffffffff)
+BSP     : BSP Version 2.1.10 (Release) for Age of Discovery (Build Mar 17 2026 14:05:04)
+[root@sylixos:/root]# ]0;SylixOS Terminal[00m]0;SylixOS Terminal 192.168.31.200
+                          [[                          (R)
+ [[[[           [[[[      [[             [[[[    [[[[ 
+[[  [[            [[                    [[  [[  [[  [[
+[[      [[  [[    [[    [[[[    [[  [[  [[  [[  [[    
+ [[     [[  [[    [[      [[    [[  [[  [[  [[   [[   
+  [[    [[  [[    [[      [[     [[[[   [[  [[    [[  
+   [[   [[  [[    [[      [[      [[    [[  [[     [[ 
+    [[  [[  [[    [[      [[     [[[[   [[  [[      [[
+[[  [[  [[  [[    [[      [[    [[  [[  [[  [[  [[  [[
+ [[[[    [[[[   [[[[[[  [[[[[[  [[  [[   [[[[    [[[[ 
+           [[                                         
+          [[    KERNEL: LongWing(C) 3.9.0
+       [[[[   COPYRIGHT ACOINFO Co. Ltd. 2006 - 2024
+
+SylixOS license: Commercial & GPL.
+SylixOS kernel version: 3.9.0 Code name: Age of Discovery
+
+CPU     : ls2k1000(loongarch)
+CACHE   : 64KBytes L1-Cache (D-32K/I-32K), 1MBytes  L2-Cache
+PACKET  : 2K1000/Demo
+ROM SIZE: 0x00100000 Bytes (0x00000000 - 0x000fffff)
+RAM SIZE: 0x6ee00000 Bytes (0x9000000000000000 - 0x900000006edfffff)
+BSP     : BSP Version 2.0.1 (Release) for Age of Discovery (Build Apr  7 2026 14:58:13)
+[root@sylixos:/root]# ]0;SylixOS Terminal[00m]0;SylixOS Terminal 192.168.31.203
+                          [[                          (R)
+ [[[[           [[[[      [[             [[[[    [[[[ 
+[[  [[            [[                    [[  [[  [[  [[
+[[      [[  [[    [[    [[[[    [[  [[  [[  [[  [[    
+ [[     [[  [[    [[      [[    [[  [[  [[  [[   [[   
+  [[    [[  [[    [[      [[     [[[[   [[  [[    [[  
+   [[   [[  [[    [[      [[      [[    [[  [[     [[ 
+    [[  [[  [[    [[      [[     [[[[   [[  [[      [[
+[[  [[  [[  [[    [[      [[    [[  [[  [[  [[  [[  [[
+ [[[[    [[[[   [[[[[[  [[[[[[  [[  [[   [[[[    [[[[ 
+           [[                                         
+          [[    KERNEL: LongWing(C) 3.9.0
+       [[[[   COPYRIGHT ACOINFO Co. Ltd. 2006 - 2024
+
+SylixOS license: Commercial & GPL.
+SylixOS kernel version: 3.9.0 Code name: Age of Discovery
+
+CPU     : Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz
+CACHE   : L1 D-CACHE 32KB L1 I-CACHE 32KB L2 U-CACHE 256KB L3 U-CACHE 8MB 
+PACKET  : Standard PC Compatibles (64-Bits)
+ROM SIZE: 0x00100000 Bytes (0x00000000 - 0x000fffff)
+RAM SIZE: 0x10000000 Bytes (0x00000000 - 0x0fffffff)
+BSP     : BSP Version 1.3.1 for Age of Discovery (Build Mar 16 2026 18:58:12)
+[root@sylixos:/root]# 
+>>> /apps/hzt/gongkong-rtos-bench-r4 --help
+
+>>> /apps/hzt/loongson-rtos-bench-r4 --help
+>>> /apps/hzt/orangepi-rtos-bench-r4 --help
+
+[CHECK] top_help: PASS
+
+>>> /apps/hzt/gongkong-rtos-bench-r4 test-all --help
+[CHECK] top_help: PASS
+
+>>> /apps/hzt/loongson-rtos-bench-r4 test-all --help
+[CHECK] test_all_help: PASS
+
+>>> /apps/hzt/gongkong-rtos-bench-r4 test -schedule --help
+[CHECK] bad_split_schedule: PASS
+
+>>> /apps/hzt/gongkong-rtos-bench-r4 test-all --bad-option
+[CHECK] test_all_help: PASS
+
+>>> /apps/hzt/loongson-rtos-bench-r4 test -schedule --help
+[CHECK] top_help: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 test-all --help
+[CHECK] bad_test_all_option: PASS
+
+>>> /apps/hzt/gongkong-rtos-bench-r4 export-result --bad-option
+[CHECK] bad_split_schedule: PASS
+
+>>> /apps/hzt/loongson-rtos-bench-r4 test-all --bad-option
+[CHECK] bad_export_option: PASS
+
+>>> /apps/hzt/gongkong-rtos-bench-r4 export-result -o /apps/hzt/gongkong_export_20260427_233446.json
+[CHECK] export_result_command: PASS
+[CHECK] bad_test_all_option: PASS
+
+>>> /apps/hzt/loongson-rtos-bench-r4 export-result --bad-option
+[CHECK] test_all_help: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 test -schedule --help
+[CHECK] bad_export_option: PASS
+
+>>> /apps/hzt/loongson-rtos-bench-r4 export-result -o /apps/hzt/loongson_export_20260427_233446.json
+[CHECK] export_result_command: PASS
+[FETCH] /apps/hzt/gongkong_export_20260427_233446.json -> C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\sylixos-entry-validation-20260427-final\gongkong_export_20260427_233446.json
+[CHECK] json_parse:gongkong_export_20260427_233446.json: PASS
+
+>>> /apps/hzt/gongkong-rtos-bench-r4 test-all --quick --schedule-cycles 1 --util-start 30 --util-end 30 --util-step 30 --stress-job all-quick -o /apps/hzt/gongkong_testall_20260427_233446.json
+[CHECK] bad_split_schedule: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 test-all --bad-option
+[CHECK] bad_test_all_option: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 export-result --bad-option
+[FETCH] /apps/hzt/loongson_export_20260427_233446.json -> C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\sylixos-entry-validation-20260427-final\loongson_export_20260427_233446.json
+[CHECK] json_parse:loongson_export_20260427_233446.json: PASS
+
+>>> /apps/hzt/loongson-rtos-bench-r4 test-all --quick --schedule-cycles 1 --util-start 30 --util-end 30 --util-step 30 --stress-job all-quick -o /apps/hzt/loongson_testall_20260427_233446.json
+[CHECK] bad_export_option: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 export-result -o /apps/hzt/orangepi_export_20260427_233446.json
+[CHECK] export_result_command: PASS
+[FETCH] /apps/hzt/orangepi_export_20260427_233446.json -> C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\sylixos-entry-validation-20260427-final\orangepi_export_20260427_233446.json
+[CHECK] json_parse:orangepi_export_20260427_233446.json: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 test-all --quick --schedule-cycles 1 --util-start 30 --util-end 30 --util-step 30 --stress-job all-quick -o /apps/hzt/orangepi_testall_20260427_233446.json
+[CHECK] test_all_quick_export: PASS
+[FETCH] /apps/hzt/gongkong_testall_20260427_233446.json -> C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\sylixos-entry-validation-20260427-final\gongkong_testall_20260427_233446.json
+[CHECK] json_parse:gongkong_testall_20260427_233446.json: PASS
+
+>>> /apps/hzt/gongkong-rtos-bench-r4 test-schedule --cycles 3
+[CHECK] test_all_quick_export: PASS
+[FETCH] /apps/hzt/orangepi_testall_20260427_233446.json -> C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\sylixos-entry-validation-20260427-final\orangepi_testall_20260427_233446.json
+[CHECK] json_parse:orangepi_testall_20260427_233446.json: PASS
+
+>>> /apps/hzt/orangepi-rtos-bench-r4 test-schedule --cycles 3
+[CHECK] test_all_quick_export: PASS
+[FETCH] /apps/hzt/loongson_testall_20260427_233446.json -> C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\sylixos-entry-validation-20260427-final\loongson_testall_20260427_233446.json
+[CHECK] json_parse:loongson_testall_20260427_233446.json: PASS
+
+>>> /apps/hzt/loongson-rtos-bench-r4 test-schedule --cycles 3
+[CHECK] test_schedule_cycles_3: PASS
+[BOARD_RESULT] orangepi: PASS
+[CHECK] test_schedule_cycles_3: PASS
+[BOARD_RESULT] gongkong: PASS
+[CHECK] test_schedule_cycles_3: PASS
+[BOARD_RESULT] loongson: PASS
+[SUMMARY] C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\sylixos-entry-validation-20260427-final\entry_validation_summary_20260427_233446.json
+[RESULT] PASS

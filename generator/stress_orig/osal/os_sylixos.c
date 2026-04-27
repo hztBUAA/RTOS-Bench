@@ -312,8 +312,39 @@ int stress_osal_pipe(int fd[2]){
  * 8. 字符串与字符操作
  * ========================================================================= */
 
-int stress_osal_strcmp(const char *s1, const char *s2) { return strcmp(s1, s2); }
-int stress_osal_strncmp(const char *s1, const char *s2, size_t n) { return strncmp(s1, s2, n); }
+int stress_osal_strcmp(const char *s1, const char *s2)
+{
+    const unsigned char *p1 = (const unsigned char *)s1;
+    const unsigned char *p2 = (const unsigned char *)s2;
+
+    if (p1 == p2) return 0;
+    if (!p1) return -1;
+    if (!p2) return 1;
+
+    while (*p1 && *p1 == *p2) {
+        p1++;
+        p2++;
+    }
+    return (int)*p1 - (int)*p2;
+}
+
+int stress_osal_strncmp(const char *s1, const char *s2, size_t n)
+{
+    const unsigned char *p1 = (const unsigned char *)s1;
+    const unsigned char *p2 = (const unsigned char *)s2;
+
+    if (p1 == p2 || n == 0) return 0;
+    if (!p1) return -1;
+    if (!p2) return 1;
+
+    while (n > 0 && *p1 && *p1 == *p2) {
+        p1++;
+        p2++;
+        n--;
+    }
+    if (n == 0) return 0;
+    return (int)*p1 - (int)*p2;
+}
 size_t stress_osal_strlen(const char *s) { return strlen(s); }
 char *stress_osal_strcpy(char *dest, const char *src) { return strcpy(dest, src); }
 char *stress_osal_strcat(char *dest, const char *src) { return strcat(dest, src); }

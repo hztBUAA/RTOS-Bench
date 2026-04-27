@@ -302,9 +302,10 @@ int rtbench_result_to_json(char *buf, size_t bufsize)
     /* test-realtime */
     JSON_APPEND("    \"test-realtime\": {\n");
     JSON_APPEND("      \"status\": \"%s\",\n", r->realtime.valid ? "passed" : "skipped");
-    JSON_APPEND("      \"duration_sec\": %.3f,\n", r->realtime.duration_sec);
+    JSON_APPEND("      \"duration_sec\": %.3f", r->realtime.duration_sec);
 
     if (r->realtime.valid) {
+        JSON_APPEND(",\n");
         /* Single-core */
         JSON_APPEND("      \"single_core\": {\n");
         JSON_APPEND("        \"context_switch\": { \"avg_us\": %.3f },\n",
@@ -367,6 +368,7 @@ int rtbench_result_to_json(char *buf, size_t bufsize)
                         r->realtime.core_comm_intra, r->realtime.core_comm_inter);
             JSON_APPEND("      }");
         }
+    } else {
         JSON_APPEND("\n");
     }
     JSON_APPEND("    },\n");
