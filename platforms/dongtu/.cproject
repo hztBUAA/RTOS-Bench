@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+	<storageModule moduleId="org.eclipse.cdt.core.settings">
+		<cconfiguration id="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283" moduleId="org.eclipse.cdt.core.settings" name="Debug">
+				<externalSettings/>
+				<extensions>
+					<extension id="com.coretek.tools.ide.core.Bin" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.language.mapping"/>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactExtension="elf" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283" name="Debug" parent="com.coretek.tools.ide.project.acoreos1x.burn.app">
+					<folderInfo id="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283." name="/" resourcePath="">
+						<toolChain id="com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app.1282798157" name="Intewell GCC" superClass="com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app">
+							<targetPlatform binaryParser="com.coretek.tools.ide.core.Bin;org.eclipse.cdt.core.ELF" id="com.coretek.tools.ide.project.acoreos1x.targetPlatform.gnu344.app.1123076009" name="Debug Platform" superClass="com.coretek.tools.ide.project.acoreos1x.targetPlatform.gnu344.app"/>
+							<builder buildPath="${workspace_loc:/rtos_bench}/Debug}" id="com.coretek.tools.ide.project.acoreos1x.builder.gnu344.app.980408429" keepEnvironmentInBuildfile="false" name="GNU Make 构建器" parallelBuildOn="true" parallelizationNumber="4" superClass="com.coretek.tools.ide.project.acoreos1x.builder.gnu344.app"/>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.archiver.gnu344.app.174160616" name="GCC Archiver" superClass="com.coretek.tools.ide.project.acoreos1x.archiver.gnu344.app"/>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app.1346433995" name="GCC C++ Compiler" superClass="com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app">
+								<option id="gnu.cpp.compiler.option.optimization.level.1458162600" name="优化级别" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.debugging.level.288811049" name="调试级别" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.default" valueType="enumerated"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.compiler.option.include.paths.1299686713" name="包含路径（-I）" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="%ProjectRoot%/src"/>
+									<listOptionValue builtIn="false" value="%ProjectRoot%/$(CONFIG_NAME)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl/c++"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl/c++/x86_64-intewell-elf"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/init/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/dfs"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip/netif"/>
+									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/board/$(CONFIG_ARCH)/start/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/eigen"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/igh"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/igh/osal"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/common"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtedebug"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/driver"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ssk"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/partition"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/shell"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/json"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/sysDriver"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/sysDriver/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/cfg"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/posix"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/host/pub"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/soem"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator/realtime_orig/les}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator/stress_orig/common}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator/stress_orig/osal}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/CUSUM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EWMA}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/FAST}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/FAST/include_imgs}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/PID}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/EKF_core}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/include/matrix}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/geo}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/geo_lookup}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EPNP}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EPNP/opengv}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EPNP/Eigen}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/ICP}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/MODBUS}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/MQTT}&quot;"/>
+								</option>
+								<option id="gnu.cpp.compiler.option.other.other.1082862425" name="其他标志" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fno-builtin -fpermissive -std=gnu++14 -mhard-float -fexceptions -frtti " valueType="string"/>
+								<option id="gnu.cpp.compiler.option.dialect.std.829632292" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.preprocessor.nostdinc.1504658441" name="不搜索系统目录（-nostdinc）" superClass="gnu.cpp.compiler.option.preprocessor.nostdinc" useByScannerDiscovery="false" value="false" valueType="boolean"/>
+								<option id="gnu.cpp.compiler.option.other.verbose.1993594218" name="详细的（-v）" superClass="gnu.cpp.compiler.option.other.verbose" useByScannerDiscovery="false" value="false" valueType="boolean"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.compiler.option.preprocessor.def.535488923" name="已定义的符号（-D）" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="TTOS_RUN_IN_USER"/>
+									<listOptionValue builtIn="false" value="TTOS_POSIX_API"/>
+									<listOptionValue builtIn="false" value="__cpp_aligned_new"/>
+									<listOptionValue builtIn="false" value="__STDCPP_DEFAULT_NEW_ALIGNMENT__=8"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1263838884" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1157420531" name="GCC C Compiler" superClass="com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app">
+								<option id="gnu.c.compiler.option.debugging.level.424085881" name="调试级别" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.default" valueType="enumerated"/>
+								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.option.optimization.level.2038136964" name="优化级别" superClass="gnu.c.compiler.option.optimization.level" valueType="enumerated"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.include.paths.747606943" name="包含路径（-I）" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="%ProjectRoot%"/>
+									<listOptionValue builtIn="false" value="%ProjectRoot%/$(CONFIG_NAME)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl/c++"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl/c++/x86_64-intewell-elf"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/include/sysDriver"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/include/sysDriver/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip/lwip"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip/netif"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/dfs"/>
+									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/board/$(CONFIG_ARCH)/start/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/eigen"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/igh"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/igh/osal"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/json"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/smipc"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rpc"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/nfs"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/common"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/driver"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtedebug"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ssk"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/partition"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/sysDriver"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/sysDriver/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip/arch"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%ProjectRoot%/src"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/cfg"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/posix"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/shell"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/init/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/host/pub"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/soem"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator/realtime_orig/les}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator/stress_orig/common}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator/stress_orig/osal}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/CUSUM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EWMA}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/FAST}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/FAST/include_imgs}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/PID}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/EKF_core}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/include/matrix}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/geo}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/geo_lookup}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EPNP}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EPNP/opengv}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EPNP/Eigen}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/ICP}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/MODBUS}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/MQTT}&quot;"/>
+								</option>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.preprocessor.def.symbols.1627610191" name="已定义的符号（-D）" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="_X86_"/>
+									<listOptionValue builtIn="false" value="OS_FAULT_STACK_DEEPTH=4"/>
+									<listOptionValue builtIn="false" value="TTOS_RUN_IN_USER"/>
+									<listOptionValue builtIn="false" value="CONFIG_DEVICE_COM1=1"/>
+									<listOptionValue builtIn="false" value="CONFIG_DEVICE_COM2=1"/>
+									<listOptionValue builtIn="false" value="CONFIG_CONSOLE_STDIN=CONFIG_DEVICE_VIRTUAL_TERMINAL_NAME"/>
+									<listOptionValue builtIn="false" value="CONFIG_CONSOLE_STDOUT=CONFIG_DEVICE_VIRTUAL_TERMINAL_NAME"/>
+									<listOptionValue builtIn="false" value="DEBUG_INFO=1"/>
+									<listOptionValue builtIn="false" value="TTOS_POSIX_API"/>
+									<listOptionValue builtIn="false" value="ENABLE_CPLUSPLUS=1"/>
+								</option>
+								<option id="gnu.c.compiler.option.misc.other.303145757" name="其他标志" superClass="gnu.c.compiler.option.misc.other" value="-c -fno-builtin -ffunction-sections -fdata-sections" valueType="string"/>
+								<option id="gnu.c.compiler.option.dialect.std.818526084" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.2045458994" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+								<inputType id="com.coretek.tools.ide.managedbuilder.core.inputType.gnu344.1358374761" superClass="com.coretek.tools.ide.managedbuilder.core.inputType.gnu344"/>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.c.linker.gnu344.app.1205128791" name="GCC C Linker" superClass="com.coretek.tools.ide.project.acoreos1x.c.linker.gnu344.app">
+								<option id="gnu.c.link.option.ldflags.373034647" name="链接器标志" superClass="gnu.c.link.option.ldflags" value=" --gc-sections" valueType="string"/>
+								<option id="gnu.c.link.option.libs.1349234752" name="库（-l）" superClass="gnu.c.link.option.libs"/>
+								<option id="gnu.c.link.option.paths.877450712" name="库搜索路径（-L）" superClass="gnu.c.link.option.paths"/>
+								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1951786945" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.cpp.linker.gnu344.app.458894093" name="GCC C++ Linker" superClass="com.coretek.tools.ide.project.acoreos1x.cpp.linker.gnu344.app">
+								<option id="gnu.cpp.link.option.flags.2144546287" name="链接器标志" superClass="gnu.cpp.link.option.flags" useByScannerDiscovery="false" value="--gc-sections" valueType="string"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.link.option.libs.1409275067" name="库（-l）" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
+									<listOptionValue builtIn="false" value="stdc++"/>
+									<listOptionValue builtIn="false" value="gcc"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1086846333" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.assembler.gnu344.app.1854537458" name="GCC Assembler" superClass="com.coretek.tools.ide.project.acoreos1x.assembler.gnu344.app">
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.both.asm.option.include.paths.435336156" name="包含路径（-I）" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="%SystemRoot%/host/pub"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/partition"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/json"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/board/$(CONFIG_ARCH)/start/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/kbsp/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/kbsp/include/arch/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator/realtime_orig/les}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator/stress_orig/common}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/generator/stress_orig/osal}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/CUSUM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EWMA}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/FAST}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/FAST/include_imgs}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/PID}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/EKF_core}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/include/matrix}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/geo}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EKF/geo_lookup}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EPNP}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EPNP/opengv}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/EPNP/Eigen}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/ICP}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/MODBUS}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/rtos_bench/RTOS-Bench/workloads/MQTT}&quot;"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1195401893" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<folderInfo id="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app" resourcePath="com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app">
+						<toolChain id="com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app.1282798157" name="Intewell GCC" superClass="com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app">
+							<targetPlatform id="com.coretek.tools.ide.project.acoreos1x.targetPlatform.gnu344.app.1123076009" name="Debug Platform" superClass="com.coretek.tools.ide.project.acoreos1x.targetPlatform.gnu344.app"/>
+							<builder buildPath="${workspace_loc:/app/pc386}" id="com.coretek.tools.ide.project.acoreos1x.builder.gnu344.app.980408429" name="GNU Make 构建器" parallelBuildOn="true" parallelizationNumber="4" superClass="com.coretek.tools.ide.project.acoreos1x.builder.gnu344.app"/>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.archiver.gnu344.app.174160616" name="GCC Archiver" superClass="com.coretek.tools.ide.project.acoreos1x.archiver.gnu344.app"/>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app.1346433995" name="GCC C++ Compiler" superClass="com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app">
+								<option id="gnu.cpp.compiler.option.optimization.level.1458162600" name="优化级别" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.debugging.level.288811049" name="调试级别" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.default" valueType="enumerated"/>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1231066115" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1157420531" name="GCC C Compiler" superClass="com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app">
+								<option id="gnu.c.compiler.option.debugging.level.424085881" name="调试级别" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.default" valueType="enumerated"/>
+								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.option.optimization.level.2038136964" name="优化级别" superClass="gnu.c.compiler.option.optimization.level" valueType="enumerated"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.include.paths.747606943" name="包含路径（-I）" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="%ProjectRoot%"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/host/pub"/>
+									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/partition"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/json"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/kbsp/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/kbsp/include/arch/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%ProjectRoot%/src"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/board/$(CONFIG_ARCH)/start/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip"/>
+								</option>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.preprocessor.def.symbols.1627610191" name="已定义的符号（-D）" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="CONFIG_MSL_DEBUG"/>
+									<listOptionValue builtIn="false" value="ENABLE_CPLUSPLUS=1"/>
+								</option>
+								<option id="gnu.c.compiler.option.misc.other.2065413410" name="其他标志" superClass="gnu.c.compiler.option.misc.other" value="-c -fno-builtin -ffunction-sections -fdata-sections" valueType="string"/>
+								<option id="gnu.c.compiler.option.dialect.std.991726464" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.2045458994" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+								<inputType id="com.coretek.tools.ide.managedbuilder.core.inputType.gnu344.1358374761" superClass="com.coretek.tools.ide.managedbuilder.core.inputType.gnu344"/>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.c.linker.gnu344.app.1205128791" name="GCC C Linker" superClass="com.coretek.tools.ide.project.acoreos1x.c.linker.gnu344.app">
+								<option id="gnu.c.link.option.ldflags.1532920144" name="链接器标志" superClass="gnu.c.link.option.ldflags" value=" --gc-sections" valueType="string"/>
+								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1951786945" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.cpp.linker.gnu344.app.458894093" name="GCC C++ Linker" superClass="com.coretek.tools.ide.project.acoreos1x.cpp.linker.gnu344.app"/>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.assembler.gnu344.app.1854537458" name="GCC Assembler" superClass="com.coretek.tools.ide.project.acoreos1x.assembler.gnu344.app">
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.both.asm.option.include.paths.435336156" name="包含路径（-I）" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="%SystemRoot%/host/pub"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/partition"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/json"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/kbsp/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/board/$(CONFIG_ARCH)/start/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/kbsp/include/arch/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1195401893" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry excluding="generator/sylixos_entry.c|generator/rtthread_entry.c|generator/posixlite_entry.c|generator/oneos_entry.c|generator/stress_orig/osal/os_rtt.c|generator/stress_orig/osal/os_sylixos.c|generator/stress_orig/osal/os_oneos.c|generator/stress_orig/platforms|generator/platform/sylixos|generator/platform/ruihua|generator/platform/rt-thread|generator/platform/posix-lite|generator/platform/oneos|generator/platform/linux|platforms" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="RTOS-Bench"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+			<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
+		</cconfiguration>
+		<cconfiguration id="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162" moduleId="org.eclipse.cdt.core.settings" name="Release">
+				<externalSettings/>
+				<extensions>
+					<extension id="com.coretek.tools.ide.core.Bin" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactExtension="elf" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162" name="Release" parent="com.coretek.tools.ide.project.acoreos1x.burn.app">
+					<folderInfo id="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162." name="/" resourcePath="">
+						<toolChain id="com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app.1718341672" name="Intewell GCC" superClass="com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app" unusedChildren="">
+							<targetPlatform id="com.coretek.tools.ide.project.acoreos1x.targetPlatform.gnu344.app.1908584463" name="Debug Platform" superClass="com.coretek.tools.ide.project.acoreos1x.targetPlatform.gnu344.app"/>
+							<builder buildPath="${workspace_loc:/rtos_bench}/Release" id="com.coretek.tools.ide.project.acoreos1x.builder.gnu344.app.224507628" keepEnvironmentInBuildfile="false" name="GNU Make 构建器" parallelBuildOn="true" parallelizationNumber="4" superClass="com.coretek.tools.ide.project.acoreos1x.builder.gnu344.app"/>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.archiver.gnu344.app.164116972" name="GCC Archiver" superClass="com.coretek.tools.ide.project.acoreos1x.archiver.gnu344.app"/>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app.729361766" name="GCC C++ Compiler" superClass="com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app">
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.compiler.option.preprocessor.def.374308496" name="已定义的符号（-D）" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="TTOS_RUN_IN_USER"/>
+									<listOptionValue builtIn="false" value="TTOS_POSIX_API"/>
+									<listOptionValue builtIn="false" value="__cpp_aligned_new"/>
+									<listOptionValue builtIn="false" value="__STDCPP_DEFAULT_NEW_ALIGNMENT__=8"/>
+								</option>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.compiler.option.include.paths.1743718367" name="包含路径（-I）" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="%ProjectRoot%/src"/>
+									<listOptionValue builtIn="false" value="%ProjectRoot%/$(CONFIG_NAME)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/dfs"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip/netif"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/host/pub"/>
+									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/json"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/eigen"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/igh"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/igh/osal"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/common"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtedebug"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/driver"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ssk"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/partition"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/shell"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/dfs"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/sysDriver"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/sysDriver/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/board/$(CONFIG_ARCH)/start/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/cfg"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/posix"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/init/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/soem"/>
+								</option>
+								<option id="gnu.cpp.compiler.option.other.other.657940630" name="其他标志" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fno-builtin -fpermissive -std=gnu++14 -mhard-float -fexceptions -frtti " valueType="string"/>
+								<option id="gnu.cpp.compiler.option.dialect.std.430592458" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1481264977" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1318090418" name="GCC C Compiler" superClass="com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app">
+								<option id="gnu.c.compiler.option.dialect.std.1681958086" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.preprocessor.def.symbols.1943068849" name="已定义的符号（-D）" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="_X86_"/>
+									<listOptionValue builtIn="false" value="OS_FAULT_STACK_DEEPTH=4"/>
+									<listOptionValue builtIn="false" value="TTOS_RUN_IN_USER"/>
+									<listOptionValue builtIn="false" value="CONFIG_DEVICE_COM1=1"/>
+									<listOptionValue builtIn="false" value="CONFIG_DEVICE_COM2=1"/>
+									<listOptionValue builtIn="false" value="CONFIG_CONSOLE_STDIN=CONFIG_DEVICE_VIRTUAL_TERMINAL_NAME"/>
+									<listOptionValue builtIn="false" value="CONFIG_CONSOLE_STDOUT=CONFIG_DEVICE_VIRTUAL_TERMINAL_NAME"/>
+									<listOptionValue builtIn="false" value="DEBUG_INFO=1"/>
+									<listOptionValue builtIn="false" value="TTOS_POSIX_API"/>
+									<listOptionValue builtIn="false" value="ENABLE_CPLUSPLUS=1"/>
+								</option>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.include.paths.169539210" name="包含路径（-I）" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="%ProjectRoot%"/>
+									<listOptionValue builtIn="false" value="%ProjectRoot%/src"/>
+									<listOptionValue builtIn="false" value="%ProjectRoot%/$(CONFIG_NAME)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl/c++"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl/c++/x86_64-intewell-elf"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/dfs"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/include/sysDriver"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/include/sysDriver/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip/lwip"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip/netif"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/host/pub"/>
+									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/eigen"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/igh"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/igh/osal"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/smipc"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rpc"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/nfs"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/common"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/json"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/driver"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtedebug"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ssk"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/partition"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/sysDriver"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/sysDriver/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip/arch"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/board/$(CONFIG_ARCH)/start/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/cfg"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/posix"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/shell"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/init/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/soem"/>
+								</option>
+								<option id="gnu.c.compiler.option.misc.other.885675886" name="其他标志" superClass="gnu.c.compiler.option.misc.other" useByScannerDiscovery="false" value="-c -fno-builtin -ffunction-sections -fdata-sections" valueType="string"/>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.36308146" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+								<inputType id="com.coretek.tools.ide.managedbuilder.core.inputType.gnu344.521196651" superClass="com.coretek.tools.ide.managedbuilder.core.inputType.gnu344"/>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.c.linker.gnu344.app.1968285716" name="GCC C Linker" superClass="com.coretek.tools.ide.project.acoreos1x.c.linker.gnu344.app">
+								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.2074002629" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.cpp.linker.gnu344.app.542557766" name="GCC C++ Linker" superClass="com.coretek.tools.ide.project.acoreos1x.cpp.linker.gnu344.app">
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.link.option.libs.923490047" name="库（-l）" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
+									<listOptionValue builtIn="false" value="stdc++"/>
+									<listOptionValue builtIn="false" value="gcc"/>
+								</option>
+								<option id="gnu.cpp.link.option.paths.224320950" name="库搜索路径（-L）" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false"/>
+								<option id="gnu.cpp.link.option.flags.1573007674" name="链接器标志" superClass="gnu.cpp.link.option.flags" useByScannerDiscovery="false" value="--gc-sections" valueType="string"/>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.421604572" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.assembler.gnu344.app.540085779" name="GCC Assembler" superClass="com.coretek.tools.ide.project.acoreos1x.assembler.gnu344.app">
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.both.asm.option.include.paths.125654161" name="包含路径（-I）" superClass="gnu.both.asm.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="%SystemRoot%/host/pub"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/partition"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/rtl"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/json"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/ta/$(CONFIG_ARCH)/$(CONFIG_SUB_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/kbsp/include"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/bsp/board/$(CONFIG_ARCH)/start/partition/ttos"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/kbsp/include/arch/$(CONFIG_ARCH)"/>
+									<listOptionValue builtIn="false" value="%SystemRoot%/target/RTCore/include/components/tcpip"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.2105406903" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<folderInfo id="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162.com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app" resourcePath="com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app">
+						<toolChain id="com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app.1718341672" name="Intewell GCC" superClass="com.coretek.tools.ide.project.acoreos1x.burn.gnu344.app" unusedChildren="">
+							<targetPlatform id="com.coretek.tools.ide.project.acoreos1x.targetPlatform.gnu344.app.1908584463" name="Debug Platform" superClass="com.coretek.tools.ide.project.acoreos1x.targetPlatform.gnu344.app"/>
+							<builder buildPath="${workspace_loc:/rtos_bench}/Release" id="com.coretek.tools.ide.project.acoreos1x.builder.gnu344.app.224507628" name="GNU Make 构建器" parallelBuildOn="true" parallelizationNumber="4" superClass="com.coretek.tools.ide.project.acoreos1x.builder.gnu344.app"/>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.archiver.gnu344.app.751188597" name="GCC Archiver" superClass="com.coretek.tools.ide.project.acoreos1x.archiver.gnu344.app"/>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app.1573576418" name="GCC C++ Compiler" superClass="com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app">
+								<option id="gnu.cpp.compiler.option.other.other.1857768335" name="其他标志" superClass="gnu.cpp.compiler.option.other.other" value="-c -fno-builtin -fpermissive -std=gnu++14 -mhard-float -fexceptions -frtti " valueType="string"/>
+								<option id="gnu.cpp.compiler.option.dialect.std.1309708216" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.278240845" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1477261598" name="GCC C Compiler" superClass="com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app">
+								<option id="gnu.c.compiler.option.dialect.std.1758296730" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.misc.other.1607415280" name="其他标志" superClass="gnu.c.compiler.option.misc.other" value="-c -fno-builtin -ffunction-sections -fdata-sections" valueType="string"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.preprocessor.def.symbols.1407932673" name="已定义的符号（-D）" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="ENABLE_CPLUSPLUS=1"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1390104014" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+								<inputType id="com.coretek.tools.ide.managedbuilder.core.inputType.gnu344.824588532" superClass="com.coretek.tools.ide.managedbuilder.core.inputType.gnu344"/>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.c.linker.gnu344.app.990056845" name="GCC C Linker" superClass="com.coretek.tools.ide.project.acoreos1x.c.linker.gnu344.app">
+								<option id="gnu.c.link.option.ldflags.1557175086" name="链接器标志" superClass="gnu.c.link.option.ldflags" value=" --gc-sections" valueType="string"/>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.cpp.linker.gnu344.app.838188739" name="GCC C++ Linker" superClass="com.coretek.tools.ide.project.acoreos1x.cpp.linker.gnu344.app">
+								<option id="gnu.cpp.link.option.flags.660887165" name="链接器标志" superClass="gnu.cpp.link.option.flags" value="--gc-sections" valueType="string"/>
+							</tool>
+							<tool id="com.coretek.tools.ide.project.acoreos1x.assembler.gnu344.app.1528949905" name="GCC Assembler" superClass="com.coretek.tools.ide.project.acoreos1x.assembler.gnu344.app">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.697475034" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+	</storageModule>
+	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+		<project id="osDemo.com.coretek.tools.ide.project.acoreos1x.projectType.app.657261071" name="Executable" projectType="com.coretek.tools.ide.project.acoreos1x.projectType.app"/>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/rtos_bench"/>
+		</configuration>
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/rtos_bench"/>
+		</configuration>
+	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162.;com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1598359403;cdt.managedbuild.tool.gnu.c.compiler.input.1102157211">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162.;com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1598359403;com.coretek.tools.ide.managedbuilder.core.inputType.gnu344.1004166820">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.;com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1157420531;cdt.managedbuild.tool.gnu.c.compiler.input.2045458994">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.;com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app.1346433995;cdt.managedbuild.tool.gnu.cpp.compiler.input.1263838884">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162.;com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app.397442099;cdt.managedbuild.tool.gnu.cpp.compiler.input.1947473677">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.;com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1157420531;com.coretek.tools.ide.managedbuilder.core.inputType.gnu344.1358374761">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
+		</scannerConfigBuildInfo>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
+</cproject>
