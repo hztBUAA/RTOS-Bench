@@ -1,9 +1,32 @@
 #ifndef FIX_OPENGV_H
 #define FIX_OPENGV_H
 
+/*
+ * Intewell's C++ <cmath> only exposes C99 math names such as std::log2,
+ * std::expm1, and std::fma when these libstdc++ feature macros are set before
+ * <cmath> is included. The Eclipse make backend does not pass the SConscript
+ * defines, so keep them here as well.
+ */
+#ifndef _GLIBCXX_USE_C99_MATH
+#define _GLIBCXX_USE_C99_MATH 1
+#endif
+#ifndef _GLIBCXX_USE_C99_MATH_TR1
+#define _GLIBCXX_USE_C99_MATH_TR1 1
+#endif
+
 #include <math.h>
 #include <cmath>
 #include <stdlib.h>
+
+#ifdef U
+#undef U
+#endif
+#ifdef L
+#undef L
+#endif
+#ifdef round_down
+#undef round_down
+#endif
 
 // --- Part 1: 补全 std 命名空间缺失的数学函数 ---
 namespace std {

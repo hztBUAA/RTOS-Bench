@@ -37,6 +37,17 @@
 #define OPENGV_ABSOLUTE_POSE_MODULES_EPNP_HPP_
 
 #include <stdlib.h>
+
+#ifdef U
+#undef U
+#endif
+#ifdef L
+#undef L
+#endif
+#ifdef round_down
+#undef round_down
+#endif
+
 #include <Eigen/Eigen>
 #include <Eigen/src/Core/util/DisableStupidWarnings.h>
 

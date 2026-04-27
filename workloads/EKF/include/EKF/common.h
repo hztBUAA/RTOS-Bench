@@ -41,6 +41,14 @@
  */
 #pragma once
 
+#ifdef U
+#undef U
+#endif
+
+#ifdef L
+#undef L
+#endif
+
 #include <matrix/math.hpp>
 
 namespace estimator

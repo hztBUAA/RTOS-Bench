@@ -1,6 +1,15 @@
 #pragma once
 #include <assert.h>
 #include "stdlib_imports.hpp"
+
+#ifdef U
+#undef U
+#endif
+
+#ifdef L
+#undef L
+#endif
+
 #ifdef __PX4_QURT
 #include "dspal_math.h"
 #endif
