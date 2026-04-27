@@ -476,29 +476,15 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 		SCHED_PRINTF("  [%s]: WCET = %.3f ms (%d iters)\n",
 			     wl->name, (double)wcet / 1000000.0, wcet_iters);
 
-		/* In quick mode, skip workloads with long WCET (>2s)
-		 * to keep the schedule test within a reasonable time */
-		if (is_quick && wcet > 2000000000ULL) {
-			tasks[valid_idx].wcet_ns = 0;
-			wcets_ns[valid_idx] = 0;
-			SCHED_PRINTF("    -> skipped for quick schedule (WCET > 2s)\n");
-		}
+		/* Note: In quick mode, we reduce WCET measurement iterations (5 vs 50)
+		 * but we do NOT skip workloads based on WCET duration.
+		 * All workloads should be tested for fair comparison across platforms. */
 
 		valid_idx++;
 	}
 
-	/* Remove skipped workloads (wcet_ns == 0) by compacting the array */
-	int active_count = 0;
-	for (i = 0; i < num_workloads; i++) {
-		if (tasks[i].wcet_ns > 0) {
-			if (active_count != i) {
-				tasks[active_count] = tasks[i];
-				wcets_ns[active_count] = wcets_ns[i];
-			}
-			active_count++;
-		}
-	}
-	num_workloads = active_count;
+	/* All workloads are active - no filtering applied */
+	num_workloads = valid_idx;
 	SCHED_PRINTF("[Phase 1] %d workloads measured\n", num_workloads);
 
 	/* Sort tasks by WCET descending */
