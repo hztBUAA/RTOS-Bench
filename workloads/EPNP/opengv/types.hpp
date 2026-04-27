@@ -39,6 +39,17 @@
 
 #include <stdlib.h>
 #include <vector>
+
+#ifdef U
+#undef U
+#endif
+#ifdef L
+#undef L
+#endif
+#ifdef round_down
+#undef round_down
+#endif
+
 #include <Eigen/Eigen>
 #include <Eigen/src/Core/util/DisableStupidWarnings.h>
 

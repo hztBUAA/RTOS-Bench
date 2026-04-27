@@ -76,7 +76,7 @@ private:
 	virtual double               fitStep(double *T,const int32_t T_num,Matrix &R,Matrix &t,const std::vector<int32_t> &active) = 0;
 	virtual std::vector<int32_t> getInliers(double *T,const int32_t T_num,const Matrix &R,const Matrix &t,const double indist) = 0;
 	
-	virtual double getResidual(double *T,const int32_t T_num,const Matrix &R,const Matrix &t,const std::vector<int> &active)=0;
+	virtual double getResidual(double *T,const int32_t T_num,const Matrix &R,const Matrix &t,const std::vector<int32_t> &active)=0;
   
 protected:
   
@@ -88,7 +88,7 @@ protected:
 	int32_t m_max_iter;  // max number of iterations
 	double  m_min_delta; // min parameter delta
 
-	std::vector<int>	m_active; //inliers 
+	std::vector<int32_t>	m_active; //inliers 
 
 	double	m_inlier_ratio;  // active.size()/ T_num
 	double  m_residual;      // residual of icp

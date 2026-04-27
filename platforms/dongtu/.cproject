@@ -312,7 +312,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="generator/sylixos_entry.c|generator/rtthread_entry.c|generator/posixlite_entry.c|generator/oneos_entry.c|generator/stress_orig/osal/os_rtt.c|generator/stress_orig/osal/os_sylixos.c|generator/stress_orig/osal/os_oneos.c|generator/stress_orig/platforms|generator/platform/sylixos|generator/platform/ruihua|generator/platform/rt-thread|generator/platform/posix-lite|generator/platform/oneos|generator/platform/linux|platforms" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="RTOS-Bench"/>
+						<entry excluding="generator/sylixos_entry.c|generator/rtthread_entry.c|generator/posixlite_entry.c|generator/oneos_entry.c|generator/stress_orig/osal/os_rtt.c|generator/stress_orig/osal/os_sylixos.c|generator/stress_orig/osal/os_oneos.c|generator/stress_orig/platforms|generator/platform/sylixos|generator/platform/ruihua|generator/platform/rt-thread|generator/platform/posix-lite|generator/platform/oneos|generator/platform/linux|platforms|generator/main.c|generator/performance_counters.c" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="RTOS-Bench"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>

@@ -11,6 +11,10 @@
 #ifndef EIGEN_CORE_MODULE_H
 #define EIGEN_CORE_MODULE_H
 
+#ifdef DONGTU_PLATFORM
+#include "../fix_opengv.h"
+#endif
+
 // Eigen version information.
 #include "Version"
 
