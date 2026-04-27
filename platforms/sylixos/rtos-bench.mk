@@ -34,7 +34,11 @@ LOCAL_TARGET_NAME := rtos-bench
 #*********************************************************************************************************
 LOCAL_SRCS := \
 RTOS-Bench/generator/sylixos_entry.c \
+RTOS-Bench/generator/platform/sylixos/version_override.c \
 RTOS-Bench/generator/test_schedule.c \
+RTOS-Bench/generator/test_schedule/sched_workloads.c \
+RTOS-Bench/generator/test_schedule/sched_mqtt_wrapper.c \
+RTOS-Bench/generator/test_schedule/sched_modbus_wrapper.c \
 RTOS-Bench/generator/test_realtime.c \
 RTOS-Bench/generator/test_stress.c \
 RTOS-Bench/generator/test_cmd.c \
