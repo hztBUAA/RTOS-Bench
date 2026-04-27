@@ -1,8 +1,0 @@
-#Configuratefortarget.spec,Auto-Created#
-CONFIG_ARCH		=x86
-CONFIG_SUB_ARCH		=i386
-CONFIG_CPU_ENDIAN		=little
-CONFIG_CPU_FLOAT		=hard
-CONFIG_CPU_CORE_NUMBER		=1
-CONFIG_CPU_BIT		=32
-CONFIG_CPU_SMP		=true
