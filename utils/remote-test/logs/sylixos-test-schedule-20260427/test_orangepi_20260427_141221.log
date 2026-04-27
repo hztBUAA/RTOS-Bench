@@ -1,0 +1,1549 @@
+>>> /apps/hzt/orangepi-rtos-bench test-schedule --cycles 1
+/apps/hzt/orangepi-rtos-bench test-schedule --cycles 1
+
+[test-schedule] Starting schedulability test on SylixOS
+
+  Cycles: 1, Utilization: 30% - 100% (step 10%)
+
+[test-schedule] Found 9 industrial workloads (excluded 2 utility workloads)
+
+=============================================================
+
+[Phase 1] Measuring WCET for 9 workloads...
+
+=============================================================
+
+[POSIX] Starting FAST Benchmark ...
+
+Total Images: 3
+
+Allocating RAM buffer: 307200 bytes (KB: 300)
+
+[FAST] samples=3 total_time=26.969 ms avg_latency=8989.653 us/img
+
+[POSIX] Starting FAST Benchmark ...
+
+Total Images: 3
+
+Allocating RAM buffer: 307200 bytes (KB: 300)
+
+[FAST] samples=3 total_time=22.235 ms avg_latency=7411.731 us/img
+
+[POSIX] Starting FAST Benchmark ...
+
+Total Images: 3
+
+Allocating RAM buffer: 307200 bytes (KB: 300)
+
+[FAST] samples=3 total_time=22.090 ms avg_latency=7363.415 us/img
+
+[POSIX] Starting FAST Benchmark ...
+
+Total Images: 3
+
+Allocating RAM buffer: 307200 bytes (KB: 300)
+
+[FAST] samples=3 total_time=22.250 ms avg_latency=7416.807 us/img
+
+[POSIX] Starting FAST Benchmark ...
+
+Total Images: 3
+
+Allocating RAM buffer: 307200 bytes (KB: 300)
+
+[FAST] samples=3 total_time=48.876 ms avg_latency=16292.114 us/img
+
+  [fast]: WCET = 48.904 ms (5 iters)
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+  1.27799
+
+-0.808139
+
+  1.60289
+
+
+
+the random rotation is:
+
+  0.904213  -0.423412 -0.0558682
+
+  0.425865   0.903757  0.0431602
+
+ 0.0322167 -0.0628183   0.997505
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=12.038 ms avg_latency=12037.956 us/iter
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+-1.48841
+
+0.362135
+
+ -1.5913
+
+
+
+the random rotation is:
+
+  0.96389   0.26223 0.0463758
+
+-0.265703  0.935394  0.233325
+
+0.0178053 -0.237222  0.971292
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=11.944 ms avg_latency=11943.754 us/iter
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+-0.957434
+
+ 0.411834
+
+  1.69618
+
+
+
+the random rotation is:
+
+  0.851911  -0.492191   0.178874
+
+  0.462951   0.867478   0.182094
+
+ -0.244794 -0.0723179   0.966874
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=12.007 ms avg_latency=12007.333 us/iter
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+-0.424489
+
+  1.60906
+
+  -0.6038
+
+
+
+the random rotation is:
+
+  0.995322 -0.0600634  0.0756674
+
+ 0.0587626   0.998085  0.0193032
+
+-0.0766819 -0.0147665   0.996946
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=11.810 ms avg_latency=11809.887 us/iter
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+ 0.102069
+
+-0.528558
+
+ 0.522278
+
+
+
+the random rotation is:
+
+  0.974426   0.143622   0.172819
+
+-0.0463353   0.880979  -0.470881
+
+ -0.219879   0.450831   0.865104
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=12.382 ms avg_latency=12382.393 us/iter
+
+  [epnp]: WCET = 17.405 ms (5 iters)
+
+Processing...
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+[EKF] samples=3407 total_time=1249.986 ms avg_latency=366.888 us/update
+
+Processing...
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+[EKF] samples=3407 total_time=1250.221 ms avg_latency=366.957 us/update
+
+Processing...
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+[EKF] samples=3407 total_time=1249.395 ms avg_latency=366.714 us/update
+
+Processing...
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+[EKF] samples=3407 total_time=1250.292 ms avg_latency=366.977 us/update
+
+Processing...
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+[EKF] samples=3407 total_time=1249.741 ms avg_latency=366.816 us/update
+
+  [ekf]: WCET = 1250.359 ms (5 iters)
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=630.181 ms avg_latency=630.181 ms/run
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=682.693 ms avg_latency=682.693 ms/run
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=709.190 ms avg_latency=709.190 ms/run
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=702.774 ms avg_latency=702.774 ms/run
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=667.558 ms avg_latency=667.558 ms/run
+
+  [icp]: WCET = 713.825 ms (5 iters)
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.897 ms avg_latency=1999.974 ms/request
+
+[Client] Finished
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.918 ms avg_latency=1999.979 ms/request
+
+[Client] Finished
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.909 ms avg_latency=1999.977 ms/request
+
+[Client] Finished
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.933 ms avg_latency=1999.983 ms/request
+
+[Client] Finished
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.941 ms avg_latency=1999.985 ms/request
+
+[Client] Finished
+
+  [modbus]: WCET = 12001.039 ms (5 iters)
+
+[MQTT] Thread Started...
+
+a8e55a 3 mongoose.c:4800:mg_mgr_init    MG_IO_SIZE: 16384, TLS: none
+
+
+[MQTT] Connecting to tcp://192.168.31.110:1883 (Raw TCP Mode)...
+
+[MQTT] Socket Created
+
+[MQTT] TCP Connected! (Handshake Complete)
+
+[MQTT] Sending RAW HEX Login (24 bytes)...
+
+[MQTT] Login Sent success
+
+[MQTT] >>> SUCCESS: Received CONNACK! <<<
+
+
+
+====== Benchmark Finished ======
+
+Total Sent: 617
+
+[MQTT] samples=617 total_time=100.446 ms avg_latency=162.797 us/msg
+
+[MQTT] Thread Started...
+
+[MQTT] Connecting to tcp://192.168.31.110:1883 (Raw TCP Mode)...
+
+[MQTT] Socket Created
+
+[MQTT] TCP Connected! (Handshake Complete)
+
+[MQTT] Sending RAW HEX Login (24 bytes)...
+
+[MQTT] Login Sent success
+
+[MQTT] >>> SUCCESS: Received CONNACK! <<<
+
+
+
+====== Benchmark Finished ======
+
+Total Sent: 617
+
+[MQTT] samples=617 total_time=99.580 ms avg_latency=161.394 us/msg
+
+[MQTT] Thread Started...
+
+[MQTT] Connecting to tcp://192.168.31.110:1883 (Raw TCP Mode)...
+
+[MQTT] Socket Created
+
+[MQTT] TCP Connected! (Handshake Complete)
+
+[MQTT] Sending RAW HEX Login (24 bytes)...
+
+[MQTT] Login Sent success
+
+[MQTT] >>> SUCCESS: Received CONNACK! <<<
+
+
+
+====== Benchmark Finished ======
+
+Total Sent: 617
+
+[MQTT] samples=617 total_time=172.317 ms avg_latency=279.282 us/msg
+
+[MQTT] Thread Started...
+
+[MQTT] Connecting to tcp://192.168.31.110:1883 (Raw TCP Mode)...
+
+[MQTT] Socket Created
+
+[MQTT] TCP Connected! (Handshake Complete)
+
+[MQTT] Sending RAW HEX Login (24 bytes)...
+
+[MQTT] Login Sent success
+
+[MQTT] >>> SUCCESS: Received CONNACK! <<<
+
+
+
+====== Benchmark Finished ======
+
+Total Sent: 617
+
+[MQTT] samples=617 total_time=173.455 ms avg_latency=281.126 us/msg
+
+[MQTT] Thread Started...
+
+[MQTT] Connecting to tcp://192.168.31.110:1883 (Raw TCP Mode)...
+
+[MQTT] Socket Created
+
+[MQTT] TCP Connected! (Handshake Complete)
+
+[MQTT] Sending RAW HEX Login (24 bytes)...
+
+[MQTT] Login Sent success
+
+[MQTT] >>> SUCCESS: Received CONNACK! <<<
+
+
+
+====== Benchmark Finished ======
+
+Total Sent: 617
+
+[MQTT] samples=617 total_time=159.001 ms avg_latency=257.700 us/msg
+
+  [mqtt]: WCET = 195.465 ms (5 iters)
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=80.384 ms avg_latency=0.080 us/op
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=68.196 ms avg_latency=0.068 us/op
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=68.154 ms avg_latency=0.068 us/op
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=75.099 ms avg_latency=0.075 us/op
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=136.586 ms avg_latency=0.137 us/op
+
+  [pid]: WCET = 136.602 ms (5 iters)
+
+[CUSUM] samples=6000 total_time=53.103 ms avg_latency=8.851 us/sample
+
+[CUSUM] samples=6000 total_time=53.094 ms avg_latency=8.849 us/sample
+
+[CUSUM] samples=6000 total_time=53.096 ms avg_latency=8.849 us/sample
+
+[CUSUM] samples=6000 total_time=28.308 ms avg_latency=4.718 us/sample
+
+[CUSUM] samples=6000 total_time=37.990 ms avg_latency=6.332 us/sample
+
+  [cusum]: WCET = 53.116 ms (5 iters)
+
+[EWMA] samples=5000 total_time=51.344 ms avg_latency=10.269 us/sample
+
+[EWMA] samples=5000 total_time=49.356 ms avg_latency=9.871 us/sample
+
+[EWMA] samples=5000 total_time=56.211 ms avg_latency=11.242 us/sample
+
+[EWMA] samples=5000 total_time=49.610 ms avg_latency=9.922 us/sample
+
+[EWMA] samples=5000 total_time=49.377 ms avg_latency=9.875 us/sample
+
+  [ewma]: WCET = 56.223 ms (5 iters)
+
+[Phase 1] 9 workloads measured
+
+
+
+=============================================================
+
+[Phase 2] Running Task Sets (U: 30% - 100%, step 10%)
+
+=============================================================
+
+
+
+>>> Utilization Gradient: 30% <<<
+
+Name         | WCET(ms)   | Util(%)  | Period(ms)
+
+------------------------------------------------------
+
+modbus       | 12001.039  | 8.27     | 145145.890
+
+ekf          | 1250.359   | 5.60     | 22325.551
+
+icp          | 713.825    | 5.15     | 13862.863
+
+mqtt         | 195.465    | 4.28     | 4565.414
+
+pid          | 136.602    | 2.79     | 4902.788
+
+ewma         | 56.223     | 1.79     | 3135.992
+
+cusum        | 53.116     | 0.83     | 6373.842
+
+fast         | 48.904     | 0.76     | 6463.779
+
+epnp         | 17.405     | 0.53     | 3274.092
+
+Running task set for 1 cycles...
+
+[EWMA] samples=5000 total_time=58.022 ms avg_latency=11.604 us/sample
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+ 1.77463
+
+-1.76869
+
+ 1.62355
+
+
+
+the random rotation is:
+
+ 0.959835 0.0717669  0.271231
+
+-0.130894   0.96962   0.20665
+
+ -0.24816 -0.233852  0.940069
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=12.037 ms avg_latency=12037.081 us/iter
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=68.144 ms avg_latency=0.068 us/op
+
+[CUSUM] samples=6000 total_time=32.898 ms avg_latency=5.483 us/sample
+
+[FAST] samples=3 total_time=14.601 ms avg_latency=4867.127 us/img
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=720.296 ms avg_latency=720.296 ms/run
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+GPS checks passed
+
+reset position to GPS
+
+reset velocity to GPS
+
+starting GPS fusion
+
+[EKF] samples=3407 total_time=1291.565 ms avg_latency=379.092 us/update
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.907 ms avg_latency=1999.977 ms/request
+
+[Client] Finished
+
+Gradient 30% complete: MR = 0.0000 (0/9)
+
+
+
+>>> Utilization Gradient: 40% <<<
+
+Name         | WCET(ms)   | Util(%)  | Period(ms)
+
+------------------------------------------------------
+
+modbus       | 12001.039  | 12.83    | 93552.122
+
+ekf          | 1250.359   | 7.19     | 17385.635
+
+icp          | 713.825    | 6.16     | 11579.503
+
+mqtt         | 195.465    | 3.84     | 5089.580
+
+pid          | 136.602    | 2.86     | 4779.811
+
+ewma         | 56.223     | 2.12     | 2655.751
+
+cusum        | 53.116     | 1.90     | 2794.606
+
+fast         | 48.904     | 1.65     | 2966.374
+
+epnp         | 17.405     | 1.45     | 1199.794
+
+Running task set for 1 cycles...
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+ 0.59359
+
+0.475363
+
+ 1.42867
+
+
+
+the random rotation is:
+
+  0.834755   0.454532  -0.310781
+
+  -0.39868   0.888236   0.228236
+
+  0.379788 -0.0666184   0.922672
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=7.922 ms avg_latency=7921.671 us/iter
+
+[EWMA] samples=5000 total_time=41.504 ms avg_latency=8.301 us/sample
+
+[CUSUM] samples=6000 total_time=34.921 ms avg_latency=5.820 us/sample
+
+[FAST] samples=3 total_time=25.270 ms avg_latency=8423.251 us/img
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=123.746 ms avg_latency=0.124 us/op
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=677.028 ms avg_latency=677.028 ms/run
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+GPS checks passed
+
+reset position to GPS
+
+reset velocity to GPS
+
+starting GPS fusion
+
+[EKF] samples=3407 total_time=1185.672 ms avg_latency=348.010 us/update
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.937 ms avg_latency=1999.984 ms/request
+
+[Client] Finished
+
+Gradient 40% complete: MR = 0.0000 (0/9)
+
+
+
+>>> Utilization Gradient: 50% <<<
+
+Name         | WCET(ms)   | Util(%)  | Period(ms)
+
+------------------------------------------------------
+
+modbus       | 12001.039  | 10.92    | 109919.492
+
+ekf          | 1250.359   | 10.60    | 11799.270
+
+icp          | 713.825    | 10.58    | 6745.006
+
+mqtt         | 195.465    | 6.40     | 3052.374
+
+pid          | 136.602    | 5.59     | 2441.867
+
+ewma         | 56.223     | 3.43     | 1637.715
+
+cusum        | 53.116     | 1.06     | 5011.115
+
+fast         | 48.904     | 0.91     | 5389.320
+
+epnp         | 17.405     | 0.50     | 3454.639
+
+Running task set for 1 cycles...
+
+[EWMA] samples=5000 total_time=41.625 ms avg_latency=8.325 us/sample
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=61.313 ms avg_latency=0.061 us/op
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+  0.53877
+
+-0.897544
+
+ -1.03008
+
+
+
+the random rotation is:
+
+  0.903227   0.424017 -0.0662537
+
+ -0.406217   0.894489   0.186753
+
+   0.13845  -0.141767    0.98017
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=12.693 ms avg_latency=12693.061 us/iter
+
+[CUSUM] samples=6000 total_time=18.759 ms avg_latency=3.127 us/sample
+
+[FAST] samples=3 total_time=14.437 ms avg_latency=4812.296 us/img
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=845.064 ms avg_latency=845.064 ms/run
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+GPS checks passed
+
+reset position to GPS
+
+reset velocity to GPS
+
+starting GPS fusion
+
+[EKF] samples=3407 total_time=1291.704 ms avg_latency=379.133 us/update
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.905 ms avg_latency=1999.976 ms/request
+
+[Client] Finished
+
+Gradient 50% complete: MR = 0.0000 (0/9)
+
+
+
+>>> Utilization Gradient: 60% <<<
+
+Name         | WCET(ms)   | Util(%)  | Period(ms)
+
+------------------------------------------------------
+
+modbus       | 12001.039  | 14.33    | 83732.040
+
+ekf          | 1250.359   | 8.21     | 15237.130
+
+icp          | 713.825    | 7.93     | 8999.388
+
+mqtt         | 195.465    | 7.39     | 2643.283
+
+pid          | 136.602    | 6.40     | 2134.992
+
+ewma         | 56.223     | 6.20     | 906.684
+
+cusum        | 53.116     | 4.19     | 1267.893
+
+fast         | 48.904     | 3.47     | 1408.604
+
+epnp         | 17.405     | 1.87     | 928.576
+
+Running task set for 1 cycles...
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+-1.65441
+
+-1.73519
+
+0.707685
+
+
+
+the random rotation is:
+
+ 0.904463 0.0333208 -0.425249
+
+ 0.155248  0.902853  0.400942
+
+ 0.397297 -0.428656  0.811424
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=12.001 ms avg_latency=12001.208 us/iter
+
+[EWMA] samples=5000 total_time=48.801 ms avg_latency=9.760 us/sample
+
+[CUSUM] samples=6000 total_time=33.380 ms avg_latency=5.563 us/sample
+
+[FAST] samples=3 total_time=37.025 ms avg_latency=12341.680 us/img
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=73.459 ms avg_latency=0.073 us/op
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=738.137 ms avg_latency=738.137 ms/run
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+GPS checks passed
+
+reset position to GPS
+
+reset velocity to GPS
+
+starting GPS fusion
+
+[EKF] samples=3407 total_time=1292.491 ms avg_latency=379.363 us/update
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.892 ms avg_latency=1999.973 ms/request
+
+[Client] Finished
+
+Gradient 60% complete: MR = 0.0000 (0/9)
+
+
+
+>>> Utilization Gradient: 70% <<<
+
+Name         | WCET(ms)   | Util(%)  | Period(ms)
+
+------------------------------------------------------
+
+modbus       | 12001.039  | 20.72    | 57916.573
+
+ekf          | 1250.359   | 18.89    | 6619.687
+
+icp          | 713.825    | 9.10     | 7848.275
+
+mqtt         | 195.465    | 7.69     | 2541.467
+
+pid          | 136.602    | 6.59     | 2072.570
+
+ewma         | 56.223     | 3.08     | 1827.421
+
+cusum        | 53.116     | 1.69     | 3142.324
+
+fast         | 48.904     | 1.32     | 3707.184
+
+epnp         | 17.405     | 0.93     | 1877.832
+
+Running task set for 1 cycles...
+
+[EWMA] samples=5000 total_time=39.283 ms avg_latency=7.857 us/sample
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+-0.0113509
+
+   1.22582
+
+  -1.71005
+
+
+
+the random rotation is:
+
+    0.94385    0.321962   0.0740728
+
+  -0.330319    0.923734    0.193918
+
+-0.00598933   -0.207497    0.978217
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=4.066 ms avg_latency=4065.600 us/iter
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=75.158 ms avg_latency=0.075 us/op
+
+[CUSUM] samples=6000 total_time=18.784 ms avg_latency=3.131 us/sample
+
+[FAST] samples=3 total_time=49.436 ms avg_latency=16478.789 us/img
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+GPS checks passed
+
+reset position to GPS
+
+reset velocity to GPS
+
+starting GPS fusion
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[EKF] samples=3407 total_time=1292.110 ms avg_latency=379.252 us/update
+
+[ICP] samples=1 total_time=604.117 ms avg_latency=604.117 ms/run
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.898 ms avg_latency=1999.975 ms/request
+
+[Client] Finished
+
+Gradient 70% complete: MR = 0.0000 (0/9)
+
+
+
+>>> Utilization Gradient: 80% <<<
+
+Name         | WCET(ms)   | Util(%)  | Period(ms)
+
+------------------------------------------------------
+
+modbus       | 12001.039  | 25.67    | 46745.935
+
+ekf          | 1250.359   | 15.94    | 7843.722
+
+icp          | 713.825    | 8.82     | 8091.796
+
+mqtt         | 195.465    | 7.83     | 2495.340
+
+pid          | 136.602    | 6.93     | 1972.583
+
+ewma         | 56.223     | 4.77     | 1179.332
+
+cusum        | 53.116     | 4.31     | 1233.682
+
+fast         | 48.904     | 3.08     | 1587.430
+
+epnp         | 17.405     | 2.65     | 656.082
+
+Running task set for 1 cycles...
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+-0.861227
+
+  1.35657
+
+-0.204122
+
+
+
+the random rotation is:
+
+  0.949045   0.158604    0.27232
+
+-0.0580641   0.937332  -0.343565
+
+ -0.309745   0.310247    0.89878
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=8.146 ms avg_latency=8146.241 us/iter
+
+[EWMA] samples=5000 total_time=70.163 ms avg_latency=14.033 us/sample
+
+[CUSUM] samples=6000 total_time=18.801 ms avg_latency=3.134 us/sample
+
+[FAST] samples=3 total_time=14.484 ms avg_latency=4828.163 us/img
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=142.367 ms avg_latency=0.142 us/op
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+GPS checks passed
+
+reset position to GPS
+
+reset velocity to GPS
+
+starting GPS fusion
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[EKF] samples=3407 total_time=627.635 ms avg_latency=184.219 us/update
+
+[ICP] samples=1 total_time=699.951 ms avg_latency=699.951 ms/run
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.899 ms avg_latency=1999.975 ms/request
+
+[Client] Finished
+
+Gradient 80% complete: MR = 0.0000 (0/9)
+
+
+
+>>> Utilization Gradient: 90% <<<
+
+Name         | WCET(ms)   | Util(%)  | Period(ms)
+
+------------------------------------------------------
+
+modbus       | 12001.039  | 19.12    | 62765.152
+
+ekf          | 1250.359   | 17.70    | 7065.873
+
+icp          | 713.825    | 14.03    | 5086.989
+
+mqtt         | 195.465    | 11.85    | 1648.839
+
+pid          | 136.602    | 9.88     | 1382.348
+
+ewma         | 56.223     | 7.53     | 746.574
+
+cusum        | 53.116     | 4.54     | 1170.667
+
+fast         | 48.904     | 2.78     | 1756.575
+
+epnp         | 17.405     | 2.56     | 679.159
+
+Running task set for 1 cycles...
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+-0.0353988
+
+   1.05295
+
+   0.90573
+
+
+
+the random rotation is:
+
+ 0.905557  0.353741  0.234165
+
+-0.410045  0.871381  0.269365
+
+-0.108761 -0.339944  0.934136
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=12.548 ms avg_latency=12548.403 us/iter
+
+[EWMA] samples=5000 total_time=57.692 ms avg_latency=11.538 us/sample
+
+[CUSUM] samples=6000 total_time=18.799 ms avg_latency=3.133 us/sample
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=68.225 ms avg_latency=0.068 us/op
+
+[FAST] samples=3 total_time=50.061 ms avg_latency=16687.027 us/img
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=679.897 ms avg_latency=679.897 ms/run
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+GPS checks passed
+
+reset position to GPS
+
+reset velocity to GPS
+
+starting GPS fusion
+
+[EKF] samples=3407 total_time=1267.209 ms avg_latency=371.943 us/update
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.895 ms avg_latency=1999.974 ms/request
+
+[Client] Finished
+
+Gradient 90% complete: MR = 0.0000 (0/9)
+
+
+
+>>> Utilization Gradient: 100% <<<
+
+Name         | WCET(ms)   | Util(%)  | Period(ms)
+
+------------------------------------------------------
+
+modbus       | 12001.039  | 26.80    | 44781.061
+
+ekf          | 1250.359   | 25.42    | 4919.060
+
+icp          | 713.825    | 18.09    | 3945.187
+
+mqtt         | 195.465    | 10.53    | 1856.322
+
+pid          | 136.602    | 7.11     | 1920.641
+
+ewma         | 56.223     | 4.82     | 1166.081
+
+cusum        | 53.116     | 3.75     | 1416.326
+
+fast         | 48.904     | 2.31     | 2114.309
+
+epnp         | 17.405     | 1.16     | 1498.275
+
+Running task set for 1 cycles...
+
+[EWMA] samples=5000 total_time=55.232 ms avg_latency=11.046 us/sample
+
+[CUSUM] samples=6000 total_time=25.964 ms avg_latency=4.327 us/sample
+
+[POSIX] Starting ePnP Benchmark...
+
+the random position is:
+
+ -1.088
+
+-1.9936
+
+1.54073
+
+
+
+the random rotation is:
+
+ 0.914188  0.332502 -0.231737
+
+-0.256522  0.917381  0.304317
+
+ 0.313778 -0.218757  0.923953
+
+
+
+the noise in the data is:
+
+0
+
+the outlier fraction is:
+
+0
+
+Running ePnP (using all 100 correspondences)...
+
+[EPNP] samples=1 total_time=12.069 ms avg_latency=12069.454 us/iter
+
+--- PID Simulation Start ---
+
+[PID] samples=1000000 total_time=69.003 ms avg_latency=0.069 us/op
+
+[FAST] samples=3 total_time=14.588 ms avg_latency=4862.557 us/img
+
+
+
+[ICP] Running ICP (point-to-plane)
+
+[ICP] samples=1 total_time=862.464 ms avg_latency=862.464 ms/run
+
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+
+GPS checks passed
+
+reset position to GPS
+
+reset velocity to GPS
+
+starting GPS fusion
+
+[EKF] samples=3407 total_time=1268.082 ms avg_latency=372.199 us/update
+
+[Client] Waiting for server...
+
+[Client] Connecting to 127.0.0.1:5020...
+
+[Client] Connected!
+
+[Client] Modbus client created
+
+
+
+=== R/W Benchmark Result ===
+
+Time:       8.000 s
+
+Requests:   4 (Write+Read)
+
+Errors:     0
+
+TPS:        0.50
+
+[MODBUS] samples=4 total_time=7999.931 ms avg_latency=1999.983 ms/request
+
+[Client] Finished
+
+Gradient 100% complete: MR = 0.0000 (0/9)
+
+
+
+=============================================================
+
+[Phase 3] Final Results
+
+=============================================================
+
+U= 30%: MR=0.0000 (0 misses / 9 jobs)
+
+U= 40%: MR=0.0000 (0 misses / 9 jobs)
+
+U= 50%: MR=0.0000 (0 misses / 9 jobs)
+
+U= 60%: MR=0.0000 (0 misses / 9 jobs)
+
+U= 70%: MR=0.0000 (0 misses / 9 jobs)
+
+U= 80%: MR=0.0000 (0 misses / 9 jobs)
+
+U= 90%: MR=0.0000 (0 misses / 9 jobs)
+
+U=100%: MR=0.0000 (0 misses / 9 jobs)
+
+
+
+------------------------------------------------------
+
+Average Miss Rate: 0.0000
+
+Final Score: 100.00 / 100
+
+------------------------------------------------------
+
+[root@sylixos:/root]#

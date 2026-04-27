@@ -1,0 +1,52 @@
+
+============================================================
+部署 nezha 板卡
+============================================================
+  本地文件: C:\Users\hzt\yihui-workspace\nezha-rtos-bench/Debug/strip/nezha-rtos-bench
+  远程路径: /apps/hzt/nezha-rtos-bench
+  板卡IP: 192.168.31.202
+  文件大小: 6.14 MB
+
+[1/4] 连接跳板机 10.134.151.45:1026...
+  [OK] 跳板机连接成功
+
+[2/4] 上传文件到跳板机...
+  [OK] 已上传到: /tmp/nezha_rtos_bench
+
+[3/4] 检查板卡连通性...
+  [OK] 板卡可达
+
+[4/4] FTP上传到板卡...
+  命令: curl -T /tmp/nezha_rtos_bench 'ftp://192.168.31.202/apps/hzt/nezha-rtos-bench' --user root:root --connect-timeout 10 --max-time 180 --ftp-create-dirs --fail --show-error
+  [OK] FTP上传成功!
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  7 6290k    0     0    7  448k      0   714k  0:00:08 --:--:--  0:00:08  714k
+ 69 6290k    0     0   69 4352k      0  2721k  0:00:02  0:00:01  0:00:01 2721k
+100 6290k    0     0  100 6290k      0  2824k  0:00:02  0:00:02 --:--:-- 2824k
+
+Trying 192.168.31.202...
+
+Connected to 192.168.31.202.
+
+Escape character is '^]'.
+
+server is full of linksConnection closed by foreign host.
+
+  [WARN] FTP已成功，但telnet权限/核对步骤失败: telnet server refused connection (server is full or closed)
+  FTP目录核对:
+-rwxr-xr-x  1     0     0     6441912 Jan 03 19:26 nezha-rtos-bench
+-rw-r--r--  1     0     0     7747688 Jan 03 20:10 rtos-bench
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100   130    0   130    0     0    228      0 --:--:-- --:--:-- --:--:--   227
+
+
+[SUCCESS] 部署完成!
+  测试命令: /apps/hzt/nezha-rtos-bench test-schedule --cycles 3

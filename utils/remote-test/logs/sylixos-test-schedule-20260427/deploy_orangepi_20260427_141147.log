@@ -1,0 +1,109 @@
+
+============================================================
+部署 orangepi 板卡
+============================================================
+  本地文件: C:\Users\hzt\yihui-workspace\feiteng_rtos_bench/Debug/strip/feiteng_rtos_bench
+  远程路径: /apps/hzt/orangepi-rtos-bench
+  板卡IP: 192.168.31.201
+  文件大小: 6.14 MB
+
+[1/4] 连接跳板机 10.134.151.45:1026...
+  [OK] 跳板机连接成功
+
+[2/4] 上传文件到跳板机...
+  [OK] 已上传到: /tmp/orangepi_rtos_bench
+
+[3/4] 检查板卡连通性...
+  [OK] 板卡可达
+
+[4/4] FTP上传到板卡...
+  命令: curl -T /tmp/orangepi_rtos_bench 'ftp://192.168.31.201/apps/hzt/orangepi-rtos-bench' --user root:root --connect-timeout 10 --max-time 180 --ftp-create-dirs --fail --show-error
+  [OK] FTP上传成功!
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+ 15 6287k    0     0   15  960k      0  1338k  0:00:04 --:--:--  0:00:04 1337k
+ 82 6287k    0     0   82 5184k      0  2994k  0:00:02  0:00:01  0:00:01 2994k
+100 6287k    0     0  100 6287k      0  2499k  0:00:02  0:00:02 --:--:-- 2499k
+
+Trying 192.168.31.201...
+
+Connected to 192.168.31.201.
+
+Escape character is '^]'.
+
+login: root
+
+password: ]0;SylixOS Terminal[00m]0;SylixOS Terminal 192.168.31.201
+
+                          [[                          (R)
+
+ [[[[           [[[[      [[             [[[[    [[[[
+
+[[  [[            [[                    [[  [[  [[  [[
+
+[[      [[  [[    [[    [[[[    [[  [[  [[  [[  [[
+
+ [[     [[  [[    [[      [[    [[  [[  [[  [[   [[
+
+  [[    [[  [[    [[      [[     [[[[   [[  [[    [[
+
+   [[   [[  [[    [[      [[      [[    [[  [[     [[
+
+    [[  [[  [[    [[      [[     [[[[   [[  [[      [[
+
+[[  [[  [[  [[    [[      [[    [[  [[  [[  [[  [[  [[
+
+ [[[[    [[[[   [[[[[[  [[[[[[  [[  [[   [[[[    [[[[
+
+           [[
+
+          [[    KERNEL: LongWing(C) 3.9.0
+
+       [[[[   COPYRIGHT ACOINFO Co. Ltd. 2006 - 2024
+
+
+
+SylixOS license: Commercial & GPL.
+
+SylixOS kernel version: 3.9.0 Code name: Age of Discovery
+
+
+
+CPU     : RK3588 (ARMv8-A, 8 Cores: 4x Cortex-A55 @ 1704MHZ + 2x Cortex-A76 @ 2016MHZ + 2x Cortex-A76 @ 2016MHZ)
+
+CACHE   : L1 Cache: 128KB (A76) / 64KB (A55); L2 Cache: 512KB (A76) / 128KB (A55); Shared L3 Cache: 3MB
+
+PACKET  : Orange Pi 5
+
+ROM SIZE: 0x00200000 Bytes (0x00000000 - 0x001fffff)
+
+RAM SIZE: 0x200000000 Bytes (0x00000000 - 0x1ffffffff)
+
+BSP     : BSP Version 2.1.10 (Release) for Age of Discovery (Build Mar 17 2026 14:05:04)
+
+[root@sylixos:/root]#
+>>> chmod 755 /apps/hzt/orangepi-rtos-bench
+chmod 755 /apps/hzt/orangepi-rtos-bench
+
+[root@sylixos:/root]#
+>>> ll /apps/hzt/orangepi-rtos-bench
+ll /apps/hzt/orangepi-rtos-bench
+
+-rwxr-xr-x root     root     Sat Jan 01 11:02:47 2000   6287KB, [01;32morangepi-rtos-bench
+
+[00m      total items: 1
+
+[root@sylixos:/root]#   FTP目录核对:
+-rwxr-xr-x  1     0     0     6438352 Jan 01 03:02 orangepi-rtos-bench
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100    71    0    71    0     0    127      0 --:--:-- --:--:-- --:--:--   127
+
+
+[SUCCESS] 部署完成!
+  测试命令: /apps/hzt/orangepi-rtos-bench test-schedule --cycles 3

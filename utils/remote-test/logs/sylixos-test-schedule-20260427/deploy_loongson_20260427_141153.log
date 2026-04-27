@@ -1,0 +1,110 @@
+
+============================================================
+部署 loongson 板卡
+============================================================
+  本地文件: C:\Users\hzt\yihui-workspace\rtos-bench/Debug/strip/rtos-bench
+  远程路径: /apps/hzt/loongson-rtos-bench
+  板卡IP: 192.168.31.200
+  文件大小: 7.44 MB
+
+[1/4] 连接跳板机 10.134.151.45:1026...
+  [OK] 跳板机连接成功
+
+[2/4] 上传文件到跳板机...
+  [OK] 已上传到: /tmp/loongson_rtos_bench
+
+[3/4] 检查板卡连通性...
+  [OK] 板卡可达
+
+[4/4] FTP上传到板卡...
+  命令: curl -T /tmp/loongson_rtos_bench 'ftp://192.168.31.200/apps/hzt/loongson-rtos-bench' --user root:root --connect-timeout 10 --max-time 180 --ftp-create-dirs --fail --show-error
+  [OK] FTP上传成功!
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+ 26 7620k    0     0   26 1984k      0  2973k  0:00:02 --:--:--  0:00:02 2970k
+100 7620k    0     0  100 7620k      0  6420k  0:00:01  0:00:01 --:--:-- 6425k
+
+Trying 192.168.31.200...
+
+Connected to 192.168.31.200.
+
+Escape character is '^]'.
+
+login: root
+
+password: ]0;SylixOS Terminal[00m]0;SylixOS Terminal 192.168.31.200
+
+                          [[                          (R)
+
+ [[[[           [[[[      [[             [[[[    [[[[
+
+[[  [[            [[                    [[  [[  [[  [[
+
+[[      [[  [[    [[    [[[[    [[  [[  [[  [[  [[
+
+ [[     [[  [[    [[      [[    [[  [[  [[  [[   [[
+
+  [[    [[  [[    [[      [[     [[[[   [[  [[    [[
+
+   [[   [[  [[    [[      [[      [[    [[  [[     [[
+
+    [[  [[  [[    [[      [[     [[[[   [[  [[      [[
+
+[[  [[  [[  [[    [[      [[    [[  [[  [[  [[  [[  [[
+
+ [[[[    [[[[   [[[[[[  [[[[[[  [[  [[   [[[[    [[[[
+
+           [[
+
+          [[    KERNEL: LongWing(C) 3.9.0
+
+       [[[[   COPYRIGHT ACOINFO Co. Ltd. 2006 - 2024
+
+
+
+SylixOS license: Commercial & GPL.
+
+SylixOS kernel version: 3.9.0 Code name: Age of Discovery
+
+
+
+CPU     : ls2k1000(loongarch)
+
+CACHE   : 64KBytes L1-Cache (D-32K/I-32K), 1MBytes  L2-Cache
+
+PACKET  : 2K1000/Demo
+
+ROM SIZE: 0x00100000 Bytes (0x00000000 - 0x000fffff)
+
+RAM SIZE: 0x6ee00000 Bytes (0x9000000000000000 - 0x900000006edfffff)
+
+BSP     : BSP Version 2.0.1 (Release) for Age of Discovery (Build Apr  7 2026 14:58:13)
+
+[root@sylixos:/root]#
+>>> chmod 755 /apps/hzt/loongson-rtos-bench
+chmod 755 /apps/hzt/loongson-rtos-bench
+
+[root@sylixos:/root]#
+>>> ll /apps/hzt/loongson-rtos-bench
+ll /apps/hzt/loongson-rtos-bench
+
+-rwxr-xr-x root     root     Sat Jan 08 10:44:01 2000   7620KB, [01;32mloongson-rtos-bench
+
+[00m      total items: 1
+
+[root@sylixos:/root]#   FTP目录核对:
+-rwxr-xr-x  1     0     0     7803880 Jan 08 02:44 loongson-rtos-bench
+-rwxr-xr-x  1     0     0     7747688 Jan 02 04:53 rtos-bench
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100   133    0   133    0     0    236      0 --:--:-- --:--:-- --:--:--   236
+
+
+[SUCCESS] 部署完成!
+  测试命令: /apps/hzt/loongson-rtos-bench test-schedule --cycles 3
