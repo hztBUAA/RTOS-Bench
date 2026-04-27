@@ -3,6 +3,8 @@
  * Registers the rtbench command with msh
  */
 
+#ifdef RT_THREAD_PLATFORM
+
 #include <rtthread.h>
 
 /* RT-Thread entry from generator */
@@ -16,3 +18,5 @@ static int cmd_rtbench(int argc, char **argv)
 
 /* Register command with msh */
 MSH_CMD_EXPORT_ALIAS(cmd_rtbench, rtbench, RTOS-Bench workload runner);
+
+#endif

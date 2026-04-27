@@ -377,7 +377,7 @@ double* IcpPointToPlane::computeNormals (const int32_t num_neighbors,const doubl
   return M_normal;
 }
 
-double IcpPointToPlane::getResidual( double *T,const int32_t T_num,const Matrix &R,const Matrix &t,const std::vector<int> &active )
+double IcpPointToPlane::getResidual( double *T,const int32_t T_num,const Matrix &R,const Matrix &t,const std::vector<int32_t> &active )
 {
 	if(active.empty()) return 0;
 	int nact = active.size();

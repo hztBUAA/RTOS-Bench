@@ -173,6 +173,7 @@
 									<listOptionValue builtIn="false" value="DEBUG_INFO=1"/>
 									<listOptionValue builtIn="false" value="TTOS_POSIX_API"/>
 									<listOptionValue builtIn="false" value="ENABLE_CPLUSPLUS=1"/>
+									<listOptionValue builtIn="false" value="DONGTU_PLATFORM=1"/>
 								</option>
 								<option id="gnu.c.compiler.option.misc.other.303145757" name="其他标志" superClass="gnu.c.compiler.option.misc.other" value="-c -fno-builtin -ffunction-sections -fdata-sections" valueType="string"/>
 								<option id="gnu.c.compiler.option.dialect.std.818526084" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
@@ -310,7 +311,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="generator/sylixos_entry.c|generator/rtthread_entry.c|generator/posixlite_entry.c|generator/oneos_entry.c|generator/stress_orig/osal/os_rtt.c|generator/stress_orig/osal/os_sylixos.c|generator/stress_orig/osal/os_oneos.c|generator/stress_orig/platforms|generator/platform/sylixos|generator/platform/ruihua|generator/platform/rt-thread|generator/platform/posix-lite|generator/platform/oneos|generator/platform/linux|platforms" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="RTOS-Bench"/>
+						<entry excluding="generator/sylixos_entry.c|generator/rtthread_entry.c|generator/posixlite_entry.c|generator/oneos_entry.c|generator/stress_orig/osal/os_rtt.c|generator/stress_orig/osal/os_sylixos.c|generator/stress_orig/osal/os_oneos.c|generator/stress_orig/platforms|generator/platform/sylixos|generator/platform/ruihua|generator/platform/rt-thread|generator/platform/posix-lite|generator/platform/oneos|generator/platform/linux|platforms|generator/main.c|generator/performance_counters.c" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="RTOS-Bench"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
@@ -532,6 +533,7 @@
 			<resource resourceType="PROJECT" workspacePath="/rtos_bench"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162.;com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1598359403;cdt.managedbuild.tool.gnu.c.compiler.input.1102157211">
@@ -553,5 +555,4 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>
