@@ -90,6 +90,7 @@
 									<listOptionValue builtIn="false" value="TTOS_POSIX_API"/>
 									<listOptionValue builtIn="false" value="__cpp_aligned_new"/>
 									<listOptionValue builtIn="false" value="__STDCPP_DEFAULT_NEW_ALIGNMENT__=8"/>
+									<listOptionValue builtIn="false" value="DONGTU_PLATFORM=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1263838884" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
@@ -173,6 +174,7 @@
 									<listOptionValue builtIn="false" value="DEBUG_INFO=1"/>
 									<listOptionValue builtIn="false" value="TTOS_POSIX_API"/>
 									<listOptionValue builtIn="false" value="ENABLE_CPLUSPLUS=1"/>
+									<listOptionValue builtIn="false" value="DONGTU_PLATFORM=1"/>
 								</option>
 								<option id="gnu.c.compiler.option.misc.other.303145757" name="其他标志" superClass="gnu.c.compiler.option.misc.other" value="-c -fno-builtin -ffunction-sections -fdata-sections" valueType="string"/>
 								<option id="gnu.c.compiler.option.dialect.std.818526084" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
@@ -344,6 +346,7 @@
 									<listOptionValue builtIn="false" value="TTOS_POSIX_API"/>
 									<listOptionValue builtIn="false" value="__cpp_aligned_new"/>
 									<listOptionValue builtIn="false" value="__STDCPP_DEFAULT_NEW_ALIGNMENT__=8"/>
+									<listOptionValue builtIn="false" value="DONGTU_PLATFORM=1"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.compiler.option.include.paths.1743718367" name="包含路径（-I）" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="%ProjectRoot%/src"/>
@@ -394,6 +397,7 @@
 									<listOptionValue builtIn="false" value="DEBUG_INFO=1"/>
 									<listOptionValue builtIn="false" value="TTOS_POSIX_API"/>
 									<listOptionValue builtIn="false" value="ENABLE_CPLUSPLUS=1"/>
+									<listOptionValue builtIn="false" value="DONGTU_PLATFORM=1"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.include.paths.169539210" name="包含路径（-I）" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="%ProjectRoot%"/>
@@ -532,6 +536,7 @@
 			<resource resourceType="PROJECT" workspacePath="/rtos_bench"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162.;com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1598359403;cdt.managedbuild.tool.gnu.c.compiler.input.1102157211">
@@ -546,12 +551,20 @@
 		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.;com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app.1346433995;cdt.managedbuild.tool.gnu.cpp.compiler.input.1263838884">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
 		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162.;com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app.729361766;cdt.managedbuild.tool.gnu.cpp.compiler.input.1481264977">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162.;com.coretek.tools.ide.project.acoreos1x.cpp.compiler.gnu344.app.397442099;cdt.managedbuild.tool.gnu.cpp.compiler.input.1947473677">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.;com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1157420531;com.coretek.tools.ide.managedbuilder.core.inputType.gnu344.1358374761">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
 		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162.;com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1318090418;com.coretek.tools.ide.managedbuilder.core.inputType.gnu344.521196651">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162;com.coretek.tools.ide.project.acoreos1x.burn.app.1924497258.26889176.848839959.1926738283.155530162.;com.coretek.tools.ide.project.acoreos1x.c.compiler.gnu344.app.1318090418;cdt.managedbuild.tool.gnu.c.compiler.input.36308146">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
+		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>
