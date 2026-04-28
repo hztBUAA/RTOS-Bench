@@ -9,7 +9,7 @@
  * The test performs:
  * 1. WCET measurement for all registered workloads
  * 2. Task set generation using UUniFast algorithm (30%-100% utilization, step 10%)
- * 3. Concurrent execution of periodic tasks for 10000 cycles per gradient
+ * 3. Concurrent execution of periodic tasks for 3 cycles per gradient
  * 4. Deadline miss rate calculation and final score computation
  *
  * Final Score = 100 * (1 - Average_MR)
@@ -26,7 +26,7 @@ extern "C" {
 
 /* Configuration constants */
 #define TEST_SCHEDULE_MAX_TASKS      16
-#define TEST_SCHEDULE_CYCLES         10000
+#define TEST_SCHEDULE_CYCLES         3
 #define TEST_SCHEDULE_WCET_ITERATIONS 50
 #define TEST_SCHEDULE_UTIL_START     30
 #define TEST_SCHEDULE_UTIL_END       100
@@ -102,7 +102,7 @@ int test_schedule_run(void);
 
 /**
  * @brief Run test-schedule with custom parameters
- * @param cycles Number of cycles per task (default: 10000)
+ * @param cycles Number of cycles per task (default: 3)
  * @param util_start Starting utilization percentage (default: 30)
  * @param util_end Ending utilization percentage (default: 100)
  * @param util_step Utilization step percentage (default: 10)

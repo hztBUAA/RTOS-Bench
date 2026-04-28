@@ -227,7 +227,8 @@ LOCAL_LINKFLAGS :=
 # Depend library (eg. LOCAL_DEPEND_LIB := -la LOCAL_DEPEND_LIB_PATH := -L"Your library search path")
 #*********************************************************************************************************
 LOCAL_DEPEND_LIB :=  \
--lm
+-lm \
+-latomic
 LOCAL_DEPEND_LIB_PATH := 
 
 #*********************************************************************************************************

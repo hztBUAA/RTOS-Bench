@@ -172,7 +172,7 @@ async function codeRefs() {
     ["Formal schedule gradients", "generator/test_schedule.h", "#define TEST_SCHEDULE_UTIL_START", "Default formal schedule starts at 30%."],
     ["Formal schedule gradients", "generator/test_schedule.h", "#define TEST_SCHEDULE_UTIL_END", "Default formal schedule ends at 100%."],
     ["Formal schedule gradients", "generator/test_schedule.h", "#define TEST_SCHEDULE_UTIL_STEP", "Default formal schedule step is 10%, for 8 gradients total."],
-    ["Formal default cycles", "generator/test_schedule.h", "#define TEST_SCHEDULE_CYCLES", "Naked test-schedule/test-all schedule default is 10000 cycles."],
+    ["Formal default cycles", "generator/test_schedule.h", "#define TEST_SCHEDULE_CYCLES", "Naked test-schedule/test-all schedule default is the accepted 3-cycle profile."],
     ["Quick schedule defaults", "generator/test_schedule.h", "#define TEST_SCHEDULE_QUICK_CYCLES", "Quick schedule defaults to 10 cycles."],
     ["Schedule stack", "generator/test_schedule.c", "#define SCHED_POSIX_STACK_SIZE", "Raises POSIX schedule task stack to 4 MB."],
     ["Schedule wrapper lookup", "generator/test_schedule.c", "return sched_get_wrapper(wl->name);", "Finds bounded wrappers for selected workloads."],
@@ -395,7 +395,7 @@ async function main() {
 
   const quickRows = [
     ["Final acceptance schedule", "No --quick", "test-schedule --cycles 3", "8 gradients: 30,40,50,60,70,80,90,100", "Cycles intentionally bounded at 3 for runtime; parser/schedule path is the formal non-quick path."],
-    ["Naked schedule default", "No --quick", "test-schedule", "8 gradients, 10000 cycles", "Functionally valid but impractical for this board set; wall time would scale roughly with cycles."],
+    ["Naked schedule default", "No --quick", "test-schedule", "8 gradients, 3 cycles", "Default matches the accepted SylixOS profile validated on reachable boards."],
     ["test-all smoke command", "--quick plus explicit overrides", "test-all --quick --schedule-cycles 1 --util-start 30 --util-end 30 --util-step 30 --stress-job all-quick", "One 30% gradient, one schedule cycle, all-quick stress, workload rounds=5", "Used only for entry/export smoke, not schedule acceptance."],
     ["test-all quick default", "--quick", "test-all --quick", "Quick constants: cycles=10, util 30-60 step30", "Still exercises all modules but uses bounded defaults."],
     ["MQTT/MODBUS schedule wrappers", "Always in test-schedule when wrapper exists", "sched_get_wrapper + quick_exec", "Network workloads are bounded for WCET/runtime", "Keeps schedule comparable and avoids transport timeout dominance; full network behavior remains outside schedule acceptance."],

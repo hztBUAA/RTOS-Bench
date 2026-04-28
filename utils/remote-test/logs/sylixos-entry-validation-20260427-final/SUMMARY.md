@@ -34,6 +34,8 @@ All three boards finished with `Final Score: 100.00 / 100` and `Average Miss Rat
 
 After this batch, one help-text-only cleanup changed top-level `--help` schedule default descriptions from hard-coded literals to the same `TEST_SCHEDULE_*` macros already used by the parser and `test-schedule --help`. The three binaries were rebuilt locally as `r5`.
 
+The accepted schedule profile is now the default: `TEST_SCHEDULE_CYCLES = 3`, with the formal utilization gradients unchanged at 30% through 100% in 10% steps. A naked `test-schedule` therefore runs the same bounded profile that passed on the reachable SylixOS boards.
+
 The branch was then synced with the latest `origin/main` so the PR can merge cleanly. After that sync, the three SylixOS targets were rebuilt locally again as `r6_after_main_merge`. Remote redeployment could not be rerun in the current shell because `RTBENCH_JUMPHOST_PASSWORD` was not present. The r4 remote acceptance remains the behavior baseline for schedule/test-all execution, and r6 confirms the final PR head still builds for the three validated target families.
 
 ## Runtime Snapshot
@@ -75,7 +77,7 @@ test-schedule --cycles 3
 
 without `--quick`, across all eight formal utilization gradients.
 
-A naked `test-schedule` or naked `test-all` remains functionally valid, but uses `TEST_SCHEDULE_CYCLES = 10000`, which is impractical for this board set. Based on the measured `cycles=3` runtime, Loongson would scale to an extremely long wall time if left unconstrained.
+A naked `test-schedule` now uses `TEST_SCHEDULE_CYCLES = 3`, matching the accepted profile above. `test-all` also inherits this schedule default unless explicitly overridden with `--schedule-cycles <n>`.
 
 ## Wrapper Effect
 

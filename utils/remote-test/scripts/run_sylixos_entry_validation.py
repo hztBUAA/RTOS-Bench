@@ -116,7 +116,8 @@ def validate_json_file(local_path: Path) -> dict:
         }
 
 
-def validate_board(board_name: str, batch: str, log_dir: Path, schedule_cycles: int) -> dict:
+def validate_board(board_name: str, batch: str, log_dir: Path, schedule_cycles: int,
+                   schedule_timeout_sec: int) -> dict:
     board = deploy.BOARDS[board_name]
     binary = board["remote_dir"].rstrip("/") + "/" + board["remote_name"]
     board_log = log_dir / f"entry_validation_{board_name}_{batch}.log"
@@ -196,7 +197,7 @@ def validate_board(board_name: str, batch: str, log_dir: Path, schedule_cycles: 
                 result["checks"].append({"name": "fetch_test_all_result", "ok": False})
 
             schedule_cmd = f"{binary} test-schedule --cycles {schedule_cycles}"
-            output = run_command(channel, schedule_cmd, log_handle, timeout=7200)
+            output = run_command(channel, schedule_cmd, log_handle, timeout=schedule_timeout_sec)
             check = check_output(
                 f"test_schedule_cycles_{schedule_cycles}",
                 output,
@@ -228,6 +229,7 @@ def main() -> int:
     parser.add_argument("--boards", default="orangepi,gongkong,loongson")
     parser.add_argument("--log-dir", required=True)
     parser.add_argument("--schedule-cycles", type=int, default=3)
+    parser.add_argument("--schedule-timeout-sec", type=int, default=7200)
     args = parser.parse_args()
 
     if hasattr(sys.stdout, "reconfigure"):
@@ -240,13 +242,23 @@ def main() -> int:
     log_dir.mkdir(parents=True, exist_ok=True)
     boards = [item.strip() for item in args.boards.split(",") if item.strip()]
 
-    print(f"[START] batch={batch} boards={','.join(boards)} cycles={args.schedule_cycles}", flush=True)
+    print(
+        f"[START] batch={batch} boards={','.join(boards)} "
+        f"cycles={args.schedule_cycles} schedule_timeout={args.schedule_timeout_sec}s",
+        flush=True,
+    )
 
     results = {}
     lock = threading.Lock()
 
     def worker(board_name: str) -> None:
-        board_result = validate_board(board_name, batch, log_dir, args.schedule_cycles)
+        board_result = validate_board(
+            board_name,
+            batch,
+            log_dir,
+            args.schedule_cycles,
+            args.schedule_timeout_sec,
+        )
         with lock:
             results[board_name] = board_result
             summary_path = log_dir / f"entry_validation_summary_{batch}.json"
