@@ -17,6 +17,7 @@
 #include "platform_abstraction.h"
 #include "workload_registry.h"
 #include "logging.h"
+#include "test_schedule/sched_workloads.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +31,7 @@
 #else
 #include <pthread.h>
 #define SCHED_PRINTF printf
+#define SCHED_POSIX_STACK_SIZE (4 * 1024 * 1024)
 #endif
 
 /**
@@ -64,6 +66,14 @@ static void task_thread_entry(void *param);
 static int compare_double_desc(const void *a, const void *b);
 static int compare_wcet_desc(const void *a, const void *b);
 static int is_builtin_workload(const struct rtosbench_workload *wl);
+static const struct sched_workload_wrapper *get_sched_wrapper_for_workload(
+	const struct rtosbench_workload *wl);
+static int sched_workload_init(const struct rtosbench_workload *wl,
+			       const struct sched_workload_wrapper *wrapper);
+static void sched_workload_exec(const struct rtosbench_workload *wl,
+				const struct sched_workload_wrapper *wrapper);
+static void sched_workload_teardown(const struct rtosbench_workload *wl,
+				    const struct sched_workload_wrapper *wrapper);
 
 /**
  * @brief Check if a workload is a built-in utility workload
@@ -83,6 +93,51 @@ static int is_builtin_workload(const struct rtosbench_workload *wl)
 	return 0;
 }
 
+static const struct sched_workload_wrapper *get_sched_wrapper_for_workload(
+	const struct rtosbench_workload *wl)
+{
+	if (!wl || !wl->name) {
+		return NULL;
+	}
+	return sched_get_wrapper(wl->name);
+}
+
+static int sched_workload_init(const struct rtosbench_workload *wl,
+			       const struct sched_workload_wrapper *wrapper)
+{
+	if (wrapper && wrapper->init) {
+		return wrapper->init();
+	}
+	if (wl && wl->init) {
+		return wl->init(0, NULL);
+	}
+	return 0;
+}
+
+static void sched_workload_exec(const struct rtosbench_workload *wl,
+				const struct sched_workload_wrapper *wrapper)
+{
+	if (wrapper && wrapper->quick_exec) {
+		wrapper->quick_exec();
+		return;
+	}
+	if (wl && wl->exec) {
+		wl->exec(0, NULL);
+	}
+}
+
+static void sched_workload_teardown(const struct rtosbench_workload *wl,
+				    const struct sched_workload_wrapper *wrapper)
+{
+	if (wrapper && wrapper->teardown) {
+		wrapper->teardown();
+		return;
+	}
+	if (wl && wl->teardown) {
+		wl->teardown(0, NULL);
+	}
+}
+
 /* Timer callback for period expiration */
 static void period_timer_callback(void *user_data)
 {
@@ -98,20 +153,18 @@ static void period_timer_callback(void *user_data)
 static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterations)
 {
 	uint64_t max_duration = 0;
+	const struct sched_workload_wrapper *wrapper = get_sched_wrapper_for_workload(wl);
 
-	if (!wl || !wl->exec) {
+	if (!wl || (!wl->exec && (!wrapper || !wrapper->quick_exec))) {
 		return 0;
 	}
 
-	/* Initialize workload */
-	if (wl->init) {
-		wl->init(0, NULL);
-	}
+	sched_workload_init(wl, wrapper);
 
 	/* Run iterations and record max */
 	for (int i = 0; i < iterations; i++) {
 		long double start = rtbench_get_timestamp();
-		wl->exec(0, NULL);
+		sched_workload_exec(wl, wrapper);
 		long double end = rtbench_get_timestamp();
 
 		uint64_t duration_ns = (uint64_t)((end - start) * 1000000000.0L);
@@ -120,10 +173,7 @@ static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterati
 		}
 	}
 
-	/* Teardown workload */
-	if (wl->teardown) {
-		wl->teardown(0, NULL);
-	}
+	sched_workload_teardown(wl, wrapper);
 
 	return max_duration;
 }
@@ -135,6 +185,7 @@ static void task_thread_entry(void *param)
 {
 	struct task_thread_ctx *ctx = (struct task_thread_ctx *)param;
 	const struct rtosbench_workload *wl = NULL;
+	const struct sched_workload_wrapper *wrapper = NULL;
 
 	if (!ctx || !ctx->config) {
 		return;
@@ -149,10 +200,8 @@ static void task_thread_entry(void *param)
 		return;
 	}
 
-	/* Initialize workload */
-	if (wl->init) {
-		wl->init(0, NULL);
-	}
+	wrapper = get_sched_wrapper_for_workload(wl);
+	sched_workload_init(wl, wrapper);
 
 	/* Create period semaphore */
 	ctx->period_sem = rtbench_sem_create(0);
@@ -197,7 +246,7 @@ static void task_thread_entry(void *param)
 		long double activation = rtbench_get_timestamp();
 
 		/* Execute workload */
-		wl->exec(0, NULL);
+		sched_workload_exec(wl, wrapper);
 
 		/* Record completion time */
 		long double completion = rtbench_get_timestamp();
@@ -221,9 +270,7 @@ static void task_thread_entry(void *param)
 	rtbench_timer_delete(ctx->period_timer);
 	rtbench_sem_destroy(ctx->period_sem);
 
-	if (wl->teardown) {
-		wl->teardown(0, NULL);
-	}
+	sched_workload_teardown(wl, wrapper);
 
 	ctx->completed = 1;
 }
@@ -292,8 +339,17 @@ static void *pthread_entry_wrapper(void *param)
 
 static int create_task_thread(struct task_thread_ctx *ctx, const char *name)
 {
+	pthread_attr_t attr;
+	int ret;
+
 	(void)name;
-	return pthread_create(&ctx->thread, NULL, pthread_entry_wrapper, ctx);
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, SCHED_POSIX_STACK_SIZE);
+	ret = pthread_create(&ctx->thread, &attr, pthread_entry_wrapper, ctx);
+	pthread_attr_destroy(&attr);
+
+	return ret;
 }
 
 static void wait_task_thread(struct task_thread_ctx *ctx)
@@ -476,29 +532,15 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 		SCHED_PRINTF("  [%s]: WCET = %.3f ms (%d iters)\n",
 			     wl->name, (double)wcet / 1000000.0, wcet_iters);
 
-		/* In quick mode, skip workloads with long WCET (>2s)
-		 * to keep the schedule test within a reasonable time */
-		if (is_quick && wcet > 2000000000ULL) {
-			tasks[valid_idx].wcet_ns = 0;
-			wcets_ns[valid_idx] = 0;
-			SCHED_PRINTF("    -> skipped for quick schedule (WCET > 2s)\n");
-		}
+		/* Note: In quick mode, we reduce WCET measurement iterations (5 vs 50)
+		 * but we do NOT skip workloads based on WCET duration.
+		 * All workloads should be tested for fair comparison across platforms. */
 
 		valid_idx++;
 	}
 
-	/* Remove skipped workloads (wcet_ns == 0) by compacting the array */
-	int active_count = 0;
-	for (i = 0; i < num_workloads; i++) {
-		if (tasks[i].wcet_ns > 0) {
-			if (active_count != i) {
-				tasks[active_count] = tasks[i];
-				wcets_ns[active_count] = wcets_ns[i];
-			}
-			active_count++;
-		}
-	}
-	num_workloads = active_count;
+	/* All workloads are active - no filtering applied */
+	num_workloads = valid_idx;
 	SCHED_PRINTF("[Phase 1] %d workloads measured\n", num_workloads);
 
 	/* Sort tasks by WCET descending */

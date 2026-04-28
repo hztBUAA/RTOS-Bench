@@ -1,0 +1,14 @@
+
+============================================================
+运行测试: nezha
+命令: /apps/hzt/nezha-rtos-bench test-schedule --cycles 1
+============================================================
+Trying 192.168.31.202...
+
+Connected to 192.168.31.202.
+
+Escape character is '^]'.
+
+server is full of linksConnection closed by foreign host.
+
+[ERROR] 测试失败: telnet server refused connection (server is full or closed)

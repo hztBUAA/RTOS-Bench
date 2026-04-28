@@ -1,0 +1,215 @@
+{
+  "orangepi": {
+    "board": "orangepi",
+    "ok": true,
+    "checks": [
+      {
+        "name": "top_help",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "test_all_help",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "bad_split_schedule",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "bad_test_all_option",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "bad_export_option",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "export_result_command",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "json_parse:orangepi_export_20260427_233446.json",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "test_all_quick_export",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "json_parse:orangepi_testall_20260427_233446.json",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "test_schedule_cycles_3",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "fetched": [
+      "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\orangepi_export_20260427_233446.json",
+      "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\orangepi_testall_20260427_233446.json"
+    ],
+    "log": "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\entry_validation_orangepi_20260427_233446.log"
+  },
+  "gongkong": {
+    "board": "gongkong",
+    "ok": true,
+    "checks": [
+      {
+        "name": "top_help",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "test_all_help",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "bad_split_schedule",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "bad_test_all_option",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "bad_export_option",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "export_result_command",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "json_parse:gongkong_export_20260427_233446.json",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "test_all_quick_export",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "json_parse:gongkong_testall_20260427_233446.json",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "test_schedule_cycles_3",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "fetched": [
+      "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\gongkong_export_20260427_233446.json",
+      "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\gongkong_testall_20260427_233446.json"
+    ],
+    "log": "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\entry_validation_gongkong_20260427_233446.log"
+  },
+  "loongson": {
+    "board": "loongson",
+    "ok": true,
+    "checks": [
+      {
+        "name": "top_help",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "test_all_help",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "bad_split_schedule",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "bad_test_all_option",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "bad_export_option",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "export_result_command",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "json_parse:loongson_export_20260427_233446.json",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "test_all_quick_export",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "json_parse:loongson_testall_20260427_233446.json",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      },
+      {
+        "name": "test_schedule_cycles_3",
+        "ok": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "fetched": [
+      "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\loongson_export_20260427_233446.json",
+      "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\loongson_testall_20260427_233446.json"
+    ],
+    "log": "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\entry_validation_loongson_20260427_233446.log"
+  }
+}

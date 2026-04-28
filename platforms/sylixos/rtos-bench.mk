@@ -35,6 +35,9 @@ LOCAL_TARGET_NAME := rtos-bench
 LOCAL_SRCS := \
 RTOS-Bench/generator/sylixos_entry.c \
 RTOS-Bench/generator/test_schedule.c \
+RTOS-Bench/generator/test_schedule/sched_workloads.c \
+RTOS-Bench/generator/test_schedule/sched_mqtt_wrapper.c \
+RTOS-Bench/generator/test_schedule/sched_modbus_wrapper.c \
 RTOS-Bench/generator/test_realtime.c \
 RTOS-Bench/generator/test_stress.c \
 RTOS-Bench/generator/test_cmd.c \
@@ -113,6 +116,7 @@ RTOS-Bench/generator/platform/sylixos/sync.c \
 RTOS-Bench/generator/platform/sylixos/scheduler.c \
 RTOS-Bench/generator/platform/sylixos/timestamp.c \
 RTOS-Bench/generator/platform/sylixos/signal.c \
+RTOS-Bench/generator/platform/sylixos/version_override.c \
 RTOS-Bench/workloads/CUSUM/cusum_bench.c \
 RTOS-Bench/workloads/EWMA/ewma_bench.c \
 RTOS-Bench/workloads/FAST/fast.c \
@@ -223,7 +227,8 @@ LOCAL_LINKFLAGS :=
 # Depend library (eg. LOCAL_DEPEND_LIB := -la LOCAL_DEPEND_LIB_PATH := -L"Your library search path")
 #*********************************************************************************************************
 LOCAL_DEPEND_LIB :=  \
--lm
+-lm \
+-latomic
 LOCAL_DEPEND_LIB_PATH := 
 
 #*********************************************************************************************************

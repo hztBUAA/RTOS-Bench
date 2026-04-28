@@ -10,8 +10,10 @@
 #ifndef _GLIBCXX_USE_C99_MATH
 #define _GLIBCXX_USE_C99_MATH 1
 #endif
+#ifndef __riscv
 #ifndef _GLIBCXX_USE_C99_MATH_TR1
 #define _GLIBCXX_USE_C99_MATH_TR1 1
+#endif
 #endif
 
 #include <math.h>
