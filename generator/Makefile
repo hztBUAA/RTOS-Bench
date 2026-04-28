@@ -47,7 +47,7 @@ PLATFORM_DIR := $(GENERATOR_DIR)/platform/oneos
 override LDFLAGS += -lm
 else ifeq ($(PLATFORM),dongtu)
 override CFLAGS += -DDONGTU_PLATFORM
-PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
+PLATFORM_DIR := $(GENERATOR_DIR)/platform/dongtu
 override LDFLAGS += -lm -pthread
 else ifeq ($(PLATFORM),ruihua)
 override CFLAGS += -DRUIHUA_PLATFORM
@@ -100,6 +100,11 @@ RTTHREAD_ENTRY_SRC := $(GENERATOR_DIR)/rtthread_entry.c \
 # OneOS specific sources (shell command interface)
 ONEOS_ENTRY_SRC := $(GENERATOR_DIR)/oneos_entry.c
 
+# Dongtu specific sources (shell command interface)
+DONGTU_ENTRY_SRC := $(GENERATOR_DIR)/dongtu_entry.c \
+	$(GENERATOR_DIR)/../platforms/dongtu/shell.c
+DONGTU_WORKLOAD_SRC := $(GENERATOR_DIR)/dongtu_workloads.c
+
 # Build mode: MULTI_WORKLOAD=1 enables workload registry for Linux/SylixOS
 # RT-Thread always uses workload registry (built-in workloads selected via -b)
 # Linux/SylixOS now also always include workload registry (weak symbols allow
@@ -116,7 +121,7 @@ else ifeq ($(PLATFORM),oneos)
 # Note: For SCons builds, oneos_entry.c provides shell integration
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(ONEOS_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),dongtu)
-GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(DONGTU_ENTRY_SRC) $(DONGTU_WORKLOAD_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),ruihua)
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),sylixos)

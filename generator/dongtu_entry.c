@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
+#include <limits.h>
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -39,13 +41,14 @@ extern void rtosbench_register_rtos_workloads(void);
 
 /* Default result output path */
 #define RTBENCH_DEFAULT_OUTPUT_PATH "/rtbench_result.json"
+#define RTBENCH_PARSE_HELP 1
 
 /* Stack size for worker threads (32KB to handle deep call chains) */
 #define RTBENCH_TEST_ALL_STACK_SIZE (32 * 1024)
 
 /* Forward declarations for result collection */
 static void collect_realtime_result(int run_multicore);
-static void collect_schedule_result(void);
+static void collect_schedule_result(int cycles, int util_start, int util_end, int util_step);
 static void collect_stress_result(const char *job_name);
 static void collect_cmd_result(void);
 static void collect_workload_results(int quick_mode);
@@ -101,7 +104,13 @@ static void print_usage(void)
 	printf("  --no-workload         Skip typical workload tests\n");
 	printf("  -m, --multicore       Enable multicore tests\n");
 	printf("  --quick               Quick mode (smoke test)\n");
+	printf("  --schedule-cycles <n> Override schedule cycles inside test-all\n");
+	printf("  --util-start <pct>    Override schedule start utilization\n");
+	printf("  --util-end <pct>      Override schedule end utilization\n");
+	printf("  --util-step <pct>     Override schedule utilization step\n");
+	printf("  --stress-job <name>   Override stress job (default: all/all-quick)\n");
 	printf("  -q                    Quiet mode\n");
+	printf("  -h, --help            Show test-all help\n");
 	printf("\n");
 	printf("TEST-REALTIME OPTIONS:\n");
 	printf("  -v, --verify          Run verification tests\n");
@@ -109,12 +118,17 @@ static void print_usage(void)
 	printf("  -q                    Quiet mode\n");
 	printf("\n");
 	printf("TEST-SCHEDULE OPTIONS:\n");
-	printf("  --cycles <n>          Number of test cycles (default: 100)\n");
-	printf("  --util-start <pct>    Starting utilization percentage (default: 10)\n");
-	printf("  --util-end <pct>      Ending utilization percentage (default: 100)\n");
-	printf("  --util-step <pct>     Utilization step size (default: 10)\n");
+	printf("  --cycles <n>          Number of test cycles (default: %d)\n",
+	       TEST_SCHEDULE_CYCLES);
+	printf("  --util-start <pct>    Starting utilization percentage (default: %d)\n",
+	       TEST_SCHEDULE_UTIL_START);
+	printf("  --util-end <pct>      Ending utilization percentage (default: %d)\n",
+	       TEST_SCHEDULE_UTIL_END);
+	printf("  --util-step <pct>     Utilization step size (default: %d)\n",
+	       TEST_SCHEDULE_UTIL_STEP);
 	printf("  --quick               Quick mode (fewer cycles)\n");
 	printf("  -q                    Quiet mode\n");
+	printf("  -h, --help            Show test-schedule help\n");
 	printf("\n");
 	printf("TEST-STRESS OPTIONS:\n");
 	printf("  --job <name>          Run predefined stress job (default: all)\n");
@@ -129,7 +143,9 @@ static void print_usage(void)
 	printf("  -q                    Quiet mode\n");
 	printf("\n");
 	printf("EXPORT-RESULT OPTIONS:\n");
-	printf("  -o, --output <path>   Output JSON path (default: /rtbench_result.json)\n");
+	printf("  -o, --output <path>   Output JSON path (default: %s)\n",
+	       RTBENCH_DEFAULT_OUTPUT_PATH);
+	printf("  -h, --help            Show export-result help\n");
 	printf("\n");
 	printf("EXAMPLES:\n");
 	printf("  rtbench -L                                  # List workloads\n");
@@ -138,6 +154,170 @@ static void print_usage(void)
 	printf("  rtbench test-schedule --cycles 50           # Custom schedule test\n");
 	printf("  rtbench test-stress -s cpu -t 30            # CPU stress for 30s\n");
 	printf("\n");
+}
+
+static void print_test_all_usage(void)
+{
+	printf("\nUsage: rtbench test-all [OPTIONS]\n\n");
+	printf("Options:\n");
+	printf("  -o, --output <path>   Output JSON path (default: %s)\n",
+	       RTBENCH_DEFAULT_OUTPUT_PATH);
+	printf("  --no-realtime         Skip realtime performance test\n");
+	printf("  --no-schedule         Skip schedulability test\n");
+	printf("  --no-stress           Skip stress test\n");
+	printf("  --no-cmd              Skip shell command support test\n");
+	printf("  --no-workload         Skip typical workload tests\n");
+	printf("  -m, --multicore       Enable multicore tests\n");
+	printf("  --quick               Keep all modules but use bounded smoke settings\n");
+	printf("  --schedule-cycles <n> Override schedule cycles\n");
+	printf("  --util-start <pct>    Override schedule start utilization\n");
+	printf("  --util-end <pct>      Override schedule end utilization\n");
+	printf("  --util-step <pct>     Override schedule utilization step\n");
+	printf("  --stress-job <name>   Override stress job (default: all/all-quick)\n");
+	printf("  -q                    Quiet mode\n");
+	printf("  -h, --help, help      Show this help message\n\n");
+}
+
+static void print_test_schedule_usage(void)
+{
+	printf("\nUsage: rtbench test-schedule [OPTIONS]\n\n");
+	printf("Options:\n");
+	printf("  --cycles <n>          Number of test cycles (default: %d)\n",
+	       TEST_SCHEDULE_CYCLES);
+	printf("  --util-start <pct>    Starting utilization percentage (default: %d)\n",
+	       TEST_SCHEDULE_UTIL_START);
+	printf("  --util-end <pct>      Ending utilization percentage (default: %d)\n",
+	       TEST_SCHEDULE_UTIL_END);
+	printf("  --util-step <pct>     Utilization step size (default: %d)\n",
+	       TEST_SCHEDULE_UTIL_STEP);
+	printf("  --quick               Use smoke defaults: cycles=%d, util=%d-%d step %d\n",
+	       TEST_SCHEDULE_QUICK_CYCLES,
+	       TEST_SCHEDULE_QUICK_UTIL_START,
+	       TEST_SCHEDULE_QUICK_UTIL_END,
+	       TEST_SCHEDULE_QUICK_UTIL_STEP);
+	printf("  -q                    Quiet mode\n");
+	printf("  -h, --help, help      Show this help message\n\n");
+}
+
+static void print_export_usage(void)
+{
+	printf("\nUsage: rtbench export-result [OPTIONS]\n\n");
+	printf("Options:\n");
+	printf("  -o, --output <path>   Output JSON path (default: %s)\n",
+	       RTBENCH_DEFAULT_OUTPUT_PATH);
+	printf("  -h, --help, help      Show this help message\n\n");
+}
+
+static int is_help_arg(const char *arg)
+{
+	return arg && (!strcmp(arg, "-h") || !strcmp(arg, "--help") ||
+		       !strcmp(arg, "help"));
+}
+
+static const char *inline_option_value(const char *arg, const char *opt)
+{
+	size_t len;
+
+	if (!arg || !opt) {
+		return NULL;
+	}
+
+	len = strlen(opt);
+	if (strncmp(arg, opt, len) == 0 && arg[len] == '=') {
+		return arg + len + 1;
+	}
+	return NULL;
+}
+
+static int match_value_option(int argc, char **argv, int *idx,
+			      const char *short_opt, const char *long_opt,
+			      const char **value)
+{
+	const char *arg = argv[*idx];
+	const char *inline_value;
+
+	*value = NULL;
+	if (short_opt && strcmp(arg, short_opt) == 0) {
+		if (*idx + 1 >= argc) {
+			printf("[rtbench] Missing value for %s\n", short_opt);
+			return -1;
+		}
+		*value = argv[++(*idx)];
+		return 1;
+	}
+	if (long_opt && strcmp(arg, long_opt) == 0) {
+		if (*idx + 1 >= argc) {
+			printf("[rtbench] Missing value for %s\n", long_opt);
+			return -1;
+		}
+		*value = argv[++(*idx)];
+		return 1;
+	}
+	if (long_opt && (inline_value = inline_option_value(arg, long_opt)) != NULL) {
+		if (*inline_value == '\0') {
+			printf("[rtbench] Missing value for %s\n", long_opt);
+			return -1;
+		}
+		*value = inline_value;
+		return 1;
+	}
+	return 0;
+}
+
+static int parse_int_value(const char *value, const char *name,
+			   int min_value, int max_value, int *out)
+{
+	char *end = NULL;
+	long parsed;
+
+	errno = 0;
+	parsed = strtol(value, &end, 10);
+	if (errno != 0 || end == value || (end && *end != '\0') ||
+	    parsed < min_value || parsed > max_value) {
+		printf("[rtbench] Invalid %s: %s\n", name, value);
+		return -1;
+	}
+
+	*out = (int)parsed;
+	return 0;
+}
+
+static int parse_double_value(const char *value, const char *name, double *out)
+{
+	char *end = NULL;
+	double parsed;
+
+	errno = 0;
+	parsed = strtod(value, &end);
+	if (errno != 0 || end == value || (end && *end != '\0') ||
+	    parsed < 0.0) {
+		printf("[rtbench] Invalid %s: %s\n", name, value);
+		return -1;
+	}
+
+	*out = parsed;
+	return 0;
+}
+
+static int validate_schedule_args(int cycles, int util_start,
+				  int util_end, int util_step,
+				  void (*usage_fn)(void))
+{
+	if (cycles < 1) {
+		printf("[test-schedule] cycles must be >= 1\n");
+		usage_fn();
+		return -1;
+	}
+	if (util_start < 1 || util_start > 100 ||
+	    util_end < 1 || util_end > 100 ||
+	    util_step < 1 || util_step > 100 ||
+	    util_start > util_end) {
+		printf("[test-schedule] invalid utilization range: %d-%d step %d\n",
+		       util_start, util_end, util_step);
+		usage_fn();
+		return -1;
+	}
+	return 0;
 }
 
 static void set_default_exec_opts(struct execution_options *opts)
@@ -167,53 +347,131 @@ static void set_default_exec_opts(struct execution_options *opts)
 	benchmark_verbosity = LOG_LEVEL_TRACE;
 }
 
-static void parse_args(int argc, char **argv, struct execution_options *opts,
-		       int *help_requested)
+static int parse_args(int argc, char **argv, struct execution_options *opts)
 {
-	*help_requested = 0;
 	for (int i = 1; i < argc; i++) {
-		if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
+		const char *value;
+		int matched;
+
+		if (is_help_arg(argv[i])) {
 			print_usage();
-			*help_requested = 1;
-		} else if (!strcmp(argv[i], "-p") && (i + 1 < argc)) {
-			double v = atof(argv[++i]);
+			return RTBENCH_PARSE_HELP;
+		}
+
+		matched = match_value_option(argc, argv, &i, "-p", "--period", &value);
+		if (matched < 0) {
+			print_usage();
+			return -1;
+		} else if (matched) {
+			double v;
+			if (parse_double_value(value, "period", &v) != 0) {
+				print_usage();
+				return -1;
+			}
 			long sec = (long)v;
 			long nsec = (long)((v - (double)sec) * 1000000000.0);
 			opts->period_sec = sec;
 			opts->period_nsec = nsec;
 			opts->parsed_period = v;
-		} else if (!strcmp(argv[i], "-d") && (i + 1 < argc)) {
-			double v = atof(argv[++i]);
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, "-d", "--deadline", &value);
+		if (matched < 0) {
+			print_usage();
+			return -1;
+		} else if (matched) {
+			double v;
+			if (parse_double_value(value, "deadline", &v) != 0) {
+				print_usage();
+				return -1;
+			}
 			long sec = (long)v;
 			long nsec = (long)((v - (double)sec) * 1000000000.0);
 			opts->deadline_sec = sec;
 			opts->deadline_nsec = nsec;
 			opts->parsed_deadline = v;
-		} else if (!strcmp(argv[i], "-t") && (i + 1 < argc)) {
-			opts->tasks_to_launch = strtoull(argv[++i], NULL, 10);
-		} else if (!strcmp(argv[i], "-f") && (i + 1 < argc)) {
-			opts->prio = (uint32_t)strtoul(argv[++i], NULL, 10);
-		} else if (!strcmp(argv[i], "-c") && (i + 1 < argc)) {
-			int cpu = (int)strtol(argv[++i], NULL, 10);
-			if (cpu >= 0 && cpu < 32) {
-				CPU_ZERO(&opts->core_affinity);
-				CPU_SET((uint32_t)cpu, &opts->core_affinity);
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, "-t", "--tasks", &value);
+		if (matched < 0) {
+			print_usage();
+			return -1;
+		} else if (matched) {
+			int tasks;
+			if (parse_int_value(value, "tasks", 0, INT_MAX, &tasks) != 0) {
+				print_usage();
+				return -1;
 			}
-		} else if (!strcmp(argv[i], "-q")) {
+			opts->tasks_to_launch = (uint64_t)tasks;
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, "-f", "--fifo", &value);
+		if (matched < 0) {
+			print_usage();
+			return -1;
+		} else if (matched) {
+			int prio;
+			if (parse_int_value(value, "priority", 0, 255, &prio) != 0) {
+				print_usage();
+				return -1;
+			}
+			opts->prio = (uint32_t)prio;
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, "-c", "--core-affinity", &value);
+		if (matched < 0) {
+			print_usage();
+			return -1;
+		} else if (matched) {
+			int cpu;
+			if (parse_int_value(value, "core-affinity", 0, 31, &cpu) != 0) {
+				print_usage();
+				return -1;
+			}
+			CPU_ZERO(&opts->core_affinity);
+			CPU_SET((uint32_t)cpu, &opts->core_affinity);
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, "-b", "--workload", &value);
+		if (!matched) {
+			matched = match_value_option(argc, argv, &i, "-w", NULL, &value);
+		}
+		if (matched < 0) {
+			print_usage();
+			return -1;
+		} else if (matched) {
+			opts->workload_name = value;
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, "-G", "--category", &value);
+		if (matched < 0) {
+			print_usage();
+			return -1;
+		} else if (matched) {
+			opts->category_filter = value;
+			continue;
+		}
+
+		if (!strcmp(argv[i], "-q")) {
 			benchmark_verbosity = LOG_LEVEL_INFO;
-		} else if (!strcmp(argv[i], "-b") && (i + 1 < argc)) {
-			opts->workload_name = argv[++i];
-		} else if (!strcmp(argv[i], "-w") && (i + 1 < argc)) {
-			opts->workload_name = argv[++i];
-		} else if (!strcmp(argv[i], "-A")) {
+		} else if (!strcmp(argv[i], "-A") || !strcmp(argv[i], "--all-workloads")) {
 			opts->run_all_workloads = 1;
-		} else if (!strcmp(argv[i], "-G") && (i + 1 < argc)) {
-			opts->category_filter = argv[++i];
 		} else if (!strcmp(argv[i], "-l") || !strcmp(argv[i], "--list") ||
 			   !strcmp(argv[i], "-L")) {
 			opts->list_only = 1;
+		} else {
+			printf("[rtbench] Unknown option or command: %s\n", argv[i]);
+			print_usage();
+			return -1;
 		}
 	}
+	return 0;
 }
 
 static void debug_print_context(const struct execution_options *opts)
@@ -237,9 +495,150 @@ struct test_all_params {
 	int run_workload;
 	int run_multicore;
 	int quick_mode;
+	int schedule_cycles;
+	int schedule_util_start;
+	int schedule_util_end;
+	int schedule_util_step;
+	const char *stress_job;
 	int result;
 	sem_t done_sem;
 };
+
+static int parse_test_all_args(int argc, char **argv, struct test_all_params *params)
+{
+	int cycles_set = 0;
+	int util_start_set = 0;
+	int util_end_set = 0;
+	int util_step_set = 0;
+
+	for (int i = 2; i < argc; i++) {
+		const char *value;
+		int matched;
+
+		if (is_help_arg(argv[i])) {
+			print_test_all_usage();
+			return RTBENCH_PARSE_HELP;
+		}
+
+		matched = match_value_option(argc, argv, &i, "-o", "--output", &value);
+		if (matched < 0) {
+			print_test_all_usage();
+			return -1;
+		} else if (matched) {
+			params->output_path = value;
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, NULL, "--schedule-cycles", &value);
+		if (matched < 0) {
+			print_test_all_usage();
+			return -1;
+		} else if (matched) {
+			if (parse_int_value(value, "schedule-cycles", 1, INT_MAX,
+					    &params->schedule_cycles) != 0) {
+				print_test_all_usage();
+				return -1;
+			}
+			cycles_set = 1;
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, NULL, "--util-start", &value);
+		if (matched < 0) {
+			print_test_all_usage();
+			return -1;
+		} else if (matched) {
+			if (parse_int_value(value, "util-start", 1, 100,
+					    &params->schedule_util_start) != 0) {
+				print_test_all_usage();
+				return -1;
+			}
+			util_start_set = 1;
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, NULL, "--util-end", &value);
+		if (matched < 0) {
+			print_test_all_usage();
+			return -1;
+		} else if (matched) {
+			if (parse_int_value(value, "util-end", 1, 100,
+					    &params->schedule_util_end) != 0) {
+				print_test_all_usage();
+				return -1;
+			}
+			util_end_set = 1;
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, NULL, "--util-step", &value);
+		if (matched < 0) {
+			print_test_all_usage();
+			return -1;
+		} else if (matched) {
+			if (parse_int_value(value, "util-step", 1, 100,
+					    &params->schedule_util_step) != 0) {
+				print_test_all_usage();
+				return -1;
+			}
+			util_step_set = 1;
+			continue;
+		}
+
+		matched = match_value_option(argc, argv, &i, NULL, "--stress-job", &value);
+		if (matched < 0) {
+			print_test_all_usage();
+			return -1;
+		} else if (matched) {
+			params->stress_job = value;
+			continue;
+		}
+
+		if (strcmp(argv[i], "--no-realtime") == 0) {
+			params->run_realtime = 0;
+		} else if (strcmp(argv[i], "--no-schedule") == 0) {
+			params->run_schedule = 0;
+		} else if (strcmp(argv[i], "--no-stress") == 0) {
+			params->run_stress = 0;
+		} else if (strcmp(argv[i], "--no-cmd") == 0) {
+			params->run_cmd = 0;
+		} else if (strcmp(argv[i], "--no-workload") == 0) {
+			params->run_workload = 0;
+		} else if (strcmp(argv[i], "--multicore") == 0 ||
+			   strcmp(argv[i], "-m") == 0) {
+			params->run_multicore = 1;
+		} else if (strcmp(argv[i], "--quick") == 0) {
+			params->quick_mode = 1;
+		} else if (strcmp(argv[i], "-q") == 0) {
+			benchmark_verbosity = LOG_LEVEL_INFO;
+		} else {
+			printf("[test-all] Unknown option: %s\n", argv[i]);
+			print_test_all_usage();
+			return -1;
+		}
+	}
+
+	if (params->quick_mode) {
+		if (!cycles_set) {
+			params->schedule_cycles = TEST_SCHEDULE_QUICK_CYCLES;
+		}
+		if (!util_start_set) {
+			params->schedule_util_start = TEST_SCHEDULE_QUICK_UTIL_START;
+		}
+		if (!util_end_set) {
+			params->schedule_util_end = TEST_SCHEDULE_QUICK_UTIL_END;
+		}
+		if (!util_step_set) {
+			params->schedule_util_step = TEST_SCHEDULE_QUICK_UTIL_STEP;
+		}
+	}
+
+	return validate_schedule_args(params->schedule_cycles,
+				      params->schedule_util_start,
+				      params->schedule_util_end,
+				      params->schedule_util_step,
+				      print_test_all_usage);
+}
 
 static void *test_all_thread_entry(void *parameter)
 {
@@ -278,23 +677,24 @@ static void *test_all_thread_entry(void *parameter)
 
 	/* Run schedule test */
 	if (p->run_schedule) {
-		printf("\n>>> Running test-schedule%s...\n",
-		       p->quick_mode ? " (quick)" : "");
-		if (p->quick_mode) {
-			test_schedule_run_custom(
-				TEST_SCHEDULE_QUICK_CYCLES,
-				TEST_SCHEDULE_QUICK_UTIL_START,
-				TEST_SCHEDULE_QUICK_UTIL_END,
-				TEST_SCHEDULE_QUICK_UTIL_STEP);
-		} else {
-			test_schedule_run();
-		}
-		collect_schedule_result();
+		printf("\n>>> Running test-schedule%s (cycles=%d util=%d-%d step %d)...\n",
+		       p->quick_mode ? " (quick)" : "",
+		       p->schedule_cycles, p->schedule_util_start,
+		       p->schedule_util_end, p->schedule_util_step);
+		test_schedule_run_custom(p->schedule_cycles,
+					 p->schedule_util_start,
+					 p->schedule_util_end,
+					 p->schedule_util_step);
+		collect_schedule_result(p->schedule_cycles,
+					p->schedule_util_start,
+					p->schedule_util_end,
+					p->schedule_util_step);
 	}
 
 	/* Run stress test */
 	if (p->run_stress) {
-		const char *stress_job = p->quick_mode ? "all-quick" : "all";
+		const char *stress_job = p->stress_job ?
+			p->stress_job : (p->quick_mode ? "all-quick" : "all");
 		printf("\n>>> Running test-stress (job: %s)...\n", stress_job);
 		test_stress_run_job(stress_job);
 		collect_stress_result(stress_job);
@@ -342,6 +742,7 @@ int rtbench_dongtu_entry(int argc, char **argv)
 {
 	struct execution_options opts;
 	const char *output_path = NULL;
+	int parse_ret;
 
 	/* Register workloads on first call */
 	static int initialized = 0;
@@ -351,7 +752,7 @@ int rtbench_dongtu_entry(int argc, char **argv)
 	}
 
 	/* No arguments - show help */
-	if (argc < 2) {
+	if (argc < 2 || is_help_arg(argv[1])) {
 		print_usage();
 		return 0;
 	}
@@ -367,35 +768,19 @@ int rtbench_dongtu_entry(int argc, char **argv)
 		params.run_workload = 1;
 		params.run_multicore = 0;
 		params.quick_mode = 0;
+		params.schedule_cycles = TEST_SCHEDULE_CYCLES;
+		params.schedule_util_start = TEST_SCHEDULE_UTIL_START;
+		params.schedule_util_end = TEST_SCHEDULE_UTIL_END;
+		params.schedule_util_step = TEST_SCHEDULE_UTIL_STEP;
+		params.output_path = RTBENCH_DEFAULT_OUTPUT_PATH;
 
-		/* Parse optional arguments */
-		for (int i = 2; i < argc; i++) {
-			if ((strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) && (i + 1 < argc)) {
-				output_path = argv[++i];
-			} else if (strcmp(argv[i], "--no-realtime") == 0) {
-				params.run_realtime = 0;
-			} else if (strcmp(argv[i], "--no-schedule") == 0) {
-				params.run_schedule = 0;
-			} else if (strcmp(argv[i], "--no-stress") == 0) {
-				params.run_stress = 0;
-			} else if (strcmp(argv[i], "--no-cmd") == 0) {
-				params.run_cmd = 0;
-			} else if (strcmp(argv[i], "--no-workload") == 0) {
-				params.run_workload = 0;
-			} else if (strcmp(argv[i], "--multicore") == 0 || strcmp(argv[i], "-m") == 0) {
-				params.run_multicore = 1;
-			} else if (strcmp(argv[i], "--quick") == 0) {
-				params.quick_mode = 1;
-			} else if (strcmp(argv[i], "-q") == 0) {
-				benchmark_verbosity = LOG_LEVEL_INFO;
-			}
+		parse_ret = parse_test_all_args(argc, argv, &params);
+		if (parse_ret == RTBENCH_PARSE_HELP) {
+			return 0;
 		}
-
-		/* Use default output path if not specified */
-		if (!output_path) {
-			output_path = RTBENCH_DEFAULT_OUTPUT_PATH;
+		if (parse_ret != 0) {
+			return -1;
 		}
-		params.output_path = output_path;
 
 		/* Initialize completion semaphore */
 		sem_init(&params.done_sem, 0, 0);
@@ -425,8 +810,23 @@ int rtbench_dongtu_entry(int argc, char **argv)
 	if (argc >= 2 && strcmp(argv[1], "export-result") == 0) {
 		output_path = RTBENCH_DEFAULT_OUTPUT_PATH;
 		for (int i = 2; i < argc; i++) {
-			if ((strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) && (i + 1 < argc)) {
-				output_path = argv[++i];
+			const char *value;
+			int matched;
+
+			if (is_help_arg(argv[i])) {
+				print_export_usage();
+				return 0;
+			}
+			matched = match_value_option(argc, argv, &i, "-o", "--output", &value);
+			if (matched < 0) {
+				print_export_usage();
+				return -1;
+			} else if (matched) {
+				output_path = value;
+			} else {
+				printf("[export-result] Unknown option: %s\n", argv[i]);
+				print_export_usage();
+				return -1;
 			}
 		}
 		int ret = rtbench_result_export_json(output_path);
@@ -443,28 +843,99 @@ int rtbench_dongtu_entry(int argc, char **argv)
 		int util_end = TEST_SCHEDULE_UTIL_END;
 		int util_step = TEST_SCHEDULE_UTIL_STEP;
 		int quick = 0;
+		int cycles_set = 0;
+		int util_start_set = 0;
+		int util_end_set = 0;
+		int util_step_set = 0;
 
 		for (int i = 2; i < argc; i++) {
-			if (strcmp(argv[i], "--cycles") == 0 && (i + 1 < argc)) {
-				cycles = atoi(argv[++i]);
-			} else if (strcmp(argv[i], "--util-start") == 0 && (i + 1 < argc)) {
-				util_start = atoi(argv[++i]);
-			} else if (strcmp(argv[i], "--util-end") == 0 && (i + 1 < argc)) {
-				util_end = atoi(argv[++i]);
-			} else if (strcmp(argv[i], "--util-step") == 0 && (i + 1 < argc)) {
-				util_step = atoi(argv[++i]);
+			const char *value;
+			int matched;
+
+			if (is_help_arg(argv[i])) {
+				print_test_schedule_usage();
+				return 0;
+			}
+
+			matched = match_value_option(argc, argv, &i, NULL, "--cycles", &value);
+			if (matched < 0) {
+				print_test_schedule_usage();
+				return -1;
+			} else if (matched) {
+				if (parse_int_value(value, "cycles", 1, INT_MAX, &cycles) != 0) {
+					print_test_schedule_usage();
+					return -1;
+				}
+				cycles_set = 1;
+				continue;
+			}
+
+			matched = match_value_option(argc, argv, &i, NULL, "--util-start", &value);
+			if (matched < 0) {
+				print_test_schedule_usage();
+				return -1;
+			} else if (matched) {
+				if (parse_int_value(value, "util-start", 1, 100, &util_start) != 0) {
+					print_test_schedule_usage();
+					return -1;
+				}
+				util_start_set = 1;
+				continue;
+			}
+
+			matched = match_value_option(argc, argv, &i, NULL, "--util-end", &value);
+			if (matched < 0) {
+				print_test_schedule_usage();
+				return -1;
+			} else if (matched) {
+				if (parse_int_value(value, "util-end", 1, 100, &util_end) != 0) {
+					print_test_schedule_usage();
+					return -1;
+				}
+				util_end_set = 1;
+				continue;
+			}
+
+			matched = match_value_option(argc, argv, &i, NULL, "--util-step", &value);
+			if (matched < 0) {
+				print_test_schedule_usage();
+				return -1;
+			} else if (matched) {
+				if (parse_int_value(value, "util-step", 1, 100, &util_step) != 0) {
+					print_test_schedule_usage();
+					return -1;
+				}
+				util_step_set = 1;
+				continue;
 			} else if (strcmp(argv[i], "--quick") == 0) {
 				quick = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
+			} else {
+				printf("[test-schedule] Unknown option: %s\n", argv[i]);
+				print_test_schedule_usage();
+				return -1;
 			}
 		}
 
 		if (quick) {
-			cycles = TEST_SCHEDULE_QUICK_CYCLES;
-			util_start = TEST_SCHEDULE_QUICK_UTIL_START;
-			util_end = TEST_SCHEDULE_QUICK_UTIL_END;
-			util_step = TEST_SCHEDULE_QUICK_UTIL_STEP;
+			if (!cycles_set) {
+				cycles = TEST_SCHEDULE_QUICK_CYCLES;
+			}
+			if (!util_start_set) {
+				util_start = TEST_SCHEDULE_QUICK_UTIL_START;
+			}
+			if (!util_end_set) {
+				util_end = TEST_SCHEDULE_QUICK_UTIL_END;
+			}
+			if (!util_step_set) {
+				util_step = TEST_SCHEDULE_QUICK_UTIL_STEP;
+			}
+		}
+
+		if (validate_schedule_args(cycles, util_start, util_end, util_step,
+					   print_test_schedule_usage) != 0) {
+			return -1;
 		}
 
 		printf("[test-schedule] Starting schedulability test on Dongtu%s\n",
@@ -481,7 +952,10 @@ int rtbench_dongtu_entry(int argc, char **argv)
 		int run_verify = 0;
 
 		for (int i = 2; i < argc; i++) {
-			if (strcmp(argv[i], "--verify") == 0 ||
+			if (is_help_arg(argv[i])) {
+				print_usage();
+				return 0;
+			} else if (strcmp(argv[i], "--verify") == 0 ||
 			    strcmp(argv[i], "-v") == 0) {
 				run_verify = 1;
 			} else if (strcmp(argv[i], "--multicore") == 0 ||
@@ -489,6 +963,10 @@ int rtbench_dongtu_entry(int argc, char **argv)
 				run_multicore = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
+			} else {
+				printf("[test-realtime] Unknown option: %s\n", argv[i]);
+				print_usage();
+				return -1;
 			}
 		}
 
@@ -523,7 +1001,10 @@ int rtbench_dongtu_entry(int argc, char **argv)
 		for (int i = 2; i < argc; i++) {
 			const char *val;
 
-			if (strcmp(argv[i], "--job") == 0 && (i +1 < argc)) {
+			if (is_help_arg(argv[i])) {
+				print_usage();
+				return 0;
+			} else if (strcmp(argv[i], "--job") == 0 && (i +1 < argc)) {
 				job_name = argv[++i];
 			} else if ((val = test_stress_parse_opt_arg(argv[i], "--job=")) != NULL) {
 				job_name = val;
@@ -562,27 +1043,19 @@ int rtbench_dongtu_entry(int argc, char **argv)
 			} else if (strcmp(argv[i], "-l") == 0 ||
 			           strcmp(argv[i], "--list") == 0) {
 				list_jobs = 1;
-			} else if (strncmp(argv[i], "--", 2) == 0) {
-				int arg_len = strlen(argv[i]);
-				if (strchr(argv[i], '=') == NULL && i +1 < argc && argv[i+1][0] != '-') {
-					arg_len += 1 + strlen(argv[i+1]);
-				}
-				if (extra_opts_len + arg_len +2 < (int)sizeof(extra_opts_buf)) {
-					if (extra_opts_len > 0) {
-						extra_opts_buf[extra_opts_len++] = ' ';
-					}
-					strcpy(extra_opts_buf + extra_opts_len, argv[i]);
-					extra_opts_len += strlen(argv[i]);
-					if (strchr(argv[i], '=') == NULL && i +1 < argc && argv[i+1][0] != '-') {
-						extra_opts_buf[extra_opts_len++] = ' ';
-						strcpy(extra_opts_buf + extra_opts_len, argv[++i]);
-						extra_opts_len += strlen(argv[i]);
-					}
-				}
 			} else if (strcmp(argv[i], "--quick") == 0) {
 				quick = 1;
 			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
+			} else if (strncmp(argv[i], "--", 2) == 0) {
+				printf("[test-stress] Unknown option: %s (use --opts for stressor-specific options)\n",
+				       argv[i]);
+				print_usage();
+				return -1;
+			} else {
+				printf("[test-stress] Unknown option: %s\n", argv[i]);
+				print_usage();
+				return -1;
 			}
 		}
 
@@ -621,8 +1094,15 @@ int rtbench_dongtu_entry(int argc, char **argv)
 	/* Handle test-cmd subcommand */
 	if (argc >= 2 && strcmp(argv[1], "test-cmd") == 0) {
 		for (int i = 2; i < argc; i++) {
-			if (strcmp(argv[i], "-q") == 0) {
+			if (is_help_arg(argv[i])) {
+				print_usage();
+				return 0;
+			} else if (strcmp(argv[i], "-q") == 0) {
 				benchmark_verbosity = LOG_LEVEL_INFO;
+			} else {
+				printf("[test-cmd] Unknown option: %s\n", argv[i]);
+				print_usage();
+				return -1;
 			}
 		}
 		printf("[test-cmd] Starting shell command support test on Dongtu\n");
@@ -641,10 +1121,12 @@ int rtbench_dongtu_entry(int argc, char **argv)
 
 	/* Standard workload execution */
 	set_default_exec_opts(&opts);
-	int help_requested = 0;
-	parse_args(argc, argv, &opts, &help_requested);
-	if (help_requested) {
+	parse_ret = parse_args(argc, argv, &opts);
+	if (parse_ret == RTBENCH_PARSE_HELP) {
 		return 0;
+	}
+	if (parse_ret != 0) {
+		return -1;
 	}
 
 	if (opts.list_only) {
@@ -736,15 +1218,12 @@ int rtbench_dongtu_entry(int argc, char **argv)
 	return ret;
 }
 
-/**
- * @brief Convenience wrapper for main()-style entry
- *
- * Use this if Dongtu supports standard main() entry point.
- */
+#ifdef RTBENCH_DONGTU_STANDALONE
 int main(int argc, char **argv)
 {
 	return rtbench_dongtu_entry(argc, argv);
 }
+#endif
 
 /* ============================================================================
  * Result Collection Functions
@@ -834,7 +1313,7 @@ static void collect_realtime_result(int run_multicore)
 	}
 }
 
-static void collect_schedule_result(void)
+static void collect_schedule_result(int cycles, int util_start, int util_end, int util_step)
 {
 	struct rtbench_result *r = rtbench_result_get();
 	struct rtbench_schedule_result *sched = &r->schedule;
@@ -842,10 +1321,10 @@ static void collect_schedule_result(void)
 	const struct test_schedule_result *ts_result = test_schedule_get_result();
 
 	sched->valid = 1;
-	sched->cycles = TEST_SCHEDULE_CYCLES;
-	sched->util_start = TEST_SCHEDULE_UTIL_START;
-	sched->util_end = TEST_SCHEDULE_UTIL_END;
-	sched->util_step = TEST_SCHEDULE_UTIL_STEP;
+	sched->cycles = cycles;
+	sched->util_start = util_start;
+	sched->util_end = util_end;
+	sched->util_step = util_step;
 
 	sched->average_miss_rate = ts_result->average_miss_rate;
 	sched->final_score = ts_result->final_score;

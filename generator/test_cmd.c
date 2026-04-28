@@ -83,9 +83,21 @@ static const char *test_seq[] = {
     "rm ./test_cmd_dir",
 };
 
+#elif defined(DONGTU_PLATFORM)
+
+#define CMD_EXEC(cmd, len) (-1)
+#define CMD_PRINTF printf
+
+static const char *test_seq[] = {
+    "date",
+    "task",
+    "pwd",
+    "ls",
+    "version",
+};
+
 #elif defined(LINUX_PLATFORM) || defined(__linux__) || \
-      defined(SYLIXOS_PLATFORM) || defined(DONGTU_PLATFORM) || \
-      defined(RUIHUA_PLATFORM)
+      defined(SYLIXOS_PLATFORM) || defined(RUIHUA_PLATFORM)
 
 #define CMD_EXEC(cmd, len) system(cmd)
 #define CMD_PRINTF printf
