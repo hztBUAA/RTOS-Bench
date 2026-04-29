@@ -30,8 +30,12 @@
 #define SCHED_THREAD_PRIORITY   15
 #else
 #include <pthread.h>
-#define SCHED_PRINTF printf
+#define SCHED_PRINTF(...) do { printf(__VA_ARGS__); fflush(stdout); } while (0)
+#if defined(DONGTU_PLATFORM)
+#define SCHED_POSIX_STACK_SIZE (1024 * 1024)
+#else
 #define SCHED_POSIX_STACK_SIZE (4 * 1024 * 1024)
+#endif
 #endif
 
 /**
@@ -400,9 +404,15 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 		if (create_task_thread(&contexts[i], tasks[i].name) != 0) {
 			SCHED_PRINTF("[test-schedule] Failed to create thread for %s\n",
 				     tasks[i].name);
-			/* Stop already-started threads */
+			/* Stop and join already-started threads before releasing contexts. */
 			for (int j = 0; j < i; j++) {
 				contexts[j].running = 0;
+				if (contexts[j].period_sem) {
+					rtbench_sem_post(contexts[j].period_sem);
+				}
+			}
+			for (int j = 0; j < i; j++) {
+				wait_task_thread(&contexts[j]);
 			}
 			g_sched_suppress_output = 0;
 			free(contexts);
@@ -452,6 +462,8 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	double sum_mr;
 	int total_workloads;
 	int valid_idx;
+	int failed_gradients = 0;
+	int ret = 0;
 
 	/* Clear previous results */
 	memset(&g_result, 0, sizeof(g_result));
@@ -494,6 +506,7 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 
 	if (!tasks || !stats || !wcets_ns || !generated_u || !workload_indices) {
 		SCHED_PRINTF("[test-schedule] Memory allocation failed\n");
+		ret = -1;
 		goto cleanup;
 	}
 
@@ -606,9 +619,17 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 		g_result.gradients[gradient_idx].utilization_percent = u_percent;
 		g_result.gradients[gradient_idx].actual_utilization = target_u;
 
-		if (run_gradient(num_workloads, tasks, stats, cycles,
-				 &g_result.gradients[gradient_idx]) != 0) {
+		ret = run_gradient(num_workloads, tasks, stats, cycles,
+				   &g_result.gradients[gradient_idx]);
+		if (ret != 0) {
+			g_result.gradients[gradient_idx].num_tasks = num_workloads;
+			g_result.gradients[gradient_idx].total_jobs = 0;
+			g_result.gradients[gradient_idx].total_misses = 0;
+			g_result.gradients[gradient_idx].miss_rate = 1.0;
+			failed_gradients++;
 			SCHED_PRINTF("Failed to run gradient %d%%\n", u_percent);
+			gradient_idx++;
+			break;
 		} else {
 			SCHED_PRINTF("Gradient %d%% complete: MR = %.4f (%llu/%llu)\n",
 				     u_percent,
@@ -639,7 +660,11 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 			     (unsigned long long)g_result.gradients[i].total_jobs);
 	}
 
-	g_result.average_miss_rate = sum_mr / (double)g_result.num_gradients;
+	if (g_result.num_gradients > 0) {
+		g_result.average_miss_rate = sum_mr / (double)g_result.num_gradients;
+	} else {
+		g_result.average_miss_rate = 1.0;
+	}
 	g_result.final_score = 100.0 * (1.0 - g_result.average_miss_rate);
 
 	SCHED_PRINTF("\n------------------------------------------------------\n");
@@ -654,7 +679,7 @@ cleanup:
 	if (generated_u) free(generated_u);
 	if (workload_indices) free(workload_indices);
 
-	return 0;
+	return (failed_gradients || ret != 0) ? -1 : 0;
 }
 
 int test_schedule_run(void)

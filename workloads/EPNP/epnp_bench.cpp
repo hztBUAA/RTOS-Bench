@@ -32,7 +32,7 @@ using namespace opengv;
 
 #ifdef ONEOS_PLATFORM
 #define THREAD_STACK_SIZE (64 * 1024)
-#else 
+#else
 #define THREAD_STACK_SIZE (5 * 1024)
 #endif
 
@@ -47,10 +47,14 @@ extern "C" int epnp_bench_run(size_t iterations) {
     std::cout << "[POSIX] Starting ePnP Benchmark..." << std::endl;
 
     // 1. 初始化随机种子
+#ifdef DONGTU_PLATFORM
+    initializeRandomSeed();
+#else
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     srand((unsigned int)ts.tv_nsec);
     initializeRandomSeed();
+#endif
 
     // 2. 设置实验参数
     size_t numberPoints = 100;
@@ -80,7 +84,9 @@ extern "C" int epnp_bench_run(size_t iterations) {
         bearingVectors, points, camCorrespondences, gt );
 
     // 打印实验配置 (使用了 opengv 的 helper)
+#ifndef DONGTU_PLATFORM
     printExperimentCharacteristics( position, rotation, noise, outlierFraction );
+#endif
 
     // 6. 创建 Adapter
     absolute_pose::CentralAbsoluteAdapter adapter(
@@ -89,7 +95,9 @@ extern "C" int epnp_bench_run(size_t iterations) {
         rotation );
 
     // 7. 运行 ePnP 算法测试
+#ifndef DONGTU_PLATFORM
     std::cout << "Running ePnP (using all " << numberPoints << " correspondences)..." << std::endl;
+#endif
     
     transformation_t epnp_transformation;
     
@@ -98,7 +106,7 @@ extern "C" int epnp_bench_run(size_t iterations) {
 
     // 记录开始时间
     clock_gettime(CLOCK_MONOTONIC, &start_time);
-    
+
     size_t loops = iterations > 0 ? iterations : 1;
     for(size_t i = 0; i < loops; i++) {
         epnp_transformation = absolute_pose::epnp(adapter);
@@ -111,8 +119,8 @@ extern "C" int epnp_bench_run(size_t iterations) {
     double avg_time_us = total_time_us / loops;
 
     /* Unified format timing output */
-    printf("[EPNP] samples=%zu total_time=%.3f ms avg_latency=%.3f us/iter\n",
-           loops, total_time_us / 1000.0, avg_time_us);
+    printf("[EPNP] samples=%llu total_time=%.3f ms avg_latency=%.3f us/iter\n",
+           (unsigned long long)loops, total_time_us / 1000.0, avg_time_us);
 
     return 0;
 }

@@ -16,7 +16,6 @@ ARCH ?= __ARM64__
 
 RTBENCH_GENERATOR_SRCS := \
 	dongtu_entry.c \
-	dongtu_workloads.c \
 	logging.c \
 	memory_watcher.c \
 	periodic_benchmark.c \
@@ -81,24 +80,70 @@ RTBENCH_WORKLOAD_SRCS := \
 	MQTT/mongoose.c \
 	MQTT/mqtt_bench.c
 
+RTBENCH_WORKLOAD_CXX_SRCS := \
+	rtbench_workloads.cpp \
+	EKF/EKF_core/airspeed_fusion.cpp \
+	EKF/EKF_core/control.cpp \
+	EKF/EKF_core/covariance.cpp \
+	EKF/EKF_core/drag_fusion.cpp \
+	EKF/EKF_core/ekf.cpp \
+	EKF/EKF_core/EKFGSF_yaw.cpp \
+	EKF/EKF_core/ekf_helper.cpp \
+	EKF/EKF_core/estimator_interface.cpp \
+	EKF/EKF_core/gps_checks.cpp \
+	EKF/EKF_core/gps_yaw_fusion.cpp \
+	EKF/EKF_core/imu_down_sampler.cpp \
+	EKF/EKF_core/mag_control.cpp \
+	EKF/EKF_core/mag_fusion.cpp \
+	EKF/EKF_core/optflow_fusion.cpp \
+	EKF/EKF_core/sensor_range_finder.cpp \
+	EKF/EKF_core/sideslip_fusion.cpp \
+	EKF/EKF_core/terrain_estimator.cpp \
+	EKF/EKF_core/utils.cpp \
+	EKF/EKF_core/vel_pos_fusion.cpp \
+	EKF/geo/geo.cpp \
+	EKF/geo_lookup/geo_mag_declination.cpp \
+	EKF/ekf_bench.cpp \
+	EPNP/cayley.cpp \
+	EPNP/CentralAbsoluteAdapter.cpp \
+	EPNP/Epnp.cpp \
+	EPNP/epnp_bench.cpp \
+	EPNP/experiment_helpers.cpp \
+	EPNP/methods.cpp \
+	EPNP/random_generators.cpp \
+	EPNP/time_measurement.cpp \
+	ICP/icp.cpp \
+	ICP/icpPointToPlane.cpp \
+	ICP/icpPointToPoint.cpp \
+	ICP/icp_bench.cpp \
+	ICP/kdtree.cpp \
+	ICP/matrix.cpp \
+	PID/PID_v1.cpp \
+	PID/pid_bench.cpp
+
 RTBENCH_DONGTU_PLATFORM_SRCS := \
 	compat.c \
 	shell.c
 
 RTBENCH_GENERATOR_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/generator/,$(RTBENCH_GENERATOR_SRCS:.c=.o))
 RTBENCH_WORKLOAD_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/workloads/,$(RTBENCH_WORKLOAD_SRCS:.c=.o))
+RTBENCH_WORKLOAD_CXX_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/workloads/,$(RTBENCH_WORKLOAD_CXX_SRCS:.cpp=.o))
 RTBENCH_DONGTU_PLATFORM_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/platforms/dongtu/,$(RTBENCH_DONGTU_PLATFORM_SRCS:.c=.o))
 RTBENCH_GENERATOR_DEPS := $(RTBENCH_GENERATOR_OBJS:.o=.d)
 RTBENCH_WORKLOAD_DEPS := $(RTBENCH_WORKLOAD_OBJS:.o=.d)
+RTBENCH_WORKLOAD_CXX_DEPS := $(RTBENCH_WORKLOAD_CXX_OBJS:.o=.d)
 RTBENCH_DONGTU_PLATFORM_DEPS := $(RTBENCH_DONGTU_PLATFORM_OBJS:.o=.d)
 RTBENCH_DONGTU_SHELL_OBJ := $(RTBENCH_EXT_OBJ_DIR)/platforms/dongtu/shell.o
 RTBENCH_DONGTU_ARCHIVE_PLATFORM_OBJS := $(filter-out $(RTBENCH_DONGTU_SHELL_OBJ),$(RTBENCH_DONGTU_PLATFORM_OBJS))
 
+CONFIG_CPLUSPLUS := 1
+HAS_CPP := Y
 C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/generator/,$(RTBENCH_GENERATOR_SRCS))
 C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/workloads/,$(RTBENCH_WORKLOAD_SRCS))
 C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/platforms/dongtu/,$(RTBENCH_DONGTU_PLATFORM_SRCS))
-OBJS += $(RTBENCH_GENERATOR_OBJS) $(RTBENCH_WORKLOAD_OBJS) $(RTBENCH_DONGTU_PLATFORM_OBJS)
-DEPS += $(RTBENCH_GENERATOR_DEPS) $(RTBENCH_WORKLOAD_DEPS) $(RTBENCH_DONGTU_PLATFORM_DEPS)
+CXX_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/workloads/,$(RTBENCH_WORKLOAD_CXX_SRCS))
+OBJS += $(RTBENCH_GENERATOR_OBJS) $(RTBENCH_WORKLOAD_OBJS) $(RTBENCH_WORKLOAD_CXX_OBJS) $(RTBENCH_DONGTU_PLATFORM_OBJS)
+DEPS += $(RTBENCH_GENERATOR_DEPS) $(RTBENCH_WORKLOAD_DEPS) $(RTBENCH_WORKLOAD_CXX_DEPS) $(RTBENCH_DONGTU_PLATFORM_DEPS)
 USER_OBJS += $(RTBENCH_DONGTU_SHELL_OBJ)
 
 RTBENCH_DONGTU_FLAGS := \
@@ -116,8 +161,44 @@ RTBENCH_DONGTU_FLAGS := \
 	-I$(RTOS_BENCH_ROOT)/workloads/CUSUM \
 	-I$(RTOS_BENCH_ROOT)/workloads/EWMA \
 	-I$(RTOS_BENCH_ROOT)/workloads/FAST \
+	-I$(RTOS_BENCH_ROOT)/workloads/EKF \
+	-I$(RTOS_BENCH_ROOT)/workloads/EKF/include \
+	-I$(RTOS_BENCH_ROOT)/workloads/EKF/include/matrix \
+	-I$(RTOS_BENCH_ROOT)/workloads/EKF/geo_lookup \
+	-I$(RTOS_BENCH_ROOT)/workloads/EKF/geo \
+	-I$(RTOS_BENCH_ROOT)/workloads/EPNP \
+	-I$(RTOS_BENCH_ROOT)/workloads/EPNP/opengv \
+	-I$(RTOS_BENCH_ROOT)/workloads/EPNP/Eigen \
+	-I$(RTOS_BENCH_ROOT)/workloads/ICP \
 	-I$(RTOS_BENCH_ROOT)/workloads/MODBUS \
-	-I$(RTOS_BENCH_ROOT)/workloads/MQTT
+	-I$(RTOS_BENCH_ROOT)/workloads/MQTT \
+	-I$(RTOS_BENCH_ROOT)/workloads/PID
+
+RTBENCH_DONGTU_CXX ?= $(subst -gcc,-g++,$(CC))
+RTBENCH_DONGTU_CXX_FLAGS := \
+	$(RTBENCH_DONGTU_FLAGS) \
+	-include $(RTOS_BENCH_ROOT)/platforms/dongtu/cxx_compat.h \
+	-UENABLE_CPLUSPLUS \
+	-DENABLE_CPLUSPLUS=1 \
+	-D_SYS_REENT_H_ \
+	-D_NOTHROW= \
+	-D_GLIBCXX_HAVE_MBSTATE_T=1 \
+	-DECL_STANDALONE \
+	-D__STDC_FORMAT_MACROS \
+	-D__STDC_LIMIT_MACROS \
+	-D_GLIBCXX_USE_C99 \
+	-D_GLIBCXX_USE_C99_MATH \
+	-D_USE_MATH_DEFINES \
+	-DEIGEN_DONT_VECTORIZE \
+	-DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT \
+	-std=c++14 \
+	-Wno-error \
+	-Wno-literal-suffix \
+	-Wno-cpp
+
+RTBENCH_DONGTU_EPNP_CXX_FLAGS := \
+	$(RTBENCH_DONGTU_CXX_FLAGS) \
+	-include $(RTOS_BENCH_ROOT)/workloads/EPNP/fix_opengv.h
 
 $(RTBENCH_EXT_OBJ_DIR)/generator/%.o: RTBENCH_EXTRA_FLAGS := $(RTBENCH_DONGTU_FLAGS)
 $(RTBENCH_EXT_OBJ_DIR)/generator/%.o: $(RTOS_BENCH_ROOT)/generator/%.c
@@ -132,6 +213,14 @@ $(RTBENCH_EXT_OBJ_DIR)/workloads/%.o: $(RTOS_BENCH_ROOT)/workloads/%.c
 	@echo 'Building RTOS-Bench workload: $<'
 	$(CC) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(RTBENCH_EXTRA_FLAGS) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -o $@ $< && \
 	$(CC) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(RTBENCH_EXTRA_FLAGS) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -MM -MG -P -w -MT $@ $< > $(@:%.o=%.d)
+
+$(RTBENCH_EXT_OBJ_DIR)/workloads/%.o: RTBENCH_EXTRA_CXX_FLAGS := $(RTBENCH_DONGTU_CXX_FLAGS)
+$(RTBENCH_EXT_OBJ_DIR)/workloads/EPNP/%.o: RTBENCH_EXTRA_CXX_FLAGS := $(RTBENCH_DONGTU_EPNP_CXX_FLAGS)
+$(RTBENCH_EXT_OBJ_DIR)/workloads/%.o: $(RTOS_BENCH_ROOT)/workloads/%.cpp
+	@mkdir -p $(dir $@)
+	@echo 'Building RTOS-Bench C++ workload: $<'
+	$(RTBENCH_DONGTU_CXX) $(RTBENCH_EXTRA_CXX_FLAGS) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -o $@ $< && \
+	$(RTBENCH_DONGTU_CXX) $(RTBENCH_EXTRA_CXX_FLAGS) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -MM -MG -P -w -MT $@ $< > $(@:%.o=%.d)
 
 $(RTBENCH_EXT_OBJ_DIR)/platforms/dongtu/%.o: RTBENCH_EXTRA_FLAGS := $(RTBENCH_DONGTU_FLAGS)
 $(RTBENCH_EXT_OBJ_DIR)/platforms/dongtu/%.o: $(RTOS_BENCH_ROOT)/platforms/dongtu/%.c
@@ -175,7 +264,7 @@ RTBENCH_VM3588_BASE_OBJS := \
 	./src/verify/schedule_stub_verify.o \
 	./src/verify/time_verify.o
 
-RTBENCH_VM3588_PRJ_OBJS := $(RTBENCH_VM3588_BASE_OBJS) $(RTBENCH_GENERATOR_OBJS) $(RTBENCH_WORKLOAD_OBJS) $(RTBENCH_DONGTU_ARCHIVE_PLATFORM_OBJS)
+RTBENCH_VM3588_PRJ_OBJS := $(RTBENCH_VM3588_BASE_OBJS) $(RTBENCH_GENERATOR_OBJS) $(RTBENCH_WORKLOAD_OBJS) $(RTBENCH_WORKLOAD_CXX_OBJS) $(RTBENCH_DONGTU_ARCHIVE_PLATFORM_OBJS)
 
 $(ARCHIVES): prjObjs.lst
 

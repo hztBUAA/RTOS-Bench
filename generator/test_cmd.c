@@ -85,8 +85,86 @@ static const char *test_seq[] = {
 
 #elif defined(DONGTU_PLATFORM)
 
-#define CMD_EXEC(cmd, len) (-1)
+#include <cmd.h>
+
 #define CMD_PRINTF printf
+
+extern const struct shell *rtbench_dongtu_current_shell(void);
+
+typedef int (*dongtu_shell_cmd_fn)(const struct shell *shell,
+                                   size_t argc, char **argv);
+
+struct dongtu_shell_cmd_entry {
+    const char *name;
+    dongtu_shell_cmd_fn fn;
+};
+
+static const struct dongtu_shell_cmd_entry dongtu_shell_cmds[] = {
+    {"date", shell_main_date},
+    {"task", shell_main_task},
+    {"pwd", shell_main_pwd},
+    {"ls", shell_main_ls},
+    {"version", shell_main_version},
+};
+
+#define DONGTU_CMD_MAX_ARGS 8
+
+static int dongtu_tokenize_command(char *cmd, char **argv, int max_args)
+{
+    int argc = 0;
+    char *p = cmd;
+
+    while (*p != '\0' && argc < max_args) {
+        while (*p == ' ' || *p == '\t') {
+            p++;
+        }
+        if (*p == '\0') {
+            break;
+        }
+
+        argv[argc++] = p;
+
+        while (*p != '\0' && *p != ' ' && *p != '\t') {
+            p++;
+        }
+        if (*p == '\0') {
+            break;
+        }
+        *p++ = '\0';
+    }
+
+    return argc;
+}
+
+static int dongtu_cmd_exec(char *cmd, size_t len)
+{
+    const struct shell *shell = rtbench_dongtu_current_shell();
+    char *argv[DONGTU_CMD_MAX_ARGS];
+    int argc;
+
+    (void)len;
+
+    if (shell == NULL || cmd == NULL) {
+        return -1;
+    }
+
+    argc = dongtu_tokenize_command(cmd, argv, DONGTU_CMD_MAX_ARGS);
+    if (argc <= 0) {
+        return -1;
+    }
+
+    for (size_t i = 0;
+         i < sizeof(dongtu_shell_cmds) / sizeof(dongtu_shell_cmds[0]); i++) {
+        if (strcmp(argv[0], dongtu_shell_cmds[i].name) == 0) {
+            dongtu_shell_cmds[i].fn(shell, (size_t)argc, argv);
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+#define CMD_EXEC(cmd, len) dongtu_cmd_exec(cmd, len)
 
 static const char *test_seq[] = {
     "date",

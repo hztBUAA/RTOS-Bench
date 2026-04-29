@@ -539,7 +539,8 @@ int rtbench_result_export_json(const char *filepath)
     RESULT_FREE(buf);
 
     if (written != (size_t)len) {
-        RESULT_PRINTF("[result-export] Write error: %zu/%d\n", written, len);
+        RESULT_PRINTF("[result-export] Write error: %llu/%d\n",
+                      (unsigned long long)written, len);
         return -3;
     }
 

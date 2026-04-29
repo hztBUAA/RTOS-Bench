@@ -36,21 +36,54 @@
 
 using namespace Eigen;
 
+#ifdef DONGTU_PLATFORM
+static unsigned int g_dongtu_epnp_rand_state = 1U;
+
+/* Dongtu's libc rand() may block in the RTOS VM, so keep this workload's
+ * synthetic input generation deterministic and self-contained on that port. */
+static void random_seed(unsigned int seed)
+{
+  g_dongtu_epnp_rand_state = seed ? seed : 1U;
+}
+
+static double random_unit()
+{
+  g_dongtu_epnp_rand_state =
+      g_dongtu_epnp_rand_state * 1664525U + 1013904223U;
+  return (double)((g_dongtu_epnp_rand_state >> 8) & 0x00ffffffU) /
+      16777215.0;
+}
+#else
+static void random_seed(unsigned int seed)
+{
+  srand(seed);
+}
+
+static double random_unit()
+{
+  return ((double) rand()) / ((double) RAND_MAX);
+}
+#endif
+
 void
 opengv::initializeRandomSeed()
 {
+#ifdef DONGTU_PLATFORM
+  random_seed(42U);
+#else
   struct timeval tic;
   gettimeofday( &tic, 0 );
-  srand ( tic.tv_usec );
+  random_seed((unsigned int)tic.tv_usec);
+#endif
 }
 
 Eigen::Vector3d
 opengv::generateRandomPoint( double maximumDepth, double minimumDepth )
 {
   Eigen::Vector3d cleanPoint;
-  cleanPoint[0] = (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0;
-  cleanPoint[1] = (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0;
-  cleanPoint[2] = (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0;
+  cleanPoint[0] = (random_unit()-0.5)*2.0;
+  cleanPoint[1] = (random_unit()-0.5)*2.0;
+  cleanPoint[2] = (random_unit()-0.5)*2.0;
   Eigen::Vector3d direction = cleanPoint / cleanPoint.norm();
   cleanPoint =
       (maximumDepth-minimumDepth) * cleanPoint + minimumDepth * direction;
@@ -61,9 +94,9 @@ Eigen::Vector3d
 opengv::generateRandomPointPlane()
 {
   Eigen::Vector3d cleanPoint;
-  cleanPoint[0] = (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0;
-  cleanPoint[1] = (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0;
-  cleanPoint[2] = (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0;
+  cleanPoint[0] = (random_unit()-0.5)*2.0;
+  cleanPoint[1] = (random_unit()-0.5)*2.0;
+  cleanPoint[2] = (random_unit()-0.5)*2.0;
 
   cleanPoint[0] = 6*cleanPoint[0];
   cleanPoint[1] = 6*cleanPoint[1];
@@ -106,9 +139,9 @@ opengv::addNoise( double noiseLevel, Eigen::Vector3d cleanPoint )
   normalVector1 = normalVector1 / normalVector1.norm();
   Eigen::Vector3d normalVector2 = cleanPoint.cross(normalVector1);
   double noiseX =
-      noiseLevel * (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0 / 1.4142;
+      noiseLevel * (random_unit()-0.5)*2.0 / 1.4142;
   double noiseY =
-      noiseLevel * (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0 / 1.4142;
+      noiseLevel * (random_unit()-0.5)*2.0 / 1.4142;
 
   Eigen::Vector3d noisyPoint =
       800 * cleanPoint + noiseX *normalVector1 + noiseY * normalVector2;
@@ -121,9 +154,9 @@ Eigen::Vector3d
 opengv::generateRandomTranslation( double maximumParallax )
 {
   Eigen::Vector3d translation;
-  translation[0] = (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0;
-  translation[1] = (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0;
-  translation[2] = (((double) rand())/ ((double) RAND_MAX)-0.5)*2.0;
+  translation[0] = (random_unit()-0.5)*2.0;
+  translation[1] = (random_unit()-0.5)*2.0;
+  translation[2] = (random_unit()-0.5)*2.0;
   return maximumParallax * translation;
 }
 
@@ -142,9 +175,9 @@ Eigen::Matrix3d
 opengv::generateRandomRotation( double maxAngle )
 {
   Eigen::Vector3d rpy;
-  rpy[0] = ((double) rand())/ ((double) RAND_MAX);
-  rpy[1] = ((double) rand())/ ((double) RAND_MAX);
-  rpy[2] = ((double) rand())/ ((double) RAND_MAX);
+  rpy[0] = random_unit();
+  rpy[1] = random_unit();
+  rpy[2] = random_unit();
 
   rpy[0] = maxAngle*2.0*(rpy[0]-0.5);
   rpy[1] = maxAngle*2.0*(rpy[1]-0.5);
@@ -198,9 +231,9 @@ Eigen::Matrix3d
 opengv::generateRandomRotation()
 {
   Eigen::Vector3d rpy;
-  rpy[0] = ((double) rand())/ ((double) RAND_MAX);
-  rpy[1] = ((double) rand())/ ((double) RAND_MAX);
-  rpy[2] = ((double) rand())/ ((double) RAND_MAX);
+  rpy[0] = random_unit();
+  rpy[1] = random_unit();
+  rpy[2] = random_unit();
 
   rpy[0] = 2*M_PI*(rpy[0]-0.5);
   rpy[1] = M_PI*(rpy[1]-0.5);

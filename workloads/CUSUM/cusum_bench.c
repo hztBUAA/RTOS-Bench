@@ -107,8 +107,9 @@ int cusum_bench_run(void)
 	uint64_t total_ns = end_time - start_time;
 	double avg_ns = (double)total_ns / stream_len;
 
-	printf("[CUSUM] samples=%zu total_time=%.3f ms avg_latency=%.3f us/sample\n",
-	       stream_len, (double)total_ns / 1000000.0, avg_ns / 1000.0);
+	printf("[CUSUM] samples=%llu total_time=%.3f ms avg_latency=%.3f us/sample\n",
+	       (unsigned long long)stream_len,
+	       (double)total_ns / 1000000.0, avg_ns / 1000.0);
 
 	return alarms;
 }

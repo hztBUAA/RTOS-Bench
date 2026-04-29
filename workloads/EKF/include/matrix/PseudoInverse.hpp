@@ -48,6 +48,9 @@ Matrix<Type, N, M> geninv(const Matrix<Type, M, N> & G)
     }
 }
 
+#if defined(DONGTU_PLATFORM) && defined(L)
+#undef L
+#endif
 
 #include "PseudoInverse.hxx"
 

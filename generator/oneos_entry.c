@@ -192,7 +192,7 @@ static void print_usage(void)
            TEST_SCHEDULE_UTIL_END);
     printf("  --util-step <pct>     Utilization step size (default: %d)\n",
            TEST_SCHEDULE_UTIL_STEP);
-    printf("  --quick               Quick mode (fewer cycles)\n");
+    printf("  --quick               Quick mode (bounded smoke settings)\n");
     printf("  -q                    Quiet mode\n");
     printf("  -h, --help            Show test-schedule help\n");
     printf("\n");
@@ -714,6 +714,8 @@ static int parse_test_all_args(int argc, char **argv, struct test_all_params *pa
 static void test_all_thread_entry(void *parameter)
 {
     struct test_all_params *p = (struct test_all_params *)parameter;
+    int suite_result = 0;
+    int ret;
 
     /* Initialize result collection */
     rtbench_result_init();
@@ -752,10 +754,14 @@ static void test_all_thread_entry(void *parameter)
                p->quick_mode ? " (quick)" : "",
                p->schedule_cycles, p->schedule_util_start,
                p->schedule_util_end, p->schedule_util_step);
-        test_schedule_run_custom(p->schedule_cycles,
-                                 p->schedule_util_start,
-                                 p->schedule_util_end,
-                                 p->schedule_util_step);
+        ret = test_schedule_run_custom(p->schedule_cycles,
+                                       p->schedule_util_start,
+                                       p->schedule_util_end,
+                                       p->schedule_util_step);
+        if (ret != 0) {
+            printf("[test-all] test-schedule failed: %d\n", ret);
+            suite_result = suite_result ? suite_result : ret;
+        }
         collect_schedule_result(p->schedule_cycles,
                                 p->schedule_util_start,
                                 p->schedule_util_end,
@@ -797,6 +803,12 @@ static void test_all_thread_entry(void *parameter)
     }
 
     rtbench_result_cleanup();
+
+    if (suite_result != 0 && p->result == 0) {
+        p->result = suite_result;
+        printf("[RTOS-Bench] Suite completed with failures: %d\n",
+               p->result);
+    }
 
     /* Signal completion */
     os_semaphore_post(p->done_sem);

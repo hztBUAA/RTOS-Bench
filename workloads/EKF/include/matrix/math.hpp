@@ -15,6 +15,14 @@
 #endif
 #include "helper_functions.hpp"
 #include "Matrix.hpp"
+#if defined(DONGTU_PLATFORM)
+#ifdef U
+#undef U
+#endif
+#ifdef L
+#undef L
+#endif
+#endif
 #include "SquareMatrix.hpp"
 #include "Slice.hpp"
 #include "Vector.hpp"

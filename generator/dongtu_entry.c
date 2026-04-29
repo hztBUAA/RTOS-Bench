@@ -23,8 +23,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
-#include <pthread.h>
-#include <semaphore.h>
 
 #include "platform_abstraction.h"
 #include "periodic_benchmark.h"
@@ -40,11 +38,8 @@
 extern void rtosbench_register_rtos_workloads(void);
 
 /* Default result output path */
-#define RTBENCH_DEFAULT_OUTPUT_PATH "/rtbench_result.json"
+#define RTBENCH_DEFAULT_OUTPUT_PATH "/nfsd/rtbench_result.json"
 #define RTBENCH_PARSE_HELP 1
-
-/* Stack size for worker threads (32KB to handle deep call chains) */
-#define RTBENCH_TEST_ALL_STACK_SIZE (32 * 1024)
 
 /* Forward declarations for result collection */
 static void collect_realtime_result(int run_multicore);
@@ -96,7 +91,8 @@ static void print_usage(void)
 	printf("  -G <categories>  Filter workloads by comma-separated categories\n");
 	printf("\n");
 	printf("TEST-ALL OPTIONS:\n");
-	printf("  -o, --output <path>   Output JSON path (default: /rtbench_result.json)\n");
+	printf("  -o, --output <path>   Output JSON path (default: %s)\n",
+	       RTBENCH_DEFAULT_OUTPUT_PATH);
 	printf("  --no-realtime         Skip realtime performance test\n");
 	printf("  --no-schedule         Skip schedulability test\n");
 	printf("  --no-stress           Skip stress test\n");
@@ -126,7 +122,7 @@ static void print_usage(void)
 	       TEST_SCHEDULE_UTIL_END);
 	printf("  --util-step <pct>     Utilization step size (default: %d)\n",
 	       TEST_SCHEDULE_UTIL_STEP);
-	printf("  --quick               Quick mode (fewer cycles)\n");
+	printf("  --quick               Quick mode (bounded smoke settings)\n");
 	printf("  -q                    Quiet mode\n");
 	printf("  -h, --help            Show test-schedule help\n");
 	printf("\n");
@@ -483,7 +479,7 @@ static void debug_print_context(const struct execution_options *opts)
 }
 
 /* ============================================================================
- * test-all worker thread (uses pthread to get large stack)
+ * test-all suite
  * ============================================================================ */
 
 struct test_all_params {
@@ -501,7 +497,6 @@ struct test_all_params {
 	int schedule_util_step;
 	const char *stress_job;
 	int result;
-	sem_t done_sem;
 };
 
 static int parse_test_all_args(int argc, char **argv, struct test_all_params *params)
@@ -640,13 +635,14 @@ static int parse_test_all_args(int argc, char **argv, struct test_all_params *pa
 				      print_test_all_usage);
 }
 
-static void *test_all_thread_entry(void *parameter)
+static int run_test_all_suite(struct test_all_params *p)
 {
-	struct test_all_params *p = (struct test_all_params *)parameter;
+	int suite_result = 0;
+	int ret;
 
 	/* Initialize result collection */
 	rtbench_result_init();
-	rtbench_result_set_env("Dongtu", "Intewell", "Dongtu-Board", "x86_64", 0, 1);
+	rtbench_result_set_env("Dongtu", "Intewell", "Dongtu-Board", "aarch64", 0, 1);
 	rtbench_result_start();
 
 	/* Register workloads */
@@ -681,10 +677,14 @@ static void *test_all_thread_entry(void *parameter)
 		       p->quick_mode ? " (quick)" : "",
 		       p->schedule_cycles, p->schedule_util_start,
 		       p->schedule_util_end, p->schedule_util_step);
-		test_schedule_run_custom(p->schedule_cycles,
-					 p->schedule_util_start,
-					 p->schedule_util_end,
-					 p->schedule_util_step);
+		ret = test_schedule_run_custom(p->schedule_cycles,
+					       p->schedule_util_start,
+					       p->schedule_util_end,
+					       p->schedule_util_step);
+		if (ret != 0) {
+			printf("[test-all] test-schedule failed: %d\n", ret);
+			suite_result = suite_result ? suite_result : ret;
+		}
 		collect_schedule_result(p->schedule_cycles,
 					p->schedule_util_start,
 					p->schedule_util_end,
@@ -727,9 +727,13 @@ static void *test_all_thread_entry(void *parameter)
 
 	rtbench_result_cleanup();
 
-	/* Signal completion */
-	sem_post(&p->done_sem);
-	return NULL;
+	if (suite_result != 0 && p->result == 0) {
+		p->result = suite_result;
+		printf("[RTOS-Bench] Suite completed with failures: %d\n",
+		       p->result);
+	}
+
+	return p->result;
 }
 
 /**
@@ -782,28 +786,7 @@ int rtbench_dongtu_entry(int argc, char **argv)
 			return -1;
 		}
 
-		/* Initialize completion semaphore */
-		sem_init(&params.done_sem, 0, 0);
-
-		/* Spawn worker thread with large stack */
-		pthread_t tid;
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_attr_setstacksize(&attr, RTBENCH_TEST_ALL_STACK_SIZE);
-
-		if (pthread_create(&tid, &attr, test_all_thread_entry, &params) != 0) {
-			printf("[RTOS-Bench] Failed to create test-all worker thread\n");
-			pthread_attr_destroy(&attr);
-			sem_destroy(&params.done_sem);
-			return -1;
-		}
-		pthread_attr_destroy(&attr);
-
-		/* Wait for worker to finish */
-		sem_wait(&params.done_sem);
-		sem_destroy(&params.done_sem);
-
-		return params.result;
+		return run_test_all_suite(&params);
 	}
 
 	/* Check for export-result subcommand */
@@ -943,7 +926,8 @@ int rtbench_dongtu_entry(int argc, char **argv)
 		printf("  Cycles: %d, Utilization: %d%% - %d%% (step %d%%)\n",
 		       cycles, util_start, util_end, util_step);
 
-		return test_schedule_run_custom(cycles, util_start, util_end, util_step);
+		return test_schedule_run_custom(cycles, util_start, util_end,
+						util_step);
 	}
 
 	/* Handle test-realtime subcommand */

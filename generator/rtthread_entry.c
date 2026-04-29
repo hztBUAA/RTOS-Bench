@@ -103,11 +103,15 @@ static void print_usage(void)
 	rt_kprintf("  -q                    Quiet mode\n");
 	rt_kprintf("\n");
 	rt_kprintf("TEST-SCHEDULE OPTIONS:\n");
-	rt_kprintf("  --cycles <n>          Number of test cycles (default: 100)\n");
-	rt_kprintf("  --util-start <pct>    Starting utilization percentage (default: 10)\n");
-	rt_kprintf("  --util-end <pct>      Ending utilization percentage (default: 100)\n");
-	rt_kprintf("  --util-step <pct>     Utilization step size (default: 10)\n");
-	rt_kprintf("  --quick               Quick mode (fewer cycles)\n");
+	rt_kprintf("  --cycles <n>          Number of test cycles (default: %d)\n",
+		   TEST_SCHEDULE_CYCLES);
+	rt_kprintf("  --util-start <pct>    Starting utilization percentage (default: %d)\n",
+		   TEST_SCHEDULE_UTIL_START);
+	rt_kprintf("  --util-end <pct>      Ending utilization percentage (default: %d)\n",
+		   TEST_SCHEDULE_UTIL_END);
+	rt_kprintf("  --util-step <pct>     Utilization step size (default: %d)\n",
+		   TEST_SCHEDULE_UTIL_STEP);
+	rt_kprintf("  --quick               Quick mode (bounded smoke settings)\n");
 	rt_kprintf("  -q                    Quiet mode\n");
 	rt_kprintf("\n");
 	rt_kprintf("TEST-STRESS OPTIONS:\n");
@@ -273,6 +277,8 @@ struct test_all_params {
 static void test_all_thread_entry(void *parameter)
 {
 	struct test_all_params *p = (struct test_all_params *)parameter;
+	int suite_result = 0;
+	int ret;
 
 	/* Initialize result collection */
 	rtbench_result_init();
@@ -311,13 +317,17 @@ static void test_all_thread_entry(void *parameter)
 		rt_kprintf("\n>>> Running test-schedule%s...\n",
 		           p->quick_mode ? " (quick)" : "");
 		if (p->quick_mode) {
-			test_schedule_run_custom(
+			ret = test_schedule_run_custom(
 				TEST_SCHEDULE_QUICK_CYCLES,
 				TEST_SCHEDULE_QUICK_UTIL_START,
 				TEST_SCHEDULE_QUICK_UTIL_END,
 				TEST_SCHEDULE_QUICK_UTIL_STEP);
 		} else {
-			test_schedule_run();
+			ret = test_schedule_run();
+		}
+		if (ret != 0) {
+			rt_kprintf("[test-all] test-schedule failed: %d\n", ret);
+			suite_result = suite_result ? suite_result : ret;
 		}
 		collect_schedule_result();
 	}
@@ -356,6 +366,12 @@ static void test_all_thread_entry(void *parameter)
 	}
 
 	rtbench_result_cleanup();
+
+	if (suite_result != 0 && p->result == 0) {
+		p->result = suite_result;
+		rt_kprintf("[RTOS-Bench] Suite completed with failures: %d\n",
+		           p->result);
+	}
 
 	/* Signal completion */
 	rt_sem_release(&p->done_sem);

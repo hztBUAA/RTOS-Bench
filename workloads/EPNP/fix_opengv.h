@@ -17,6 +17,9 @@
 #endif
 
 #include <math.h>
+#ifdef DONGTU_PLATFORM
+#include <wchar.h>
+#endif
 #include <cmath>
 #include <stdlib.h>
 
@@ -32,9 +35,11 @@
 
 // --- Part 1: 补全 std 命名空间缺失的数学函数 ---
 namespace std {
+#ifndef DONGTU_PLATFORM
     using ::isnan;
     using ::isfinite;
     using ::isinf;
+#endif
     using ::log2;
     using ::round;
     using ::trunc;
