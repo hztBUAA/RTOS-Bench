@@ -41,6 +41,8 @@ Matrix::Matrix () {
 
 Matrix::Matrix (const int32_t m_,const int32_t n_) {
   allocateMemory(m_,n_);
+  if (m>0 && n>0)
+    zero();
 }
 
 Matrix::Matrix (const int32_t m_,const int32_t n_,const FLOAT* val_) {
@@ -273,6 +275,8 @@ Matrix Matrix::operator* (const Matrix &M) {
     exit(0);
   }
   Matrix C(A.m,B.n);
+  if (C.m>0 && C.n>0)
+    C.zero();
   for (int32_t i=0; i<A.m; i++)
     for (int32_t j=0; j<B.n; j++)
       for (int32_t k=0; k<A.n; k++)
