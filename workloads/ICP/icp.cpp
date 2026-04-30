@@ -68,16 +68,6 @@ double Icp::fit( double *T,const int32_t T_num,Matrix &R,Matrix &t,double indist
 		return 0;
 	}
 
-	// set active points
-	vector<int32_t> active;
-	if (indist<=0) {
-	active.clear();
-	for (int32_t i=0; i<T_num; i++)
-	  active.push_back(i);
-	} else {
-	active = getInliers(T,T_num,R,t,indist);
-	}
-
 	// run icp
 	fitIterate(T,T_num,R,t,indist);
 

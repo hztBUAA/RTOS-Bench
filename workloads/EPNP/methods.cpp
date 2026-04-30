@@ -272,7 +272,14 @@ transformation_t epnp(
 
   //take inverse transformation
   rotation.transposeInPlace();
-  translation = -rotation * translation;
+  translation_t originalTranslation = translation;
+  for(int r = 0; r < 3; r++)
+  {
+    double value = 0.0;
+    for(int c = 0; c < 3; c++)
+      value -= rotation(r,c) * originalTranslation[c];
+    translation[r] = value;
+  }
 
   transformation_t transformation;
   transformation.col(3) = translation;

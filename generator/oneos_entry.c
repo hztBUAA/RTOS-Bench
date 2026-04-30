@@ -928,7 +928,10 @@ static void collect_schedule_result(void)
     sched->final_score = ts_result->final_score;
 
     sched->gradient_count = ts_result->num_gradients;
-    for (int i = 0; i < ts_result->num_gradients && i < RTBENCH_MAX_GRADIENTS; i++) {
+    if (sched->gradient_count > RTBENCH_MAX_GRADIENTS) {
+        sched->gradient_count = RTBENCH_MAX_GRADIENTS;
+    }
+    for (int i = 0; i < sched->gradient_count; i++) {
         struct rtbench_gradient_result *dst = &sched->gradients[i];
         const struct schedule_gradient_result *src = &ts_result->gradients[i];
 
@@ -938,14 +941,19 @@ static void collect_schedule_result(void)
         dst->deadline_misses = src->total_misses;
         dst->miss_rate = src->miss_rate;
         dst->task_count = src->num_tasks;
+        if (dst->task_count > RTBENCH_MAX_WORKLOADS) {
+            dst->task_count = RTBENCH_MAX_WORKLOADS;
+        }
 
-        for (int j = 0; j < src->num_tasks && j < RTBENCH_MAX_WORKLOADS; j++) {
+        for (int j = 0; j < dst->task_count; j++) {
             struct rtbench_task_stat *tdst = &dst->task_stats[j];
             const struct schedule_task_stats *tsrc = &src->task_stats[j];
 
             if (tsrc->name) {
                 strncpy(tdst->name, tsrc->name, sizeof(tdst->name) - 1);
             }
+            tdst->utilization = tsrc->utilization;
+            tdst->period_ms = (double)tsrc->period_ns / 1000000.0;
             tdst->jobs = tsrc->total_jobs;
             tdst->misses = tsrc->deadline_misses;
             if (tsrc->total_jobs > 0) {

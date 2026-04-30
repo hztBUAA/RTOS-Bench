@@ -23,13 +23,15 @@ static const struct rtosbench_workload *current_workload = NULL;
 extern const struct rtosbench_workload rtosbench_stub_workload;
 extern const struct rtosbench_workload rtosbench_busywait_workload;
 
-/* Auto-register built-in workloads */
+/* Auto-register built-in workloads only for generic POSIX/Linux builds. */
+#ifndef RTOSBENCH_USE_MANUAL_WORKLOAD_REGISTRATION
 __attribute__((constructor(101)))
 static void rtosbench_register_builtins(void)
 {
 	rtosbench_register_workload(&rtosbench_stub_workload);
 	rtosbench_register_workload(&rtosbench_busywait_workload);
 }
+#endif
 
 /* ============================================================================
  * Registry API Implementation

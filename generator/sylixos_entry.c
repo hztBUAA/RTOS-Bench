@@ -23,8 +23,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
-#include <pthread.h>
-#include <semaphore.h>
 
 #include "platform_abstraction.h"
 #include "periodic_benchmark.h"
@@ -44,8 +42,6 @@ __attribute__((weak)) int __fdlib_version = -1;
 /* Default result output path */
 #define RTBENCH_DEFAULT_OUTPUT_PATH "/rtbench_result.json"
 
-/* Stack size for worker threads. SylixOS workloads include Eigen-heavy code. */
-#define RTBENCH_TEST_ALL_STACK_SIZE (4 * 1024 * 1024)
 #define RTBENCH_PARSE_HELP 1
 
 /* Forward declarations for result collection */
@@ -493,7 +489,7 @@ static void debug_print_context(const struct execution_options *opts)
 extern int run_all_workloads(void);
 
 /* ============================================================================
- * test-all worker thread (uses pthread to get large stack)
+ * test-all suite runner
  * ============================================================================ */
 
 struct test_all_params {
@@ -511,7 +507,6 @@ struct test_all_params {
 	int schedule_util_step;
 	const char *stress_job;
 	int result;
-	sem_t done_sem;
 };
 
 static int parse_test_all_args(int argc, char **argv, struct test_all_params *params)
@@ -650,10 +645,8 @@ static int parse_test_all_args(int argc, char **argv, struct test_all_params *pa
 				      print_test_all_usage);
 }
 
-static void *test_all_thread_entry(void *parameter)
+static int run_test_all_suite(struct test_all_params *p)
 {
-	struct test_all_params *p = (struct test_all_params *)parameter;
-
 	/* Initialize result collection */
 	rtbench_result_init();
 	rtbench_result_set_env("SylixOS", "2.x", "SylixOS-Board", "ARM", 0, 1);
@@ -737,9 +730,7 @@ static void *test_all_thread_entry(void *parameter)
 
 	rtbench_result_cleanup();
 
-	/* Signal completion */
-	sem_post(&p->done_sem);
-	return NULL;
+	return p->result;
 }
 
 /**
@@ -791,29 +782,10 @@ int main(int argc, char **argv)
 			params.output_path = RTBENCH_DEFAULT_OUTPUT_PATH;
 		}
 
-		/* Initialize completion semaphore */
-		sem_init(&params.done_sem, 0, 0);
-
-		/* Spawn worker thread with large stack */
-		pthread_t tid;
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_attr_setstacksize(&attr, RTBENCH_TEST_ALL_STACK_SIZE);
-
-		if (pthread_create(&tid, &attr, test_all_thread_entry, &params) != 0) {
-			printf("[RTOS-Bench] Failed to create test-all worker thread\n");
-			pthread_attr_destroy(&attr);
-			sem_destroy(&params.done_sem);
-			return -1;
-		}
-		pthread_attr_destroy(&attr);
-
-		/* Wait for worker to finish */
-		sem_wait(&params.done_sem);
-		pthread_join(tid, NULL);
-		sem_destroy(&params.done_sem);
-
-		return params.result;
+		/* Keep test-all on the same entry path as standalone commands.
+		 * Schedule still creates dedicated worker threads for WCET and task
+		 * execution, while avoiding an extra long-lived SylixOS VMM stack. */
+		return run_test_all_suite(&params);
 	}
 
 	/* Check for export-result subcommand */
@@ -1341,7 +1313,10 @@ static void collect_schedule_result(int cycles, int util_start, int util_end, in
 	sched->final_score = ts_result->final_score;
 
 	sched->gradient_count = ts_result->num_gradients;
-	for (int i = 0; i < ts_result->num_gradients && i < RTBENCH_MAX_GRADIENTS; i++) {
+	if (sched->gradient_count > RTBENCH_MAX_GRADIENTS) {
+		sched->gradient_count = RTBENCH_MAX_GRADIENTS;
+	}
+	for (int i = 0; i < sched->gradient_count; i++) {
 		struct rtbench_gradient_result *dst = &sched->gradients[i];
 		const struct schedule_gradient_result *src = &ts_result->gradients[i];
 
@@ -1351,14 +1326,19 @@ static void collect_schedule_result(int cycles, int util_start, int util_end, in
 		dst->deadline_misses = src->total_misses;
 		dst->miss_rate = src->miss_rate;
 		dst->task_count = src->num_tasks;
+		if (dst->task_count > RTBENCH_MAX_WORKLOADS) {
+			dst->task_count = RTBENCH_MAX_WORKLOADS;
+		}
 
-		for (int j = 0; j < src->num_tasks && j < RTBENCH_MAX_WORKLOADS; j++) {
+		for (int j = 0; j < dst->task_count; j++) {
 			struct rtbench_task_stat *tdst = &dst->task_stats[j];
 			const struct schedule_task_stats *tsrc = &src->task_stats[j];
 
 			if (tsrc->name) {
 				strncpy(tdst->name, tsrc->name, sizeof(tdst->name) - 1);
 			}
+			tdst->utilization = tsrc->utilization;
+			tdst->period_ms = (double)tsrc->period_ns / 1000000.0;
 			tdst->jobs = tsrc->total_jobs;
 			tdst->misses = tsrc->deadline_misses;
 			if (tsrc->total_jobs > 0) {

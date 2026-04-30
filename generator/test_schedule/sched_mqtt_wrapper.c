@@ -1,48 +1,29 @@
 /**
  * @file sched_mqtt_wrapper.c
  * @brief MQTT quick-execution wrapper for test-schedule
- * @details Implements a fast version of MQTT benchmark with limited message count
- *          for use in schedulability testing. Uses the same mongoose library but
- *          restricts the number of messages to keep WCET under 2 seconds.
  *
- * Key differences from original mqtt_bench.c:
- * - SCHED_MQTT_MAX_MESSAGES = 50 (vs original ~617 GEOLIFE_COUNT)
- * - Self-contained implementation that doesn't modify original code
+ * test-schedule needs deterministic, bounded workload execution inside
+ * periodic worker threads. The standalone MQTT workload still exercises the
+ * real broker/network path; this schedule wrapper keeps the MQTT data-shaping
+ * work (GeoLife sample -> JSON payload -> MQTT publish frame) but avoids
+ * external broker state and platform-specific poll() behavior.
  */
 
-#ifdef RT_THREAD_PLATFORM
-#include <rtthread.h>
-#define SCHED_MQTT_HAVE_SOCKETS 0
-#else
-#define SCHED_MQTT_HAVE_SOCKETS 1
-#endif
-
-#include <stdio.h>
 #include <stdarg.h>
-#include <stdlib.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
 
-#if SCHED_MQTT_HAVE_SOCKETS
-#include <pthread.h>
-#include <sched.h>
-#endif
-
-/* Include mongoose and geolife from original workload */
-#include "../../workloads/MQTT/mongoose.h"
 #include "../../workloads/MQTT/geolife.h"
-
 #include "sched_workloads.h"
 
-/* Configuration for quick schedule mode */
-#define SCHED_MQTT_MAX_MESSAGES   50   /* Much smaller than GEOLIFE_COUNT (~617) */
-#define SCHED_MQTT_MAX_RUNTIME_US 2000000ULL
-#define SCHED_MQTT_URL            "tcp://44.232.241.40:1883"
-#define SCHED_MQTT_TOPIC          "car/tracker/location"
+#define SCHED_MQTT_MAX_MESSAGES 2000
+#define SCHED_MQTT_TOPIC "car/tracker/location"
 
-/* Suppress output during scheduler runs */
 extern volatile int g_sched_suppress_output;
+
+static volatile uint32_t s_mqtt_checksum;
 
 static inline int sched_mqtt_printf(const char *fmt, ...)
 {
@@ -54,16 +35,6 @@ static inline int sched_mqtt_printf(const char *fmt, ...)
 	return r;
 }
 
-/* Local state for this wrapper instance */
-static int s_cursor = 0;
-static uint64_t s_total_count = 0;
-static int s_stop_flag = 0;
-static int s_mqtt_ready = 0;
-static int s_login_sent = 0;
-static int s_tcp_connected = 0;
-static uint64_t s_start_time = 0;
-static int s_benchmark_started = 0;
-
 static uint64_t sched_mqtt_get_time_us(void)
 {
 	struct timespec ts;
@@ -71,162 +42,182 @@ static uint64_t sched_mqtt_get_time_us(void)
 	return (uint64_t)ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
 }
 
-static void sched_mqtt_callback(struct mg_connection *c, int ev, void *ev_data)
+static uint32_t sched_mqtt_checksum(const unsigned char *buf, size_t len)
 {
-	if (ev == MG_EV_ERROR) {
-		sched_mqtt_printf("[SCHED-MQTT] Error: %s\n", (char *)ev_data);
+	uint32_t hash = 2166136261u;
+	for (size_t i = 0; i < len; i++) {
+		hash ^= buf[i];
+		hash *= 16777619u;
 	}
-	else if (ev == MG_EV_OPEN) {
-		sched_mqtt_printf("[SCHED-MQTT] Socket Created\n");
-		s_tcp_connected = 0;
-	}
-	else if (ev == MG_EV_CONNECT) {
-		sched_mqtt_printf("[SCHED-MQTT] TCP Connected!\n");
-		c->is_connecting = 0;
-		s_tcp_connected = 1;
-	}
-	else if (ev == MG_EV_READ) {
-		if (c->recv.len >= 4 && (unsigned char)c->recv.buf[0] == 0x20) {
-			sched_mqtt_printf("[SCHED-MQTT] Received CONNACK!\n");
-			s_mqtt_ready = 1;
-			if (!s_benchmark_started) {
-				s_start_time = sched_mqtt_get_time_us();
-				s_benchmark_started = 1;
-			}
-			mg_iobuf_del(&c->recv, 0, c->recv.len);
-		}
-	}
-	else if (ev == MG_EV_POLL) {
-		if (c->id > 0) c->is_readable = 1;
-
-		if (s_login_sent == 0) {
-			if (c->id > 0 && s_tcp_connected == 1) {
-				static const unsigned char raw_login[] = {
-					0x10, 0x16,
-					0x00, 0x04, 'M', 'Q', 'T', 'T',
-					0x04, 0x02, 0x00, 0x3C,
-					0x00, 0x0A,
-					'r', 't', 'o', 's', '_', 'b', 'e', 'n', 'c', 'h'
-				};
-
-				sched_mqtt_printf("[SCHED-MQTT] Sending login (%d bytes)...\n",
-						  (int)sizeof(raw_login));
-
-				int sent = send((int)c->fd, raw_login, sizeof(raw_login), 0);
-				if (sent > 0) {
-					sched_mqtt_printf("[SCHED-MQTT] Login sent\n");
-					s_login_sent = 1;
-				}
-			}
-			return;
-		}
-
-		if (!s_mqtt_ready) return;
-		if (s_stop_flag) return;
-		if (c->is_draining) return;
-
-		/* Key difference: use SCHED_MQTT_MAX_MESSAGES instead of GEOLIFE_COUNT */
-		if (s_cursor >= SCHED_MQTT_MAX_MESSAGES) {
-			s_stop_flag = 1;
-			return;
-		}
-
-		GeoLifeRecord next_point = g_geolife_track[s_cursor % GEOLIFE_COUNT];
-		s_cursor++;
-
-		char json_payload[128];
-		struct mg_mqtt_opts pub_opts;
-		memset(&pub_opts, 0, sizeof(pub_opts));
-		pub_opts.topic = mg_str(SCHED_MQTT_TOPIC);
-		pub_opts.qos = 1;
-
-		snprintf(json_payload, sizeof(json_payload),
-			 "{\"lat\":%.6f,\"lon\":%.6f,\"alt\":%.1f,\"ts\":%u}",
-			 next_point.lat, next_point.lon, next_point.alt, next_point.ts);
-
-		pub_opts.message = mg_str(json_payload);
-		mg_mqtt_pub(c, &pub_opts);
-
-		if (c->send.len > 0) {
-			c->is_writable = 1;
-		}
-
-		s_total_count++;
-	}
+	return hash;
 }
 
-static void *sched_mqtt_thread_entry(void *parameter)
+static size_t sched_mqtt_encode_remaining_length(unsigned char *out, size_t value)
 {
-	struct mg_mgr mgr;
-	uint64_t run_start;
+	size_t n = 0;
+	do {
+		unsigned char byte = (unsigned char)(value % 128);
+		value /= 128;
+		if (value > 0) {
+			byte |= 0x80;
+		}
+		out[n++] = byte;
+	} while (value > 0 && n < 4);
+	return n;
+}
 
-	/* Reset all state for fresh run */
-	s_cursor = 0;
-	s_total_count = 0;
-	s_stop_flag = 0;
-	s_mqtt_ready = 0;
-	s_login_sent = 0;
-	s_tcp_connected = 0;
-	s_start_time = 0;
-	s_benchmark_started = 0;
+static size_t sched_mqtt_append_char(char *buf, size_t off, size_t cap, char ch)
+{
+	if (off + 1 < cap) {
+		buf[off] = ch;
+		return off + 1;
+	}
+	return off;
+}
 
-	sched_mqtt_printf("[SCHED-MQTT] Quick mode started (max %d msgs)...\n",
-			  SCHED_MQTT_MAX_MESSAGES);
+static size_t sched_mqtt_append_str(char *buf, size_t off, size_t cap,
+				    const char *str)
+{
+	while (*str) {
+		off = sched_mqtt_append_char(buf, off, cap, *str++);
+	}
+	return off;
+}
 
-	run_start = sched_mqtt_get_time_us();
-	mg_mgr_init(&mgr);
-	mg_log_set(0);
+static size_t sched_mqtt_append_u64(char *buf, size_t off, size_t cap,
+				    uint64_t value)
+{
+	char tmp[20];
+	size_t n = 0;
 
-	sched_mqtt_printf("[SCHED-MQTT] Connecting to %s...\n", SCHED_MQTT_URL);
-	struct mg_connection *c = mg_connect(&mgr, SCHED_MQTT_URL,
-					     sched_mqtt_callback, NULL);
+	do {
+		tmp[n++] = (char)('0' + (value % 10));
+		value /= 10;
+	} while (value > 0 && n < sizeof(tmp));
 
-	if (c == NULL) {
-		sched_mqtt_printf("[SCHED-MQTT] Connection failed\n");
-		return NULL;
+	while (n > 0) {
+		off = sched_mqtt_append_char(buf, off, cap, tmp[--n]);
+	}
+	return off;
+}
+
+static size_t sched_mqtt_append_fixed(char *buf, size_t off, size_t cap,
+				      double value, uint32_t scale,
+				      unsigned decimals)
+{
+	int negative = value < 0.0;
+	double scaled_d = value * (double)scale;
+	uint64_t scaled;
+
+	if (negative) {
+		scaled_d = -scaled_d;
+		off = sched_mqtt_append_char(buf, off, cap, '-');
 	}
 
-	while (s_stop_flag == 0) {
-		mg_mgr_poll(&mgr, 20);
-		if ((sched_mqtt_get_time_us() - run_start) >= SCHED_MQTT_MAX_RUNTIME_US) {
-			sched_mqtt_printf("[SCHED-MQTT] Quick mode timeout after %.3f ms\n",
-					  (double)SCHED_MQTT_MAX_RUNTIME_US / 1000.0);
-			s_stop_flag = 1;
+	scaled = (uint64_t)(scaled_d + 0.5);
+	off = sched_mqtt_append_u64(buf, off, cap, scaled / scale);
+
+	if (decimals > 0) {
+		uint64_t frac = scaled % scale;
+		uint64_t divisor = scale / 10;
+		off = sched_mqtt_append_char(buf, off, cap, '.');
+		while (decimals-- > 0 && divisor > 0) {
+			off = sched_mqtt_append_char(buf, off, cap,
+						(char)('0' + (frac / divisor) % 10));
+			divisor /= 10;
 		}
 	}
 
-	uint64_t end_time = sched_mqtt_get_time_us();
-
-	if (s_total_count > 0 && s_benchmark_started) {
-		uint64_t total_us = end_time - s_start_time;
-		double avg_us = (double)total_us / s_total_count;
-		sched_mqtt_printf("[SCHED-MQTT] samples=%lu total_time=%.3f ms avg=%.3f us/msg\n",
-				  (unsigned long)s_total_count,
-				  (double)total_us / 1000.0, avg_us);
-	}
-
-	mg_mgr_free(&mgr);
-	return NULL;
+	return off;
 }
 
-/* ============================================================================
- * Public API for sched_workloads
- * ============================================================================ */
+static size_t sched_mqtt_build_payload(const GeoLifeRecord *point,
+				       char *payload, size_t payload_len)
+{
+	size_t off = 0;
+
+	off = sched_mqtt_append_str(payload, off, payload_len, "{\"lat\":");
+	off = sched_mqtt_append_fixed(payload, off, payload_len, point->lat,
+				       1000000u, 6);
+	off = sched_mqtt_append_str(payload, off, payload_len, ",\"lon\":");
+	off = sched_mqtt_append_fixed(payload, off, payload_len, point->lon,
+				       1000000u, 6);
+	off = sched_mqtt_append_str(payload, off, payload_len, ",\"alt\":");
+	off = sched_mqtt_append_fixed(payload, off, payload_len,
+				       (double)point->alt, 10u, 1);
+	off = sched_mqtt_append_str(payload, off, payload_len, ",\"ts\":");
+	off = sched_mqtt_append_u64(payload, off, payload_len, point->ts);
+	off = sched_mqtt_append_char(payload, off, payload_len, '}');
+
+	if (off >= payload_len) {
+		payload[payload_len - 1] = '\0';
+		return 0;
+	}
+	payload[off] = '\0';
+	return off;
+}
+
+static size_t sched_mqtt_build_publish_frame(const GeoLifeRecord *point,
+					     unsigned char *frame,
+					     size_t frame_len)
+{
+	char payload[128];
+	const size_t topic_len = strlen(SCHED_MQTT_TOPIC);
+	size_t payload_len = sched_mqtt_build_payload(point, payload,
+						      sizeof(payload));
+	if (payload_len == 0) return 0;
+
+	size_t remain_len = 2 + topic_len + payload_len;
+	size_t off = 0;
+	if (frame_len < 1 + 4 + remain_len) {
+		return 0;
+	}
+
+	frame[off++] = 0x30; /* MQTT PUBLISH, QoS 0 */
+	off += sched_mqtt_encode_remaining_length(frame + off, remain_len);
+	frame[off++] = (unsigned char)((topic_len >> 8) & 0xff);
+	frame[off++] = (unsigned char)(topic_len & 0xff);
+	memcpy(frame + off, SCHED_MQTT_TOPIC, topic_len);
+	off += topic_len;
+	memcpy(frame + off, payload, payload_len);
+	off += payload_len;
+	return off;
+}
 
 int sched_mqtt_init(void)
 {
-	/* No persistent state to initialize */
+	s_mqtt_checksum = 0;
 	return 0;
 }
 
 int sched_mqtt_quick_exec(void)
 {
-	/* Run synchronously without spawning a thread */
-	sched_mqtt_thread_entry(NULL);
+	unsigned char frame[256];
+	uint64_t start = sched_mqtt_get_time_us();
+	uint32_t checksum = 0;
+	int samples = 0;
+
+	for (int i = 0; i < SCHED_MQTT_MAX_MESSAGES; i++) {
+		const GeoLifeRecord *point = &g_geolife_track[i % GEOLIFE_COUNT];
+		size_t len = sched_mqtt_build_publish_frame(point, frame, sizeof(frame));
+		if (len == 0) {
+			continue;
+		}
+		checksum ^= sched_mqtt_checksum(frame, len) + (uint32_t)i;
+		samples++;
+	}
+
+	s_mqtt_checksum ^= checksum;
+	uint64_t total_us = sched_mqtt_get_time_us() - start;
+	if (samples > 0) {
+		sched_mqtt_printf("[SCHED-MQTT] samples=%d total_time=%.3f ms avg=%.3f us/msg checksum=%lu\n",
+				  samples, (double)total_us / 1000.0,
+				  (double)total_us / (double)samples,
+				  (unsigned long)s_mqtt_checksum);
+	}
 	return 0;
 }
 
 void sched_mqtt_teardown(void)
 {
-	/* Mongoose cleans up in thread_entry, nothing persistent */
 }

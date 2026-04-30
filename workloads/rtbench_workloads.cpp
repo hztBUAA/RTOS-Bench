@@ -306,7 +306,7 @@ static void register_all_workloads(void)
 	rtosbench_register_workload(&rtosbench_ewma_workload);
 }
 
-#if defined(__GNUC__) && !defined(RT_THREAD_PLATFORM)
+#if defined(__GNUC__) && !defined(RTOSBENCH_USE_MANUAL_WORKLOAD_REGISTRATION)
 __attribute__((constructor))
 static void auto_register_workloads(void)
 {

@@ -112,17 +112,23 @@ const struct rtosbench_workload *rtosbench_get_workload(int idx);
 /**
  * @brief Auto-register workload using constructor attribute
  *
- * This works on Linux, SylixOS, and most GCC-based toolchains.
- * For RT-Thread, use RTOSBENCH_REGISTER_WORKLOAD_MANUAL instead.
+ * This works on Linux and generic POSIX builds.
+ * RTOS shell entries register workloads explicitly after the module is loaded.
  */
-#if defined(__GNUC__) && !defined(RT_THREAD_PLATFORM)
+#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM) ||                 \
+	defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM) ||                  \
+	defined(RUIHUA_PLATFORM)
+#define RTOSBENCH_USE_MANUAL_WORKLOAD_REGISTRATION 1
+#endif
+
+#if defined(__GNUC__) && !defined(RTOSBENCH_USE_MANUAL_WORKLOAD_REGISTRATION)
 #define RTOSBENCH_REGISTER_WORKLOAD(wl) \
 	__attribute__((constructor)) \
 	static void __rtosbench_register_##wl(void) { \
 		rtosbench_register_workload(&(wl)); \
 	}
 #else
-/* For RT-Thread, registration happens explicitly in rtthread_workloads_init() */
+/* RTOS entries register workloads explicitly from their command entry points. */
 #define RTOSBENCH_REGISTER_WORKLOAD(wl) /* no-op, use manual registration */
 #endif
 

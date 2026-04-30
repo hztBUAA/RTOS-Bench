@@ -30,8 +30,11 @@
 #define SCHED_THREAD_PRIORITY   15
 #else
 #include <pthread.h>
+#include <fcntl.h>
+#include <unistd.h>
 #define SCHED_PRINTF printf
 #define SCHED_POSIX_STACK_SIZE (4 * 1024 * 1024)
+#define SCHED_WCET_STACK_SIZE  (8 * 1024 * 1024)
 #endif
 
 /**
@@ -40,6 +43,39 @@
  * printf → dfs_file_lock → _rt_mutex_take crashes on RT-Thread.
  */
 volatile int g_sched_suppress_output = 0;
+static int g_sched_stdout_saved_fd = -1;
+
+static void sched_output_suppress_begin(void)
+{
+	g_sched_suppress_output = 1;
+#ifndef RT_THREAD_PLATFORM
+	fflush(stdout);
+	g_sched_stdout_saved_fd = -1;
+	int null_fd = open("/dev/null", O_WRONLY);
+	if (null_fd >= 0) {
+		int saved_fd = dup(STDOUT_FILENO);
+		if (saved_fd >= 0 && dup2(null_fd, STDOUT_FILENO) >= 0) {
+			g_sched_stdout_saved_fd = saved_fd;
+		} else if (saved_fd >= 0) {
+			close(saved_fd);
+		}
+		close(null_fd);
+	}
+#endif
+}
+
+static void sched_output_suppress_end(void)
+{
+#ifndef RT_THREAD_PLATFORM
+	fflush(stdout);
+	if (g_sched_stdout_saved_fd >= 0) {
+		dup2(g_sched_stdout_saved_fd, STDOUT_FILENO);
+		close(g_sched_stdout_saved_fd);
+		g_sched_stdout_saved_fd = -1;
+	}
+#endif
+	g_sched_suppress_output = 0;
+}
 
 /* Static result storage */
 static struct test_schedule_result g_result;
@@ -62,6 +98,7 @@ struct task_thread_ctx {
 
 /* Forward declarations */
 static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterations);
+static uint64_t measure_wcet_direct_ns(const struct rtosbench_workload *wl, int iterations);
 static void task_thread_entry(void *param);
 static int compare_double_desc(const void *a, const void *b);
 static int compare_wcet_desc(const void *a, const void *b);
@@ -147,10 +184,7 @@ static void period_timer_callback(void *user_data)
 	}
 }
 
-/**
- * @brief Measure WCET by running workload multiple times
- */
-static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterations)
+static uint64_t measure_wcet_direct_ns(const struct rtosbench_workload *wl, int iterations)
 {
 	uint64_t max_duration = 0;
 	const struct sched_workload_wrapper *wrapper = get_sched_wrapper_for_workload(wl);
@@ -176,6 +210,60 @@ static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterati
 	sched_workload_teardown(wl, wrapper);
 
 	return max_duration;
+}
+
+#ifndef RT_THREAD_PLATFORM
+struct wcet_measure_ctx {
+	const struct rtosbench_workload *wl;
+	int iterations;
+	uint64_t max_duration;
+	int status;
+};
+
+static void *wcet_measure_thread_entry(void *param)
+{
+	struct wcet_measure_ctx *ctx = (struct wcet_measure_ctx *)param;
+	if (!ctx) {
+		return NULL;
+	}
+
+	ctx->max_duration = measure_wcet_direct_ns(ctx->wl, ctx->iterations);
+	ctx->status = 0;
+	return NULL;
+}
+#endif
+
+/**
+ * @brief Measure WCET by running workload multiple times
+ */
+static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterations)
+{
+#ifndef RT_THREAD_PLATFORM
+	pthread_t thread;
+	pthread_attr_t attr;
+	struct wcet_measure_ctx ctx;
+	int ret;
+
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.wl = wl;
+	ctx.iterations = iterations;
+	ctx.status = -1;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, SCHED_WCET_STACK_SIZE);
+	ret = pthread_create(&thread, &attr, wcet_measure_thread_entry, &ctx);
+	pthread_attr_destroy(&attr);
+	if (ret != 0) {
+		SCHED_PRINTF("[test-schedule] Failed to create WCET worker for %s\n",
+			     (wl && wl->name) ? wl->name : "<unknown>");
+		return 0;
+	}
+
+	pthread_join(thread, NULL);
+	return ctx.status == 0 ? ctx.max_duration : 0;
+#else
+	return measure_wcet_direct_ns(wl, iterations);
+#endif
 }
 
 /**
@@ -386,6 +474,8 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 
 		memset(&stats[i], 0, sizeof(stats[i]));
 		stats[i].name = tasks[i].name;
+		stats[i].utilization = tasks[i].utilization;
+		stats[i].period_ns = tasks[i].period_ns;
 	}
 
 	/* Suppress workload output during concurrent execution.
@@ -393,18 +483,18 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 	 * RT-Thread goes through dfs_file_lock → _rt_mutex_take.  Under heavy
 	 * concurrent load this can trigger "scheduler is not available" assertion
 	 * when threads contend on the console mutex. */
-	g_sched_suppress_output = 1;
+	sched_output_suppress_begin();
 
 	/* Create and start all task threads */
 	for (i = 0; i < num_tasks; i++) {
 		if (create_task_thread(&contexts[i], tasks[i].name) != 0) {
+			sched_output_suppress_end();
 			SCHED_PRINTF("[test-schedule] Failed to create thread for %s\n",
 				     tasks[i].name);
 			/* Stop already-started threads */
 			for (int j = 0; j < i; j++) {
 				contexts[j].running = 0;
 			}
-			g_sched_suppress_output = 0;
 			free(contexts);
 			return -1;
 		}
@@ -415,7 +505,7 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 		wait_task_thread(&contexts[i]);
 	}
 
-	g_sched_suppress_output = 0;
+	sched_output_suppress_end();
 
 	/* Aggregate results */
 	result->total_jobs = 0;

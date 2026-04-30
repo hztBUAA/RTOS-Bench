@@ -18,6 +18,7 @@
 #define RESULT_PRINTF printf
 #define RESULT_MALLOC malloc
 #define RESULT_FREE   free
+#include <unistd.h>
 #endif
 
 /* Global result storage */
@@ -395,8 +396,16 @@ int rtbench_result_to_json(char *buf, size_t bufsize)
 
         /* Gradients */
         JSON_APPEND("      \"gradients\": [\n");
-        for (i = 0; i < r->schedule.gradient_count; i++) {
+        int gradient_count = r->schedule.gradient_count;
+        if (gradient_count < 0) gradient_count = 0;
+        if (gradient_count > RTBENCH_MAX_GRADIENTS) gradient_count = RTBENCH_MAX_GRADIENTS;
+
+        for (i = 0; i < gradient_count; i++) {
             struct rtbench_gradient_result *g = &r->schedule.gradients[i];
+            int task_count = g->task_count;
+            if (task_count < 0) task_count = 0;
+            if (task_count > RTBENCH_MAX_WORKLOADS) task_count = RTBENCH_MAX_WORKLOADS;
+
             JSON_APPEND("        {\n");
             JSON_APPEND("          \"utilization_percent\": %d,\n", g->utilization_percent);
             JSON_APPEND("          \"actual_utilization\": %.4f,\n", g->actual_utilization);
@@ -406,18 +415,22 @@ int rtbench_result_to_json(char *buf, size_t bufsize)
 
             /* Task stats */
             JSON_APPEND("          \"task_stats\": [\n");
-            for (j = 0; j < g->task_count; j++) {
+            for (j = 0; j < task_count; j++) {
                 struct rtbench_task_stat *ts = &g->task_stats[j];
-                JSON_APPEND("            { \"name\": \"%s\", \"utilization\": %.4f, "
-                            "\"period_ms\": %.3f, \"jobs\": %llu, \"misses\": %llu, "
-                            "\"max_response_ms\": %.3f }%s\n",
-                            ts->name, ts->utilization, ts->period_ms,
-                            (unsigned long long)ts->jobs, (unsigned long long)ts->misses,
+                char task_name[RTBENCH_MAX_NAME_LEN];
+                memcpy(task_name, ts->name, sizeof(task_name) - 1);
+                task_name[sizeof(task_name) - 1] = '\0';
+                JSON_APPEND("            { \"name\": \"%s\", ", task_name);
+                JSON_APPEND("\"utilization\": %.4f, ", ts->utilization);
+                JSON_APPEND("\"period_ms\": %.3f, ", ts->period_ms);
+                JSON_APPEND("\"jobs\": %llu, ", (unsigned long long)ts->jobs);
+                JSON_APPEND("\"misses\": %llu, ", (unsigned long long)ts->misses);
+                JSON_APPEND("\"max_response_ms\": %.3f }%s\n",
                             ts->max_response_ms,
-                            (j < g->task_count - 1) ? "," : "");
+                            (j < task_count - 1) ? "," : "");
             }
             JSON_APPEND("          ]\n");
-            JSON_APPEND("        }%s\n", (i < r->schedule.gradient_count - 1) ? "," : "");
+            JSON_APPEND("        }%s\n", (i < gradient_count - 1) ? "," : "");
         }
         JSON_APPEND("      ],\n");
 
@@ -519,6 +532,7 @@ int rtbench_result_export_json(const char *filepath)
         RESULT_PRINTF("[result-export] Failed to allocate buffer\n");
         return -1;
     }
+    memset(buf, 0, bufsize);
 
     int len = rtbench_result_to_json(buf, bufsize);
     if (len < 0) {
@@ -526,15 +540,43 @@ int rtbench_result_export_json(const char *filepath)
         return -1;
     }
 
+    int sanitized = 0;
+    for (int i = 0; i < len; i++) {
+        unsigned char ch = (unsigned char)buf[i];
+        if (ch < 0x20 && ch != '\n' && ch != '\r' && ch != '\t') {
+            buf[i] = ' ';
+            sanitized++;
+        }
+    }
+    if (sanitized > 0) {
+        RESULT_PRINTF("[result-export] Sanitized %d control byte(s)\n", sanitized);
+    }
+
     /* Write to file */
-    FILE *fp = fopen(filepath, "w");
+    FILE *fp = fopen(filepath, "wb");
     if (!fp) {
         RESULT_PRINTF("[result-export] Failed to open %s\n", filepath);
         RESULT_FREE(buf);
         return -2;
     }
 
-    size_t written = fwrite(buf, 1, len, fp);
+    size_t written = 0;
+    const char *cursor = buf;
+    size_t remain = (size_t)len;
+    while (remain > 0) {
+        size_t chunk = remain > 512 ? 512 : remain;
+        size_t n = fwrite(cursor, 1, chunk, fp);
+        written += n;
+        cursor += n;
+        remain -= n;
+        if (n != chunk) {
+            break;
+        }
+    }
+    fflush(fp);
+#ifndef RT_THREAD_PLATFORM
+    fsync(fileno(fp));
+#endif
     fclose(fp);
     RESULT_FREE(buf);
 

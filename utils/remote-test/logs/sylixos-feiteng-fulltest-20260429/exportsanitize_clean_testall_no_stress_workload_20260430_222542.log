@@ -1,0 +1,467 @@
+[2026-04-30 22:25:43] CONNECT feiteng 192.168.31.204:23
+[2026-04-30 22:25:43] COMMAND[1] shstack 120000
+[2026-04-30 22:25:43] COMMAND[2] cd /apps/hzt
+[2026-04-30 22:25:43] COMMAND[3] ./feiteng-rtos-bench_hzt_exportsanitize_20260430_222216 test-all --no-stress --no-workload -o /apps/hzt/feiteng_testall_no_stress_workload_exportsanitize_clean_20260430_222542.json
+[2026-04-30 22:25:43] TIMEOUT_PER_COMMAND 7200s
+[2026-04-30 22:25:43] TELNET_OPEN_ATTEMPT 1
+[2026-04-30 22:25:44] RUN[1] shstack 120000
+shstack 120000
+default shell stack: 120000
+[root@sylixos:/root]# [2026-04-30 22:25:45] STATUS[1] 0
+[2026-04-30 22:25:45] RUN[2] cd /apps/hzt
+cd /apps/hzt
+[root@sylixos:/apps/hzt]# [2026-04-30 22:25:45] STATUS[2] 0
+[2026-04-30 22:25:45] RUN[3] ./feiteng-rtos-bench_hzt_exportsanitize_20260430_222216 test-all --no-stress --no-workload -o /apps/hzt/feiteng_testall_no_stress_workload_exportsanitize_clean_20260430_222542.json
+./feiteng-rtos-bench_hzt_exportsanitize_20260430_222216 test-all --no-stress --no-workload -o /apps/hzt/feiteng_testall_no_stress_workload_exportsanitize_clean_20260430_222542.json
+
+=============================================================
+[RTOS-Bench] Comprehensive Test Suite
+=============================================================
+Output: /apps/hzt/feiteng_testall_no_stress_workload_exportsanitize_clean_20260430_222542.json
+Modules: realtime=yes schedule=yes stress=no cmd=yes workload=no
+
+>>> Running test-realtime...
+
+=============================================================
+[test-realtime] Starting realtime performance benchmark
+=============================================================
+Mode: Single-core tests only
+
+Finish test 1.
+Warning: interrupt latency test only get 100/200 data.
+Finish test 2.
+Finish test 3.
+Finish test 4_1, 4_1.
+Finish test 4_2, 5_4.
+Finish test 5_3.
+Finish test 6_1, 7_1.
+Finish test 6_3.
+Finish test 6_4, 7_2.
+mqueue supports blocking on full queue.
+Finish test 6_2, 7_4.
+Finish test 7_3.
+Finish test 8_1, 9_1.
+Finish test 8_2, 9_4.
+Finish test 9_3.
+Finish test 10_1, 11_1.
+系统延迟（单位：us）:
+指标       | 立即执行   | 挂起睡眠   | 低优就绪   | 高优恢复  
+----------------------------------------------------------------------
+信号量获取 | 0.360      | 1.120      |            |           
+信号量释放 | 0.540      |            | 0.540      | 1.120     
+消息发送   | 1.900      | 2.160      | 2.080      | 2.160     
+消息接收   | 1.840      | 4.100      | 2.100      | 4.080     
+互斥锁获取 | 0.460      | 1.220      |            |           
+互斥锁释放 | 0.500      |            | 0.700      | 1.280     
+内存块申请 | 1.120      |            |            |           
+内存块释放 | 1.040      |            |            |           
+上下文切换延迟    AVG: 0.982
+中断软件延迟    MIN: 0.320  MAX: 0.480  AVG: 0.332
+系统调用延迟    MIN: 0.020  MAX: 0.040  AVG: 0.020
+
+
+=============================================================
+[test-realtime] Benchmark completed with code: 0
+=============================================================
+
+>>> Running test-schedule (cycles=3 util=30-100 step 10)...
+[test-schedule] Found 9 industrial workloads (excluded 2 utility workloads)
+=============================================================
+[Phase 1] Measuring WCET for 9 workloads...
+=============================================================
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=51.092 ms avg_latency=17030.547 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=51.337 ms avg_latency=17112.367 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=63.831 ms avg_latency=21276.900 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=55.782 ms avg_latency=18594.007 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=52.347 ms avg_latency=17449.020 us/img
+  [fast]: WCET = 63.871 ms (5 iters)
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ -1.39947
+-0.931223
+ 0.942914
+
+the random rotation is:
+ 0.978738  0.149882 -0.140029
+-0.131756   0.98261  0.130836
+ 0.157204 -0.109604  0.981465
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=21.694 ms avg_latency=21694.040 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+-0.486886
+ 0.901026
+-0.454097
+
+the random rotation is:
+   0.867121    0.252355   -0.429438
+  -0.225642    0.967634    0.113006
+   0.444057 -0.00109075    0.895998
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=21.208 ms avg_latency=21207.800 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+0.407636
+-0.85594
+-1.78819
+
+the random rotation is:
+  0.945917  -0.323947 -0.0173014
+  0.277353   0.835224  -0.474843
+  0.168275   0.444364     0.8799
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=8.595 ms avg_latency=8594.820 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  0.90746
+-0.326638
+ -1.80989
+
+the random rotation is:
+  0.982431  -0.181417  0.0437941
+  0.186482   0.944992  -0.268728
+0.00736665   0.272173    0.96222
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=13.615 ms avg_latency=13614.840 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  1.49754
+  1.09644
+-0.191022
+
+the random rotation is:
+ 0.932599 -0.277161  0.231173
+ 0.339674  0.890525 -0.302635
+-0.121987   0.36076  0.924647
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=15.140 ms avg_latency=15140.480 us/iter
+  [epnp]: WCET = 29.160 ms (5 iters)
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=1494.656 ms avg_latency=438.701 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=1488.430 ms avg_latency=436.874 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=1499.420 ms avg_latency=440.100 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=1486.801 ms avg_latency=436.396 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+GPS checks passed
+reset position to GPS
+reset velocity to GPS
+starting GPS fusion
+[EKF] samples=3407 total_time=1493.221 ms avg_latency=438.280 us/update
+  [ekf]: WCET = 1499.527 ms (5 iters)
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=1684.350 ms avg_latency=1684.350 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=1660.683 ms avg_latency=1660.683 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=1700.033 ms avg_latency=1700.033 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=1656.262 ms avg_latency=1656.262 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=1662.149 ms avg_latency=1662.149 ms/run
+  [icp]: WCET = 1718.541 ms (5 iters)
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.630 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.730 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.744 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.731 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=7999.720 ms errors=0
+  [modbus]: WCET = 9099.996 ms (5 iters)
+[SCHED-MQTT] samples=2000 total_time=8.731 ms avg=4.365 us/msg checksum=2461793201
+[SCHED-MQTT] samples=2000 total_time=8.793 ms avg=4.396 us/msg checksum=0
+[SCHED-MQTT] samples=2000 total_time=8.818 ms avg=4.409 us/msg checksum=2461793201
+[SCHED-MQTT] samples=2000 total_time=8.816 ms avg=4.408 us/msg checksum=0
+[SCHED-MQTT] samples=2000 total_time=8.810 ms avg=4.405 us/msg checksum=2461793201
+  [mqtt]: WCET = 8.833 ms (5 iters)
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=193.021 ms avg_latency=0.193 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=173.939 ms avg_latency=0.174 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=173.922 ms avg_latency=0.174 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=182.758 ms avg_latency=0.183 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=186.398 ms avg_latency=0.186 us/op
+  [pid]: WCET = 193.060 ms (5 iters)
+[CUSUM] samples=6000 total_time=77.548 ms avg_latency=12.925 us/sample
+[CUSUM] samples=6000 total_time=66.389 ms avg_latency=11.065 us/sample
+[CUSUM] samples=6000 total_time=65.529 ms avg_latency=10.922 us/sample
+[CUSUM] samples=6000 total_time=77.551 ms avg_latency=12.925 us/sample
+[CUSUM] samples=6000 total_time=66.439 ms avg_latency=11.073 us/sample
+  [cusum]: WCET = 77.568 ms (5 iters)
+[EWMA] samples=5000 total_time=131.783 ms avg_latency=26.357 us/sample
+[EWMA] samples=5000 total_time=117.309 ms avg_latency=23.462 us/sample
+[EWMA] samples=5000 total_time=123.024 ms avg_latency=24.605 us/sample
+[EWMA] samples=5000 total_time=130.417 ms avg_latency=26.083 us/sample
+[EWMA] samples=5000 total_time=130.406 ms avg_latency=26.081 us/sample
+  [ewma]: WCET = 131.804 ms (5 iters)
+[Phase 1] 9 workloads measured
+
+=============================================================
+[Phase 2] Running Task Sets (U: 30% - 100%, step 10%)
+=============================================================
+
+>>> Utilization Gradient: 30% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9099.996   | 7.35     | 123850.861  
+icp          | 1718.541   | 6.18     | 27811.774   
+ekf          | 1499.527   | 4.38     | 34259.653   
+pid          | 193.060    | 3.88     | 4969.888    
+ewma         | 131.804    | 3.53     | 3730.270    
+cusum        | 77.568     | 1.70     | 4559.197    
+fast         | 63.871     | 1.57     | 4060.776    
+epnp         | 29.160     | 1.40     | 2084.557    
+mqtt         | 8.833      | 0.01     | 10000.000   
+Running task set for 3 cycles...
+Gradient 30% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 40% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9099.996   | 12.93    | 70397.901   
+icp          | 1718.541   | 6.72     | 25587.013   
+ekf          | 1499.527   | 5.90     | 25418.262   
+pid          | 193.060    | 5.77     | 3343.590    
+ewma         | 131.804    | 5.20     | 2535.205    
+cusum        | 77.568     | 1.59     | 4876.052    
+fast         | 63.871     | 1.15     | 5537.312    
+epnp         | 29.160     | 0.43     | 6811.176    
+mqtt         | 8.833      | 0.31     | 2828.921    
+Running task set for 3 cycles...
+Gradient 40% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 50% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9099.996   | 18.41    | 49425.159   
+icp          | 1718.541   | 7.72     | 22257.956   
+ekf          | 1499.527   | 5.57     | 26924.386   
+pid          | 193.060    | 4.89     | 3946.714    
+ewma         | 131.804    | 3.68     | 3584.746    
+cusum        | 77.568     | 3.21     | 2418.892    
+fast         | 63.871     | 2.81     | 2271.249    
+epnp         | 29.160     | 2.56     | 1140.476    
+mqtt         | 8.833      | 1.15     | 765.658     
+Running task set for 3 cycles...
+Gradient 50% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 60% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9099.996   | 10.28    | 88552.641   
+icp          | 1718.541   | 7.64     | 22503.099   
+ekf          | 1499.527   | 7.36     | 20374.658   
+pid          | 193.060    | 6.77     | 2850.390    
+ewma         | 131.804    | 6.59     | 2001.040    
+cusum        | 77.568     | 6.58     | 1178.841    
+fast         | 63.871     | 6.12     | 1044.076    
+epnp         | 29.160     | 4.76     | 612.958     
+mqtt         | 8.833      | 3.91     | 225.782     
+Running task set for 3 cycles...
+Gradient 60% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 70% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9099.996   | 29.69    | 30653.207   
+icp          | 1718.541   | 14.63    | 11744.824   
+ekf          | 1499.527   | 9.89     | 15164.337   
+pid          | 193.060    | 4.47     | 4318.457    
+ewma         | 131.804    | 3.13     | 4204.280    
+cusum        | 77.568     | 2.97     | 2616.046    
+fast         | 63.871     | 2.77     | 2302.433    
+epnp         | 29.160     | 1.97     | 1480.929    
+mqtt         | 8.833      | 0.48     | 1846.204    
+Running task set for 3 cycles...
+Gradient 70% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 80% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9099.996   | 28.92    | 31461.097   
+icp          | 1718.541   | 15.00    | 11460.554   
+ekf          | 1499.527   | 12.79    | 11724.200   
+pid          | 193.060    | 6.55     | 2948.077    
+ewma         | 131.804    | 5.97     | 2206.072    
+cusum        | 77.568     | 4.76     | 1628.696    
+fast         | 63.871     | 3.44     | 1859.190    
+epnp         | 29.160     | 2.14     | 1361.496    
+mqtt         | 8.833      | 0.43     | 2068.445    
+Running task set for 3 cycles...
+Gradient 80% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 90% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9099.996   | 42.12    | 21605.347   
+icp          | 1718.541   | 14.89    | 11543.803   
+ekf          | 1499.527   | 7.77     | 19301.158   
+pid          | 193.060    | 7.64     | 2526.885    
+ewma         | 131.804    | 6.83     | 1930.140    
+cusum        | 77.568     | 6.47     | 1198.714    
+fast         | 63.871     | 2.23     | 2863.492    
+epnp         | 29.160     | 1.06     | 2762.129    
+mqtt         | 8.833      | 1.00     | 884.732     
+Running task set for 3 cycles...
+Gradient 90% complete: MR = 0.0000 (0/27)
+
+>>> Utilization Gradient: 100% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+modbus       | 9099.996   | 19.58    | 46486.216   
+icp          | 1718.541   | 17.82    | 9642.599    
+ekf          | 1499.527   | 16.59    | 9038.246    
+pid          | 193.060    | 15.62    | 1235.693    
+ewma         | 131.804    | 12.51    | 1053.705    
+cusum        | 77.568     | 6.26     | 1238.229    
+fast         | 63.871     | 5.53     | 1154.504    
+epnp         | 29.160     | 5.25     | 555.628     
+mqtt         | 8.833      | 0.83     | 1059.343    
+Running task set for 3 cycles...
+Gradient 100% complete: MR = 0.0000 (0/27)
+
+=============================================================
+[Phase 3] Final Results
+=============================================================
+U= 30%: MR=0.0000 (0 misses / 27 jobs)
+U= 40%: MR=0.0000 (0 misses / 27 jobs)
+U= 50%: MR=0.0000 (0 misses / 27 jobs)
+U= 60%: MR=0.0000 (0 misses / 27 jobs)
+U= 70%: MR=0.0000 (0 misses / 27 jobs)
+U= 80%: MR=0.0000 (0 misses / 27 jobs)
+U= 90%: MR=0.0000 (0 misses / 27 jobs)
+U=100%: MR=0.0000 (0 misses / 27 jobs)
+
+------------------------------------------------------
+Average Miss Rate: 0.0000
+Final Score: 100.00 / 100
+------------------------------------------------------
+
+>>> Running test-cmd...
+Sat Jan 01 08:32:39 2000
+
+      NAME            FATHER      STAT  PID   GRP    MEMORY    UID   GID   USER
+---------------- ---------------- ---- ----- ----- ---------- ----- ----- ------
+kernel           <orphan>         R        0     0        0KB     0     0 root
+feiteng-rtos-bench_hzt_exportsanitize_20260430_222216 <orphan>         R        1     1    15324KB     0     0 root
+
+total vprocess: 2
+arguments error!
+/apps/hzt
+can not process redirect.
+can not open source file!
+./test_cmd_dir/backup.txt error: No such file or directory
+[00mf_epnpfix       [00m[01;32mfeiteng-rtos-bench_hzt_exportsanitize_20260430_222216           [00m[00mfeiteng_testall_export_smoke_exportsanitize_20260430_222248.json                [00m[01;32mfeiteng-rtos-bench_hzt_wcetthread_20260430_023558               [00m
+[01;32mfeiteng-rtos-bench_hzt_main_20260429_201213     [00m[01;32mfeiteng-rtos-bench_hzt_suppress_20260429_230847 [00m[01;32mfeiteng-rtos-bench_hzt_cleanup_20260429_202528  [00m[00mfeiteng_testall_no_stress_workload_nodot_20260430_172828.json   [00m
+[01;32mfeiteng-rtos-bench_hzt_exportchunk_20260430_180232              [00m[01;32mfeiteng-rtos-bench_hzt_exportfix_20260430_014602                [00m[01;32mfeiteng-rtos-bench_hzt_epnpdotfix_20260430_164002               [00m
+[01;32mfeiteng-rtos-bench_hzt_mqttdet_20260430_194526  [00m[00mfeiteng_testall_no_stress_workload_exportstrlen_clean_20260430_214431.json      [00m[00mfeiteng_testall_realtime_only_shstack_20260430_161322.json      [00m
+[01;32mlibcextern_feiteng_remote_20260430.so           [00m[01;32mfeiteng-rtos-bench_hzt_icpfix_20260430_192526   [00m[01;32mfeiteng-rtos-bench_hzt_nodot_20260430_1722      [00m[01;32mfeiteng-rtos-bench_hzt_manualreg_20260430_015405                [00m
+[01;32mfeiteng-rtos-bench_hzt_mqttnosnprintf_20260430_204223           [00m[00mfeiteng_testall_export_smoke_exportstrlen_20260430_212450.json  [00m[01;32mfeiteng-rtos-bench_hzt_20260429_192025          [00m
+[01;32mfeiteng-rtos-bench_hzt_epnpaliasfix_20260430_0316               [00m[00mlibcextern_feiteng_hzt_20260430.so              [00m[01;32mfeiteng-rtos-bench_hzt_exportstrlen_20260430_212310             [00m
+file error No such file or directory!
+option error!
+=======================================================================
+>> Result: Command 'date' finished.
+>> Result: Command 'ps' finished.
+>> Result: Command 'mkdir -p test_cmd_dir' failed.
+>> Result: Command 'cd .' finished.
+>> Result: Command 'pwd' finished.
+>> Result: Command 'echo 'HELLO' > ./test_cmd_dir/original.txt' failed.
+>> Result: Command 'cp ./test_cmd_dir/original.txt ./test_cmd_dir/backup.txt' failed.
+>> Result: Command 'mv ./test_cmd_dir/backup.txt ./test_cmd_dir/final_target.txt' failed.
+>> Result: Command 'ls' finished.
+>> Result: Command 'cat ./test_cmd_dir/original.txt' failed.
+>> Result: Command 'rm -rf ./test_cmd_dir' failed.
+=======================================================================
+Supported commands: date ps cd pwd ls 
+Unsupported commands: mkdir echo cp mv cat rm 
+[test-cmd] Result: 5/11 commands supported
+
+=============================================================
+[RTOS-Bench] Results saved to: /apps/hzt/feiteng_testall_no_stress_workload_exportsanitize_clean_20260430_222542.json
+=============================================================
+[root@sylixos:/apps/hzt]# [2026-04-30 22:57:40] STATUS[3] 0
