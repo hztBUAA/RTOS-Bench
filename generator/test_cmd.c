@@ -83,9 +83,7 @@ static const char *test_seq[] = {
     "rm ./test_cmd_dir",
 };
 
-#elif defined(LINUX_PLATFORM) || defined(__linux__) || \
-      defined(SYLIXOS_PLATFORM) || defined(DONGTU_PLATFORM) || \
-      defined(RUIHUA_PLATFORM)
+#elif defined(SYLIXOS_PLATFORM)
 
 #define CMD_EXEC(cmd, len) system(cmd)
 #define CMD_PRINTF printf
@@ -93,15 +91,16 @@ static const char *test_seq[] = {
 static const char *test_seq[] = {
     "date",
     "ps",
-    "mkdir -p test_cmd_dir",
+    "mkdir test_cmd_dir",
     "cd .",
     "pwd",
-    "echo 'HELLO' > ./test_cmd_dir/original.txt",
+    "echo 'HELLO'",
+    "touch ./test_cmd_dir/original.txt",
     "cp ./test_cmd_dir/original.txt ./test_cmd_dir/backup.txt",
     "mv ./test_cmd_dir/backup.txt ./test_cmd_dir/final_target.txt",
     "ls",
     "cat ./test_cmd_dir/original.txt",
-    "rm -rf ./test_cmd_dir",
+    "rm ./test_cmd_dir/original.txt",
 };
 
 #else
@@ -245,6 +244,12 @@ int test_cmd_run(void)
 
     CMD_PRINTF("[test-cmd] Result: %d/%d commands supported\n",
                s_cmd_result.pass_count, s_cmd_result.cmd_count);
+
+    /* Clear */
+#if defined(SYLIXOS_PLATFORM)
+    cmd_examine("rm ./test_cmd_dir/final_target.txt");
+    cmd_examine("rm ./test_cmd_dir");
+#endif
 
     return 0;
 }
