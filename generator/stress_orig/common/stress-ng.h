@@ -8,11 +8,7 @@
 #include <math.h>
 
 #define stress_osal_print(fmt, ...) \
-    do { \
-        if (!g_stress_silent_mode) { \
-            (stress_osal_print)(fmt, ##__VA_ARGS__); \
-        } \
-    } while (0)
+    (stress_osal_print)(fmt, ##__VA_ARGS__)
 
 #define stress_table_print(fmt, ...) \
     (stress_osal_print)(fmt, ##__VA_ARGS__)

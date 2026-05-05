@@ -6,7 +6,7 @@
 
 #define PAGE_SIZE_4K            (4096)
 #define PTRS_PER_4K_PAGE        (PAGE_SIZE_4K / sizeof(void *))
-#define HEARTBEAT_INTERVAL      (1000000)
+#define HEARTBEAT_INTERVAL      (10000000)
 
 #define UNLIKELY(x)             __builtin_expect(!!(x), 0)
 #define LIKELY(x)               __builtin_expect(!!(x), 1)

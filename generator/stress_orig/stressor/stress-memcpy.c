@@ -5,11 +5,7 @@
 #include <string.h>
 #include <stress-config.h>
 
-#define ALIGN_SIZE                  (64)
-
-#define UNLIKELY(x)         __builtin_expect(!!(x), 0)
-#define LIKELY(x)           __builtin_expect(!!(x), 1)
-#define NOINLINE            __attribute__((noinline))
+#define NOINLINE __attribute__((noinline))
 
 #ifndef OPTIMIZE0
 #if defined(__GNUC__)
@@ -25,29 +21,98 @@
 #endif
 #endif
 
-typedef void * (*memcpy_func_t)(void *dest, const void *src, size_t n);
-typedef void * (*memmove_func_t)(void *dest, const void *src, size_t n);
-typedef void * (*memcpy_check_func_t)(memcpy_func_t func, void *dest, const void *src, size_t n);
-typedef void * (*memmove_check_func_t)(memmove_func_t func, void *dest, const void *src, size_t n);
+/*
+ * 平台无关全系统内存屏障
+ * 目标：确保所有写操作在后续读之前对 CPU 可见。
+ * - ARMv8/ARMv7: DSB SY + ISB
+ * - x86_64:      MFENCE
+ * - 其他:        GCC 原子同步屏障
+ */
+#if defined(__aarch64__) || defined(__arm__)
+#  define FULL_BARRIER() \
+     __asm__ volatile("dsb sy" ::: "memory"); \
+     __asm__ volatile("isb"    ::: "memory")
+#elif defined(__x86_64__) || defined(__i386__)
+#  define FULL_BARRIER() \
+     __asm__ volatile("mfence" ::: "memory")
+#elif defined(__riscv)
+#  define FULL_BARRIER() \
+     __asm__ volatile("fence rw,rw" ::: "memory")
+#else
+#  define FULL_BARRIER() \
+     __sync_synchronize()
+#endif
 
-static memcpy_check_func_t memcpy_check;
-static memmove_check_func_t memmove_check;
-static stress_bool_t memcpy_okay = STRESS_TRUE;
-static const char *s_method_name = "";
+typedef void *(*memcpy_func_t)(void *dest, const void *src, size_t n);
+typedef void *(*memmove_func_t)(void *dest, const void *src, size_t n);
 
+/* ------------------------------------------------------------------ */
+/* 简单 LCG，用于生成确定性测试填充数据                                 */
+/* 每个 worker 用 instance 作为种子，保证多 worker 互相独立             */
+/* ------------------------------------------------------------------ */
+typedef struct { uint32_t state; } fill_rng_t;
+
+static inline void fill_rng_seed(fill_rng_t *r, uint32_t seed)
+{
+    r->state = seed ^ 0xdeadbeefU;
+    if (r->state == 0) r->state = 1;
+}
+
+static inline uint8_t fill_rng_next(fill_rng_t *r)
+{
+    r->state = r->state * 1664525U + 1013904223U;
+    return (uint8_t)(r->state >> 24);
+}
+
+/* ------------------------------------------------------------------ */
+/* 核心：用 OPTIMIZE0 字节循环做填充/比较，完全绕过平台 memcpy 实现     */
+/* ------------------------------------------------------------------ */
+
+static NOINLINE OPTIMIZE0 void safe_fill(uint8_t *buf, size_t n, fill_rng_t *r)
+{
+    size_t i;
+    for (i = 0; i < n; i++) buf[i] = fill_rng_next(r);
+    FULL_BARRIER();
+}
+
+static NOINLINE OPTIMIZE0 void safe_copy(uint8_t *dst, const uint8_t *src, size_t n)
+{
+    size_t i;
+    for (i = 0; i < n; i++) dst[i] = src[i];
+    FULL_BARRIER();
+}
+
+/*
+ * 返回首个差异偏移，无差异返回 n
+ */
+static NOINLINE OPTIMIZE0 size_t safe_compare(const uint8_t *a,
+                                               const uint8_t *b,
+                                               size_t n)
+{
+    size_t i;
+    FULL_BARRIER();
+    for (i = 0; i < n; i++) {
+        if (a[i] != b[i]) return i;
+    }
+    return n;
+}
+
+/* ------------------------------------------------------------------ */
+/* 全局选项                                                             */
+/* ------------------------------------------------------------------ */
 static int32_t s_memcpy_loops = DEFAULT_MEMCPY_LOOPS;
-static int32_t s_memcpy_size = DEFAULT_MEMCPY_MEMSIZE;
+static int32_t s_memcpy_size  = DEFAULT_MEMCPY_MEMSIZE;
 
 static int stress_memcpy_opt_loops(const char *opt_name, const char *opt_arg)
 {
-    char *endptr;
-    unsigned long long val = strtoull(opt_arg, &endptr, 10);
-
-    if (*endptr == 'k' || *endptr == 'K') val *= 1024;
-    else if (*endptr == 'm' || *endptr == 'M') val *= (1024 * 1024);
-    else if (*endptr == 'g' || *endptr == 'G') val *= (1024 * 1024 * 1024);
+    char               *endptr;
+    unsigned long long  val = strtoull(opt_arg, &endptr, 10);
+    (void)opt_name;
+    if      (*endptr == 'k' || *endptr == 'K') val *= 1024ULL;
+    else if (*endptr == 'm' || *endptr == 'M') val *= 1024ULL * 1024ULL;
+    else if (*endptr == 'g' || *endptr == 'G') val *= 1024ULL * 1024ULL * 1024ULL;
     if (val < MIN_MEMCPY_LOOPS) val = MIN_MEMCPY_LOOPS;
-    s_memcpy_loops = val;
+    s_memcpy_loops = (int32_t)val;
     stress_osal_print("rtos_stress: debug: memcpy-loops set to %d\n", s_memcpy_loops);
     return 0;
 }
@@ -55,6 +120,7 @@ static int stress_memcpy_opt_loops(const char *opt_name, const char *opt_arg)
 static int stress_memcpy_opt_size(const char *opt_name, const char *opt_arg)
 {
     int val = atoi(opt_arg);
+    (void)opt_name;
     if (val < MIN_MEMCPY_MEMSIZE) val = MIN_MEMCPY_MEMSIZE;
     s_memcpy_size = val;
     stress_osal_print("rtos_stress: debug: memcpy-size set to %d\n", s_memcpy_size);
@@ -63,252 +129,360 @@ static int stress_memcpy_opt_size(const char *opt_name, const char *opt_arg)
 
 const stress_opt_t stress_memcpy_opts[] = {
     { "memcpy-loops", stress_memcpy_opt_loops },
-    { "memcpy-size",  stress_memcpy_opt_size },
+    { "memcpy-size",  stress_memcpy_opt_size  },
     { NULL, NULL }
 };
 
-static OPTIMIZE3 void *memcpy_check_func(memcpy_func_t func, void *dest, const void *src, size_t n)
-{
-    void *ptr = func(dest, src, n);
+/* ------------------------------------------------------------------ */
+/* 单次测试上下文                                                        */
+/* ------------------------------------------------------------------ */
+typedef struct {
+    stress_args_t *args;
+    const char    *method_name;
+    stress_bool_t  okay;
+    /*
+     * 布局（各区域大小均为 sz，彼此不重叠）：
+     *   src:      被拷贝的数据源（每次测试重新填充）
+     *   dst:      被测函数写入的目标
+     *   expected: safe_copy 的结果，作为基准期望值
+     *   overlap:  专门用于 memmove overlap 场景的独立区域
+     */
+    uint8_t       *src;
+    uint8_t       *dst;
+    uint8_t       *expected;
+    uint8_t       *overlap;
+    size_t         sz;
+    fill_rng_t     rng;
+} mc_ctx_t;
 
-    if (UNLIKELY(memcmp(dest, src, n) != 0)) {
-        stress_osal_print("rtos_stress: fail: [memcpy] %s content check failed\n", s_method_name);
-        memcpy_okay = STRESS_FALSE;
+/*
+ * 测试 memcpy 的核心逻辑：
+ *
+ *   1. 用确定性 RNG 填充 src（填充完即固定，不再变化）
+ *   2. 用 safe_copy 把 src → expected（已知正确的参考）
+ *   3. 调用被测 func 把 src → dst
+ *   4. FULL_BARRIER 后，用 safe_compare 对比 dst 与 expected
+ *
+ * src 在步骤 1-4 之间不被任何其他操作触碰，期望值 100% 确定。
+ */
+static NOINLINE OPTIMIZE0
+void check_memcpy(mc_ctx_t *ctx,
+                  memcpy_func_t func,
+                  size_t n,
+                  uint32_t fill_seed)
+{
+    void  *ret;
+    size_t diff;
+
+    if (!ctx->okay) return;
+    if (n == 0 || n > ctx->sz) return;
+
+    /* 步骤1：用固定种子填充 src */
+    fill_rng_t local_rng;
+    fill_rng_seed(&local_rng, fill_seed);
+    safe_fill(ctx->src, n, &local_rng);
+
+    /* 步骤2：用 safe_copy 生成期望值 */
+    safe_copy(ctx->expected, ctx->src, n);
+
+    /* 步骤3：调用被测函数 */
+    ret = func(ctx->dst, ctx->src, n);
+
+    /* 步骤4：屏障 + 比较 */
+    FULL_BARRIER();
+
+    if (ret != (void *)ctx->dst) {
+        stress_osal_print(
+            "rtos_stress: fail: [memcpy] %s return ptr mismatch "
+            "(expected=%p got=%p)\n",
+            ctx->method_name, (void *)ctx->dst, ret);
+        ctx->okay = STRESS_FALSE;
+        return;
     }
-    if (UNLIKELY(ptr != dest)) {
-        stress_osal_print("rtos_stress: fail: [memcpy] %s return ptr mismatch\n", s_method_name);
-        memcpy_okay = STRESS_FALSE;
+
+    diff = safe_compare(ctx->dst, ctx->expected, n);
+    if (diff < n) {
+        stress_osal_print(
+            "rtos_stress: fail: [memcpy] %s content check failed "
+            "(n=%zu first_diff_offset=%zu expect=0x%02x got=0x%02x)\n",
+            ctx->method_name, n, diff,
+            (unsigned)ctx->expected[diff],
+            (unsigned)ctx->dst[diff]);
+        ctx->okay = STRESS_FALSE;
     }
-    return ptr;
 }
 
-static OPTIMIZE3 void *memmove_check_func(memmove_func_t func, void *dest, const void *src, size_t n)
+/*
+ * 测试 memmove 的核心逻辑：
+ *
+ * 非重叠情况：与 check_memcpy 完全相同。
+ *
+ * 重叠情况：仅验证 memmove 返回值正确且不 crash，
+ *           不校验内容（因为重叠情况下 src 被破坏，
+ *           期望值无法独立建立）。
+ */
+static NOINLINE OPTIMIZE0
+void check_memmove(mc_ctx_t *ctx,
+                   memmove_func_t func,
+                   size_t n,
+                   uint32_t fill_seed,
+                   stress_bool_t is_overlap)
 {
-    uintptr_t d = (uintptr_t)dest;
-    uintptr_t s = (uintptr_t)src;
-    stress_bool_t overlap = (d < s + n) && (s < d + n);
+    void *ret;
 
-    void *ptr = func(dest, src, n);
+    if (!ctx->okay) return;
+    if (n == 0 || n > ctx->sz) return;
 
-    if (!overlap) {
-        if (UNLIKELY(memcmp(dest, src, n) != 0)) {
-            stress_osal_print("rtos_stress: fail: [memmove] %s content check failed\n", s_method_name);
-            memcpy_okay = STRESS_FALSE;
+    if (!is_overlap) {
+        /* 非重叠：与 check_memcpy 逻辑一致 */
+        fill_rng_t local_rng;
+        size_t     diff;
+
+        fill_rng_seed(&local_rng, fill_seed);
+        safe_fill(ctx->src, n, &local_rng);
+        safe_copy(ctx->expected, ctx->src, n);
+
+        ret = func(ctx->dst, ctx->src, n);
+        FULL_BARRIER();
+
+        if (ret != (void *)ctx->dst) {
+            stress_osal_print(
+                "rtos_stress: fail: [memmove] %s return ptr mismatch\n",
+                ctx->method_name);
+            ctx->okay = STRESS_FALSE;
+            return;
         }
-    }
 
-    if (UNLIKELY(ptr != dest)) {
-        stress_osal_print("rtos_stress: fail: [memmove] %s return ptr mismatch\n", s_method_name);
-        memcpy_okay = STRESS_FALSE;
-    }
-    return ptr;
-}
+        diff = safe_compare(ctx->dst, ctx->expected, n);
+        if (diff < n) {
+            stress_osal_print(
+                "rtos_stress: fail: [memmove] %s (non-overlap) content check failed "
+                "(n=%zu first_diff_offset=%zu expect=0x%02x got=0x%02x)\n",
+                ctx->method_name, n, diff,
+                (unsigned)ctx->expected[diff],
+                (unsigned)ctx->dst[diff]);
+            ctx->okay = STRESS_FALSE;
+        }
+    } else {
+        /*
+         * 重叠：用 overlap 区域做测试，只验证不 crash 且返回值正确。
+         * 区域布局：overlap[0..n) 作为 dest，overlap[n/4..n/4+n) 作为 src，
+         * 两者故意重叠。
+         */
+        fill_rng_t local_rng;
+        uint8_t   *ov_dest = ctx->overlap;
+        uint8_t   *ov_src  = ctx->overlap + n / 4;
 
-#define TEST_NAIVE_MEMCPY(name, hint)                   \
-static hint void *name(void *dest, const void *src, size_t n)       \
-{                                   \
-    register size_t i;                      \
-    register char *cdest = (char *)dest;                \
-    register const char *csrc = (const char *)src;          \
-                                    \
-    for (i = 0; i < n; i++)                     \
-        *(cdest++) = *(csrc++);                 \
-    return dest;                            \
-}                                   \
+        if (ov_src + n > ctx->overlap + ctx->sz) {
+            /* overlap 区域不够大，跳过 */
+            return;
+        }
 
-TEST_NAIVE_MEMCPY(test_naive_memcpy, NOINLINE)
-TEST_NAIVE_MEMCPY(test_naive_memcpy_o0, NOINLINE OPTIMIZE0)
-TEST_NAIVE_MEMCPY(test_naive_memcpy_o1, NOINLINE OPTIMIZE1)
-TEST_NAIVE_MEMCPY(test_naive_memcpy_o2, NOINLINE OPTIMIZE2)
-TEST_NAIVE_MEMCPY(test_naive_memcpy_o3, NOINLINE OPTIMIZE3)
+        fill_rng_seed(&local_rng, fill_seed ^ 0x12345678U);
+        safe_fill(ctx->overlap, ctx->sz, &local_rng);
 
-#define TEST_NAIVE_MEMMOVE(name, hint)                  \
-static hint void *name(void *dest, const void *src, size_t n)       \
-{                                   \
-    register size_t i;                      \
-    register char *cdest = (char *)dest;                \
-    register const char *csrc = (const char *)src;          \
-                                    \
-    if (dest < src) {                       \
-        for (i = 0; i < n; i++)                 \
-            *(cdest++) = *(csrc++);             \
-    } else {                            \
-        csrc += n;                      \
-        cdest += n;                     \
-                                    \
-        for (i = 0; i < n; i++)                 \
-            *(--cdest) = *(--csrc);             \
-    }                               \
-    return dest;                            \
-}
+        ret = func(ov_dest, ov_src, n);
+        FULL_BARRIER();
 
-TEST_NAIVE_MEMMOVE(test_naive_memmove, NOINLINE)
-TEST_NAIVE_MEMMOVE(test_naive_memmove_o0, NOINLINE OPTIMIZE0)
-TEST_NAIVE_MEMMOVE(test_naive_memmove_o1, NOINLINE OPTIMIZE1)
-TEST_NAIVE_MEMMOVE(test_naive_memmove_o2, NOINLINE OPTIMIZE2)
-TEST_NAIVE_MEMMOVE(test_naive_memmove_o3, NOINLINE OPTIMIZE3)
-
-static NOINLINE void stress_memcpy_libc(stress_args_t *args, uint8_t *str1, uint8_t *str2, uint8_t *str3)
-{
-    int i;
-    s_method_name = "libc";
-    size_t sz = (size_t)s_memcpy_size;
-
-    for (i = 0; memcpy_okay && (i < s_memcpy_loops); i++) {
-        if (!stress_continue(args)) break;
-        memcpy_check(memcpy, str3, str2, sz);
-        memcpy_check(memcpy, str2, str3, sz / 2);
-        memmove_check(memmove, str3, str3 + 64, sz - 64);
-        memcpy_check(memcpy, str1, str2, sz);
-        memmove_check(memmove, str3 + 64, str3, sz - 64);
-        memcpy_check(memcpy, str3, str1, sz);
-        memmove_check(memmove, str3 + 1, str3, sz - 1);
-        memmove_check(memmove, str3, str3 + 1, sz - 1);
-        args->bogo.current_ops++;
+        if (ret != (void *)ov_dest) {
+            stress_osal_print(
+                "rtos_stress: fail: [memmove] %s (overlap) return ptr mismatch\n",
+                ctx->method_name);
+            ctx->okay = STRESS_FALSE;
+        }
+        /* 不校验内容，仅确认不 crash 且返回正确 */
     }
 }
 
-static void *stress_builtin_memcpy_wrapper(void *dst, const void *src, size_t n)
+/* ------------------------------------------------------------------ */
+/* 各种 memcpy/memmove 实现的 wrapper                                   */
+/* ------------------------------------------------------------------ */
+
+static void *wrap_builtin_memcpy(void *dst, const void *src, size_t n)
 {
     return __builtin_memcpy(dst, src, n);
 }
 
-static void *stress_builtin_memmove_wrapper(void *dst, const void *src, size_t n)
+static void *wrap_builtin_memmove(void *dst, const void *src, size_t n)
 {
     return __builtin_memmove(dst, src, n);
 }
 
-static NOINLINE void stress_memcpy_builtin(stress_args_t *args, uint8_t *str1, uint8_t *str2, uint8_t *str3)
+#define DEF_NAIVE_MEMCPY(name, hint)                                     \
+static hint void *name(void *dest, const void *src, size_t n)            \
+{                                                                         \
+    size_t i;                                                             \
+    char *d = (char *)dest;                                               \
+    const char *s = (const char *)src;                                   \
+    for (i = 0; i < n; i++) d[i] = s[i];                                 \
+    return dest;                                                          \
+}
+
+#define DEF_NAIVE_MEMMOVE(name, hint)                                     \
+static hint void *name(void *dest, const void *src, size_t n)             \
+{                                                                          \
+    size_t i;                                                              \
+    char *d = (char *)dest;                                                \
+    const char *s = (const char *)src;                                    \
+    if (d < s) {                                                           \
+        for (i = 0; i < n; i++) d[i] = s[i];                             \
+    } else if (d > s) {                                                    \
+        for (i = n; i-- > 0; ) d[i] = s[i];                              \
+    }                                                                      \
+    return dest;                                                           \
+}
+
+DEF_NAIVE_MEMCPY (naive_memcpy,    NOINLINE)
+DEF_NAIVE_MEMCPY (naive_memcpy_o0, NOINLINE OPTIMIZE0)
+DEF_NAIVE_MEMCPY (naive_memcpy_o1, NOINLINE OPTIMIZE1)
+DEF_NAIVE_MEMCPY (naive_memcpy_o2, NOINLINE OPTIMIZE2)
+DEF_NAIVE_MEMCPY (naive_memcpy_o3, NOINLINE OPTIMIZE3)
+DEF_NAIVE_MEMMOVE(naive_memmove,    NOINLINE)
+DEF_NAIVE_MEMMOVE(naive_memmove_o0, NOINLINE OPTIMIZE0)
+DEF_NAIVE_MEMMOVE(naive_memmove_o1, NOINLINE OPTIMIZE1)
+DEF_NAIVE_MEMMOVE(naive_memmove_o2, NOINLINE OPTIMIZE2)
+DEF_NAIVE_MEMMOVE(naive_memmove_o3, NOINLINE OPTIMIZE3)
+
+/* ------------------------------------------------------------------ */
+/* 测试序列：每个方法用相同的序列                                        */
+/* ------------------------------------------------------------------ */
+
+static void run_one_method(mc_ctx_t *ctx,
+                            memcpy_func_t  cpy_func,
+                            memmove_func_t mov_func)
 {
-    int i;
-    s_method_name = "builtin";
-    size_t sz = (size_t)s_memcpy_size;
+    size_t sz    = ctx->sz;
+    uint32_t sid = (uint32_t)ctx->args->instance
+                 ^ (uint32_t)stress_osal_tick_get();
 
-    for (i = 0; memcpy_okay && (i < s_memcpy_loops); i++) {
-        if (!stress_continue(args)) break;
-        memcpy_check(stress_builtin_memcpy_wrapper, str3, str2, sz);
-        memcpy_check(stress_builtin_memcpy_wrapper, str2, str3, sz / 2);
-        memmove_check(stress_builtin_memmove_wrapper, str3, str3 + 64, sz - 64);
-        memcpy_check(stress_builtin_memcpy_wrapper, str1, str2, sz);
-        memmove_check(stress_builtin_memmove_wrapper, str3 + 64, str3, sz - 64);
-        memcpy_check(stress_builtin_memcpy_wrapper, str3, str1, sz);
-        memmove_check(stress_builtin_memmove_wrapper, str3 + 1, str3, sz - 1);
-        memmove_check(stress_builtin_memmove_wrapper, str3, str3 + 1, sz - 1);
-        args->bogo.current_ops++;
-    }
+    if (!ctx->okay || !stress_continue(ctx->args)) return;
+
+    /* --- memcpy 测试：全尺寸 --- */
+    check_memcpy(ctx, cpy_func, sz,       sid + 0);
+    check_memcpy(ctx, cpy_func, sz / 2,   sid + 1);
+    check_memcpy(ctx, cpy_func, sz / 4,   sid + 2);
+    check_memcpy(ctx, cpy_func, sz - 1,   sid + 3);
+    check_memcpy(ctx, cpy_func, 64,       sid + 4);
+    check_memcpy(ctx, cpy_func, 1,        sid + 5);
+
+    if (!ctx->okay || !stress_continue(ctx->args)) return;
+
+    /* --- memmove 测试：非重叠 --- */
+    check_memmove(ctx, mov_func, sz,       sid + 6,  STRESS_FALSE);
+    check_memmove(ctx, mov_func, sz / 2,   sid + 7,  STRESS_FALSE);
+    check_memmove(ctx, mov_func, sz / 4,   sid + 8,  STRESS_FALSE);
+    check_memmove(ctx, mov_func, sz - 1,   sid + 9,  STRESS_FALSE);
+
+    if (!ctx->okay || !stress_continue(ctx->args)) return;
+
+    /* --- memmove 测试：重叠（只测不 crash，不校验内容）--- */
+    check_memmove(ctx, mov_func, sz / 2,   sid + 10, STRESS_TRUE);
+    check_memmove(ctx, mov_func, sz / 4,   sid + 11, STRESS_TRUE);
+
+    ctx->args->bogo.current_ops++;
 }
 
-#define STRESS_MEMCPY_NAIVE(method, name, cpy, move)                \
-static NOINLINE void name(                          \
-    stress_args_t *args,                        \
-    uint8_t *str1,                              \
-    uint8_t *str2,                              \
-    uint8_t *str3)                              \
-{                                       \
-    int i;                                  \
-    size_t sz = (size_t)s_memcpy_size;      \
-    s_method_name = method;                         \
-                                        \
-    for (i = 0; memcpy_okay && (i < s_memcpy_loops); i++) {           \
-        if (!stress_continue(args)) break;      \
-        memcpy_check(cpy, str3, str2, sz);      \
-        memcpy_check(cpy, str2, str3, sz / 2);  \
-        memmove_check(move, str3, str3 + 64, sz - 64);\
-        memcpy_check(cpy, str1, str2, sz);      \
-        memmove_check(move, str3 + 64, str3, sz - 64);\
-        memcpy_check(cpy, str3, str1, sz);      \
-        memmove_check(move, str3 + 1, str3, sz - 1);    \
-        memmove_check(move, str3, str3 + 1, sz - 1);    \
-        args->bogo.current_ops++;               \
-    }                                   \
-}
-
-STRESS_MEMCPY_NAIVE("naive", stress_memcpy_naive, test_naive_memcpy, test_naive_memmove)
-STRESS_MEMCPY_NAIVE("naive_o0", stress_memcpy_naive_o0, test_naive_memcpy_o0, test_naive_memmove_o0)
-STRESS_MEMCPY_NAIVE("naive_o1", stress_memcpy_naive_o1, test_naive_memcpy_o1, test_naive_memmove_o1)
-STRESS_MEMCPY_NAIVE("naive_o2", stress_memcpy_naive_o2, test_naive_memcpy_o2, test_naive_memmove_o2)
-STRESS_MEMCPY_NAIVE("naive_o3", stress_memcpy_naive_o3, test_naive_memcpy_o3, test_naive_memmove_o3)
-
-typedef void (*stress_memcpy_func_t)(stress_args_t *args, uint8_t *str1, uint8_t *str2, uint8_t *str3);
+/* ------------------------------------------------------------------ */
+/* 方法表                                                               */
+/* ------------------------------------------------------------------ */
 
 typedef struct {
-    const char *name;
-    const stress_memcpy_func_t func;
-} stress_memcpy_method_info_t;
+    const char    *name;
+    memcpy_func_t  cpy;
+    memmove_func_t mov;
+} mc_method_t;
 
-static const stress_memcpy_method_info_t stress_memcpy_methods[] = {
-    { "libc",       stress_memcpy_libc },
-    { "builtin",    stress_memcpy_builtin },
-    { "naive",      stress_memcpy_naive },
-    { "naive_o0",   stress_memcpy_naive_o0 },
-    { "naive_o1",   stress_memcpy_naive_o1 },
-    { "naive_o2",   stress_memcpy_naive_o2 },
-    { "naive_o3",   stress_memcpy_naive_o3 },
-    { NULL,         NULL }
+static const mc_method_t s_methods[] = {
+    { "libc",     memcpy,            memmove            },
+    { "builtin",  wrap_builtin_memcpy, wrap_builtin_memmove },
+    { "naive",    naive_memcpy,      naive_memmove      },
+    { "naive_o0", naive_memcpy_o0,   naive_memmove_o0   },
+    { "naive_o1", naive_memcpy_o1,   naive_memmove_o1   },
+    { "naive_o2", naive_memcpy_o2,   naive_memmove_o2   },
+    { "naive_o3", naive_memcpy_o3,   naive_memmove_o3   },
+    { NULL, NULL, NULL }
 };
+
+/* ------------------------------------------------------------------ */
+/* 入口（保持原有外部接口）                                              */
+/* ------------------------------------------------------------------ */
 
 void stress_memcpy(stress_args_t *args)
 {
-    uint8_t *buf, *str1, *str2, *str3;
-    stress_memcpy_func_t specific_func = NULL;
-    stress_bool_t run_all = STRESS_FALSE;
-    size_t sz = (size_t)s_memcpy_size;
+    mc_ctx_t   ctx;
+    uint8_t   *buf = NULL;
+    size_t     sz  = (size_t)s_memcpy_size;
+    int        method_idx = -1;   /* -1 = all */
+    int        i;
 
-    memcpy_okay = STRESS_TRUE;
+    if (sz < 256) sz = 256;
 
-    size_t alloc_size = 3 * sz;
-    buf = (uint8_t *)stress_osal_malloc(alloc_size);
+    /*
+     * 分配 4 个独立区域：src / dst / expected / overlap
+     * 每块对齐到 64 字节（NEON/AVX Cache line）
+     */
+    size_t block = (sz + 63) & ~(size_t)63;
+    buf = (uint8_t *)stress_osal_malloc(4 * block);
     if (!buf) {
-        stress_osal_print("rtos_stress: error: [memcpy] OOM allocating %d bytes\n", alloc_size);
+        stress_osal_print("rtos_stress: error: [memcpy-%d] OOM (%zu bytes)\n",
+                          args->instance, 4 * block);
         return;
     }
 
-    str1 = buf;
-    str2 = str1 + sz;
-    str3 = str2 + sz;
+    ctx.args     = args;
+    ctx.okay     = STRESS_TRUE;
+    ctx.method_name = "";
+    ctx.sz       = sz;
+    ctx.src      = buf;
+    ctx.dst      = buf + block;
+    ctx.expected = buf + 2 * block;
+    ctx.overlap  = buf + 3 * block;
 
-    for (size_t i = 0; i < sz; i++) {
-        uint8_t v = (uint8_t)stress_osal_rand();
-        str1[i] = v;
-        str2[i] = v;
-        str3[i] = v;
-    }
+    fill_rng_seed(&ctx.rng, (uint32_t)args->instance ^ 0xabcd1234U);
 
-    stress_osal_print("rtos_stress: info: [memcpy-%d] buffer size: 3 x %d bytes\n", args->instance, sz);
+    stress_osal_print("rtos_stress: info: [memcpy-%d] buffer size: 3 x %zu bytes\n",
+                      args->instance, sz);
 
-    memcpy_check = memcpy_check_func;
-    memmove_check = memmove_check_func;
-
-    if (args->method_name == NULL || stress_osal_strcmp(args->method_name, "all") == 0) {
-        run_all = STRESS_TRUE;
-        stress_osal_print("rtos_stress: info: [memcpy-%d] using 'all' methods\n", args->instance);
-    } else {
-        for (int i = 0; stress_memcpy_methods[i].name != NULL; i++) {
-            if (stress_osal_strcmp(args->method_name, stress_memcpy_methods[i].name) == 0) {
-                specific_func = stress_memcpy_methods[i].func;
+    /* 解析方法名 */
+    if (args->method_name != NULL &&
+        stress_osal_strcmp(args->method_name, "all") != 0) {
+        for (i = 0; s_methods[i].name != NULL; i++) {
+            if (stress_osal_strcmp(args->method_name, s_methods[i].name) == 0) {
+                method_idx = i;
                 break;
             }
         }
-        if (!specific_func) {
-            stress_osal_print("rtos_stress: error: unknown method '%s', using 'all'\n", args->method_name);
-            run_all = STRESS_TRUE;
-        } else {
-            stress_osal_print("rtos_stress: info: [memcpy-%d] using method '%s'\n", args->instance, args->method_name);
+        if (method_idx < 0) {
+            stress_osal_print(
+                "rtos_stress: error: [memcpy-%d] unknown method '%s', using 'all'\n",
+                args->instance, args->method_name);
         }
     }
 
-    while (memcpy_okay && stress_continue(args))
-    {
-        if (run_all) {
-            for (int i = 0; stress_memcpy_methods[i].name != NULL; i++) {
-                if (!memcpy_okay || !stress_continue(args)) break;
+    if (method_idx < 0) {
+        stress_osal_print("rtos_stress: info: [memcpy-%d] using 'all' methods\n",
+                          args->instance);
+    } else {
+        stress_osal_print("rtos_stress: info: [memcpy-%d] using method '%s'\n",
+                          args->instance, s_methods[method_idx].name);
+    }
 
-                stress_memcpy_methods[i].func(args, str1, str2, str3);
+    /* 主循环 */
+    while (ctx.okay && stress_continue(args)) {
+        if (method_idx < 0) {
+            for (i = 0; s_methods[i].name != NULL; i++) {
+                if (!ctx.okay || !stress_continue(args)) break;
+                ctx.method_name = s_methods[i].name;
+                run_one_method(&ctx,
+                               s_methods[i].cpy,
+                               s_methods[i].mov);
             }
         } else {
-            specific_func(args, str1, str2, str3);
+            ctx.method_name = s_methods[method_idx].name;
+            run_one_method(&ctx,
+                           s_methods[method_idx].cpy,
+                           s_methods[method_idx].mov);
         }
-
         stress_osal_sleep_ms(1);
     }
 

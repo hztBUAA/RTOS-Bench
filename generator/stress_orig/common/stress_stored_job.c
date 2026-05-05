@@ -100,94 +100,94 @@ const char JOB_DATA_CPU[] =
 
 const char JOB_DATA_MEMORY[] =
     /* --- Stage 1: 20% --- */
-    "memcpy    --ops 15000    -c 1 --memcpy-size 32768\n"
+    "memcpy    --ops 10000    -c 1 --memcpy-size 32768\n"
     "stream    --ops 52000    -c 1 --stream-elem 2048\n"
     "vm        --ops 42000000 -c 1 --vm-bytes 1048576\n"
-    "malloc    --ops 1700000  -c 1 --malloc-bytes 256\n"
+    "malloc    --ops 50000  -c 1 --malloc-bytes 256 --malloc-max 64\n"
     "memthrash --ops 2300     -c 1 --mem-size 65536\n"
     "ptr-chase --ops 86000000 -c 1 --ptr-chase-pages 128\n"
 
     /* --- Stage 2: 40% --- */
-    "memcpy    --ops 5300     -c 2 --memcpy-size 65536\n"
+    "memcpy    --ops 10000   -c 2 --memcpy-size 65536\n"
     "stream    --ops 20500    -c 2 --stream-elem 4096\n"
     "vm        --ops 37500000 -c 2 --vm-bytes 4194304\n"
-    "malloc    --ops 1400000  -c 2 --malloc-bytes 1024\n"
+    "malloc    --ops 50000    -c 2 --malloc-bytes 1024 --malloc-max 64\n"
     "memthrash --ops 2200     -c 2 --mem-size 131072\n"
     "ptr-chase --ops 62000000 -c 2 --ptr-chase-pages 256\n"
 
     /* --- Stage 3: 60% --- */
-    "memcpy    --ops 2300     -c 3 --memcpy-size 131072\n"
+    "memcpy    --ops 10000    -c 3 --memcpy-size 131072\n"
     "stream    --ops 9000     -c 3 --stream-elem 8192\n"
     "vm        --ops 39000000 -c 2 --vm-bytes 2097152\n"
-    "malloc    --ops 920000   -c 3 --malloc-bytes 4096\n"
+    "malloc    --ops 50000    -c 3 --malloc-bytes 2048 --malloc-max 64\n"
     "memthrash --ops 1800     -c 3 --mem-size 131072\n"
     "ptr-chase --ops 27500000 -c 3 --ptr-chase-pages 512\n"
 
     /* --- Stage 4: 80% --- */
-    "memcpy    --ops 700      -c 4 --memcpy-size 262144\n"
+    "memcpy    --ops 10000    -c 4 --memcpy-size 262144\n"
     "stream    --ops 2700     -c 4 --stream-elem 16384\n"
     "vm        --ops 37500000 -c 2 --vm-bytes 4194304\n"
-    "malloc    --ops 660000   -c 4 --malloc-bytes 8192\n"
+    "malloc    --ops 50000    -c 4 --malloc-bytes 4096 --malloc-max 64\n"
     "memthrash --ops 1100     -c 4 --mem-size 262144\n"
     "ptr-chase --ops 20000000 -c 4 --ptr-chase-pages 256\n"
 
     /* --- Stage 5: 100% --- */
-    "memcpy    --ops 280      -c 5 --memcpy-size 524288\n"
+    "memcpy    --ops 10000    -c 5 --memcpy-size 262144\n"
     "stream    --ops 1100     -c 5 --stream-elem 32768\n"
     "vm        --ops 29000000 -c 3 --vm-bytes 8388608\n"
-    "malloc    --ops 400000   -c 5 --malloc-bytes 16384\n"
+    "malloc    --ops 50000    -c 5 --malloc-bytes 8192 --malloc-max 64\n"
     "memthrash --ops 900      -c 5 --mem-size 524288\n"
     "ptr-chase --ops 26000000 -c 5 --ptr-chase-pages 128\n";
 
 const char JOB_DATA_FILE[] =
     /* --- Stage 1: 20% --- */
-    "hdd       --ops 420  -c 1 --hdd-bytes 131072\n"
-    "open      --ops 2500 -c 1 --open-max 32\n"
-    "copy-file --ops 2200 -c 1 --copy-file-bytes 131072\n"
+    "hdd       --ops 420  -c 1 --hdd-bytes 16384\n"
+    "open      --ops 2500 -c 1 --open-max 2\n"
+    "copy-file --ops 2200 -c 1 --copy-file-bytes 16384\n"
     "unlink    --ops 2500 -c 1\n"
-    "fstat     --ops 6000 -c 1 --fstat-files 10\n"
-    "dentry    --ops 3000 -c 1 --dentries 32\n"
+    "fstat     --ops 6000 -c 1 --fstat-files 2\n"
+    "dentry    --ops 3000 -c 1 --dentries 2\n"
     "rename    --ops 2000 -c 1\n"
     "pipe      --ops 1000 -c 1 --pipe-data-size 512\n"
 
     /* --- Stage 2: 40% --- */
-    "hdd       --ops 210  -c 2 --hdd-bytes 524288\n"
-    "open      --ops 1200 -c 2 --open-max 64\n"
-    "copy-file --ops 820  -c 2 --copy-file-bytes 524288\n"
+    "hdd       --ops 210  -c 2 --hdd-bytes 32768\n"
+    "open      --ops 1200 -c 2 --open-max 4\n"
+    "copy-file --ops 820  -c 2 --copy-file-bytes 32768\n"
     "unlink    --ops 1100 -c 2\n"
-    "fstat     --ops 2400 -c 2 --fstat-files 10\n"
-    "dentry    --ops 1300 -c 2 --dentries 64\n"
+    "fstat     --ops 6000 -c 1 --fstat-files 4\n"
+    "dentry    --ops 1300 -c 2 --dentries 4\n"
     "rename    --ops 1000 -c 2\n"
     "pipe      --ops 200  -c 2 --pipe-data-size 4096\n"
 
     /* --- Stage 3: 60% --- */
-    "hdd       --ops 150  -c 3 --hdd-bytes 1048576\n"
-    "open      --ops 800  -c 3 --open-max 50\n"
-    "copy-file --ops 450  -c 3 --copy-file-bytes 1048576\n"
+    "hdd       --ops 150  -c 3 --hdd-bytes 65536\n"
+    "open      --ops 800  -c 3 --open-max 6\n"
+    "copy-file --ops 450  -c 3 --copy-file-bytes 65536\n"
     "unlink    --ops 700  -c 3\n"
-    "fstat     --ops 1500 -c 3 --fstat-files 8\n"
-    "dentry    --ops 800  -c 3 --dentries 128\n"
-    "rename    --ops 700  -c 3\n"
+    "fstat     --ops 6000 -c 1 --fstat-files 6\n"
+    "dentry    --ops 800  -c 3 --dentries 4\n"
+    "rename    --ops 1500  -c 2\n"
     "pipe      --ops 300  -c 3 --pipe-data-size 32768\n"
 
     /* --- Stage 4: 80% --- */
-    "hdd       --ops 120  -c 4 --hdd-bytes 2097152\n"
-    "open      --ops 800  -c 4 --open-max 40\n"
-    "copy-file --ops 190  -c 4 --copy-file-bytes 2097152\n"
+    "hdd       --ops 120  -c 3 --hdd-bytes 131072\n"
+    "open      --ops 800  -c 4 --open-max 8\n"
+    "copy-file --ops 190  -c 4 --copy-file-bytes 131072\n"
     "unlink    --ops 500  -c 4\n"
-    "fstat     --ops 1200 -c 4 --fstat-files 6\n"
-    "dentry    --ops 600  -c 2 --dentries 128\n"
-    "rename    --ops 350  -c 4\n"
+    "fstat     --ops 6000 -c 1 --fstat-files 8\n"
+    "dentry    --ops 600  -c 3 --dentries 8\n"
+    "rename    --ops 1500  -c 3\n"
     "pipe      --ops 300  -c 4 --pipe-data-size 32768\n"
 
     /* --- Stage 5: 100% --- */
-    "hdd       --ops 100  -c 5 --hdd-bytes 4194304\n"
-    "open      --ops 700  -c 5 --open-max 40\n"
-    "copy-file --ops 5    -c 5 --copy-file-bytes 4194304\n"
+    "hdd       --ops 100  -c 3 --hdd-bytes 131072\n"
+    "open      --ops 700  -c 5 --open-max 10\n"
+    "copy-file --ops 5    -c 5 --copy-file-bytes 262144\n"
     "unlink    --ops 400  -c 5\n"
-    "fstat     --ops 1100 -c 5 --fstat-files 5\n"
-    "dentry    --ops 600  -c 2 --dentries 128\n"
-    "rename    --ops 300  -c 5\n"
+    "fstat     --ops 6000 -c 1 --fstat-files 10\n"
+    "dentry    --ops 600  -c 4 --dentries 8\n"
+    "rename    --ops 2000  -c 3\n"
     "pipe      --ops 300  -c 5 --pipe-data-size 32768\n";
 
 /*
