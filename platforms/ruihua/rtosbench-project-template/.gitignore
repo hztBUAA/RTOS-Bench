@@ -1,0 +1,6 @@
+makefile.local
+gnuarm/
+gnuaarch64/
+*.o
+*.d
+*.out
