@@ -67,6 +67,10 @@ src += [File('stress_orig/common/stress_stored_job.c')]
 # Only include platform-specific OSAL (avoid compiling SylixOS OSAL on RT-Thread)
 if platform == 'rt-thread':
     src += [File('stress_orig/osal/os_rtt.c')]
+elif platform == 'oneos':
+    src += [File('stress_orig/osal/os_oneos.c')]
+elif platform == 'ruihua':
+    src += [File('stress_orig/osal/os_sylixos.c')]
 else:
     src += Glob('stress_orig/osal/*.c')
 src += Glob('stress_orig/stressor/*.c')

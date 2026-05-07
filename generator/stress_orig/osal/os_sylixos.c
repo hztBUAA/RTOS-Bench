@@ -1,7 +1,9 @@
 /* osal/os_sylixos.c */
 #define _GNU_SOURCE
 
+#ifdef __SYLIXOS__
 #include <SylixOS.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
