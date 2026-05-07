@@ -141,7 +141,7 @@ RTOS-Bench/
 | **SylixOS** | ⚠️ 需 Windows IDE | `sylixos_entry.c` | RealEvo |
 | **OneOS** | ⚠️ 部分支持 | `oneos_entry.c` | SCons |
 | **东土 (Dongtu)** | ⚠️ 待验证 | `dongtu_entry.c` | 厂商 IDE |
-| **锐华 (Ruihua)** | ⚠️ 待验证 | `ruihua_entry.c` | 厂商 IDE |
+| **锐华 (Ruihua/ReWorks)** | ✅ 本地 gnuarm 编译通过 | `ruihua_entry.c` + `rtbench_command.c` | 厂商 IDE |
 
 详见 [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) 中的跨平台编译章节。
 

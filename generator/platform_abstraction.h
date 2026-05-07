@@ -95,10 +95,7 @@
     typedef unsigned long timer_t;
     #define _TIMER_T_DECLARED
     #endif
-    #ifndef _PID_T_DECLARED
-    typedef int pid_t;
-    #define _PID_T_DECLARED
-    #endif
+    /* ReWorks/newlib provides pid_t through sys/types.h. */
 #elif defined(RT_THREAD_PLATFORM)
     /* Provide POSIX-ish typedef guards for toolchains that hide them */
     #ifndef _CLOCK_T_DECLARED

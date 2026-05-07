@@ -1,0 +1,32 @@
+################################################################################
+# Local overrides for the Ruihua RTOS-Bench IDE template.
+#
+# Copy this file to makefile.local after copying the template into the Ruihua
+# workspace. Keep makefile.local untracked.
+################################################################################
+
+# Ruihua SDK/IDE installation root.
+REDE_HOME := C:/rtos/6.1.1-ARM
+
+# Your cloned RTOS-Bench repository root.
+RTOSBENCH_SRC := C:/Users/hzt/yihui-workspace/rtos-bench/RTOS-Bench
+
+# Build options.
+ARCH := arm
+FULL_WORKLOADS := 0
+################################################################################
+# Local overrides for the Ruihua RTOS-Bench IDE template.
+#
+# Copy this file to makefile.local after copying the template into the Ruihua
+# workspace. Keep makefile.local untracked.
+################################################################################
+
+# Ruihua SDK/IDE installation root.
+REDE_HOME := C:/rtos/6.1.1-ARM
+
+# Your cloned RTOS-Bench repository root.
+RTOSBENCH_SRC := C:/Users/hzt/yihui-workspace/rtos-bench/RTOS-Bench
+
+# Build options.
+ARCH := arm
+FULL_WORKLOADS := 0
