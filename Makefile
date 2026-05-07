@@ -53,7 +53,7 @@ PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
 override LDFLAGS += -lm -pthread
 else ifeq ($(PLATFORM),ruihua)
 override CFLAGS += -DRUIHUA_PLATFORM
-PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
+PLATFORM_DIR := $(GENERATOR_DIR)/platform/ruihua
 override LDFLAGS += -lm -pthread
 else ifeq ($(PLATFORM),rt-thread)
 override CFLAGS += -DRT_THREAD_PLATFORM
@@ -78,7 +78,8 @@ CORE_SRC := $(GENERATOR_DIR)/periodic_benchmark.c \
 	$(GENERATOR_DIR)/logging.c \
 	$(GENERATOR_DIR)/memory_watcher.c \
 	$(GENERATOR_DIR)/uunifast.c \
-	$(GENERATOR_DIR)/test_schedule.c
+	$(GENERATOR_DIR)/test_schedule.c \
+	$(GENERATOR_DIR)/result_export.c
 
 # Workload registry (unified for all platforms, always included)
 WORKLOAD_REGISTRY_SRC := $(GENERATOR_DIR)/workload_registry.c \
@@ -101,6 +102,17 @@ RTTHREAD_ENTRY_SRC := $(GENERATOR_DIR)/rtthread_entry.c \
 # OneOS specific sources (shell command interface)
 ONEOS_ENTRY_SRC := $(GENERATOR_DIR)/oneos_entry.c
 
+# Common command dispatcher used by platform-specific entries
+RTBENCH_COMMAND_SRC := $(GENERATOR_DIR)/rtbench_command.c
+
+# Ruihua/ReWorks specific sources
+RUIHUA_ENTRY_SRC := $(GENERATOR_DIR)/ruihua_entry.c
+RUIHUA_FRAMEWORK_SRC := $(RTBENCH_COMMAND_SRC) \
+	$(GENERATOR_DIR)/test_cmd.c \
+	$(GENERATOR_DIR)/test_schedule/sched_workloads.c \
+	$(GENERATOR_DIR)/test_schedule/sched_mqtt_wrapper.c \
+	$(GENERATOR_DIR)/test_schedule/sched_modbus_wrapper.c
+
 # Build mode: MULTI_WORKLOAD=1 enables workload registry for Linux/SylixOS
 # RT-Thread always uses workload registry (built-in workloads selected via -b)
 # Linux/SylixOS now also always include workload registry (weak symbols allow
@@ -119,7 +131,7 @@ GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(ONEOS_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),dongtu)
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),ruihua)
-GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(RUIHUA_FRAMEWORK_SRC) $(RUIHUA_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),sylixos)
 # SylixOS uses Linux-style entry (main.c with argp)
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)

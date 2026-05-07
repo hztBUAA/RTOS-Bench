@@ -8,6 +8,8 @@ cwd = GetCurrentDir()
 # RT-Thread detection: check for RT_THREAD_PRIORITY_MAX which is always defined
 if GetDepend(['ONEOS_PLATFORM']):
     platform = 'oneos'
+elif GetDepend(['RUIHUA_PLATFORM']) or GetDepend(['__REWORKS__']):
+    platform = 'ruihua'
 elif GetDepend(['RT_THREAD_PRIORITY_32']) or GetDepend(['RT_THREAD_PRIORITY_256']):
     platform = 'rt-thread'
 elif GetDepend(['RT_USING_LIBC']):
@@ -29,6 +31,7 @@ src_files = [
     'test_stress.c',
     'test_cmd.c',
     'result_export.c',
+    'rtbench_command.c',
 ]
 
 # Add platform-specific entry and sources
@@ -37,6 +40,8 @@ if platform == 'rt-thread':
     src_files.append('rtthread_fini_stub.c')
 elif platform == 'oneos':
     src_files.append('oneos_entry.c')
+elif platform == 'ruihua':
+    src_files.append('ruihua_entry.c')
 else:
     # posix-lite or Linux
     src_files.append('posixlite_entry.c')
@@ -46,6 +51,7 @@ src = [File(f) for f in src_files]
 
 # Add platform abstraction layer
 src += Glob('platform/' + platform + '/*.c')
+src += Glob('test_schedule/*.c')
 
 # Add original realtime tests (les, realtime, multicore)
 src += Glob('realtime_orig/les/*.c')
@@ -71,6 +77,8 @@ LOCAL_CPPDEFINES = []
 # RT-Thread 平台特殊处理
 if platform == 'rt-thread':
     LOCAL_CPPDEFINES.append('RT_THREAD_PLATFORM')
+elif platform == 'ruihua':
+    LOCAL_CPPDEFINES.append('RUIHUA_PLATFORM')
 
 # OneOS 平台特殊处理
 LOCAL_CCFLAGS = ''
