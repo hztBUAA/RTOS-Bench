@@ -1,0 +1,10 @@
+﻿{
+    "kind":  "feiteng_mqttdet_testall_no_stress_workload",
+    "pid":  381172,
+    "started":  "2026-04-30T20:18:55",
+    "log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-feiteng-fulltest-20260429\\mqttdet_testall_no_stress_workload_20260430_201855.log",
+    "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-feiteng-fulltest-20260429\\mqttdet_testall_no_stress_workload_20260430_201855.stdout.log",
+    "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-feiteng-fulltest-20260429\\mqttdet_testall_no_stress_workload_20260430_201855.stderr.log",
+    "remote_json":  "/apps/hzt/feiteng_testall_no_stress_workload_mqttdet_20260430_201855.json",
+    "binary":  "feiteng-rtos-bench_hzt_mqttdet_20260430_194526"
+}

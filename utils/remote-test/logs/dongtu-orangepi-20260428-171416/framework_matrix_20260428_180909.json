@@ -1,0 +1,44 @@
+[
+    {
+        "Name":  "help",
+        "Command":  "rtbench help",
+        "ExitCode":  0,
+        "Log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_framework_help_20260428_180909.log"
+    },
+    {
+        "Name":  "list_workloads",
+        "Command":  "rtbench -L",
+        "ExitCode":  0,
+        "Log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_framework_list_workloads_20260428_180909.log"
+    },
+    {
+        "Name":  "invalid_fallback",
+        "Command":  "rtbench not-a-command",
+        "ExitCode":  0,
+        "Log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_framework_invalid_fallback_20260428_180909.log"
+    },
+    {
+        "Name":  "test_schedule_help",
+        "Command":  "rtbench test-schedule --help",
+        "ExitCode":  0,
+        "Log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_framework_test_schedule_help_20260428_180909.log"
+    },
+    {
+        "Name":  "test_all_help",
+        "Command":  "rtbench test-all --help",
+        "ExitCode":  0,
+        "Log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_framework_test_all_help_20260428_180909.log"
+    },
+    {
+        "Name":  "export_result_help",
+        "Command":  "rtbench export-result --help",
+        "ExitCode":  0,
+        "Log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_framework_export_result_help_20260428_180909.log"
+    },
+    {
+        "Name":  "test_cmd",
+        "Command":  "rtbench test-cmd",
+        "ExitCode":  0,
+        "Log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_framework_test_cmd_20260428_180909.log"
+    }
+]

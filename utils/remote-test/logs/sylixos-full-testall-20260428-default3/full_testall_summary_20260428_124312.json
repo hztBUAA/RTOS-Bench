@@ -1,0 +1,57 @@
+{
+  "gongkong": {
+    "board": "gongkong",
+    "ok": true,
+    "command": "/apps/hzt/gongkong-rtos-bench-default3 test-all -o /apps/hzt/gongkong_testall_full_20260428_124312.json",
+    "log": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3\\full_testall_gongkong_20260428_124312.log",
+    "json": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3\\gongkong_testall_full_20260428_124312.json",
+    "checks": {
+      "comprehensive_suite": true,
+      "not_quick": true,
+      "schedule_final_score": true,
+      "results_saved": true,
+      "no_unknown_option": true,
+      "no_timer_create_failed": true,
+      "no_missing_library": true,
+      "fetch_json": true,
+      "json_parse": true
+    }
+  },
+  "orangepi": {
+    "board": "orangepi",
+    "ok": false,
+    "command": "/apps/hzt/orangepi-rtos-bench-default3 test-all -o /apps/hzt/orangepi_testall_full_20260428_124312.json",
+    "log": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3\\full_testall_orangepi_20260428_124312.log",
+    "json": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3\\orangepi_testall_full_20260428_124312.json",
+    "checks": {
+      "comprehensive_suite": true,
+      "not_quick": true,
+      "schedule_final_score": true,
+      "results_saved": false,
+      "no_unknown_option": true,
+      "no_timer_create_failed": true,
+      "no_missing_library": true,
+      "fetch_json": false,
+      "json_parse": false
+    },
+    "json_error": "fetch failed"
+  },
+  "loongson": {
+    "board": "loongson",
+    "ok": true,
+    "command": "/apps/hzt/loongson-rtos-bench-default3 test-all -o /apps/hzt/loongson_testall_full_20260428_124312.json",
+    "log": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3\\full_testall_loongson_20260428_124312.log",
+    "json": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3\\loongson_testall_full_20260428_124312.json",
+    "checks": {
+      "comprehensive_suite": true,
+      "not_quick": true,
+      "schedule_final_score": true,
+      "results_saved": true,
+      "no_unknown_option": true,
+      "no_timer_create_failed": true,
+      "no_missing_library": true,
+      "fetch_json": true,
+      "json_parse": true
+    }
+  }
+}

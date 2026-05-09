@@ -39,8 +39,14 @@ typedef unsigned int rt_uint32_t;
 #if SCHED_MDB_HAVE_SOCKETS
 #include <sys/socket.h>
 #include <netinet/in.h>
+#if !defined(DONGTU_PLATFORM)
 #include <netinet/tcp.h>
+#endif
+#if defined(DONGTU_PLATFORM)
+#include <lwip/inet.h>
+#else
 #include <arpa/inet.h>
+#endif
 #include <netdb.h>
 #endif
 
@@ -142,7 +148,9 @@ static void *sched_mdb_server_thread(void *parameter)
 		}
 
 		int flag = 1;
+#ifdef TCP_NODELAY
 		setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
+#endif
 		struct timeval tv = {5, 0};
 		setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 		setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
@@ -199,7 +207,9 @@ static void *sched_mdb_client_thread(void *parameter)
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	int flag = 1;
+#ifdef TCP_NODELAY
 	setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
+#endif
 	struct timeval tv = {2, 0};
 	setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 	setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));

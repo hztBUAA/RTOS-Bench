@@ -1,0 +1,21 @@
+{
+  "nezha": {
+    "board": "nezha",
+    "ok": false,
+    "command": "/apps/hzt/nezha-rtos-bench-default3 test-all -o /apps/hzt/nezha_testall_full_20260428_125900.json",
+    "log": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3-nezha\\full_testall_nezha_20260428_125900.log",
+    "json": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3-nezha\\nezha_testall_full_20260428_125900.json",
+    "checks": {
+      "comprehensive_suite": true,
+      "not_quick": true,
+      "schedule_final_score": true,
+      "results_saved": false,
+      "no_unknown_option": true,
+      "no_timer_create_failed": true,
+      "no_missing_library": true,
+      "fetch_json": false,
+      "json_parse": false
+    },
+    "json_error": "fetch failed"
+  }
+}

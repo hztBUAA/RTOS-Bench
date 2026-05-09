@@ -1,0 +1,40 @@
+{
+  "orangepi": {
+    "board": "orangepi",
+    "ok": false,
+    "command": "/apps/hzt/orangepi-rtos-bench-default3 test-all -o /apps/hzt/orangepi_testall_full_20260428_133338.json",
+    "log": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3-clean\\full_testall_orangepi_20260428_133338.log",
+    "json": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3-clean\\orangepi_testall_full_20260428_133338.json",
+    "checks": {
+      "comprehensive_suite": false,
+      "not_quick": true,
+      "schedule_final_score": false,
+      "results_saved": false,
+      "no_unknown_option": true,
+      "no_timer_create_failed": true,
+      "no_missing_library": true,
+      "fetch_json": false,
+      "json_parse": false
+    },
+    "json_error": "fetch failed"
+  },
+  "gongkong": {
+    "board": "gongkong",
+    "ok": false,
+    "command": "/apps/hzt/gongkong-rtos-bench-default3 test-all -o /apps/hzt/gongkong_testall_full_20260428_133338.json",
+    "log": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3-clean\\full_testall_gongkong_20260428_133338.log",
+    "json": "utils\\remote-test\\logs\\sylixos-full-testall-20260428-default3-clean\\gongkong_testall_full_20260428_133338.json",
+    "checks": {
+      "comprehensive_suite": true,
+      "not_quick": true,
+      "schedule_final_score": true,
+      "results_saved": false,
+      "no_unknown_option": true,
+      "no_timer_create_failed": true,
+      "no_missing_library": true,
+      "fetch_json": false,
+      "json_parse": false
+    },
+    "json_error": "fetch failed"
+  }
+}

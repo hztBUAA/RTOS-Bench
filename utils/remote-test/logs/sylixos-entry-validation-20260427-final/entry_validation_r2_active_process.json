@@ -1,0 +1,9 @@
+﻿{
+    "pid":  174460,
+    "started":  "2026-04-27T23:15:18.3548400+08:00",
+    "runner_log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\runner_entry_validation_r2_20260427_231518.log",
+    "error_log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final\\runner_entry_validation_r2_20260427_231518.err.log",
+    "log_dir":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-entry-validation-20260427-final",
+    "boards":  "orangepi,gongkong,loongson",
+    "schedule_cycles":  3
+}

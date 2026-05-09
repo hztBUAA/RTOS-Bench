@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "framework_version": "",
+    "test_timestamp": "",
+    "total_duration_sec": 0.000
+  },
+  "env": {
+    "os_name": "",
+    "os_version": "",
+    "board": "",
+    "cpu_type": "",
+    "cpu_freq_mhz": 0,
+    "cpu_core_num": 0
+  },
+  "modules": {
+    "test-realtime": {
+      "status": "skipped",
+      "duration_sec": 0.000
+    },
+    "test-schedule": {
+      "status": "skipped",
+      "duration_sec": 0.000
+    },
+    "test-stress": {
+      "status": "skipped",
+      "duration_sec": 0.000
+    },
+    "test-cmd": {
+      "status": "skipped"
+    },
+    "typical-workload": {
+      "status": "skipped",
+      "duration_sec": 0.000
+    }
+  }
+}

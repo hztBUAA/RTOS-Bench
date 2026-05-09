@@ -1,0 +1,26 @@
+﻿[
+    {
+        "board":  "orangepi",
+        "pid":  183672,
+        "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_latest_cycles1_orangepi_20260427_172058.stdout.log",
+        "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_latest_cycles1_orangepi_20260427_172058.stderr.log",
+        "board_log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\test_latest_cycles1_orangepi_20260427_172058.log",
+        "remote_unique":  "/apps/hzt/orangepi-rtos-bench-latest-20260427_172058"
+    },
+    {
+        "board":  "loongson",
+        "pid":  22988,
+        "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_latest_cycles1_loongson_20260427_172058.stdout.log",
+        "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_latest_cycles1_loongson_20260427_172058.stderr.log",
+        "board_log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\test_latest_cycles1_loongson_20260427_172058.log",
+        "remote_unique":  "/apps/hzt/loongson-rtos-bench-latest-20260427_172058"
+    },
+    {
+        "board":  "gongkong",
+        "pid":  83720,
+        "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_latest_cycles1_gongkong_20260427_172058.stdout.log",
+        "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_latest_cycles1_gongkong_20260427_172058.stderr.log",
+        "board_log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\test_latest_cycles1_gongkong_20260427_172058.log",
+        "remote_unique":  "/apps/hzt/gongkong-rtos-bench-latest-20260427_172058"
+    }
+]

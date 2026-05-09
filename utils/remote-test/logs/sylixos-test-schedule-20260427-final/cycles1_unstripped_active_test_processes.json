@@ -1,0 +1,16 @@
+﻿[
+    {
+        "board":  "orangepi",
+        "pid":  147576,
+        "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_unstripped_orangepi_20260427_155722.stdout.log",
+        "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_unstripped_orangepi_20260427_155722.stderr.log",
+        "started":  "2026-04-27 15:57:22"
+    },
+    {
+        "board":  "loongson",
+        "pid":  87172,
+        "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_unstripped_loongson_20260427_155722.stdout.log",
+        "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_unstripped_loongson_20260427_155722.stderr.log",
+        "started":  "2026-04-27 15:57:22"
+    }
+]

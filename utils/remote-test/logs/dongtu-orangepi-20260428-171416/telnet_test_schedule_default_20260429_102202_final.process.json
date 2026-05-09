@@ -1,0 +1,8 @@
+{
+    "pid":  222200,
+    "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_test_schedule_default_20260429_102202_final.stdout.log",
+    "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_test_schedule_default_20260429_102202_final.stderr.log",
+    "command":  "rtbench test-schedule",
+    "timestamp":  "20260429_102202",
+    "started":  "2026-04-29T10:24:00"
+}

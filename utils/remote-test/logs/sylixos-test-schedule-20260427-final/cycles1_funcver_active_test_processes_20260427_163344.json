@@ -1,0 +1,14 @@
+﻿[
+    {
+        "board":  "orangepi",
+        "pid":  92332,
+        "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_funcver_orangepi_20260427_163344.stdout.log",
+        "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_funcver_orangepi_20260427_163344.stderr.log"
+    },
+    {
+        "board":  "loongson",
+        "pid":  94900,
+        "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_funcver_loongson_20260427_163344.stdout.log",
+        "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-test-schedule-20260427-final\\runner_funcver_loongson_20260427_163344.stderr.log"
+    }
+]

@@ -1,0 +1,8 @@
+{
+    "pid":  49980,
+    "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_test_all_no_stress_20260429_161133_final.stdout.log",
+    "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_test_all_no_stress_20260429_161133_final.stderr.log",
+    "command":  "rtbench test-all --no-stress",
+    "timestamp":  "20260429_161133",
+    "started":  "2026-04-29T18:18:34"
+}

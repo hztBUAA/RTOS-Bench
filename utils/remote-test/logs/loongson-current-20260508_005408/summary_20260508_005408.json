@@ -1,0 +1,16 @@
+{
+  "board": "loongson",
+  "command": "/apps/hzt/loongson-rtos-bench test-all --no-realtime --no-schedule --no-stress --no-cmd -o /apps/hzt/loongson_workload_export_20260508_005408.json",
+  "log": "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\loongson-current-20260508_005408\\loongson_workload_export_20260508_005408.log",
+  "remote_json": "/apps/hzt/loongson_workload_export_20260508_005408.json",
+  "ok": true,
+  "checks": {
+    "suite_started": true,
+    "workload_stage": true,
+    "results_saved": true,
+    "failed_to_save": false,
+    "write_error": false,
+    "prompt_returned": true
+  },
+  "listing": "ll /apps/hzt/loongson_workload_export_20260508_005408.json\r\n-rw-r--r-- root     root     Mon Jan 10 11:28:02 2000   2189 B, \u001b[00mloongson_workload_export_20260508_005408.json\r\n\u001b[00m      total items: 1\r\n[root@sylixos:/root]# "
+}

@@ -76,6 +76,29 @@
     typedef unsigned long pid_t;
     #define _PID_T_DEFINED
     #endif
+#elif defined(POSIXLITE_PLATFORM)
+    /* Generic POSIX-lite target with minimal libc and POSIX-like primitives. */
+    #define RTBENCH_PLATFORM_POSIXLITE
+    #ifndef _CLOCK_T_DECLARED
+    typedef unsigned long clock_t;
+    #define _CLOCK_T_DECLARED
+    #endif
+    #ifndef _SUSECONDS_T_DECLARED
+    typedef long suseconds_t;
+    #define _SUSECONDS_T_DECLARED
+    #endif
+    #ifndef _CLOCKID_T_DECLARED
+    typedef unsigned long clockid_t;
+    #define _CLOCKID_T_DECLARED
+    #endif
+    #ifndef _TIMER_T_DECLARED
+    typedef unsigned long timer_t;
+    #define _TIMER_T_DECLARED
+    #endif
+    #ifndef _PID_T_DEFINED
+    typedef unsigned long pid_t;
+    #define _PID_T_DEFINED
+    #endif
 #elif defined(RUIHUA_PLATFORM)
     /* Ruihua RTOS (RHRTOS/RHOS): POSIX extensions assumed when building rt-bench */
     #define RTBENCH_PLATFORM_RUIHUA
@@ -95,10 +118,7 @@
     typedef unsigned long timer_t;
     #define _TIMER_T_DECLARED
     #endif
-    #ifndef _PID_T_DECLARED
-    typedef int pid_t;
-    #define _PID_T_DECLARED
-    #endif
+    /* ReWorks/newlib provides pid_t through sys/types.h. */
 #elif defined(RT_THREAD_PLATFORM)
     /* Provide POSIX-ish typedef guards for toolchains that hide them */
     #ifndef _CLOCK_T_DECLARED
@@ -126,7 +146,7 @@
 #elif defined(LINUX_PLATFORM) || defined(__linux__)
     #define RTBENCH_PLATFORM_LINUX
 #else
-    #error "Unsupported platform. Define SYLIXOS_PLATFORM, ONEOS_PLATFORM, DONGTU_PLATFORM, RUIHUA_PLATFORM, RT_THREAD_PLATFORM, or use Linux."
+    #error "Unsupported platform. Define SYLIXOS_PLATFORM, ONEOS_PLATFORM, DONGTU_PLATFORM, POSIXLITE_PLATFORM, RUIHUA_PLATFORM, RT_THREAD_PLATFORM, or use Linux."
 #endif
 
 /* ============================================================================

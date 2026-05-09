@@ -53,7 +53,14 @@ PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
 override LDFLAGS += -lm -pthread
 else ifeq ($(PLATFORM),ruihua)
 override CFLAGS += -DRUIHUA_PLATFORM
-PLATFORM_DIR := $(GENERATOR_DIR)/platform/posix-lite
+PLATFORM_DIR := $(GENERATOR_DIR)/platform/ruihua
+override CFLAGS += -I$(GENERATOR_DIR)/realtime_orig/les
+override CFLAGS += -I$(GENERATOR_DIR)/realtime_orig/realtime
+override CFLAGS += -I$(GENERATOR_DIR)/realtime_orig/multicore
+override CFLAGS += -I$(GENERATOR_DIR)/realtime_orig/verify
+override CFLAGS += -I$(GENERATOR_DIR)/stress_orig
+override CFLAGS += -I$(GENERATOR_DIR)/stress_orig/common
+override CFLAGS += -I$(GENERATOR_DIR)/stress_orig/osal
 override LDFLAGS += -lm -pthread
 else ifeq ($(PLATFORM),rt-thread)
 override CFLAGS += -DRT_THREAD_PLATFORM
@@ -78,7 +85,8 @@ CORE_SRC := $(GENERATOR_DIR)/periodic_benchmark.c \
 	$(GENERATOR_DIR)/logging.c \
 	$(GENERATOR_DIR)/memory_watcher.c \
 	$(GENERATOR_DIR)/uunifast.c \
-	$(GENERATOR_DIR)/test_schedule.c
+	$(GENERATOR_DIR)/test_schedule.c \
+	$(GENERATOR_DIR)/result_export.c
 
 # Workload registry (unified for all platforms, always included)
 WORKLOAD_REGISTRY_SRC := $(GENERATOR_DIR)/workload_registry.c \
@@ -101,6 +109,55 @@ RTTHREAD_ENTRY_SRC := $(GENERATOR_DIR)/rtthread_entry.c \
 # OneOS specific sources (shell command interface)
 ONEOS_ENTRY_SRC := $(GENERATOR_DIR)/oneos_entry.c
 
+# Common command dispatcher used by platform-specific entries
+RTBENCH_COMMAND_SRC := $(GENERATOR_DIR)/rtbench_command.c
+
+# Ruihua/ReWorks specific sources
+RUIHUA_ENTRY_SRC := $(GENERATOR_DIR)/ruihua_entry.c
+RUIHUA_FRAMEWORK_SRC := $(RTBENCH_COMMAND_SRC) \
+	$(GENERATOR_DIR)/test_realtime.c \
+	$(GENERATOR_DIR)/test_stress.c \
+	$(GENERATOR_DIR)/test_cmd.c \
+	$(GENERATOR_DIR)/test_schedule/sched_workloads.c \
+	$(GENERATOR_DIR)/test_schedule/sched_mqtt_wrapper.c \
+	$(GENERATOR_DIR)/test_schedule/sched_modbus_wrapper.c
+RUIHUA_REALTIME_SRC := $(wildcard $(GENERATOR_DIR)/realtime_orig/les/*.c) \
+	$(wildcard $(GENERATOR_DIR)/realtime_orig/realtime/*.c) \
+	$(wildcard $(GENERATOR_DIR)/realtime_orig/multicore/*.c) \
+	$(wildcard $(GENERATOR_DIR)/realtime_orig/verify/*.c)
+RUIHUA_STRESS_SRC := $(GENERATOR_DIR)/stress_orig/stress_bench.c \
+	$(wildcard $(GENERATOR_DIR)/stress_orig/common/*.c) \
+	$(GENERATOR_DIR)/stress_orig/osal/os_sylixos.c \
+	$(wildcard $(GENERATOR_DIR)/stress_orig/stressor/*.c)
+
+ONEOS_FRAMEWORK_SRC := $(RUIHUA_FRAMEWORK_SRC)
+ONEOS_REALTIME_SRC := $(RUIHUA_REALTIME_SRC)
+ONEOS_STRESS_SRC := $(GENERATOR_DIR)/stress_orig/stress_bench.c \
+	$(wildcard $(GENERATOR_DIR)/stress_orig/common/*.c) \
+	$(GENERATOR_DIR)/stress_orig/osal/os_oneos.c \
+	$(wildcard $(GENERATOR_DIR)/stress_orig/stressor/*.c)
+
+RTTHREAD_FRAMEWORK_SRC := $(RUIHUA_FRAMEWORK_SRC)
+RTTHREAD_REALTIME_SRC := $(RUIHUA_REALTIME_SRC)
+RTTHREAD_STRESS_SRC := $(GENERATOR_DIR)/stress_orig/stress_bench.c \
+	$(wildcard $(GENERATOR_DIR)/stress_orig/common/*.c) \
+	$(GENERATOR_DIR)/stress_orig/osal/os_rtt.c \
+	$(wildcard $(GENERATOR_DIR)/stress_orig/stressor/*.c)
+
+DONGTU_ENTRY_SRC := $(GENERATOR_DIR)/dongtu_entry.c
+DONGTU_FRAMEWORK_SRC := $(RUIHUA_FRAMEWORK_SRC)
+DONGTU_REALTIME_SRC := $(RUIHUA_REALTIME_SRC)
+DONGTU_STRESS_SRC := $(GENERATOR_DIR)/stress_orig/stress_bench.c \
+	$(wildcard $(GENERATOR_DIR)/stress_orig/common/*.c) \
+	$(GENERATOR_DIR)/stress_orig/osal/os_intewell.c \
+	$(wildcard $(GENERATOR_DIR)/stress_orig/stressor/*.c)
+
+# SylixOS uses the same shared command dispatcher with a thin POSIX entry.
+SYLIXOS_ENTRY_SRC := $(GENERATOR_DIR)/sylixos_entry.c
+SYLIXOS_FRAMEWORK_SRC := $(RUIHUA_FRAMEWORK_SRC)
+SYLIXOS_REALTIME_SRC := $(RUIHUA_REALTIME_SRC)
+SYLIXOS_STRESS_SRC := $(RUIHUA_STRESS_SRC)
+
 # Build mode: MULTI_WORKLOAD=1 enables workload registry for Linux/SylixOS
 # RT-Thread always uses workload registry (built-in workloads selected via -b)
 # Linux/SylixOS now also always include workload registry (weak symbols allow
@@ -111,18 +168,18 @@ override CFLAGS += -DMULTI_WORKLOAD
 ifeq ($(PLATFORM),rt-thread)
 # RT-Thread always uses workload registry with built-in workloads
 # Note: RT-Thread defines benchmark_* via workload_registry, not from individual benchmark files
-GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_REGISTRY_SRC) $(RTTHREAD_ENTRY_SRC) $(PLATFORM_SRC)
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_REGISTRY_SRC) $(RTTHREAD_FRAMEWORK_SRC) $(RTTHREAD_REALTIME_SRC) $(RTTHREAD_STRESS_SRC) $(RTTHREAD_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),oneos)
 # OneOS uses native platform layer and shell command entry
 # Note: For SCons builds, oneos_entry.c provides shell integration
-GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(ONEOS_ENTRY_SRC) $(PLATFORM_SRC)
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(ONEOS_FRAMEWORK_SRC) $(ONEOS_REALTIME_SRC) $(ONEOS_STRESS_SRC) $(ONEOS_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),dongtu)
-GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(DONGTU_FRAMEWORK_SRC) $(DONGTU_REALTIME_SRC) $(DONGTU_STRESS_SRC) $(DONGTU_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),ruihua)
-GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(RUIHUA_FRAMEWORK_SRC) $(RUIHUA_REALTIME_SRC) $(RUIHUA_STRESS_SRC) $(RUIHUA_ENTRY_SRC) $(PLATFORM_SRC)
 else ifeq ($(PLATFORM),sylixos)
-# SylixOS uses Linux-style entry (main.c with argp)
-GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIXLITE_ENTRY_SRC) $(PLATFORM_SRC)
+# SylixOS uses a thin entry plus the shared command dispatcher.
+GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(SYLIXOS_FRAMEWORK_SRC) $(SYLIXOS_REALTIME_SRC) $(SYLIXOS_STRESS_SRC) $(SYLIXOS_ENTRY_SRC) $(PLATFORM_SRC)
 else
 # Linux default
 GENERATOR_SRC := $(CORE_SRC) $(WORKLOAD_SRC) $(POSIX_ENTRY_SRC) $(PLATFORM_SRC)

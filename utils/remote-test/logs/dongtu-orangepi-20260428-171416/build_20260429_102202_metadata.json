@@ -1,0 +1,8 @@
+{
+    "timestamp":  "20260429_102202",
+    "make_exit":  0,
+    "binary":  "D:\\build\\workspace\\Developer_231Gizwits\\IDE\\BIN\\Intewell_Developer\\eclipse\\workspace\\download\\vm_3588\\Debug\\make\\vm_3588_hzt_20260429_102202_schedule_fail_propagation.bin",
+    "sha256":  "7FAABF59FBA5E0A4594D1FEEE8F118AC916F61EEE5D42F723AD9585FEC9DBDD0",
+    "size":  5234688,
+    "build_log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\build_20260429_102202_schedule_fail_propagation.log"
+}

@@ -5,7 +5,11 @@ endif()
 # 收集核心源文件
 file(GLOB RTOS_BENCH_CORE 
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/oneos_entry.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generator/rtbench_command.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule/sched_workloads.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule/sched_mqtt_wrapper.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule/sched_modbus_wrapper.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_realtime.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_stress.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_cmd.c"
@@ -86,6 +90,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 # 添加编译宏
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     ONEOS_PLATFORM
+    ONEOS_V2_ARM64
     MULTI_WORKLOAD
 )
 

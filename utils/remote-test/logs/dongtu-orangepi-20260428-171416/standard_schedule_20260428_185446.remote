@@ -1,0 +1,2 @@
+remote_log=/tmp/dongtu_standard_schedule_20260428_185446.log
+command=rtbench test-schedule

@@ -1,0 +1,9 @@
+{
+    "timestamp":  "20260429_160641",
+    "make_exit":  0,
+    "binary":  "D:\\build\\workspace\\Developer_231Gizwits\\IDE\\BIN\\Intewell_Developer\\eclipse\\workspace\\download\\vm_3588\\Debug\\make\\vm_3588_hzt_20260429_160641_epnp_trace.bin",
+    "sha256":  "E067D1538C1ECEAE0115168510BEF32AED643E827B2B12B3FC6812D7EF1FFC5B",
+    "size":  5234688,
+    "build_log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\build_20260429_160641_epnp_trace.log",
+    "temporary_trace":  true
+}

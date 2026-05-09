@@ -1,0 +1,21 @@
+{
+  "board": "loongson",
+  "command": "/apps/hzt/loongson-rtos-bench test-all --quick --schedule-cycles 1 --util-start 30 --util-end 30 --util-step 30 --stress-job all-quick -o /apps/hzt/loongson_fullquick_20260508_005922.json",
+  "log": "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\loongson-current-fullquick-20260508_005922\\loongson_fullquick_20260508_005922.log",
+  "remote_json": "/apps/hzt/loongson_fullquick_20260508_005922.json",
+  "ok": true,
+  "checks": {
+    "suite_started": true,
+    "realtime_stage": true,
+    "schedule_stage": true,
+    "stress_stage": true,
+    "cmd_stage": true,
+    "workload_stage": true,
+    "schedule_final_score": true,
+    "results_saved": true,
+    "failed_to_save": false,
+    "write_error": false,
+    "prompt_returned": true
+  },
+  "listing": "ll /apps/hzt/loongson_fullquick_20260508_005922.json\r\n-rw-r--r-- root     root     Mon Jan 10 11:43:52 2000   8909 B, \u001b[00mloongson_fullquick_20260508_005922.json\r\n\u001b[00m      total items: 1\r\n[root@sylixos:/root]# "
+}

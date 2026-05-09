@@ -1,0 +1,7 @@
+{
+    "label":  "help_schedule",
+    "command":  "rtbench test-schedule --help",
+    "exit":  0,
+    "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_help_schedule_20260429_102202_final.stdout.log",
+    "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_help_schedule_20260429_102202_final.stderr.log"
+}

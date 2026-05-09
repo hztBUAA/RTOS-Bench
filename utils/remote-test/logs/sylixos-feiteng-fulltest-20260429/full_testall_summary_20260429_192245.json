@@ -1,0 +1,21 @@
+{
+  "feiteng": {
+    "board": "feiteng",
+    "ok": false,
+    "command": "/apps/hzt/feiteng-rtos-bench_hzt_20260429_192025 test-all -o /apps/hzt/feiteng_testall_full_20260429_192245.json",
+    "log": "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-feiteng-fulltest-20260429\\full_testall_feiteng_20260429_192245.log",
+    "json": "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-feiteng-fulltest-20260429\\feiteng_testall_full_20260429_192245.json",
+    "checks": {
+      "comprehensive_suite": true,
+      "not_quick": true,
+      "schedule_final_score": false,
+      "results_saved": false,
+      "no_unknown_option": true,
+      "no_timer_create_failed": true,
+      "no_missing_library": true,
+      "fetch_json": false,
+      "json_parse": false
+    },
+    "json_error": "fetch failed"
+  }
+}

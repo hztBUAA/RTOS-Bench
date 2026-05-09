@@ -1,0 +1,7 @@
+{
+    "Pid":  90256,
+    "Started":  "2026-04-28 23:12:30",
+    "Stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_test_all_default_20260428_231112_shell_final.stdout.log",
+    "Stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_test_all_default_20260428_231112_shell_final.stderr.log",
+    "Command":  "rtbench test-all"
+}

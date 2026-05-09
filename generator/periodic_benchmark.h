@@ -15,7 +15,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
-#ifdef RT_THREAD_PLATFORM
+#if defined(RT_THREAD_PLATFORM) || defined(RUIHUA_PLATFORM) || defined(DONGTU_PLATFORM)
 #include <stdint.h>
 typedef uint32_t cpu_set_t;
 #define CPU_ZERO(set) (*(set) = 0)

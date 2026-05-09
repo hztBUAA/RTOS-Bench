@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "framework_version": "1.0.0",
+    "test_timestamp": "2000-01-01T00:02:38Z",
+    "total_duration_sec": 0.000
+  },
+  "env": {
+    "os_name": "SylixOS",
+    "os_version": "2.x",
+    "board": "SylixOS-Board",
+    "cpu_type": "ARM",
+    "cpu_freq_mhz": 0,
+    "cpu_core_num": 1
+  },
+  "modules": {
+    "test-realtime": {
+      "status": "passed",
+      "duration_sec": 0.000,
+      "single_core": {
+        "context_switch": { "avg_us": 0.979 },
+        "interrupt": { "min_us": 0.320, "max_us": 0.380, "avg_us": 0.335 },
+        "syscall": { "min_us": 0.020, "max_us": 0.040, "avg_us": 0.020 },
+        "service_cost": [
+          { "operation": "sem_take", "immediate_us": 0.380, "suspend_us": 1.140, "low_prio_us": 0.000, "high_prio_us": 0.000 },
+          { "operation": "sem_release", "immediate_us": 0.540, "suspend_us": 0.000, "low_prio_us": 0.540, "high_prio_us": 1.120 },
+          { "operation": "mq_send", "immediate_us": 1.880, "suspend_us": 2.200, "low_prio_us": 2.060, "high_prio_us": 2.160 },
+          { "operation": "mq_recv", "immediate_us": 1.860, "suspend_us": 4.100, "low_prio_us": 2.100, "high_prio_us": 4.060 },
+          { "operation": "mutex_take", "immediate_us": 0.480, "suspend_us": 1.220, "low_prio_us": 0.000, "high_prio_us": 0.000 },
+          { "operation": "mutex_release", "immediate_us": 0.500, "suspend_us": 0.000, "low_prio_us": 0.700, "high_prio_us": 1.260 },
+          { "operation": "mempool_alloc", "immediate_us": 1.120, "suspend_us": 0.000, "low_prio_us": 0.000, "high_prio_us": 0.000 },
+          { "operation": "mempool_free", "immediate_us": 1.040, "suspend_us": 0.000, "low_prio_us": 0.000, "high_prio_us": 0.000 }
+        ]
+      }    },
+    "test-schedule": {
+      "status": "skipped",
+      "duration_sec": 0.000
+    },
+    "test-stress": {
+      "status": "skipped",
+      "duration_sec": 0.000
+    },
+    "test-cmd": {
+      "status": "passed",
+      "cmd_count": 11,
+      "pass_count": 5,
+      "commands": [
+        { "name": "date", "command": "date", "supported": true },
+        { "name": "ps", "command": "ps", "supported": true },
+        { "name": "mkdir", "command": "mkdir -p test_cmd_dir", "supported": false },
+        { "name": "cd", "command": "cd .", "supported": true },
+        { "name": "pwd", "command": "pwd", "supported": true },
+        { "name": "echo", "command": "echo 'HELLO' > ./test_cmd_dir/original.txt", "supported": false },
+        { "name": "cp", "command": "cp ./test_cmd_dir/original.txt ./test_cmd_dir/backup.txt", "supported": false },
+        { "name": "mv", "command": "mv ./test_cmd_dir/backup.txt ./test_cmd_dir/final_target.txt", "supported": false },
+        { "name": "ls", "command": "ls", "supported": true },
+        { "name": "cat", "command": "cat ./test_cmd_dir/original.txt", "supported": false },
+        { "name": "rm", "command": "rm -rf ./test_cmd_dir", "supported": false }
+      ]
+    },
+    "typical-workload": {
+      "status": "skipped",
+      "duration_sec": 0.000
+    }
+  }
+}

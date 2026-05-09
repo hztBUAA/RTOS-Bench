@@ -1,0 +1,8 @@
+{
+    "Pid":  208056,
+    "Started":  "2026-04-29 10:04:20",
+    "Stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_test_all_no_stress_20260429_093815_export_path_final.stdout.log",
+    "Stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\dongtu-orangepi-20260428-171416\\telnet_test_all_no_stress_20260429_093815_export_path_final.stderr.log",
+    "Command":  "rtbench test-all --no-stress",
+    "BinaryTimestamp":  "20260429_093815"
+}

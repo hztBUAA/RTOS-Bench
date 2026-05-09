@@ -76,7 +76,6 @@ static FILE *filep_sampler = NULL;
 #endif
 
 static unsigned memory_profiling_enabled = 0;
-static int benchmark_cleanup_done = 0;
 
 /// Semaphore used to determine if a new job can be started.
 static rtbench_sem_t period_sem = NULL;
@@ -137,11 +136,6 @@ static float extra_measurement = 0.0f;
 static void stop_benchmark(int status, void *arg)
 {
 	int res;
-	if (benchmark_cleanup_done) {
-		return;
-	}
-	benchmark_cleanup_done = 1;
-
 	// we stop the memory watcher
 	stop_memory_watcher();
 	if (filep != NULL) {
@@ -150,7 +144,6 @@ static void stop_benchmark(int status, void *arg)
 		if (res == EOF) {
 			perror("Error during output file close");
 		}
-		filep = NULL;
 	}
 #if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
 	(defined(X86_64) && defined(CORE_I7))
@@ -182,7 +175,6 @@ static void stop_benchmark(int status, void *arg)
 		if (res < 0) {
 			perror("Error during deadline timer deletion");
 		}
-		deadline_timer = NULL;
 	}
 	if (period_timer != NULL) {
 		elogf(LOG_LEVEL_TRACE, "Deleting period timer\n");
@@ -190,14 +182,12 @@ static void stop_benchmark(int status, void *arg)
 		if (res < 0) {
 			perror("Error during period timer deletion");
 		}
-		period_timer = NULL;
 	}
 	if (period_sem != NULL) {
 		res = rtbench_sem_destroy(period_sem);
 		if (res < 0) {
 			perror("Error during period semaphore destruction");
 		}
-		period_sem = NULL;
 	}
 	elogf(LOG_LEVEL_TRACE, "Cleaning up job environment\n");
 	benchmark_teardown(benchmark_param_num, benchmark_params);
@@ -210,7 +200,7 @@ static void stop_benchmark(int status, void *arg)
 #endif
 }
 
-#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM) || defined(ONEOS_PLATFORM)
+#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM) || defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM)
 static void stop_benchmark_wrapper(void)
 {
 	stop_benchmark(EXIT_SUCCESS, &memory_profiling_enabled);
@@ -471,7 +461,6 @@ int periodic_benchmark(struct execution_options *exec_opts)
 	job_period_end_timestamp = 0;
 	job_period_start_timestamp = 0;
 	extra_measurement = 0.0f;
-	benchmark_cleanup_done = 0;
 	deadline_timer = NULL;
 	period_timer = NULL;
 	period_sem = NULL;
@@ -542,7 +531,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		return -1;
 	}
 	memory_profiling_enabled = exec_opts->memory_profiling_enable;
-#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM) || defined(ONEOS_PLATFORM)
+#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM) || defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM)
 	res = atexit(stop_benchmark_wrapper);
 #else
 	res = on_exit(stop_benchmark, &memory_profiling_enabled);

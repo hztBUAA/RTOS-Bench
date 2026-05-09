@@ -1,0 +1,12 @@
+﻿{
+    "kind":  "feiteng_exportsanitize_clean_testall_no_stress_workload",
+    "pid":  410344,
+    "started":  "2026-04-30T22:25:42",
+    "log":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-feiteng-fulltest-20260429\\exportsanitize_clean_testall_no_stress_workload_20260430_222542.log",
+    "stdout":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-feiteng-fulltest-20260429\\exportsanitize_clean_testall_no_stress_workload_20260430_222542.stdout.log",
+    "stderr":  "C:\\Users\\hzt\\yihui-workspace\\rtos-bench\\RTOS-Bench\\utils\\remote-test\\logs\\sylixos-feiteng-fulltest-20260429\\exportsanitize_clean_testall_no_stress_workload_20260430_222542.stderr.log",
+    "remote_json":  "/apps/hzt/feiteng_testall_no_stress_workload_exportsanitize_clean_20260430_222542.json",
+    "binary":  "feiteng-rtos-bench_hzt_exportsanitize_20260430_222216",
+    "local":  "C:\\Users\\hzt\\yihui-workspace\\feiteng_rtos_bench\\Debug\\strip\\hzt_feiteng_rtos_bench_exportsanitize_20260430_222216",
+    "sha256":  "625E1B837833469A82B7DF37A8DE016A6C6056EEC5C5112AC07954CA623865A2"
+}

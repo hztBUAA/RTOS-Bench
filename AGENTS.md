@@ -8,10 +8,26 @@
 - 默认 POSIX 契约（pthread/clock/socket/sem）；RTOS 若 POSIX 不完备则在 `generator/platform/<platform>/` 做最小垫片。
 - 打包开关：根目录 `Makefile` 默认 `RTOS_WORKLOADS=1`，自动把 `workloads/` 下源码编入 Linux/SylixOS；RT-Thread 由 BSP SConscript 引用。
 - 工作目录：`workloads/` 集中存放所有负载；`workloads/rtbench_workloads.cpp` 统一注册和 `register_all_workloads()`。
+- 入口层架构：平台 `*_entry.c` 应保持薄适配层；命令解析、`test-all` 编排、结果收集和默认输出路径统一放在 `generator/rtbench_command.c/h`。平台差异通过 `rtbench_platform_default_output_path()`、`rtbench_platform_get_env()`、`rtbench_platform_run_test_all()` 等 hook 处理。
 - 入口 CLI：
   - Linux/SylixOS：`rtbench -p <period_sec> -t <tasks> -b <workload> [-q] [-d <deadline>]`
   - RT-Thread：`rtosbench`/`rtbench` msh，同参数；默认 TRACE，可用 `-q` 降噪（RT-Thread 目前未实现 -d，需要扩展）。
 - 内置工作负载：busywait, stub, fast, epnp, ekf, icp, pid, modbus, mqtt。网络类在无网络时自动离线仿真/pack-only，并打印 offline 提示。
+
+## 当前任务上下文（2026-05）
+- 本地唯一真相工作树为 `C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench`。`RTOS-Bench-ruihua` 只允许作为历史/临时 worktree 参考，不再单独维护新改动；后续代码、文档、验证日志和提交都应落到 canonical 工作树。
+- 正在进行多平台入口统一：SylixOS、Dongtu、OneOS、RT-Thread、Posixlite 均应收敛到 `rtbench_command` dispatcher，保留平台专属 worker/stack/默认输出路径。
+- 验收必须以真实板卡为准：至少覆盖 `--help`、`export-result -o <writable>`、`test-schedule --cycles 3`、非 quick 的完整 `test-all`、错误参数回归。
+- 真实板卡连接、历史基线、已验证日志和当前可用二进制路径维护在 `utils/remote-test/ENTRY_UNIFICATION_BASELINE.md`，更新连接或部署状态时必须同步更新该文件。
+
+## 远端板卡与二进制版本管理
+- 板卡上的 `/apps/hzt/`、OneOS 的 `/user/` 等目标目录是验收用二进制资产库，不只是临时上传目录。远端服务器、人工验收和自动化脚本都应优先调用这些已归档路径。
+- 执行 `make clean`、IDE clean、删除 `Debug/` 或覆盖 `Debug/strip/` 前，必须先归档当前可运行产物：记录本地路径、目标板卡、远端路径、文件大小、SHA256、构建时间、源码分支/提交和最小验收命令。
+- 归档命名使用可追溯后缀，如 `/apps/hzt/nezha-rtos-bench-r7`、`<board>-rtos-bench-default3`、`<board>-rtos-bench-YYYYMMDD-HHMM`。不要只覆盖无后缀主路径而不保留可运行旧版本。
+- SylixOS 上同名覆盖后可能触发 loader/module 缓存问题；若覆盖后的同名路径异常，但同一文件换唯一名字可运行，应优先使用唯一名字继续验收，并把异常和可运行路径记入基线文档。
+- 上传流程优先使用跳板机：本地 `sftp` 到 `10.134.151.45:1026`，再从跳板机 `curl -T` 到板卡 FTP，随后 telnet 到板卡执行 `chmod 755`、`ll`、`--help` 或 `test-all --help` 做短确认。
+- SylixOS 结果默认路径必须是可写目录，例如 `/apps/hzt/rtbench_result.json`；完整测试建议显式加 `-o /apps/hzt/<board>_<case>_<timestamp>.json`，避免写根目录失败。
+- 当前哪吒最新已验证入口统一二进制：`/apps/hzt/nezha-rtos-bench-r7`，对应本地未裁剪产物 `C:\Users\hzt\yihui-workspace\nezha-rtos-bench\Debug\nezha-rtos-bench`。完整验收命令：`/apps/hzt/nezha-rtos-bench-r7 test-all -o /apps/hzt/nezha_testall_full_r7_<timestamp>.json`。
 
 ## 脚本与命令
 - RT-Thread (QEMU virt aarch64, BSP: `qemu-virt64-aarch64`)：`./run-rtthread.sh`
@@ -68,8 +84,8 @@
   - `rtbench -b modbus -p 2 -t 1 -q`  => offline 仿真，打印 TPS
   - `rtbench -b mqtt -p 2 -t 1 -q`    => 无会话则 pack-only 并打印统计
 - **可调度性测试**：
-  - `rtbench test-schedule` => 完整测试（30%-100%利用率，10000周期）
-  - `rtbench test-schedule --cycles 100` => 快速测试（减少周期数）
+  - `rtbench test-schedule` => 完整测试（30%-100%利用率，默认 3 周期）
+  - `rtbench test-schedule --cycles 1` => 快速 smoke（减少周期数）
   - 详见 [docs/SCHEDULE.md](docs/SCHEDULE.md)
 - **实时性能测试**：
   - `rtbench test-realtime` => 测量上下文切换、信号量、互斥锁、内存分配延迟

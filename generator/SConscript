@@ -8,6 +8,10 @@ cwd = GetCurrentDir()
 # RT-Thread detection: check for RT_THREAD_PRIORITY_MAX which is always defined
 if GetDepend(['ONEOS_PLATFORM']):
     platform = 'oneos'
+elif GetDepend(['RUIHUA_PLATFORM']) or GetDepend(['__REWORKS__']):
+    platform = 'ruihua'
+elif GetDepend(['DONGTU_PLATFORM']):
+    platform = 'dongtu'
 elif GetDepend(['RT_THREAD_PRIORITY_32']) or GetDepend(['RT_THREAD_PRIORITY_256']):
     platform = 'rt-thread'
 elif GetDepend(['RT_USING_LIBC']):
@@ -29,6 +33,7 @@ src_files = [
     'test_stress.c',
     'test_cmd.c',
     'result_export.c',
+    'rtbench_command.c',
 ]
 
 # Add platform-specific entry and sources
@@ -37,6 +42,10 @@ if platform == 'rt-thread':
     src_files.append('rtthread_fini_stub.c')
 elif platform == 'oneos':
     src_files.append('oneos_entry.c')
+elif platform == 'ruihua':
+    src_files.append('ruihua_entry.c')
+elif platform == 'dongtu':
+    src_files.append('dongtu_entry.c')
 else:
     # posix-lite or Linux
     src_files.append('posixlite_entry.c')
@@ -46,6 +55,7 @@ src = [File(f) for f in src_files]
 
 # Add platform abstraction layer
 src += Glob('platform/' + platform + '/*.c')
+src += Glob('test_schedule/*.c')
 
 # Add original realtime tests (les, realtime, multicore)
 src += Glob('realtime_orig/les/*.c')
@@ -61,8 +71,14 @@ src += [File('stress_orig/common/stress_stored_job.c')]
 # Only include platform-specific OSAL (avoid compiling SylixOS OSAL on RT-Thread)
 if platform == 'rt-thread':
     src += [File('stress_orig/osal/os_rtt.c')]
+elif platform == 'oneos':
+    src += [File('stress_orig/osal/os_oneos.c')]
+elif platform == 'ruihua':
+    src += [File('stress_orig/osal/os_sylixos.c')]
+elif platform == 'dongtu':
+    src += [File('stress_orig/osal/os_intewell.c')]
 else:
-    src += Glob('stress_orig/osal/*.c')
+    src += [File('stress_orig/osal/os_intewell.c')]
 src += Glob('stress_orig/stressor/*.c')
 
 CPPPATH = [cwd, cwd + '/realtime_orig/les', cwd + '/stress_orig', cwd + '/stress_orig/common', cwd + '/stress_orig/osal']
@@ -71,6 +87,12 @@ LOCAL_CPPDEFINES = []
 # RT-Thread 平台特殊处理
 if platform == 'rt-thread':
     LOCAL_CPPDEFINES.append('RT_THREAD_PLATFORM')
+elif platform == 'ruihua':
+    LOCAL_CPPDEFINES.append('RUIHUA_PLATFORM')
+elif platform == 'dongtu':
+    LOCAL_CPPDEFINES.append('DONGTU_PLATFORM')
+else:
+    LOCAL_CPPDEFINES.append('POSIXLITE_PLATFORM')
 
 # OneOS 平台特殊处理
 LOCAL_CCFLAGS = ''

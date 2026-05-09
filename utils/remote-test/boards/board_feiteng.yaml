@@ -1,0 +1,52 @@
+# RTOS-Bench 飞腾派 (Phytium E2000Q) 开发板配置
+board:
+  name: "Phytium-Pi"
+  os: "SylixOS"
+  arch: "aarch64"
+  cpu: "Phytium E2000Q (FTC664 x 2 @ 2.0GHz + FTC310 x 2 @ 1.5GHz)"
+  ram: "2GB"
+
+# 正确的连接方式: 通过SSH跳板机 -> Telnet到内网
+jumphost:
+  host: "10.134.151.45"
+  port: 1026
+  username: "rtbench"
+  password: "rtbench"
+
+connection:
+  type: "telnet"
+  # 内网地址 (从跳板机访问)
+  ip: "192.168.31.204"
+  port: 23
+  username: "root"
+  password: "root"
+
+# [DEPRECATED] 以下FRP端口转发方式已废弃，请勿使用
+# deprecated_frp:
+#   ip: "10.134.151.3"
+#   port: 3020
+
+ftp:
+  enabled: true
+  port: 3018
+
+deploy:
+  local_binary: "../../../feiteng_rtos_bench/Debug/strip/hzt_feiteng_rtos_bench"
+  remote_dir: "/apps/"
+  remote_binary: "hzt_feiteng_rtos_bench"
+
+test:
+  commands:
+    list_workloads: "/apps/feiteng_rtos_bench -L"
+    test_schedule_quick: "/apps/feiteng_rtos_bench test-schedule --cycles 3"
+    test_schedule_full: "/apps/feiteng_rtos_bench test-schedule --cycles 5"
+    test_single: "/apps/feiteng_rtos_bench -s"
+  timeout_sec: 1200
+
+result:
+  remote_path: "/tmp/rtbench_result.json"
+  local_output_dir: "./results/feiteng/"
+  retrieval_method: "terminal_capture"
+
+# Verified: 2026-04-16
+# test-schedule --cycles 3: Final Score 100.00/100
