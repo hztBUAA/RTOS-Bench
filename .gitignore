@@ -12,6 +12,8 @@ docs/conf/doxygen-awesome
 *.o
 *.csv
 *.log
+node_modules/
+utils/remote-test/logs/**/node_modules/
 
 # RT-Thread QEMU
 extern/
