@@ -8,6 +8,7 @@
 #endif
 #include <cstdio>
 #include <time.h>
+#include <math.h>
 #if EKF_HAVE_PTHREAD
 #include <pthread.h>
 #endif
@@ -58,7 +59,7 @@ extern "C" int ekf_bench_run(void) {
 
     for (int i = 0; i < iris_gps_imu_count; i++) {
         // 1. 填充 IMU
-        imuSample imu_sample;
+        imuSample imu_sample{};
         imu_sample.time_us = iris_gps_imu[i].time_us;
         // 计算 dt (除了第一帧)
         float dt = (i > 0) ? (iris_gps_imu[i].time_us - iris_gps_imu[i-1].time_us) * 1e-6f : 0.004f;
@@ -76,7 +77,7 @@ extern "C" int ekf_bench_run(void) {
 
         // 2. 检查并填充 Mag
         while (mag_idx < iris_gps_mag_count && iris_gps_mag[mag_idx].time_us <= imu_sample.time_us) {
-            magSample mag;
+            magSample mag{};
             mag.time_us = iris_gps_mag[mag_idx].time_us;
             mag.mag(0) = iris_gps_mag[mag_idx].mag[0];
             mag.mag(1) = iris_gps_mag[mag_idx].mag[1];
@@ -93,15 +94,27 @@ extern "C" int ekf_bench_run(void) {
         
         // 4. 检查并填充 GPS
         while (gps_idx < iris_gps_gps_count && iris_gps_gps[gps_idx].time_us <= imu_sample.time_us) {
-            gps_message gps;
+            gps_message gps{};
             gps.time_usec = iris_gps_gps[gps_idx].time_us;
             gps.lat = (int)(iris_gps_gps[gps_idx].lat * 1e7); // 注意单位转换
             gps.lon = (int)(iris_gps_gps[gps_idx].lon * 1e7);
             gps.alt = (int)(iris_gps_gps[gps_idx].alt * 1000); // m -> mm
-            gps.vel_ned(0) = iris_gps_gps[gps_idx].vel[0];
-            gps.vel_ned(1) = iris_gps_gps[gps_idx].vel[1];
-            gps.vel_ned(2) = iris_gps_gps[gps_idx].vel[2];
-            // 还需要设置 gps.fix_type, gps.eph 等，视 EKF 接口而定
+            const float vn = iris_gps_gps[gps_idx].vel[0];
+            const float ve = iris_gps_gps[gps_idx].vel[1];
+            const float vd = iris_gps_gps[gps_idx].vel[2];
+            gps.vel_ned(0) = vn;
+            gps.vel_ned(1) = ve;
+            gps.vel_ned(2) = vd;
+            gps.vel_m_s = sqrtf(vn * vn + ve * ve + vd * vd);
+            gps.vel_ned_valid = true;
+            gps.fix_type = 3;
+            gps.eph = 1.0f;
+            gps.epv = 1.5f;
+            gps.sacc = 0.5f;
+            gps.nsats = 10;
+            gps.pdop = 1.5f;
+            gps.yaw = NAN;
+            gps.yaw_offset = NAN;
             _ekf.setGpsData(gps);
             gps_idx++;
         }
@@ -141,7 +154,7 @@ extern "C" int ekf_bench_run(void) {
     // EKF_PRINTF("Total Successful Updates: %d\n", update_success_count);
 
     /* Print timing results (only in non-quiet mode) */
-    printf("[EKF] samples=%d total_time=%.3f ms avg_latency=%.3f us/update\n",
+    EKF_PRINTF("[EKF] samples=%d total_time=%.3f ms avg_latency=%.3f us/update\n",
                update_success_count,
                (double)total_ns / 1000000.0,
                avg_ns / 1000.0);
