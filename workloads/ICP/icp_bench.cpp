@@ -39,6 +39,7 @@ extern "C" int icp_bench_run(void) {
 
     Matrix R = Matrix::eye(3);
     Matrix t(3, 1);
+    t.zero();
 
     // run point-to-plane ICP (-1 = no outlier threshold)
     cout << endl << "[ICP] Running ICP (point-to-plane)" << endl;
