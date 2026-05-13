@@ -17,7 +17,10 @@ docs/conf/doxygen-awesome
 extern/
 
 *.txt
+# OneOS 
 !CMakeLists.txt
+!platforms/oneos/interfaces.txt
+
 docs/deliver
 *.docx
 *.pyc
