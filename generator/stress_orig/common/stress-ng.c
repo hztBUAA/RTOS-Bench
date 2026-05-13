@@ -462,7 +462,7 @@ static void stress_print_progress(int total, int current, const char *running_na
     *ptr++ = ']';
     *ptr = '\0';
 
-    stress_table_print("\rRunning Job: %s %d/%d (%d%%) -> %s      ",
+    stress_table_print("\rRunning Job: %s %d/%d (%d%%) -> %s      \n",
                        bar, current, total, (int)(percent * 100), running_name ? running_name : "Done");
 }
 

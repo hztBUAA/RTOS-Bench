@@ -100,7 +100,7 @@ const char JOB_DATA_CPU[] =
 
 const char JOB_DATA_MEMORY[] =
     /* --- Stage 1: 20% --- */
-    "memcpy    --ops 10000    -c 1 --memcpy-size 32768\n"
+    "memcpy    --ops 10000    -c 1 --memcpy-size 2048\n"
     "stream    --ops 52000    -c 1 --stream-elem 2048\n"
     "vm        --ops 42000000 -c 1 --vm-bytes 1048576\n"
     "malloc    --ops 50000  -c 1 --malloc-bytes 256 --malloc-max 64\n"
@@ -108,7 +108,7 @@ const char JOB_DATA_MEMORY[] =
     "ptr-chase --ops 86000000 -c 1 --ptr-chase-pages 128\n"
 
     /* --- Stage 2: 40% --- */
-    "memcpy    --ops 10000   -c 2 --memcpy-size 65536\n"
+    "memcpy    --ops 10000   -c 2 --memcpy-size 2048\n"
     "stream    --ops 20500    -c 2 --stream-elem 4096\n"
     "vm        --ops 37500000 -c 2 --vm-bytes 4194304\n"
     "malloc    --ops 50000    -c 2 --malloc-bytes 1024 --malloc-max 64\n"
@@ -116,7 +116,7 @@ const char JOB_DATA_MEMORY[] =
     "ptr-chase --ops 62000000 -c 2 --ptr-chase-pages 256\n"
 
     /* --- Stage 3: 60% --- */
-    "memcpy    --ops 10000    -c 3 --memcpy-size 131072\n"
+    "memcpy    --ops 10000    -c 3 --memcpy-size 2048\n"
     "stream    --ops 9000     -c 3 --stream-elem 8192\n"
     "vm        --ops 39000000 -c 2 --vm-bytes 2097152\n"
     "malloc    --ops 50000    -c 3 --malloc-bytes 2048 --malloc-max 64\n"
@@ -124,7 +124,7 @@ const char JOB_DATA_MEMORY[] =
     "ptr-chase --ops 27500000 -c 3 --ptr-chase-pages 512\n"
 
     /* --- Stage 4: 80% --- */
-    "memcpy    --ops 10000    -c 4 --memcpy-size 262144\n"
+    "memcpy    --ops 10000    -c 4 --memcpy-size 2048\n"
     "stream    --ops 2700     -c 4 --stream-elem 16384\n"
     "vm        --ops 37500000 -c 2 --vm-bytes 4194304\n"
     "malloc    --ops 50000    -c 4 --malloc-bytes 4096 --malloc-max 64\n"
@@ -132,7 +132,7 @@ const char JOB_DATA_MEMORY[] =
     "ptr-chase --ops 20000000 -c 4 --ptr-chase-pages 256\n"
 
     /* --- Stage 5: 100% --- */
-    "memcpy    --ops 10000    -c 5 --memcpy-size 262144\n"
+    "memcpy    --ops 10000    -c 5 --memcpy-size 2048\n"
     "stream    --ops 1100     -c 5 --stream-elem 32768\n"
     "vm        --ops 29000000 -c 3 --vm-bytes 8388608\n"
     "malloc    --ops 50000    -c 5 --malloc-bytes 8192 --malloc-max 64\n"
