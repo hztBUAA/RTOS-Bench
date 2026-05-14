@@ -24,17 +24,23 @@ typedef uint32_t cpu_set_t;
 #define CPU_COUNT(set) __builtin_popcount(*(set))
 #else
 #include <sched.h>
-#ifdef SYLIXOS_PLATFORM
-/* SylixOS sched.h 没有 CPU_COUNT 宏，需要补充定义 */
+#if defined(SYLIXOS_PLATFORM) || defined(DONGTU_PLATFORM)
+/* Some RTOS sched.h variants do not provide CPU_COUNT. */
 #ifndef CPU_COUNT
-static inline int __sylixos_cpu_count(const cpu_set_t *set) {
+static inline int __rtbench_cpu_count(const cpu_set_t *set) {
     int count = 0;
-    for (int i = 0; i < CPU_SETSIZE; i++) {
+    int cpu_count_limit =
+#ifdef CPU_SETSIZE
+        CPU_SETSIZE;
+#else
+        (int)(sizeof(*set) * 8);
+#endif
+    for (int i = 0; i < cpu_count_limit; i++) {
         if (CPU_ISSET(i, set)) count++;
     }
     return count;
 }
-#define CPU_COUNT(set) __sylixos_cpu_count(set)
+#define CPU_COUNT(set) __rtbench_cpu_count(set)
 #endif
 #endif
 #endif
