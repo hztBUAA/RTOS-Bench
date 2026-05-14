@@ -39,9 +39,18 @@ typedef unsigned int rt_uint32_t;
 #if SCHED_MDB_HAVE_SOCKETS
 #include <sys/socket.h>
 #include <netinet/in.h>
+#ifndef DONGTU_PLATFORM
 #include <netinet/tcp.h>
+#endif
+#ifdef DONGTU_PLATFORM
+#include <lwip/inet.h>
+#else
 #include <arpa/inet.h>
+#endif
 #include <netdb.h>
+#ifndef TCP_NODELAY
+#define TCP_NODELAY 0x01
+#endif
 #endif
 
 /* Include nanomodbus and sim_plc from original workload */
