@@ -1,7 +1,10 @@
 ################################################################################
 # RTOS-Bench integration for Dongtu/Intewell vm_3588 projects.
 #
-# Include this from the vm_3588 project-local config_os.mk:
+# Include this from the vm_3588 project-local config_os.mk. The Intewell
+# generated Debug/make/makefile reads that file through:
+#   -include $(PROJECT_PATH)/config_os.mk
+#
 #   RTOS_BENCH_ROOT ?= C:/path/to/RTOS-Bench
 #   include $(RTOS_BENCH_ROOT)/platforms/dongtu/intewell_vm3588.mk
 #
