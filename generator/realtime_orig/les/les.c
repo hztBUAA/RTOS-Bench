@@ -34,6 +34,19 @@ void LES_interrupt_end_stub(void) {
     }
 }
 
+#if defined(DONGTU_PLATFORM)
+void LES_stub(void) {
+    if (LES_flag == 0 || bench_get_cpu() != 0) {
+        return;
+    }
+    if (LES_offset >= LES_BUFFER_SIZE) {
+        return;
+    }
+    LES_buffer[LES_offset] = timeGet();
+    LES_offset = LES_offset + 1;
+}
+#endif
+
 /* 开启插桩 */
 void LES_enable(void) {
     LES_offset = 0; // 重置偏移量

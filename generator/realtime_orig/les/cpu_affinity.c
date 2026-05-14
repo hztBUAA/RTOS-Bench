@@ -100,16 +100,11 @@ int bench_get_cpu(void) {
 // Intewell 东土
 #elif defined(DONGTU_PLATFORM)
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-#include <sched.h>
 #include <pthread.h>
 
 int bench_get_cpu(void) {
     // API
-    return sched_getcpu();
+    return (int)VMK_CpuIDGet();
 }
 
 

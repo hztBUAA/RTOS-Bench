@@ -8,7 +8,7 @@
 
 - `.cproject`：历史 IDE 工程配置参考，用于说明 include/source/filter 的配置方式。
 - `config_os.example.mk`：`vm_3588` 工程本地 `config_os.mk` 的示例。新同事可以复制里面的内容到自己的工程根目录。
-- `intewell_vm3588.mk`：推荐接入方式。由 `vm_3588` 工程本地 `config_os.mk` include，统一带入 RTOS-Bench 源码、include、兼容层和对象列表。
+- `intewell_vm3588.mk`：推荐接入方式。由 `vm_3588` 工程本地 `config_os.mk` include，统一带入 RTOS-Bench 源码、include、兼容层和对象列表。实时性 LES/realtime/multicore/verify 源码也从 `RTOS_BENCH_ROOT/generator/realtime_orig` 编译，不再依赖工程本地 `./src/les` 等历史副本。
 - `compat.c`：东土/Intewell 构建所需的小型 libc/POSIX 兼容补丁。
 - `cxx_compat.h`：东土 C++ workload 构建所需兼容头。
 - `shell.c`：东土 shell 绑定，负责把 RTOS-Bench 命令接入 Intewell shell。
@@ -74,7 +74,8 @@
 2. 生成的 `Debug/make/makefile` 通过 `-include $(PROJECT_PATH)/config_os.mk` 读取工程本地 hook。
 3. `config_os.mk` 设置 `RTOS_BENCH_ROOT`，再 include `$(RTOS_BENCH_ROOT)/platforms/dongtu/intewell_vm3588.mk`。
 4. `intewell_vm3588.mk` 把 RTOS-Bench 的 `generator`、`workloads`、`generator/platform/dongtu`、`platforms/dongtu` 兼容文件加入 `C_SRCS`、`CXX_SRCS`、`OBJS` 和 `DEPS`。
-5. RTOS-Bench 对象默认输出到 `./rtosbench_ext`，最后和 `vm_3588` 工程自身对象一起参与归档/链接。
+5. `generator/realtime_orig/les`、`generator/realtime_orig/realtime`、`generator/realtime_orig/multicore`、`generator/realtime_orig/verify` 也作为 RTOS-Bench 仓库源码参与编译；`./src/les`、`./src/realtime`、`./src/multicore`、`./src/verify` 是历史 `vm_3588` 工程副本，不作为 RTOS-Bench 的维护源。
+6. RTOS-Bench 对象默认输出到 `./rtosbench_ext`，最后和 `vm_3588` 工程自身对象一起参与归档/链接。目前只保留 `./src/userAppInit.o` 作为工程本地入口对象，用于兼容历史工程启动逻辑。
 
 ## 验证范围
 

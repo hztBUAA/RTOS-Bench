@@ -13,6 +13,11 @@
 extern int pthread_switch_hook_add(void(*)(thread_t, thread_t));
 #endif
 
+#if defined(DONGTU_PLATFORM)
+#define RTBENCH_LEGACY_ENTRY_VISIBLE
+#else
+#define RTBENCH_LEGACY_ENTRY_VISIBLE static
+#endif
 
 #define STR_BUFFER_LENGTH 32
 
@@ -54,7 +59,7 @@ static const char *row_names_multicore[8] = {
     "memset", "memcpy",
 };
 
-static void realtime_init(void) {
+RTBENCH_LEGACY_ENTRY_VISIBLE void realtime_init(void) {
 	LES_start_timer();
 
 	test1(&realtime_context_switch);		printf("Finish test 1.\n");
@@ -103,7 +108,7 @@ static void realtime_init(void) {
 
 }
 
-static void multicore_init(void) {
+RTBENCH_LEGACY_ENTRY_VISIBLE void multicore_init(void) {
 	LES_start_timer();
 	
 	for (int i = 0; i < 4; i++) {
@@ -135,7 +140,7 @@ static void div1000_print(uint64_t full_n_data, char* buf) {
     snprintf(buf, STR_BUFFER_LENGTH, "%llu" ".%03llu", (unsigned long long)u_xx, (unsigned long long)n_xx);
 }
 
-static void realtime_print(void) {
+RTBENCH_LEGACY_ENTRY_VISIBLE void realtime_print(void) {
     // 打印系统服务实时指标realtime_service_cost
     printf("系统延迟（单位：us）:\n");
     printf("%-12s | %-14s | %-14s | %-14s | %-14s\n", "指标", "立即执行", "挂起睡眠", "低优就绪", "高优恢复");
@@ -192,7 +197,7 @@ static void realtime_print(void) {
 	printf("\n");
 }
 
-static void multicore_print(void) {
+RTBENCH_LEGACY_ENTRY_VISIBLE void multicore_print(void) {
 	
     // 打印多核指标memory_bandwidth、multicore_ipc_bandwidth、multicore_intra_inter_bandwidth、multicore_init_dlt_latency
     printf("多核存取性能:\n");

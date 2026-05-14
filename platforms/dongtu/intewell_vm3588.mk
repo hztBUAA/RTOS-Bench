@@ -73,6 +73,39 @@ RTBENCH_GENERATOR_SRCS := \
 	stress_orig/stressor/stress-vecmath.c \
 	stress_orig/stressor/stress-vm.c
 
+RTBENCH_REALTIME_SRCS := \
+	les/bench_init.c \
+	les/cpu_affinity.c \
+	les/data_tools.c \
+	les/les.c \
+	les/reworks_int.c \
+	les/safe_sleep.c \
+	multicore/ipc_bw.c \
+	multicore/mem_bw.c \
+	multicore/task_lt.c \
+	realtime/test1.c \
+	realtime/test10_1.c \
+	realtime/test2.c \
+	realtime/test3.c \
+	realtime/test4_1.c \
+	realtime/test4_2.c \
+	realtime/test5_3.c \
+	realtime/test6_0.c \
+	realtime/test6_1.c \
+	realtime/test6_2.c \
+	realtime/test6_3.c \
+	realtime/test6_4.c \
+	realtime/test7_3.c \
+	realtime/test8_1.c \
+	realtime/test8_2.c \
+	realtime/test9_3.c \
+	verify/all_realtime_verify.c \
+	verify/cpu_bind_verify.c \
+	verify/freq_verify.c \
+	verify/interrupt_stub_verify.c \
+	verify/schedule_stub_verify.c \
+	verify/time_verify.c
+
 RTBENCH_WORKLOAD_SRCS := \
 	CUSUM/cusum_bench.c \
 	EWMA/ewma_bench.c \
@@ -130,10 +163,12 @@ RTBENCH_DONGTU_PLATFORM_SRCS := \
 	shell.c
 
 RTBENCH_GENERATOR_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/generator/,$(RTBENCH_GENERATOR_SRCS:.c=.o))
+RTBENCH_REALTIME_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/generator/realtime_orig/,$(RTBENCH_REALTIME_SRCS:.c=.o))
 RTBENCH_WORKLOAD_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/workloads/,$(RTBENCH_WORKLOAD_SRCS:.c=.o))
 RTBENCH_WORKLOAD_CXX_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/workloads/,$(RTBENCH_WORKLOAD_CXX_SRCS:.cpp=.o))
 RTBENCH_DONGTU_PLATFORM_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/platforms/dongtu/,$(RTBENCH_DONGTU_PLATFORM_SRCS:.c=.o))
 RTBENCH_GENERATOR_DEPS := $(RTBENCH_GENERATOR_OBJS:.o=.d)
+RTBENCH_REALTIME_DEPS := $(RTBENCH_REALTIME_OBJS:.o=.d)
 RTBENCH_WORKLOAD_DEPS := $(RTBENCH_WORKLOAD_OBJS:.o=.d)
 RTBENCH_WORKLOAD_CXX_DEPS := $(RTBENCH_WORKLOAD_CXX_OBJS:.o=.d)
 RTBENCH_DONGTU_PLATFORM_DEPS := $(RTBENCH_DONGTU_PLATFORM_OBJS:.o=.d)
@@ -143,11 +178,12 @@ RTBENCH_DONGTU_ARCHIVE_PLATFORM_OBJS := $(filter-out $(RTBENCH_DONGTU_SHELL_OBJ)
 CONFIG_CPLUSPLUS := 1
 HAS_CPP := Y
 C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/generator/,$(RTBENCH_GENERATOR_SRCS))
+C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/generator/realtime_orig/,$(RTBENCH_REALTIME_SRCS))
 C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/workloads/,$(RTBENCH_WORKLOAD_SRCS))
 C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/platforms/dongtu/,$(RTBENCH_DONGTU_PLATFORM_SRCS))
 CXX_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/workloads/,$(RTBENCH_WORKLOAD_CXX_SRCS))
-OBJS += $(RTBENCH_GENERATOR_OBJS) $(RTBENCH_WORKLOAD_OBJS) $(RTBENCH_WORKLOAD_CXX_OBJS) $(RTBENCH_DONGTU_PLATFORM_OBJS)
-DEPS += $(RTBENCH_GENERATOR_DEPS) $(RTBENCH_WORKLOAD_DEPS) $(RTBENCH_WORKLOAD_CXX_DEPS) $(RTBENCH_DONGTU_PLATFORM_DEPS)
+OBJS += $(RTBENCH_GENERATOR_OBJS) $(RTBENCH_REALTIME_OBJS) $(RTBENCH_WORKLOAD_OBJS) $(RTBENCH_WORKLOAD_CXX_OBJS) $(RTBENCH_DONGTU_PLATFORM_OBJS)
+DEPS += $(RTBENCH_GENERATOR_DEPS) $(RTBENCH_REALTIME_DEPS) $(RTBENCH_WORKLOAD_DEPS) $(RTBENCH_WORKLOAD_CXX_DEPS) $(RTBENCH_DONGTU_PLATFORM_DEPS)
 USER_OBJS += $(RTBENCH_DONGTU_SHELL_OBJ)
 
 RTBENCH_DONGTU_FLAGS := \
@@ -157,6 +193,10 @@ RTBENCH_DONGTU_FLAGS := \
 	-I$(RTOS_BENCH_ROOT)/generator \
 	-I$(RTOS_BENCH_ROOT)/generator/platform/dongtu \
 	-I$(RTOS_BENCH_ROOT)/generator/test_schedule \
+	-I$(RTOS_BENCH_ROOT)/generator/realtime_orig/les \
+	-I$(RTOS_BENCH_ROOT)/generator/realtime_orig/realtime \
+	-I$(RTOS_BENCH_ROOT)/generator/realtime_orig/multicore \
+	-I$(RTOS_BENCH_ROOT)/generator/realtime_orig/verify \
 	-I$(RTOS_BENCH_ROOT)/generator/stress_orig \
 	-I$(RTOS_BENCH_ROOT)/generator/stress_orig/common \
 	-I$(RTOS_BENCH_ROOT)/generator/stress_orig/osal \
@@ -211,6 +251,13 @@ $(RTBENCH_EXT_OBJ_DIR)/generator/%.o: $(RTOS_BENCH_ROOT)/generator/%.c
 	$(CC) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(RTBENCH_EXTRA_FLAGS) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -o $@ $< && \
 	$(CC) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(RTBENCH_EXTRA_FLAGS) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -MM -MG -P -w -MT $@ $< > $(@:%.o=%.d)
 
+$(RTBENCH_EXT_OBJ_DIR)/generator/realtime_orig/%.o: RTBENCH_EXTRA_FLAGS := $(RTBENCH_DONGTU_FLAGS)
+$(RTBENCH_EXT_OBJ_DIR)/generator/realtime_orig/%.o: $(RTOS_BENCH_ROOT)/generator/realtime_orig/%.c
+	@mkdir -p $(dir $@)
+	@echo 'Building RTOS-Bench realtime file: $<'
+	$(CC) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(RTBENCH_EXTRA_FLAGS) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -o $@ $< && \
+	$(CC) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(RTBENCH_EXTRA_FLAGS) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -MM -MG -P -w -MT $@ $< > $(@:%.o=%.d)
+
 $(RTBENCH_EXT_OBJ_DIR)/workloads/%.o: RTBENCH_EXTRA_FLAGS := $(RTBENCH_DONGTU_FLAGS)
 $(RTBENCH_EXT_OBJ_DIR)/workloads/%.o: $(RTOS_BENCH_ROOT)/workloads/%.c
 	@mkdir -p $(dir $@)
@@ -234,41 +281,9 @@ $(RTBENCH_EXT_OBJ_DIR)/platforms/dongtu/%.o: $(RTOS_BENCH_ROOT)/platforms/dongtu
 	$(CC) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(RTBENCH_EXTRA_FLAGS) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -MM -MG -P -w -MT $@ $< > $(@:%.o=%.d)
 
 RTBENCH_VM3588_BASE_OBJS := \
-	./src/les/bench_init.o \
-	./src/les/cpu_affinity.o \
-	./src/les/data_tools.o \
-	./src/les/intewell_init.o \
-	./src/les/les.o \
-	./src/les/reworks_int.o \
-	./src/les/safe_sleep.o \
-	./src/multicore/ipc_bw.o \
-	./src/multicore/mem_bw.o \
-	./src/multicore/task_lt.o \
-	./src/realtime/test1.o \
-	./src/realtime/test10_1.o \
-	./src/realtime/test2.o \
-	./src/realtime/test3.o \
-	./src/realtime/test4_1.o \
-	./src/realtime/test4_2.o \
-	./src/realtime/test5_3.o \
-	./src/realtime/test6_0.o \
-	./src/realtime/test6_1.o \
-	./src/realtime/test6_2.o \
-	./src/realtime/test6_3.o \
-	./src/realtime/test6_4.o \
-	./src/realtime/test7_3.o \
-	./src/realtime/test8_1.o \
-	./src/realtime/test8_2.o \
-	./src/realtime/test9_3.o \
-	./src/userAppInit.o \
-	./src/verify/all_realtime_verify.o \
-	./src/verify/cpu_bind_verify.o \
-	./src/verify/freq_verify.o \
-	./src/verify/interrupt_stub_verify.o \
-	./src/verify/schedule_stub_verify.o \
-	./src/verify/time_verify.o
+	./src/userAppInit.o
 
-RTBENCH_VM3588_PRJ_OBJS := $(RTBENCH_VM3588_BASE_OBJS) $(RTBENCH_GENERATOR_OBJS) $(RTBENCH_WORKLOAD_OBJS) $(RTBENCH_WORKLOAD_CXX_OBJS) $(RTBENCH_DONGTU_ARCHIVE_PLATFORM_OBJS)
+RTBENCH_VM3588_PRJ_OBJS := $(RTBENCH_VM3588_BASE_OBJS) $(RTBENCH_GENERATOR_OBJS) $(RTBENCH_REALTIME_OBJS) $(RTBENCH_WORKLOAD_OBJS) $(RTBENCH_WORKLOAD_CXX_OBJS) $(RTBENCH_DONGTU_ARCHIVE_PLATFORM_OBJS)
 
 $(ARCHIVES): prjObjs.lst
 

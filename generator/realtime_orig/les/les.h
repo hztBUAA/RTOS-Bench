@@ -148,6 +148,9 @@ static inline uint64_t timeGet(void) {
 }
 
 /* 系统服务插桩函数 */
+#if defined(DONGTU_PLATFORM)
+void LES_stub(void);
+#else
 static inline void LES_stub(void) {
     if (LES_flag == 0 || bench_get_cpu() != 0) {
         return;
@@ -158,6 +161,7 @@ static inline void LES_stub(void) {
     LES_buffer[LES_offset] = timeGet();
     LES_offset = LES_offset + 1;
 }
+#endif
 
 /* 系统调用插桩函数 */
 static inline void LES_syscall_stub(void) {
