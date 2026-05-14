@@ -107,12 +107,12 @@ int rtbench_platform_run_test_all(rtbench_command_runner_fn runner, void *ctx)
 	}
 
 	task = os_task_create(&test_all_task_cb,
+			      OS_NULL,
 			      RTBENCH_TEST_ALL_STACK_SIZE,
 			      "rtbench",
 			      oneos_test_all_thread,
 			      &job,
-			      OS_TASK_PRIORITY_MAX / 2,
-			      10);
+			      OS_TASK_PRIORITY_MAX / 2);
 	if (task < 0) {
 		printf("[RTOS-Bench] Failed to create test-all worker task\n");
 		os_semaphore_destroy(job.done_sem);
@@ -135,11 +135,3 @@ static int cmd_rtbench(int argc, char **argv)
 }
 
 SH_CMD_EXPORT(rtbench, cmd_rtbench, "RTOS-Bench workload runner");
-
-static int rtbench_auto_init(void)
-{
-	rtosbench_register_rtos_workloads();
-	return 0;
-}
-
-OS_APP_INIT(rtbench_auto_init);

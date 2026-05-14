@@ -14,30 +14,45 @@
 #include <string.h>
 #include <stdint.h>
 
-#if defined(ONEOS_V2_ARM64)
-/* V2.0 ARM64: use os_timer_id and static control block */
+/*
+ * OneOS kernel timers do not reliably invoke callbacks from dynamically loaded
+ * .out modules on the Phytium Pi V1.5 image. Use a small task-based timer
+ * instead; it is less precise, but it gives RTOS-Bench's period semaphores a
+ * stable callback context for board acceptance.
+ */
 struct rtbench_timer_internal {
-    os_timer_id timer;
-    os_timer_dummy_t timer_cb;  /* Static control block for V2.0 */
+    os_task_id task;
+    os_task_dummy_t task_cb;
     rtbench_timer_callback_t callback;
     void *user_data;
     rtbench_timer_type_t type;
+    uint32_t interval_ms;
+    volatile int running;
+    volatile int started;
 };
-#else
-/* V1.x ARM32: use os_timer_t pointer */
-struct rtbench_timer_internal {
-    os_timer_t *timer;
-    rtbench_timer_callback_t callback;
-    void *user_data;
-    rtbench_timer_type_t type;
-};
-#endif
 
-static void rtbench_timer_dispatch(void *parameter)
+#define RTBENCH_TIMER_STACK_SIZE (4096U)
+#define RTBENCH_TIMER_PRIORITY   (OS_TASK_PRIORITY_MAX / 2)
+
+static void rtbench_timer_task(void *parameter)
 {
     struct rtbench_timer_internal *t = (struct rtbench_timer_internal *)parameter;
-    if (t != NULL && t->callback != NULL) {
-        t->callback(t->user_data);
+
+    while (t != NULL && t->running) {
+        os_task_msleep(t->interval_ms > 0 ? t->interval_ms : 1);
+        if (!t->running) {
+            break;
+        }
+        if (t->callback != NULL) {
+            t->callback(t->user_data);
+        }
+        if (t->type == RTBENCH_TIMER_DEADLINE) {
+            break;
+        }
+    }
+
+    if (t != NULL) {
+        t->running = 0;
     }
 }
 
@@ -46,7 +61,6 @@ rtbench_timer_t rtbench_timer_create(rtbench_timer_type_t timer_type,
                                       void *user_data)
 {
     struct rtbench_timer_internal *t;
-    uint8_t flag;
 
     if (callback == NULL) {
         return NULL;
@@ -57,28 +71,11 @@ rtbench_timer_t rtbench_timer_create(rtbench_timer_type_t timer_type,
         return NULL;
     }
 
-    flag = (timer_type == RTBENCH_TIMER_PERIOD) ?
-           OS_TIMER_FLAG_PERIODIC : OS_TIMER_FLAG_ONE_SHOT;
-
-#if defined(ONEOS_V2_ARM64)
-    /* V2.0 ARM64: pass static control block as first parameter */
-    t->timer = os_timer_create(&t->timer_cb, "rtbench", rtbench_timer_dispatch, t, 1, flag);
-    if (t->timer == OS_NULL) {
-        os_free(t);
-        return NULL;
-    }
-#else
-    /* V1.x ARM32: dynamic allocation, no static control block */
-    t->timer = os_timer_create("rtbench", rtbench_timer_dispatch, t, 1, flag);
-    if (t->timer == NULL) {
-        os_free(t);
-        return NULL;
-    }
-#endif
-
+    memset(t, 0, sizeof(*t));
     t->callback = callback;
     t->user_data = user_data;
     t->type = timer_type;
+    t->interval_ms = 1;
 
     return (rtbench_timer_t)t;
 }
@@ -86,32 +83,37 @@ rtbench_timer_t rtbench_timer_create(rtbench_timer_type_t timer_type,
 int rtbench_timer_settime(rtbench_timer_t timer, long sec, long nsec)
 {
     struct rtbench_timer_internal *t = (struct rtbench_timer_internal *)timer;
-    os_tick_t ticks;
     uint32_t ms;
 
-#if defined(ONEOS_V2_ARM64)
-    if (t == NULL || t->timer == OS_NULL) {
+    if (t == NULL) {
         return -1;
     }
-#else
-    if (t == NULL || t->timer == NULL) {
-        return -1;
-    }
-#endif
 
     /* Convert to milliseconds, then to ticks */
     ms = (uint32_t)(sec * 1000 + nsec / 1000000);
     if (ms == 0) {
         ms = 1;  /* Minimum 1ms */
     }
-    ticks = os_tick_from_ms(ms);
-    if (ticks == 0) {
-        ticks = 1;
+    t->interval_ms = ms;
+
+    if (t->started) {
+        return 0;
     }
 
-    os_timer_stop(t->timer);
-    os_timer_set_timeout_ticks(t->timer, ticks);
-    os_timer_start(t->timer);
+    t->running = 1;
+    t->task = os_task_create(&t->task_cb,
+                             OS_NULL,
+                             RTBENCH_TIMER_STACK_SIZE,
+                             "rtb_timer",
+                             rtbench_timer_task,
+                             t,
+                             RTBENCH_TIMER_PRIORITY);
+    if (t->task < 0) {
+        t->running = 0;
+        return -1;
+    }
+    t->started = 1;
+    os_task_startup(t->task);
 
     return 0;
 }
@@ -124,17 +126,10 @@ int rtbench_timer_delete(rtbench_timer_t timer)
         return -1;
     }
 
-#if defined(ONEOS_V2_ARM64)
-    if (t->timer != OS_NULL) {
-        os_timer_stop(t->timer);
-        os_timer_destroy(t->timer);
+    t->running = 0;
+    if (t->started && t->task >= 0) {
+        os_task_destroy(t->task);
     }
-#else
-    if (t->timer != NULL) {
-        os_timer_stop(t->timer);
-        os_timer_destroy(t->timer);
-    }
-#endif
 
     os_free(t);
     return 0;

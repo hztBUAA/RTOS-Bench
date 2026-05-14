@@ -234,3 +234,48 @@ rtbench test-schedule --cycles 3
 The kernel stub resolves `cmd_rtbench_stub` from `/user/phytium_pi_out.out`, so
 the OneOS entry must keep exporting that symbol even after migrating to the
 shared dispatcher.
+
+### 2026-05-15 OneOS V1.5 TFTP Acceptance
+
+- Local module: `C:\OneOSStudio\workspace\phytium_pi_out\out\phytium_pi_out.out`
+- SHA256: `758C5DB290FADADFB3813D1813002A813E98753D1ED51C41B6951A0C87391B5A`
+- TFTP source: `192.168.31.110:/tftp/phytium_pi_out.out`
+- Board module: `/user/phytium_pi_out.out`
+- Validation log:
+  `utils/remote-test/logs/oneos-tftp-runtime-20260515_013024/terminal.log`
+- Summary:
+  `utils/remote-test/logs/oneos-tftp-runtime-20260515_013024/SUMMARY.md`
+
+Validated commands on the Phytium Pi OneOS board:
+
+```sh
+unld /user/phytium_pi_out.out
+tftp_client 192.168.31.110 get phytium_pi_out.out /user/phytium_pi_out.out
+ld /user/phytium_pi_out.out
+rtbench --help
+rtbench -L
+rtbench -b stub -t 1
+rtbench -b busywait -t 1
+rtbench test-schedule --cycles 1 --util-start 30 --util-end 30 --util-step 30
+```
+
+Acceptance result: `stub`, `busywait`, workload listing, and the schedulability
+smoke all passed. The schedulability run measured all 9 industrial workloads and
+completed with `Final Score: 100.00 / 100`.
+
+Root-cause notes for the OneOS V1.5 fix:
+
+- `periodic_benchmark` must not register `atexit()` from the `.out` module. On
+  this image the call printed `exec atexit...` and blocked before the workload
+  reached timer setup. The benchmark now relies on its explicit cleanup path on
+  OneOS.
+- OneOS must use the lightweight RTOS `cpu_set_t` mask used by other POSIX-lite
+  RTOS targets. The POSIX `<sched.h>` CPU macros blocked setup before
+  `Execution environment setup complete`.
+- OneOS kernel timers were replaced by a task-based timer shim for RTOS-Bench
+  period callbacks. This avoids missing callbacks from dynamically loaded
+  modules and lets both workload execution and `test-schedule` advance.
+- The validation script now requires shell prompts for PASS, stops on first
+  command failure, supports both jump-host direct TCP and forwarded telnet
+  ports, and does not send `exit` at the end because that can leave the board
+  telnet service without a fresh prompt for the next run.
