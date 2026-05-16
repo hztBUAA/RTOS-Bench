@@ -68,7 +68,7 @@ extern const stress_opt_t stress_vm_opts[];
 static const stressor_info_t stress_registry[] = {
     /* --- 计算密集型 --- */
     {"vecmath",    stress_vecmath,    16384,  20,   stress_vecmath_opts},
-    {"cpu",        stress_cpu,        65536,  20,   stress_cpu_opts},      /* 64KB: ackermann(3,2) needs ~25KB stack */
+    {"cpu",        stress_cpu,        65536,  20,   stress_cpu_opts},
     {"bitops",     stress_bitops,     16384,  20,   stress_bitops_opts},
     {"prime",      stress_prime,      16384,  19,   stress_prime_opts},
     {"fp",         stress_fp,         16384,  20,   stress_fp_opts},
@@ -159,8 +159,6 @@ static void stress_thread_trampoline(void *parameter)
     if (args->complete_sem) {
         stress_osal_sem_release(args->complete_sem);
     }
-
-    /* 注意：此处不释放内存，防止Double Free */
 }
 
 static int stress_handle_stressor_opt(const stressor_info_t *info, const char *opt, const char *arg)
@@ -181,18 +179,12 @@ static int stress_handle_stressor_opt(const stressor_info_t *info, const char *o
 
 /*
  * 辅助函数：安全等待所有 Worker
- * 统一管理所有线程的截止时间，避免串行等待导致的延时累加
  */
 static int stress_wait_for_workers(stress_sem_t job_sem, int spawned_count, stress_tick_t timeout_ticks)
 {
     stress_tick_t start_wait = stress_osal_tick_get();
-    /* 安全余量：给线程 5秒 的时间进行清理和退出 */
     stress_tick_t safety_margin = 5000;
 
-    /*
-     * 总最大等待时间 = 任务预定运行时间 + 安全余量。
-     * 即使是无限运行的任务，也必须有一个轮询周期
-     */
     stress_tick_t deadline = (timeout_ticks > 0) ? (start_wait + timeout_ticks + safety_margin) : STRESS_WAIT_FOREVER;
 
     int finished_count = 0;
@@ -209,20 +201,15 @@ static int stress_wait_for_workers(stress_sem_t job_sem, int spawned_count, stre
             }
             remain = deadline - now;
         } else {
-            remain = 1000; /* 无限模式下，每秒检查一次 */
+            remain = 1000;
         }
 
-        /*
-         * 使用较短的超时 (1秒或剩余时间) 进行 sem_take
-         * 保持主线程响应，并定期检查停止标志
-         */
         stress_tick_t wait_slice = (remain > 1000) ? 1000 : remain;
 
         if (stress_osal_sem_take(job_sem, wait_slice) == 0) {
             finished_count++;
         }
 
-        /* 检查全局停止信号 */
         if (g_stress_global_stop && deadline == STRESS_WAIT_FOREVER) {
              deadline = stress_osal_tick_get() + safety_margin;
         }
@@ -318,7 +305,7 @@ static int stress_run_one_job(int argc, char **argv, stress_bool_t silent, stres
 
         args->name = target_info->name;
         if (target_method) args->method_name = stress_osal_strdup(target_method);
-        
+
         args->instance = i;
         args->num_instances = num_instances;
         args->time_start = now;
@@ -326,7 +313,7 @@ static int stress_run_one_job(int argc, char **argv, stress_bool_t silent, stres
         args->bogo.max_ops = max_ops;
         args->user_data = (void *)target_info->entry;
         args->complete_sem = job_sem;
-        
+
         args_list[i] = args;
 
         char thread_name[STRESS_OSAL_NAME_MAX];
@@ -357,7 +344,7 @@ static int stress_run_one_job(int argc, char **argv, stress_bool_t silent, stres
 
         stress_osal_sleep_ms(100);
     }
-   
+
     stress_osal_sleep_ms(50);
 
     if (output_result && spawned_count > 0) {
@@ -377,7 +364,6 @@ static int stress_run_one_job(int argc, char **argv, stress_bool_t silent, stres
         }
     }
 
-    /* Always capture last run's bogo_ops for external retrieval */
     if (spawned_count > 0) {
         memset(&g_last_bogo, 0, sizeof(g_last_bogo));
         for (i = 0; i < spawned_count; i++) {
@@ -394,7 +380,7 @@ static int stress_run_one_job(int argc, char **argv, stress_bool_t silent, stres
             }
         }
     }
-    
+
     if (!has_orphans) {
         for (i = 0; i < spawned_count; i++) {
             if (args_list[i]) {
@@ -407,26 +393,57 @@ static int stress_run_one_job(int argc, char **argv, stress_bool_t silent, stres
         stress_osal_sem_delete(job_sem);
     } else {
         stress_osal_print("rtos_stress: warn: Memory (args/sem) leaked intentionally to prevent orphan crash.\n");
-        /* 注意：args_list 指针数组本身可以释放，因为线程不访问它 */
     }
 
     if (tid_list) stress_osal_free(tid_list);
-    stress_osal_free(args_list); /* 这个是安全的 */
+    stress_osal_free(args_list);
 
     g_stress_silent_mode = old_silent;
     return 0;
 }
 
+
 #define MAX_ARGS 32
+
+static int stress_is_delim(char c)
+{
+    return (c == ' ' || c == '\t' || c == '\r' || c == '\n');
+}
+
 static int stress_tokenize(char *line, char **argv)
 {
     int argc = 0;
-    char *token = strtok(line, " \t\r\n");
+    char *p = line;
+
+    /* argv[0] 固定为程序名 */
     argv[argc++] = "rtos_stress";
-    while (token != NULL && argc < MAX_ARGS) {
-        argv[argc++] = token;
-        token = strtok(NULL, " \t\r\n");
+
+    while (*p != '\0' && argc < MAX_ARGS) {
+        /* 跳过前导分隔符 */
+        while (*p != '\0' && stress_is_delim(*p)) {
+            p++;
+        }
+
+        /* 到达末尾则退出 */
+        if (*p == '\0') {
+            break;
+        }
+
+        /* 记录 token 起始位置 */
+        argv[argc++] = p;
+
+        /* 找到 token 结尾 */
+        while (*p != '\0' && !stress_is_delim(*p)) {
+            p++;
+        }
+
+        /* 用 '\0' 截断 token */
+        if (*p != '\0') {
+            *p = '\0';
+            p++;
+        }
     }
+
     return argc;
 }
 
@@ -497,6 +514,7 @@ int stress_jobfile_exec_ex(const char *filepath, const char *job_type,
 
     stress_table_print("Initializing Job: %s...\n", filepath);
 
+    /* 第一遍：计数（需要用独立的 buffer 避免破坏原始数据） */
     while (1) {
         char *ret;
         if (mem_ptr_start) {
@@ -524,7 +542,6 @@ int stress_jobfile_exec_ex(const char *filepath, const char *job_type,
         return 0;
     }
 
-    /* If caller provided buffer, use it; otherwise malloc internally */
     stress_job_result_t *results;
     if (caller_owns_buf) {
         results = results_out;
@@ -573,7 +590,6 @@ int stress_jobfile_exec_ex(const char *filepath, const char *job_type,
             stress_print_progress(total_tasks, executed_count, stressor_name);
             stress_osal_strcpy(results[executed_count].name, stressor_name);
 
-            /* Compute stage (1-based) from position */
             if (stressors_per_stage > 0) {
                 results[executed_count].stage = (executed_count / stressors_per_stage) + 1;
             }
@@ -756,7 +772,6 @@ int stress_ng_main(int argc, char **argv)
         if (argc >= 3) handle_job_command(argv[2]);
         else handle_job_command("all");
     } else {
-        /* Fallback for simple run if someone tries direct arguments */
         stress_run_one_job(argc, argv, STRESS_FALSE, NULL);
     }
 #else
@@ -789,4 +804,3 @@ uint64_t stress_ng_get_last_bogo_ops(void)
 {
     return g_last_bogo.current_ops;
 }
-
