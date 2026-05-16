@@ -531,7 +531,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 		return -1;
 	}
 	memory_profiling_enabled = exec_opts->memory_profiling_enable;
-#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM) || defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM)
+#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM) || defined(ONEOS_PLATFORM)
 	res = atexit(stop_benchmark_wrapper);
 #else
 	res = on_exit(stop_benchmark, &memory_profiling_enabled);

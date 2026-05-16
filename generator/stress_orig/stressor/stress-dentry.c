@@ -18,6 +18,17 @@
 #define EXIT_NO_RESOURCE 2
 #endif
 
+static inline int __file_exists(const char *path)
+{
+    FILE *fp = fopen(path, "r");
+    if (fp != NULL) {
+        fclose(fp);
+        return 0;   /* 文件存在，对应 access() 返回 0 */
+    }
+    return -1;      /* 文件不存在 */
+}
+#define FILE_ACCESS(path, mode) __file_exists(path)
+
 #define FILENAME_TEMPLATE   "d%d_%x"
 
 #define UNLIKELY(x)         __builtin_expect(!!(x), 0)
@@ -159,7 +170,7 @@ void stress_dentry(stress_args_t *args)
             if (UNLIKELY(!stress_continue(args))) break;
             uint64_t bogus_gc = gray_code(num_dentries + i + 100);
             stress_osal_snprintf(path, PATH_MAX, "%s/" FILENAME_TEMPLATE, dir_path, (int)args->instance, (unsigned int)bogus_gc);
-            if (access(path, F_OK) == 0) {
+            if (FILE_ACCESS(path, F_OK) == 0) {
             }
             args->bogo.current_ops++;
         }
