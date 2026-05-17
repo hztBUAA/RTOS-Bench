@@ -443,7 +443,11 @@ int stress_osal_fstat(int fd, struct stat *buf)
     }
     return fstat(fd, buf);
 }
-int stress_osal_pipe(int fd[2]){
+int stress_osal_pipe(int fd[2])
+{
+    fd[0] = -1;
+    fd[1] = -1;
+    errno = ENOSYS;   /* "Function not implemented" */
     return -1;
 }
 /* =========================================================================

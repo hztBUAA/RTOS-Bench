@@ -11,7 +11,7 @@
 #include <stress-config.h>
 
 #define HDD_WRITE_SIZE      (64 * 1024)
-#define HDD_FILENAME_FMT    "%d.tmp"
+#define HDD_FILENAME_FMT    STRESS_FILE_BASE_DIR "%d.tmp"
 
 #define UNLIKELY(x)         __builtin_expect(!!(x), 0)
 #define LIKELY(x)           __builtin_expect(!!(x), 1)

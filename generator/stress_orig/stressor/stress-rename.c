@@ -13,6 +13,7 @@
 #ifndef PATH_MAX
 #define PATH_MAX 256
 #endif
+#define DIR_TEMPLATE            STRESS_FILE_BASE_DIR "R%d"
 
 /*
  * 文件当前以哪个路径命名的枚举，替代原来语义不清的 int 0/1。
@@ -74,13 +75,8 @@ void stress_rename(stress_args_t *args)
     int          fd;
     int          consecutive_fail = 0;
 
-    /*
-     * 注意：dir_path 是相对路径，创建在进程 CWD。
-     * 若从系统盘目录运行，将打在系统盘 TPSFS。
-     * 建议 cd 到数据分区后再启动。
-     */
     stress_osal_snprintf(dir_path, sizeof(dir_path),
-                         "R%d", (int)args->instance);
+                         DIR_TEMPLATE, (int)args->instance);
     stress_osal_snprintf(path_a,   sizeof(path_a),
                          "%s/a.dat", dir_path);
     stress_osal_snprintf(path_b,   sizeof(path_b),

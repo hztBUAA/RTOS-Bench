@@ -141,54 +141,54 @@ const char JOB_DATA_MEMORY[] =
 
 const char JOB_DATA_FILE[] =
     /* --- Stage 1: 20% --- */
-    "hdd       --ops 420  -c 1 --hdd-bytes 16384\n"
-    "open      --ops 2500 -c 1 --open-max 2\n"
-    "copy-file --ops 2200 -c 1 --copy-file-bytes 16384\n"
-    "unlink    --ops 2500 -c 1\n"
+    "hdd       --ops 480  -c 1 --hdd-bytes 16384\n"
+    "open      --ops 2400 -c 1 --open-max 2\n"
+    "copy-file --ops 2400 -c 1 --copy-file-bytes 16384\n"
+    "unlink    --ops 2400 -c 1\n"
     "fstat     --ops 6000 -c 1 --fstat-files 2\n"
     "dentry    --ops 3000 -c 1 --dentries 2\n"
-    "rename    --ops 2000 -c 1\n"
+    "rename    --ops 6000 -c 1\n"
     "pipe      --ops 1000 -c 1 --pipe-data-size 512\n"
 
     /* --- Stage 2: 40% --- */
-    "hdd       --ops 210  -c 2 --hdd-bytes 32768\n"
+    "hdd       --ops 240  -c 2 --hdd-bytes 32768\n"
     "open      --ops 1200 -c 2 --open-max 4\n"
-    "copy-file --ops 820  -c 2 --copy-file-bytes 32768\n"
-    "unlink    --ops 1100 -c 2\n"
+    "copy-file --ops 1200 -c 2 --copy-file-bytes 32768\n"
+    "unlink    --ops 1200 -c 2\n"
     "fstat     --ops 6000 -c 1 --fstat-files 4\n"
-    "dentry    --ops 1300 -c 2 --dentries 4\n"
-    "rename    --ops 1000 -c 2\n"
+    "dentry    --ops 1500 -c 2 --dentries 4\n"
+    "rename    --ops 3000 -c 2\n"
     "pipe      --ops 200  -c 2 --pipe-data-size 4096\n"
 
     /* --- Stage 3: 60% --- */
-    "hdd       --ops 150  -c 3 --hdd-bytes 65536\n"
+    "hdd       --ops 160  -c 3 --hdd-bytes 65536\n"
     "open      --ops 800  -c 3 --open-max 6\n"
-    "copy-file --ops 450  -c 3 --copy-file-bytes 65536\n"
-    "unlink    --ops 700  -c 3\n"
+    "copy-file --ops 800  -c 3 --copy-file-bytes 65536\n"
+    "unlink    --ops 800  -c 3\n"
     "fstat     --ops 6000 -c 1 --fstat-files 6\n"
-    "dentry    --ops 800  -c 3 --dentries 4\n"
-    "rename    --ops 1500  -c 2\n"
+    "dentry    --ops 1000 -c 3 --dentries 4\n"
+    "rename    --ops 3000  -c 2\n"
     "pipe      --ops 300  -c 3 --pipe-data-size 32768\n"
 
     /* --- Stage 4: 80% --- */
-    "hdd       --ops 120  -c 3 --hdd-bytes 131072\n"
-    "open      --ops 800  -c 4 --open-max 8\n"
-    "copy-file --ops 190  -c 4 --copy-file-bytes 131072\n"
-    "unlink    --ops 500  -c 4\n"
+    "hdd       --ops 160  -c 3 --hdd-bytes 131072\n"
+    "open      --ops 600  -c 4 --open-max 8\n"
+    "copy-file --ops 600  -c 4 --copy-file-bytes 131072\n"
+    "unlink    --ops 600  -c 4\n"
     "fstat     --ops 6000 -c 1 --fstat-files 8\n"
-    "dentry    --ops 600  -c 3 --dentries 8\n"
-    "rename    --ops 1500  -c 3\n"
-    "pipe      --ops 300  -c 4 --pipe-data-size 32768\n"
+    "dentry    --ops 1000 -c 3 --dentries 8\n"
+    "rename    --ops 2000 -c 3\n"
+    "pipe      --ops 250  -c 4 --pipe-data-size 32768\n"
 
     /* --- Stage 5: 100% --- */
-    "hdd       --ops 100  -c 3 --hdd-bytes 131072\n"
-    "open      --ops 700  -c 5 --open-max 10\n"
-    "copy-file --ops 5    -c 5 --copy-file-bytes 262144\n"
-    "unlink    --ops 400  -c 5\n"
+    "hdd       --ops 160  -c 3 --hdd-bytes 131072\n"
+    "open      --ops 480  -c 5 --open-max 10\n"
+    "copy-file --ops 480  -c 5 --copy-file-bytes 262144\n"
+    "unlink    --ops 480  -c 5\n"
     "fstat     --ops 6000 -c 1 --fstat-files 10\n"
-    "dentry    --ops 600  -c 4 --dentries 8\n"
-    "rename    --ops 2000  -c 3\n"
-    "pipe      --ops 300  -c 5 --pipe-data-size 32768\n";
+    "dentry    --ops 750  -c 4 --dentries 8\n"
+    "rename    --ops 2000 -c 3\n"
+    "pipe      --ops 200  -c 5 --pipe-data-size 32768\n";
 
 /*
  * ===========================================================================

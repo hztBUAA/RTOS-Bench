@@ -5,7 +5,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <errno.h>
 #include <stress-config.h>
 
@@ -13,32 +12,16 @@
 #define PATH_MAX 256
 #endif
 
-#ifndef EXIT_NO_RESOURCE
-#define EXIT_NO_RESOURCE 2
-#endif
-
-#define FILENAME_TEMPLATE   "o%d_%d.tmp"
-
-
-static const int open_flags[] = {
-    0,
-#if defined(O_APPEND)
-    O_APPEND,
-#endif
-#if defined(O_TRUNC)
-    O_TRUNC,
-#endif
-};
-
-typedef int (*stress_open_func_t)(stress_args_t *args, char *filename, size_t file_idx);
+#define OPEN_FILE_TEMPLATE      STRESS_FILE_BASE_DIR "o%d_%04d"
 
 static int32_t s_open_max = DEFAULT_OPEN_MAX;
 
 static int stress_open_opt_max(const char *opt_name, const char *opt_arg)
 {
+    (void)opt_name;
     int val = atoi(opt_arg);
-    if (val < 1) val = 1;
-
+    if (val < MIN_OPEN_MAX) val = MIN_OPEN_MAX;
+    if (val > MAX_OPEN_MAX) val = MAX_OPEN_MAX;
     s_open_max = val;
     stress_osal_print("rtos_stress: debug: open-max set to %d\n", s_open_max);
     return 0;
@@ -49,143 +32,251 @@ const stress_opt_t stress_open_opts[] = {
     { NULL, NULL }
 };
 
-static uint32_t stress_mwc32(void)
+/* ------------------------------------------------------------------ */
+/* 打开方式探测                                                        */
+/* ------------------------------------------------------------------ */
+
+typedef int (*open_func_t)(int instance, int idx);
+
+static int open_method_creat(int instance, int idx)
 {
-    return (uint32_t)stress_osal_rand();
+    char path[PATH_MAX];
+    stress_osal_snprintf(path, PATH_MAX, OPEN_FILE_TEMPLATE, instance, idx);
+    return stress_osal_open(path, O_CREAT | O_RDWR, 0666);
 }
 
-static int do_open_creat(stress_args_t *args, char *filename, size_t file_idx)
+static int open_method_creat_trunc(int instance, int idx)
 {
-    int flags = O_CREAT | O_RDWR;
-
-    if (sizeof(open_flags) / sizeof(open_flags[0]) > 0) {
-        flags |= open_flags[stress_mwc32() %
-                            (sizeof(open_flags) / sizeof(open_flags[0]))];
-    }
-
-    stress_osal_snprintf(filename, PATH_MAX, FILENAME_TEMPLATE,
-                         (int)args->instance, (int)file_idx);
-
-    int fd = stress_osal_open(filename, flags, 0666);
-    if (fd < 0) {
-        filename[0] = '\0';
-    }
-    return fd;
+    char path[PATH_MAX];
+    stress_osal_snprintf(path, PATH_MAX, OPEN_FILE_TEMPLATE, instance, idx);
+    return stress_osal_open(path, O_CREAT | O_RDWR | O_TRUNC, 0666);
 }
 
-static int do_open_dev_null(stress_args_t *args, char *filename, size_t file_idx)
+static int open_method_creat_append(int instance, int idx)
 {
-    (void)args; (void)filename; (void)file_idx;
-    return stress_osal_open("/dev/null", O_WRONLY, 0);
+    char path[PATH_MAX];
+    stress_osal_snprintf(path, PATH_MAX, OPEN_FILE_TEMPLATE, instance, idx);
+    return stress_osal_open(path, O_CREAT | O_RDWR | O_APPEND, 0666);
 }
 
-static int do_open_dev_zero(stress_args_t *args, char *filename, size_t file_idx)
+static int open_method_dev_null(int instance, int idx)
 {
-    (void)args; (void)filename; (void)file_idx;
+    (void)instance; (void)idx;
+    return stress_osal_open("/dev/null", O_RDWR, 0);
+}
+
+static int open_method_dev_zero(int instance, int idx)
+{
+    (void)instance; (void)idx;
     return stress_osal_open("/dev/zero", O_RDONLY, 0);
 }
 
-static const stress_open_func_t open_funcs[] = {
-    do_open_creat,
-    do_open_creat,
-    do_open_creat,
-    do_open_dev_null,
-    do_open_dev_zero,
-};
+#define MAX_OPEN_METHODS 5
+static open_func_t s_open_methods[MAX_OPEN_METHODS];
+static int         s_num_open_methods = 0;
 
-#define NUM_OPEN_FUNCS  (sizeof(open_funcs) / sizeof(open_funcs[0]))
+static int s_open_probe_done = 0;
 
-static void stress_open_clean_files(int *fds, char *filenames, size_t count)
+static void stress_open_probe_funcs(void)
 {
-    for (size_t i = 0; i < count; i++) {
-        if (fds[i] >= 0) {
-            stress_osal_close(fds[i]);
-            fds[i] = -1;
-        }
+    if (s_open_probe_done) return;
+    s_open_probe_done = 1;
 
-        char *fname = filenames + (i * PATH_MAX);
-        if (fname[0] != '\0') {
-            /* 不删除 /dev/ 节点 */
-            if (stress_osal_strncmp(fname, "/dev/", 5) != 0) {
-                if (stress_osal_unlink(fname) != 0 && errno != ENOENT) {
-                    /* 仅在非"文件不存在"的情况下记录警告 */
-                    stress_osal_print("rtos_stress: warn: [open] unlink '%s'"
-                                      " failed (errno=%d)\n",
-                                      fname, errno);
-                }
-            }
-            fname[0] = '\0';
+    s_num_open_methods = 0;
+
+    /* 这 3 个方法在所有 RTOS 上都可用（只要 base dir 可写） */
+    s_open_methods[s_num_open_methods++] = open_method_creat;
+    s_open_methods[s_num_open_methods++] = open_method_creat_trunc;
+    s_open_methods[s_num_open_methods++] = open_method_creat_append;
+
+    /* 可选：/dev/null */
+    {
+        int fd = stress_osal_open("/dev/null", O_RDWR, 0);
+        if (fd >= 0) {
+            stress_osal_close(fd);
+            s_open_methods[s_num_open_methods++] = open_method_dev_null;
+        } else {
+            stress_osal_print("rtos_stress: info: [open] /dev/null not available,"
+                              " skipping\n");
         }
+    }
+
+    /* 可选：/dev/zero */
+    {
+        int fd = stress_osal_open("/dev/zero", O_RDONLY, 0);
+        if (fd >= 0) {
+            stress_osal_close(fd);
+            s_open_methods[s_num_open_methods++] = open_method_dev_zero;
+        } else {
+            stress_osal_print("rtos_stress: info: [open] /dev/zero not available,"
+                              " skipping\n");
+        }
+    }
+
+    stress_osal_print("rtos_stress: info: [open] %d open methods active\n",
+                      s_num_open_methods);
+}
+
+/* ------------------------------------------------------------------ */
+/* 辅助                                                                */
+/* ------------------------------------------------------------------ */
+
+static uint32_t stress_mwc32(void) { return (uint32_t)stress_osal_rand(); }
+
+static void safe_unlink_quiet(const char *path)
+{
+    if (stress_osal_unlink(path) != 0 && errno != ENOENT) {
+        /* 静默 */
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* 主 stressor 函数                                                    */
+/* ------------------------------------------------------------------ */
+
 void stress_open(stress_args_t *args)
 {
-    int   *fds       = NULL;
-    char  *filenames = NULL;
-    size_t open_max  = (size_t)s_open_max;
+    int    max_fds  = s_open_max;
+    int   *fds      = NULL;
+    char **filenames = NULL;
+    int    i;
+    int    open_err_count = 0;
+    #define MAX_ERR_LOGS 5
 
-    if (open_max < 1)        open_max = 1;
-    if (open_max > MAX_OPEN_MAX) open_max = MAX_OPEN_MAX;
+    /* 探测可用打开方式（全局只执行一次） */
+    stress_open_probe_funcs();
 
-    fds = (int *)stress_osal_malloc(open_max * sizeof(int));
-    if (!fds) {
-        stress_osal_print("rtos_stress: error: [open-%d] OOM allocating"
-                          " fds array (%zu bytes)\n",
-                          args->instance, open_max * sizeof(int));
+    if (s_num_open_methods == 0) {
+        stress_osal_print("rtos_stress: error: [open-%d] no open methods"
+                          " available\n", args->instance);
         return;
     }
 
-    filenames = (char *)stress_osal_malloc(open_max * PATH_MAX);
-    if (!filenames) {
-        stress_osal_free(fds);
-        stress_osal_print("rtos_stress: error: [open-%d] OOM allocating"
-                          " filenames array (%zu bytes)\n",
-                          args->instance, open_max * PATH_MAX);
+    /* 分配资源 */
+    fds = (int *)stress_osal_malloc(max_fds * sizeof(int));
+    filenames = (char **)stress_osal_malloc(max_fds * sizeof(char *));
+    if (!fds || !filenames) {
+        stress_osal_print("rtos_stress: error: [open-%d] OOM\n",
+                          args->instance);
+        if (fds) stress_osal_free(fds);
+        if (filenames) stress_osal_free(filenames);
         return;
     }
 
-    stress_osal_memset(fds,       -1, open_max * sizeof(int));
-    stress_osal_memset(filenames,  0, open_max * PATH_MAX);
+    stress_osal_memset(filenames, 0, max_fds * sizeof(char *));
+    for (i = 0; i < max_fds; i++) {
+        fds[i] = -1;
+        filenames[i] = (char *)stress_osal_malloc(PATH_MAX);
+        if (!filenames[i]) {
+            stress_osal_print("rtos_stress: error: [open-%d] OOM buf %d\n",
+                              args->instance, i);
+            goto cleanup;
+        }
+        stress_osal_snprintf(filenames[i], PATH_MAX,
+                             OPEN_FILE_TEMPLATE,
+                             (int)args->instance, i);
+    }
 
-    stress_osal_print("rtos_stress: info: [open-%d] opening up to %zu files"
-                      " per round\n",
-                      args->instance, open_max);
+    {
+        char test_path[PATH_MAX];
+        stress_osal_snprintf(test_path, PATH_MAX,
+                             "%s__open_pre_%d.tmp",
+                             STRESS_FILE_BASE_DIR, (int)args->instance);
 
+        int fd_test = -1;
+        int retries = 3;
+
+        while (retries-- > 0) {
+            errno = 0;
+            fd_test = stress_osal_open(test_path, O_CREAT | O_RDWR, 0666);
+            if (fd_test >= 0) break;
+            stress_osal_sleep_ms(100);
+        }
+
+        if (fd_test >= 0) {
+            stress_osal_close(fd_test);
+            stress_osal_unlink(test_path);
+        } else {
+            stress_osal_print("rtos_stress: warn: [open-%d] base dir \"%s\""
+                              " not writable after retries (errno=%d),"
+                              " skipping\n",
+                              args->instance, STRESS_FILE_BASE_DIR, errno);
+            goto cleanup;
+        }
+    }
+    /* =================================================================== */
+
+    stress_osal_print("rtos_stress: info: [open-%d] opening up to %d files"
+                      " per round (base dir: \"%s\")\n",
+                      args->instance, max_fds, STRESS_FILE_BASE_DIR);
+
+    /* ===== 主循环 ===== */
     while (stress_continue(args)) {
+        int files_opened = 0;
 
-        for (size_t i = 0; i < open_max; i++) {
+        for (i = 0; i < max_fds; i++) {
             if (!stress_continue(args)) break;
 
-            int    func_idx        = (int)(stress_mwc32() % NUM_OPEN_FUNCS);
-            char  *current_filename = filenames + (i * PATH_MAX);
+            /* 随机选择一种打开方式 */
+            int method_idx = (int)(stress_mwc32() % (uint32_t)s_num_open_methods);
+            fds[i] = s_open_methods[method_idx](args->instance, i);
 
-            current_filename[0] = '\0';
-
-            fds[i] = open_funcs[func_idx](args, current_filename, i);
-
-            if (fds[i] >= 0) {
-                args->bogo.current_ops++;
-            } else {
+            if (fds[i] < 0) {
                 if (errno == EMFILE || errno == ENFILE) {
-                    stress_osal_print("rtos_stress: info: [open-%d] fd limit"
-                                      " reached at slot %zu (errno=%d),"
-                                      " flushing\n",
-                                      args->instance, i, errno);
+                    /* fd 耗尽：正常压力行为，直接 break 去关闭 */
                     break;
                 }
-                stress_osal_print("rtos_stress: warn: [open-%d] open failed"
-                                  " at slot %zu (errno=%d)\n",
-                                  args->instance, i, errno);
+                if (open_err_count < MAX_ERR_LOGS) {
+                    open_err_count++;
+                    stress_osal_print("rtos_stress: warn: [open-%d]"
+                                      " open failed (errno=%d) [%d/%d]\n",
+                                      args->instance, errno,
+                                      open_err_count, MAX_ERR_LOGS);
+                }
+                continue;
+            }
+
+            files_opened++;
+            args->bogo.current_ops++;
+        }
+
+        /* 关闭本轮打开的所有 fd */
+        for (i = 0; i < max_fds; i++) {
+            if (fds[i] >= 0) {
+                stress_osal_close(fds[i]);
+                fds[i] = -1;
             }
         }
 
-        stress_open_clean_files(fds, filenames, open_max);
+        /* 清理文件 */
+        for (i = 0; i < max_fds; i++) {
+            safe_unlink_quiet(filenames[i]);
+        }
+
+        if (files_opened == 0 && stress_continue(args)) {
+            stress_osal_sleep_ms(10);
+        }
 
         stress_osal_sleep_ms(1);
     }
 
-    stress_open_clean_files(fds, filenames, open_max);
-    stress_osal_free(filenames);
-    stress_osal_free(fds);
+cleanup:
+    /* 确保所有 fd 关闭 */
+    if (fds) {
+        for (i = 0; i < max_fds; i++) {
+            if (fds[i] >= 0) stress_osal_close(fds[i]);
+        }
+        stress_osal_free(fds);
+    }
+
+    /* 清理所有文件 */
+    if (filenames) {
+        for (i = 0; i < max_fds; i++) {
+            if (filenames[i]) {
+                safe_unlink_quiet(filenames[i]);
+                stress_osal_free(filenames[i]);
+            }
+        }
+        stress_osal_free(filenames);
+    }
 }
