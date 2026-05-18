@@ -470,12 +470,12 @@ static int cmd_rtbench(int argc, char **argv)
         /* Spawn worker task with large stack */
         static os_task_dummy_t test_all_task_cb;
         os_task_id task = os_task_create(&test_all_task_cb,
+                                          OS_NULL,
                                           RTBENCH_TEST_ALL_STACK_SIZE,
                                           "rtbench",
                                           test_all_thread_entry,
                                           &params,
-                                          OS_TASK_PRIORITY_MAX / 2,
-                                          10);
+                                          OS_TASK_PRIORITY_MAX / 2);
         if (task < 0) {
             printf("[RTOS-Bench] Failed to create test-all worker task\n");
             os_semaphore_destroy(params.done_sem);

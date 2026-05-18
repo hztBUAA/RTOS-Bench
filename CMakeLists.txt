@@ -23,6 +23,9 @@ file(GLOB RTOS_BENCH_CORE
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/platform/oneos/scheduler.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/platform/oneos/timestamp.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/platform/oneos/signal.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule/sched_workloads.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule/sched_modbus_wrapper.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule/sched_mqtt_wrapper.c"
 )
 
 # 收集 stress 模块的源码
@@ -49,16 +52,6 @@ if(RTOS_WORKLOADS)
     list(REMOVE_ITEM RTOS_BENCH_WORKLOADS
         "${CMAKE_CURRENT_SOURCE_DIR}/workloads/main.cpp"
     )
-
-    # MQTT 模块还在调试
-    list(APPEND RTOS_BENCH_WORKLOADS
-        "${CMAKE_CURRENT_SOURCE_DIR}/platforms/oneos/mqtt_stub.c"
-    )
-    list(REMOVE_ITEM RTOS_BENCH_WORKLOADS
-        "${CMAKE_CURRENT_SOURCE_DIR}/workloads/MQTT/mongoose.c"
-        "${CMAKE_CURRENT_SOURCE_DIR}/workloads/MQTT/mqtt_bench.c"
-    )
-    
 else()
     set(RTOS_BENCH_WORKLOADS "")
 endif()
@@ -115,6 +108,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/stress_orig/osal"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/stress_orig/stressor"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/realtime_orig/les"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule"
 )
 
 # 强制包含头文件
