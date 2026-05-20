@@ -8,16 +8,25 @@ extern const struct rtosbench_workload rtosbench_stub_workload;
 extern const struct rtosbench_workload rtosbench_busywait_workload;
 
 extern "C" {
-int fast_bench_run_once(int loops);
-int modbus_bench_run(void);
-int mqtt_bench_run(void);
+// int fast_bench_run_once(int loops);
+void fast_test(void);
+// int modbus_bench_run(void);
+int modbus_test(void);
+// int mqtt_bench_run(void);
+int mqtt_test(void);
 // C++ workloads exposed as C for simplicity
-int epnp_bench_run(size_t iterations);
-int ekf_bench_run(void);
-int icp_bench_run(void);
-int pid_bench_run(void);
-int cusum_bench_run(void);
-int ewma_bench_run(void);
+// int epnp_bench_run(size_t iterations);
+int epnp_test(void);
+// int ekf_bench_run(void);
+int ekf_test(void);
+// int icp_bench_run(void);
+int icp_test(void);
+// int pid_bench_run(void);
+int pid_test(void);
+// int cusum_bench_run(void);
+int cusum_test(void);
+// int ewma_bench_run(void);
+int ewma_test(void);
 }
 
 /* FAST */
@@ -32,7 +41,8 @@ static void fast_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
-	fast_bench_run_once(0);
+	// fast_bench_run_once(0);
+	fast_test();
 }
 
 static void fast_teardown(int parameters_num, void **parameters)
@@ -62,7 +72,8 @@ static void epnp_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
-	epnp_bench_run(1);
+	// epnp_bench_run(1);
+	epnp_test();
 }
 
 static void epnp_teardown(int parameters_num, void **parameters)
@@ -92,7 +103,8 @@ static void ekf_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
-	ekf_bench_run();
+	// ekf_bench_run();
+	ekf_test();
 }
 
 static void ekf_teardown(int parameters_num, void **parameters)
@@ -122,7 +134,8 @@ static void icp_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
-	icp_bench_run();
+	// icp_bench_run();
+	icp_test();
 }
 
 static void icp_teardown(int parameters_num, void **parameters)
@@ -152,7 +165,8 @@ static void modbus_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
-	modbus_bench_run();
+	// modbus_bench_run();
+	modbus_test();
 }
 
 static void modbus_teardown(int parameters_num, void **parameters)
@@ -182,7 +196,8 @@ static void mqtt_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
-	mqtt_bench_run();
+	// mqtt_bench_run();
+	mqtt_test();
 }
 
 static void mqtt_teardown(int parameters_num, void **parameters)
@@ -212,7 +227,8 @@ static void pid_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
-	pid_bench_run();
+	// pid_bench_run();
+	pid_test();
 }
 
 static void pid_teardown(int parameters_num, void **parameters)
@@ -242,7 +258,8 @@ static void cusum_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
-	cusum_bench_run();
+	// cusum_bench_run();
+	cusum_test();
 }
 
 static void cusum_teardown(int parameters_num, void **parameters)
@@ -272,7 +289,8 @@ static void ewma_exec(int parameters_num, void **parameters)
 {
 	(void)parameters_num;
 	(void)parameters;
-	ewma_bench_run();
+	// ewma_bench_run();
+	ewma_test();
 }
 
 static void ewma_teardown(int parameters_num, void **parameters)

@@ -190,6 +190,7 @@ extern "C" int ekf_test(void) {
     } else {
         printf("Failed to create EKF simulation thread! Error code: %d\n", ret);
     }
+    pthread_attr_destroy(&attr);
     return 0;
 }
 MSH_CMD_EXPORT(ekf_test, Run EKF benchmark);
