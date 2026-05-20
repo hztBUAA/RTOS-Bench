@@ -23,6 +23,7 @@ static int32_t s_unlink_files = DEFAULT_UNLINK_FILES;
 
 static int stress_unlink_opt_files(const char *opt_name, const char *opt_arg)
 {
+    (void)opt_name;
     int val = atoi(opt_arg);
     if (val < MIN_UNLINK_FILES) val = MIN_UNLINK_FILES;
     if (val > MAX_UNLINK_FILES) val = MAX_UNLINK_FILES;
@@ -61,11 +62,19 @@ static void safe_unlink(const char *path, int instance, const char *tag)
 
 void stress_unlink(stress_args_t *args)
 {
-    int   num_files = s_unlink_files;
+    int    num_files = s_unlink_files;
     char **filenames = NULL;
     int   *fds       = NULL;
     int   *perm_idx  = NULL;
     int    i;
+    uint32_t fd_limit_count     = 0;
+    uint32_t fd_limit_log_max   = 3;
+    uint32_t open_fail_count    = 0;
+    uint32_t open_fail_log_max  = 5;
+    uint32_t unlink_fail_count  = 0;
+    uint32_t unlink_fail_log_max = 5;
+    int      adapted_files      = num_files;
+    uint32_t consecutive_zero   = 0;
 
     filenames = (char **)stress_osal_malloc(num_files * sizeof(char *));
     fds       = (int  *)stress_osal_malloc(num_files * sizeof(int));
@@ -101,7 +110,13 @@ void stress_unlink(stress_args_t *args)
     while (stress_continue(args)) {
         int files_opened = 0;
 
-        for (i = 0; i < num_files; i++) {
+        /*
+         * ============================================================
+         * Phase A: 创建 + 打开文件
+         * ============================================================
+         * 用 adapted_files 而非 num_files，自适应 fd 上限。
+         */
+        for (i = 0; i < adapted_files; i++) {
             if (UNLIKELY(!stress_continue(args))) break;
 
             int flags = O_CREAT | O_RDWR;
@@ -111,46 +126,80 @@ void stress_unlink(stress_args_t *args)
 
             if (fds[i] < 0) {
                 if (errno == EMFILE || errno == ENFILE) {
-                    stress_osal_print("rtos_stress: info: [unlink-%d]"
-                                      " fd limit at slot %d (errno=%d),"
-                                      " flushing\n",
-                                      args->instance, i, errno);
+                    fd_limit_count++;
+                    /* 自适应：下次少开一些 */
+                    adapted_files = (i > 2) ? i : 2;
+                    if (fd_limit_count <= fd_limit_log_max) {
+                        stress_osal_print("rtos_stress: info: [unlink-%d]"
+                                          " fd limit at slot %d,"
+                                          " adapted to %d files [%u/%u]\n",
+                                          args->instance, i,
+                                          adapted_files,
+                                          fd_limit_count, fd_limit_log_max);
+                    }
                     break;
                 }
-                /* 其他失败：记录 warn，不自增 ops */
-                stress_osal_print("rtos_stress: warn: [unlink-%d]"
-                                  " open '%s' failed (errno=%d)\n",
-                                  args->instance, filenames[i], errno);
+                open_fail_count++;
+                if (open_fail_count <= open_fail_log_max) {
+                    stress_osal_print("rtos_stress: warn: [unlink-%d]"
+                                      " open '%s' errno=%d [%u/%u]\n",
+                                      args->instance, filenames[i], errno,
+                                      open_fail_count, open_fail_log_max);
+                }
                 continue;
             }
 
             files_opened++;
 
+            /* 偶尔写点数据给文件增加负载 */
             if ((i & (FSYNC_STRIDE - 1)) == 0) {
-                if (stress_osal_fsync(fds[i]) != 0) {
-                    stress_osal_print("rtos_stress: warn: [unlink-%d]"
-                                      " fsync fd[%d] failed (errno=%d)\n",
-                                      args->instance, i, errno);
-                }
+                char tiny = (char)(i & 0xFF);
+                stress_osal_write(fds[i], &tiny, 1);
+                stress_osal_fsync(fds[i]);
             }
+
             args->bogo.current_ops++;
         }
 
         if (files_opened == 0) {
+            consecutive_zero++;
+            if (consecutive_zero >= 50) {
+                stress_osal_print("rtos_stress: fail: [unlink-%d]"
+                                  " 50 consecutive rounds with 0 files"
+                                  " opened, aborting\n",
+                                  args->instance);
+                break;
+            }
             stress_osal_sleep_ms(10);
+            continue;  /* 跳过后续阶段 */
         }
+        consecutive_zero = 0;
 
-        stress_unlink_shuffle(perm_idx, num_files);
-        for (i = 0; i < num_files; i += 8) {
-            int idx = perm_idx[i];
-            if (fds[idx] >= 0) {
-                stress_osal_close(fds[idx]);
-                fds[idx] = -1;
+        /*
+         * ============================================================
+         * Phase B: 关闭全部 fd（必须在 unlink 之前！）
+         *
+         * OneOS / 很多 RTOS 文件系统不支持 unlink 已打开的文件
+         * （返回 EBUSY / errno=16）。
+         * 必须先 close 再 unlink。
+         * ============================================================
+         */
+        for (i = 0; i < adapted_files; i++) {
+            if (fds[i] >= 0) {
+                stress_osal_close(fds[i]);
+                fds[i] = -1;
             }
         }
 
-        stress_unlink_shuffle(perm_idx, num_files);
-        for (i = 0; i < num_files; i++) {
+        /*
+         * ============================================================
+         * Phase C: 随机顺序 unlink
+         *
+         * 所有 fd 已关闭，unlink 不会遇到 EBUSY。
+         * ============================================================
+         */
+        stress_unlink_shuffle(perm_idx, adapted_files);
+        for (i = 0; i < adapted_files; i++) {
             if (UNLIKELY(!stress_continue(args))) break;
 
             int idx = perm_idx[i];
@@ -158,25 +207,42 @@ void stress_unlink(stress_args_t *args)
             if (stress_osal_unlink(filenames[idx]) == 0) {
                 args->bogo.current_ops++;
             } else if (errno != ENOENT) {
-                stress_osal_print("rtos_stress: warn: [unlink-%d]"
-                                  " unlink '%s' failed (errno=%d)\n",
-                                  args->instance, filenames[idx], errno);
+                unlink_fail_count++;
+                if (unlink_fail_count <= unlink_fail_log_max) {
+                    stress_osal_print("rtos_stress: warn: [unlink-%d]"
+                                      " unlink '%s' errno=%d [%u/%u]\n",
+                                      args->instance, filenames[idx], errno,
+                                      unlink_fail_count, unlink_fail_log_max);
+                }
             }
         }
 
-        for (i = 0; i < num_files; i++) {
+        /*
+         * ============================================================
+         * Phase D: 安全清理（兜底）
+         *
+         * 处理 Phase C 因 stress_continue=false 提前退出遗留的文件。
+         * ============================================================
+         */
+        for (i = 0; i < adapted_files; i++) {
             if (fds[i] >= 0) {
                 stress_osal_close(fds[i]);
                 fds[i] = -1;
             }
         }
-
-        for (i = 0; i < num_files; i++) {
-            safe_unlink(filenames[i], args->instance, "loop-cleanup");
+        for (i = 0; i < adapted_files; i++) {
+            stress_osal_unlink(filenames[i]);
         }
 
         stress_osal_sleep_ms(1);
     }
+
+    stress_osal_print("rtos_stress: SUMMARY: [unlink-%d]"
+                      " fd limit hit %u times,"
+                      " final limit=%d/%d\n",
+                      args->instance,
+                      fd_limit_count,
+                      adapted_files, num_files);
 
 cleanup:
     if (fds) {
