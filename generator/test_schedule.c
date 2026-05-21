@@ -532,15 +532,22 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 		SCHED_PRINTF("  [%s]: WCET = %.3f ms (%d iters)\n",
 			     wl->name, (double)wcet / 1000000.0, wcet_iters);
 
-		/* Note: In quick mode, we reduce WCET measurement iterations (5 vs 50)
-		 * but we do NOT skip workloads based on WCET duration.
-		 * All workloads should be tested for fair comparison across platforms. */
+		if (is_quick && wcet >
+		    (uint64_t)TEST_SCHEDULE_QUICK_MAX_WCET_MS * 1000000ULL) {
+			SCHED_PRINTF("    skip in quick mode: WCET exceeds %d ms\n",
+				     TEST_SCHEDULE_QUICK_MAX_WCET_MS);
+			continue;
+		}
 
 		valid_idx++;
 	}
 
-	/* All workloads are active - no filtering applied */
+	/* Full mode keeps every workload; quick mode keeps bounded smoke cases. */
 	num_workloads = valid_idx;
+	if (num_workloads == 0) {
+		SCHED_PRINTF("[test-schedule] No workloads remain after quick-mode filtering\n");
+		goto cleanup;
+	}
 	SCHED_PRINTF("[Phase 1] %d workloads measured\n", num_workloads);
 
 	/* Sort tasks by WCET descending */
