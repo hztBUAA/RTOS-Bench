@@ -1,0 +1,410 @@
+
+
+sh /user>
+>>> pwd
+pwd
+
+/user
+
+sh /user>
+### RESULT pwd: PASS
+
+>>> list_lmodule
+list_lmodule
+
+modlue[/user/phytium_pi_out.out] stat[1] mem[0xfffff00040000000] size[3898912] => kobjs list[kobj capacity=16]
+
+load offset[0x0], gdb offset[0xfffff00040000000]
+
+sh /user>
+### RESULT list-before: PASS
+
+>>> unld /user/phytium_pi_out.out
+unld /user/phytium_pi_out.out
+
+sh /user>
+### RESULT unload: PASS
+
+>>> tftp_client 192.168.31.110 get phytium_pi_out.out /user/phytium_pi_out.out
+tftp_client 192.168.31.110 get phytium_pi_out.out /user/phytium_pi_out.out
+
+TFTP client get file...
+
+TFTP client get file end, err=0
+
+sh /user>
+### RESULT tftp-get: PASS
+
+>>> ls /user
+ls /user
+
+Directory /user:
+
+interfaces.txt          214
+
+log                     <DIR>
+
+oneos_1.map             2830248
+
+oneos_2.map             2579968
+
+oneos_2.sym             148035
+
+oneos_3.map             2830248
+
+phytium_pi_out.out      14747120
+
+sh /user>
+### RESULT ls-user: PASS
+
+>>> ld /user/phytium_pi_out.out
+ld /user/phytium_pi_out.out
+
+module[/user/phytium_pi_out.out] load to 0xfffff00040000000, vstart_addr:0x0, mem_size=3898784
+
+no symbol:mqtt_test in rela, type: 1
+
+module[/user/phytium_pi_out.out] loaded [cleanup:0000000000000000, init:0000000000000000]
+
+sh /user>
+### RESULT load: PASS
+
+>>> list_lmodule
+list_lmodule
+
+modlue[/user/phytium_pi_out.out] stat[1] mem[0xfffff00040000000] size[3898784] => kobjs list[kobj capacity=16]
+
+load offset[0x0], gdb offset[0xfffff00040000000]
+
+sh /user>
+### RESULT list-after: PASS
+
+>>> rtbench --help
+rtbench --help
+
+
+RTOS-Bench - Cross-platform Industrial RTOS Benchmark Framework
+
+USAGE:
+  rtbench [OPTIONS]                    Run workload benchmark
+  rtbench test-all [OPTIONS]           Run comprehensive test suite
+  rtbench test-realtime [OPTIONS]      Run realtime performance test
+  rtbench test-schedule [OPTIONS]      Run schedulability test
+  rtbench test-stress [OPTIONS]        Run stress test
+  rtbench test-cmd                     Run shell command support test
+  rtbench export-result [OPTIONS]      Export current results to JSON
+  rtbench -L | --list                  List available workloads
+  rtbench -h | --help                  Show this help message
+
+WORKLOAD OPTIONS:
+  -b, -w, --workload <name>  Workload name
+  -p, --period <sec>         Period in seconds (default: 1.0)
+  -d, --deadline <sec>       Deadline in seconds
+  -t, --tasks <count>        Number of activations (0 = infinite)
+  -f, --fifo <prio>          FIFO priority
+  -c, --core-affinity <cpu>  CPU affinity (0-31)
+  -A, --all-workloads        Run all registered workloads
+  -G, --category <list>      Run workload categories
+  -q                         Quiet mode
+
+sh /user>
+### RESULT help: PASS
+
+>>> rtbench -L
+rtbench -L
+
+Available workloads (11):
+  stub [utility] - No-op stub workload for testing
+  busywait [utility] - CPU busy-wait workload
+  fast [vision] - FAST corner detection benchmark
+  epnp [vision] - Perspective-n-Point solver benchmark
+  ekf [estimation] - Extended Kalman Filter flight dataset replay
+  icp [vision] - Iterative Closest Point alignment
+  modbus [network] - Modbus TCP server/client round-trip benchmark
+  mqtt [network] - MQTT publish benchmark (GeoLife trace)
+  pid [control] - PID controller synthetic dataset benchmark
+  cusum [detection] - CUSUM mean-shift detector (step/drift)
+  ewma [detection] - EWMA residual thresholding (spike/drop)
+sh /user>
+### RESULT list-workloads: PASS
+
+>>> rtbench -b stub -t 1
+rtbench -b stub -t 1
+
+[rtbench] workload=stub period=1.000000000 tasks=1
+Starting setup of execution environment
+Execution environment setup complete
+Initializing job environment
+Job environment initialization complete
+Starting signal handlers setup...
+Quit handler setup completed.
+Signal handlers installed.
+Configuring timers...
+Period timer setup complete
+Timers setup complete
+
+Job completed
+period start: 25987310000000 clock cycles	 25987.310000000 seconds 	-	 period end: 25988310000000 clock cycles	 25988.310000000 seconds
+job end: 25987310000000 clock cycles	 25987.310000000 seconds
+job deadline: 25988310000000 clock cycles	 25988.310000000 seconds 	-	deadline status:1 (1=met)
+job duration: 0 clock cycles	 0.000000000 seconds	-	utilization:0	-	density:0
+
+Deleting period timer
+Cleaning up job environment
+sh /user>
+### RESULT workload-stub: PASS
+
+>>> rtbench -b busywait -t 1
+rtbench -b busywait -t 1
+
+[rtbench] workload=busywait period=1.000000000 tasks=1
+Starting setup of execution environment
+Execution environment setup complete
+Initializing job environment
+Job environment initialization complete
+Starting signal handlers setup...
+Quit handler setup completed.
+Signal handlers installed.
+Configuring timers...
+Period timer setup complete
+Timers setup complete
+
+Job completed
+period start: 25990426000000 clock cycles	 25990.426000000 seconds 	-	 period end: 25991426000000 clock cycles	 25991.426000000 seconds
+job end: 25990427000000 clock cycles	 25990.427000000 seconds
+job deadline: 25991426000000 clock cycles	 25991.426000000 seconds 	-	deadline status:1 (1=met)
+job duration: 1000000 clock cycles	 0.001000000 seconds	-	utilization:0.001	-	density:0.001
+
+Deleting period timer
+Cleaning up job environment
+sh /user>
+### RESULT workload-busywait: PASS
+
+>>> rtbench test-schedule --cycles 1 --util-start 30 --util-end 30 --util-step 30
+rtbench test-schedule --cycles 1 --util-start 30 --util-end 30 --util-step 30
+
+[test-schedule] Found 9 industrial workloads (excluded 2 utility workloads)
+=============================================================
+[Phase 1] Measuring WCET for 9 workloads...
+=============================================================
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=16.195 ms avg_latency=5398.393 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=18.912 ms avg_latency=6303.840 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=18.890 ms avg_latency=6296.507 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=18.894 ms avg_latency=6298.160 us/img
+[POSIX] Starting FAST Benchmark ...
+Total Images: 3
+Allocating RAM buffer: 307200 bytes (KB: 300)
+[FAST] samples=3 total_time=18.899 ms avg_latency=6299.660 us/img
+  [fast]: WCET = 19.000 ms (5 iters)
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+   1.85315
+  0.666784
+-0.0491404
+
+the random rotation is:
+ 0.860934 -0.302874  0.408729
+ 0.226251  0.947583  0.225604
+-0.455634 -0.101755  0.884332
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=0.413 ms avg_latency=413.320 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+1.44122
+ 1.7513
+0.02093
+
+the random rotation is:
+ 0.908323 0.0116826 -0.418106
+-0.112512   0.96959 -0.217338
+ 0.402853  0.244455  0.882016
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=0.347 ms avg_latency=346.880 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+ 0.158156
+-0.704515
+ 0.193147
+
+the random rotation is:
+ 0.953732  0.256783 -0.156393
+-0.232423  0.959651  0.158273
+ 0.190724   -0.1146  0.974931
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=0.355 ms avg_latency=355.040 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  1.40805
+  1.23028
+0.0191186
+
+the random rotation is:
+ 0.892571 -0.152763  -0.42424
+ 0.319017  0.878862  0.354724
+  0.31866 -0.451956  0.833181
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=0.357 ms avg_latency=356.860 us/iter
+[POSIX] Starting ePnP Benchmark...
+the random position is:
+  1.27112
+  1.72132
+-0.293408
+
+the random rotation is:
+ 0.850502  0.467618  -0.24079
+-0.354777  0.848007  0.393724
+ 0.388304 -0.249436  0.887131
+
+the noise in the data is:
+0
+the outlier fraction is:
+0
+Running ePnP (using all 100 correspondences)...
+[EPNP] samples=1 total_time=0.667 ms avg_latency=666.620 us/iter
+  [epnp]: WCET = 2.000 ms (5 iters)
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=42.150 ms avg_latency=12.372 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=42.125 ms avg_latency=12.364 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=42.093 ms avg_latency=12.355 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=42.122 ms avg_latency=12.363 us/update
+Processing...
+5644000: EKF aligned, (baro hgt, IMU buf: 12, OBS buf: 9)
+[EKF] samples=3407 total_time=41.982 ms avg_latency=12.322 us/update
+  [ekf]: WCET = 43.000 ms (5 iters)
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=596.351 ms avg_latency=596.351 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=608.792 ms avg_latency=608.792 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=603.886 ms avg_latency=603.886 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=613.844 ms avg_latency=613.844 ms/run
+
+[ICP] Running ICP (point-to-plane)
+[ICP] samples=1 total_time=604.818 ms avg_latency=604.818 ms/run
+  [icp]: WCET = 623.000 ms (5 iters)
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=8012.090 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=8012.098 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=8012.105 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=8012.099 ms errors=0
+[SCHED-MODBUS] Client waiting...
+[SCHED-MODBUS] Connecting to 127.0.0.1:5021...
+[SCHED-MODBUS] Connected!
+[SCHED-MODBUS] samples=4 total_time=8012.118 ms errors=0
+  [modbus]: WCET = 8101.000 ms (5 iters)
+[SCHED-MQTT] samples=2000 total_time=0.979 ms avg=0.489 us/msg checksum=2461793201
+[SCHED-MQTT] samples=2000 total_time=0.974 ms avg=0.487 us/msg checksum=0
+[SCHED-MQTT] samples=2000 total_time=0.974 ms avg=0.487 us/msg checksum=2461793201
+[SCHED-MQTT] samples=2000 total_time=0.973 ms avg=0.486 us/msg checksum=0
+[SCHED-MQTT] samples=2000 total_time=0.974 ms avg=0.487 us/msg checksum=2461793201
+  [mqtt]: WCET = 1.000 ms (5 iters)
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=23.149 ms avg_latency=0.023 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=23.123 ms avg_latency=0.023 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=23.114 ms avg_latency=0.023 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=23.114 ms avg_latency=0.023 us/op
+--- PID Simulation Start ---
+[PID] samples=1000000 total_time=23.116 ms avg_latency=0.023 us/op
+  [pid]: WCET = 24.000 ms (5 iters)
+[CUSUM] samples=6000 total_time=7.562 ms avg_latency=1.260 us/sample
+[CUSUM] samples=6000 total_time=7.557 ms avg_latency=1.259 us/sample
+[CUSUM] samples=6000 total_time=7.557 ms avg_latency=1.259 us/sample
+[CUSUM] samples=6000 total_time=7.556 ms avg_latency=1.259 us/sample
+[CUSUM] samples=6000 total_time=7.557 ms avg_latency=1.259 us/sample
+  [cusum]: WCET = 8.000 ms (5 iters)
+[EWMA] samples=5000 total_time=36.483 ms avg_latency=7.297 us/sample
+[EWMA] samples=5000 total_time=36.473 ms avg_latency=7.295 us/sample
+[EWMA] samples=5000 total_time=36.472 ms avg_latency=7.294 us/sample
+[EWMA] samples=5000 total_time=36.472 ms avg_latency=7.294 us/sample
+[EWMA] samples=5000 total_time=36.472 ms avg_latency=7.294 us/sample
+  [ewma]: WCET = 37.000 ms (5 iters)
+[Phase 1] 9 workloads measured
+
+=============================================================
+[Phase 2] Running Task Sets (U: 30% - 30%, step 30%)
+=============================================================
+
+>>> Utilization Gradient: 30% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)
+------------------------------------------------------
+modbus       | 8101.000   | 11.25    | 72001.356
+icp          | 623.000    | 8.19     | 7606.463
+ekf          | 43.000     | 3.93     | 1093.014
+ewma         | 37.000     | 3.38     | 1093.066
+pid          | 24.000     | 1.30     | 1845.204
+fast         | 19.000     | 0.97     | 1957.903
+cusum        | 8.000      | 0.42     | 1893.334
+epnp         | 2.000      | 0.34     | 596.213
+mqtt         | 1.000      | 0.21     | 475.535
+Running task set for 1 cycles...
+Gradient 30% complete: MR = 0.0000 (0/9)
+
+=============================================================
+[Phase 3] Final Results
+=============================================================
+U= 30%: MR=0.0000 (0 misses / 9 jobs)
+
+------------------------------------------------------
+Average Miss Rate: 0.0000
+Final Score: 100.00 / 100
+------------------------------------------------------
+sh /user>
+### RESULT schedule-quick: PASS

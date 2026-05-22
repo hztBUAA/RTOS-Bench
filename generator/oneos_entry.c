@@ -813,16 +813,6 @@ int cmd_rtbench_stub(int argc, char **argv) {
     return cmd_rtbench(argc, argv);
 }
 
-/* Auto-init on system startup */
-static int rtbench_auto_init(void)
-{
-    ensure_workloads_registered();
-    printf("[rtbench] RTOS-Bench initialized, %d workloads available\n",
-           rtosbench_workload_count());
-    return 0;
-}
-OS_APP_INIT(rtbench_auto_init);
-
 /* ============================================================================
  * Result Collection Functions
  * ============================================================================ */
