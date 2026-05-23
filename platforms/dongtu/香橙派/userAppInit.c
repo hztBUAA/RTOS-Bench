@@ -32,6 +32,8 @@ int userAppInit(void)
 	rtbench_dongtu_entry(argc, argv);
     return 0;
 }
+/*
 void intewell_stub() {
 
 }
+*/
