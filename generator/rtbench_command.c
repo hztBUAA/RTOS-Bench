@@ -53,6 +53,7 @@ extern int test_cmd_run(void) RTBENCH_WEAK;
 
 struct test_all_params {
 	const char *output_path;
+	const char *xml_output_path;
 	int run_realtime;
 	int run_schedule;
 	int run_stress;
@@ -211,6 +212,7 @@ static void print_test_all_usage(void)
 	printf("\nUsage: rtbench test-all [OPTIONS]\n");
 	printf("  -o, --output <path>        Output JSON path (default: %s)\n",
 	       RTBENCH_DEFAULT_OUTPUT_PATH);
+	printf("  --xml-output <path>        Optional JUnit XML output path for Flow upload\n");
 	printf("  --no-realtime|--no-schedule|--no-stress|--no-cmd|--no-workload\n");
 	printf("  -m, --multicore            Enable realtime multicore tests\n");
 	printf("  --quick                    Use bounded smoke settings\n");
@@ -236,7 +238,8 @@ static void print_test_schedule_usage(void)
 
 static void print_export_usage(void)
 {
-	printf("\nUsage: rtbench export-result [-o|--output <path>]\n\n");
+	printf("\nUsage: rtbench export-result [-o|--output <path>] [--xml-output <path>]\n");
+	printf("  default output path: %s\n\n", RTBENCH_DEFAULT_OUTPUT_PATH);
 }
 
 static int validate_schedule_args(int cycles, int util_start,
@@ -416,6 +419,14 @@ static int parse_test_all_args(int argc, char **argv,
 			return -1;
 		} else if (matched) {
 			params->output_path = value;
+			continue;
+		}
+		matched = match_value_option(argc, argv, &i, NULL, "--xml-output", &value);
+		if (matched < 0) {
+			print_test_all_usage();
+			return -1;
+		} else if (matched) {
+			params->xml_output_path = value;
 			continue;
 		}
 		matched = match_value_option(argc, argv, &i, NULL, "--schedule-cycles", &value);
@@ -659,6 +670,14 @@ static int run_test_all(struct test_all_params *p)
 	} else {
 		printf("[RTOS-Bench] Results saved to: %s\n", p->output_path);
 	}
+	if (p->xml_output_path != NULL) {
+		if (rtbench_result_export_xml(p->xml_output_path) != 0) {
+			ret = -1;
+		} else {
+			printf("[RTOS-Bench] XML results saved to: %s\n",
+			       p->xml_output_path);
+		}
+	}
 	rtbench_result_cleanup();
 	return ret;
 }
@@ -815,6 +834,8 @@ int rtbench_command_main(int argc, char **argv)
 	}
 	if (!strcmp(argv[1], "export-result")) {
 		const char *output_path = RTBENCH_DEFAULT_OUTPUT_PATH;
+		const char *xml_output_path = NULL;
+		int ret;
 		for (int i = 2; i < argc; i++) {
 			const char *value;
 			int matched;
@@ -828,12 +849,25 @@ int rtbench_command_main(int argc, char **argv)
 				return -1;
 			} else if (matched) {
 				output_path = value;
+				continue;
+			}
+			matched = match_value_option(argc, argv, &i, NULL, "--xml-output", &value);
+			if (matched < 0) {
+				print_export_usage();
+				return -1;
+			} else if (matched) {
+				xml_output_path = value;
+				continue;
 			} else {
 				print_export_usage();
 				return -1;
 			}
 		}
-		return rtbench_result_export_json(output_path);
+		ret = rtbench_result_export_json(output_path);
+		if (ret == 0 && xml_output_path != NULL) {
+			ret = rtbench_result_export_xml(xml_output_path);
+		}
+		return ret;
 	}
 	if (argv[1][0] != '-') {
 		printf("[rtbench] Unknown command: %s\n", argv[1]);
