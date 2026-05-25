@@ -523,23 +523,8 @@ truncated:
     return -1;
 }
 
-int rtbench_result_export_json(const char *filepath)
+static void sanitize_result_buffer(char *buf, int len)
 {
-    /* Allocate a large buffer for JSON */
-    size_t bufsize = 128 * 1024;  /* 128KB should be enough */
-    char *buf = (char *)RESULT_MALLOC(bufsize);
-    if (!buf) {
-        RESULT_PRINTF("[result-export] Failed to allocate buffer\n");
-        return -1;
-    }
-    memset(buf, 0, bufsize);
-
-    int len = rtbench_result_to_json(buf, bufsize);
-    if (len < 0) {
-        RESULT_FREE(buf);
-        return -1;
-    }
-
     int sanitized = 0;
     for (int i = 0; i < len; i++) {
         unsigned char ch = (unsigned char)buf[i];
@@ -551,12 +536,13 @@ int rtbench_result_export_json(const char *filepath)
     if (sanitized > 0) {
         RESULT_PRINTF("[result-export] Sanitized %d control byte(s)\n", sanitized);
     }
+}
 
-    /* Write to file */
+static int write_buffer_file(const char *filepath, const char *buf, size_t len)
+{
     FILE *fp = fopen(filepath, "wb");
     if (!fp) {
         RESULT_PRINTF("[result-export] Failed to open %s\n", filepath);
-        RESULT_FREE(buf);
         return -2;
     }
 
@@ -578,13 +564,181 @@ int rtbench_result_export_json(const char *filepath)
     fsync(fileno(fp));
 #endif
     fclose(fp);
-    RESULT_FREE(buf);
 
-    if (written != (size_t)len) {
-        RESULT_PRINTF("[result-export] Write error: %zu/%d\n", written, len);
+    if (written != len) {
+        RESULT_PRINTF("[result-export] Write error: %zu/%zu\n", written, len);
         return -3;
     }
 
+    return 0;
+}
+
+static void xml_write_escaped(FILE *fp, const char *s)
+{
+    if (s == NULL) {
+        return;
+    }
+
+    while (*s) {
+        switch (*s) {
+        case '&':
+            fputs("&amp;", fp);
+            break;
+        case '<':
+            fputs("&lt;", fp);
+            break;
+        case '>':
+            fputs("&gt;", fp);
+            break;
+        case '"':
+            fputs("&quot;", fp);
+            break;
+        case '\'':
+            fputs("&apos;", fp);
+            break;
+        default:
+            fputc((unsigned char)*s, fp);
+            break;
+        }
+        s++;
+    }
+}
+
+static void xml_write_testcase(FILE *fp, const char *name, const char *case_id,
+                               int valid, double duration_sec)
+{
+    fputs("    <testcase classname=\"rtbench\" name=\"", fp);
+    xml_write_escaped(fp, name);
+    fprintf(fp, "\" time=\"%.3f\">\n", duration_sec);
+    fputs("      <properties>\n", fp);
+    fputs("        <property name=\"id\" value=\"", fp);
+    xml_write_escaped(fp, case_id);
+    fputs("\"/>\n", fp);
+    fputs("      </properties>\n", fp);
+    if (!valid) {
+        fputs("      <skipped/>\n", fp);
+    }
+    fputs("    </testcase>\n", fp);
+}
+
+int rtbench_result_export_json(const char *filepath)
+{
+    size_t bufsize = 128 * 1024;  /* 128KB should be enough */
+    char *buf = (char *)RESULT_MALLOC(bufsize);
+    int len;
+    int ret;
+
+    if (!buf) {
+        RESULT_PRINTF("[result-export] Failed to allocate buffer\n");
+        return -1;
+    }
+    memset(buf, 0, bufsize);
+
+    len = rtbench_result_to_json(buf, bufsize);
+    if (len < 0) {
+        RESULT_FREE(buf);
+        return -1;
+    }
+
+    sanitize_result_buffer(buf, len);
+    ret = write_buffer_file(filepath, buf, (size_t)len);
+    RESULT_FREE(buf);
+    return ret;
+}
+
+int rtbench_result_export_xml(const char *filepath)
+{
+    size_t bufsize = 128 * 1024;
+    char *json = (char *)RESULT_MALLOC(bufsize);
+    struct rtbench_result *r = &g_result;
+    FILE *fp;
+    int len;
+    int skipped;
+
+    if (!json) {
+        RESULT_PRINTF("[result-export] Failed to allocate buffer\n");
+        return -1;
+    }
+    memset(json, 0, bufsize);
+
+    len = rtbench_result_to_json(json, bufsize);
+    if (len < 0) {
+        RESULT_FREE(json);
+        return -1;
+    }
+    sanitize_result_buffer(json, len);
+
+    fp = fopen(filepath, "wb");
+    if (!fp) {
+        RESULT_PRINTF("[result-export] Failed to open %s\n", filepath);
+        RESULT_FREE(json);
+        return -2;
+    }
+
+    skipped = (!r->realtime.valid) + (!r->schedule.valid) +
+              (!r->stress.valid) + (!r->cmd.valid) + (!r->workload.valid);
+
+    fputs("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n", fp);
+    fputs("<testsuites name=\"RTOS-Bench\">\n", fp);
+    fprintf(fp,
+            "  <testsuite name=\"rtbench\" errors=\"0\" failures=\"0\" skipped=\"%d\" tests=\"5\" time=\"%.3f\" timestamp=\"",
+            skipped, r->total_duration_sec);
+    xml_write_escaped(fp, r->test_timestamp);
+    fputs("\" hostname=\"", fp);
+    xml_write_escaped(fp, r->env.board);
+    fputs("\">\n", fp);
+    fputs("    <properties>\n", fp);
+    fputs("      <property name=\"framework_version\" value=\"", fp);
+    xml_write_escaped(fp, r->framework_version);
+    fputs("\"/>\n", fp);
+    fputs("      <property name=\"os_name\" value=\"", fp);
+    xml_write_escaped(fp, r->env.os_name);
+    fputs("\"/>\n", fp);
+    fputs("      <property name=\"os_version\" value=\"", fp);
+    xml_write_escaped(fp, r->env.os_version);
+    fputs("\"/>\n", fp);
+    fputs("      <property name=\"board\" value=\"", fp);
+    xml_write_escaped(fp, r->env.board);
+    fputs("\"/>\n", fp);
+    fputs("      <property name=\"cpu_type\" value=\"", fp);
+    xml_write_escaped(fp, r->env.cpu_type);
+    fputs("\"/>\n", fp);
+    fprintf(fp, "      <property name=\"cpu_freq_mhz\" value=\"%u\"/>\n",
+            r->env.cpu_freq_mhz);
+    fprintf(fp, "      <property name=\"cpu_core_num\" value=\"%u\"/>\n",
+            r->env.cpu_core_num);
+    fputs("    </properties>\n", fp);
+
+    xml_write_testcase(fp, "test-realtime", "rtbench.test-realtime",
+                       r->realtime.valid, r->realtime.duration_sec);
+    xml_write_testcase(fp, "test-schedule", "rtbench.test-schedule",
+                       r->schedule.valid, r->schedule.duration_sec);
+    xml_write_testcase(fp, "test-stress", "rtbench.test-stress",
+                       r->stress.valid, r->stress.duration_sec);
+    xml_write_testcase(fp, "test-cmd", "rtbench.test-cmd", r->cmd.valid, 0.0);
+    xml_write_testcase(fp, "typical-workload", "rtbench.typical-workload",
+                       r->workload.valid, r->workload.duration_sec);
+
+    fputs("    <system-out>", fp);
+    xml_write_escaped(fp, json);
+    fputs("</system-out>\n", fp);
+    fputs("  </testsuite>\n", fp);
+    fputs("</testsuites>\n", fp);
+
+    fflush(fp);
+#ifndef RT_THREAD_PLATFORM
+    fsync(fileno(fp));
+#endif
+
+    if (ferror(fp)) {
+        fclose(fp);
+        RESULT_FREE(json);
+        RESULT_PRINTF("[result-export] Write error: %s\n", filepath);
+        return -3;
+    }
+
+    fclose(fp);
+    RESULT_FREE(json);
     return 0;
 }
 
