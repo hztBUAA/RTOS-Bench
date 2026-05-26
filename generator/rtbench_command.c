@@ -12,6 +12,7 @@
 #include "test_cmd.h"
 #include "test_realtime.h"
 #include "test_schedule.h"
+#include "test_schedule/sched_workloads.h"
 #include "test_stress.h"
 #include "workload_registry.h"
 
@@ -29,7 +30,6 @@
 #define RTBENCH_WEAK
 #endif
 
-#define RTBENCH_DEFAULT_OUTPUT_PATH "/rtbench_result.json"
 #define RTBENCH_PARSE_HELP 1
 
 extern const struct rtosbench_workload rtosbench_stub_workload;
@@ -50,9 +50,22 @@ extern void test_stress_list_stressors(void) RTBENCH_WEAK;
 extern const char *test_stress_parse_opt_arg(const char *arg,
 					     const char *prefix) RTBENCH_WEAK;
 extern int test_cmd_run(void) RTBENCH_WEAK;
+extern const struct test_schedule_result *test_schedule_get_result(void) RTBENCH_WEAK;
+extern const struct test_stress_job_result *test_stress_get_job_results(int *count_out) RTBENCH_WEAK;
+extern const struct test_cmd_module_result *test_cmd_get_result(void) RTBENCH_WEAK;
+
+extern uint64_t *get_realtime_service_cost(void) RTBENCH_WEAK;
+extern uint64_t *get_realtime_interrupt(void) RTBENCH_WEAK;
+extern uint64_t get_realtime_context_switch(void) RTBENCH_WEAK;
+extern uint64_t *get_realtime_syscall(void) RTBENCH_WEAK;
+extern uint64_t *get_multicore_memory_bandwidth(void) RTBENCH_WEAK;
+extern uint64_t *get_multicore_ipc_bandwidth(void) RTBENCH_WEAK;
+extern uint64_t *get_multicore_intra_inter_bandwidth(void) RTBENCH_WEAK;
+extern uint64_t *get_multicore_init_dlt_latency(void) RTBENCH_WEAK;
 
 struct test_all_params {
 	const char *output_path;
+	const char *xml_output_path;
 	int run_realtime;
 	int run_schedule;
 	int run_stress;
@@ -64,10 +77,82 @@ struct test_all_params {
 	int schedule_util_start;
 	int schedule_util_end;
 	int schedule_util_step;
+	int export_results;
 	const char *stress_job;
 };
 
 static int g_workloads_registered;
+
+const char *RTBENCH_WEAK rtbench_platform_default_output_path(void)
+{
+#if defined(SYLIXOS_PLATFORM)
+	return "/apps/hzt/rtbench_result.json";
+#else
+	return "/rtbench_result.json";
+#endif
+}
+
+void RTBENCH_WEAK rtbench_platform_get_env(struct rtbench_platform_env *env)
+{
+	if (env == NULL) {
+		return;
+	}
+#if defined(SYLIXOS_PLATFORM)
+	env->os_name = "SylixOS";
+	env->os_version = "3.x";
+	env->board = "SylixOS-Board";
+	env->cpu_type = "Unknown";
+	env->cpu_freq_mhz = 0;
+	env->cpu_core_num = 1;
+#elif defined(ONEOS_PLATFORM)
+	env->os_name = "OneOS";
+	env->os_version = "3.x";
+	env->board = "OneOS-Board";
+	env->cpu_type = "ARM";
+	env->cpu_freq_mhz = 0;
+	env->cpu_core_num = 1;
+#elif defined(DONGTU_PLATFORM)
+	env->os_name = "Dongtu";
+	env->os_version = "Intewell";
+	env->board = "Dongtu-Board";
+	env->cpu_type = "x86_64";
+	env->cpu_freq_mhz = 0;
+	env->cpu_core_num = 1;
+#elif defined(RT_THREAD_PLATFORM)
+	env->os_name = "RT-Thread";
+	env->os_version = "unknown";
+	env->board = "RT-Thread-Board";
+	env->cpu_type = "Unknown";
+	env->cpu_freq_mhz = 0;
+	env->cpu_core_num = 1;
+#elif defined(RUIHUA_PLATFORM)
+	env->os_name = "Ruihua ReWorks";
+	env->os_version = "6.1.1";
+	env->board = "Ruihua-Board";
+	env->cpu_type = "ARM";
+	env->cpu_freq_mhz = 0;
+	env->cpu_core_num = 0;
+#else
+	env->os_name = "Unknown";
+	env->os_version = "unknown";
+	env->board = "Unknown-Board";
+	env->cpu_type = "Unknown";
+	env->cpu_freq_mhz = 0;
+	env->cpu_core_num = 0;
+#endif
+}
+
+int RTBENCH_WEAK rtbench_platform_run_test_all(rtbench_command_runner_fn runner,
+					       void *ctx)
+{
+	return runner ? runner(ctx) : -1;
+}
+
+static const char *default_output_path(void)
+{
+	const char *path = rtbench_platform_default_output_path();
+	return (path && path[0] != '\0') ? path : "/rtbench_result.json";
+}
 
 static int is_help_arg(const char *arg)
 {
@@ -210,8 +295,10 @@ static void print_test_all_usage(void)
 {
 	printf("\nUsage: rtbench test-all [OPTIONS]\n");
 	printf("  -o, --output <path>        Output JSON path (default: %s)\n",
-	       RTBENCH_DEFAULT_OUTPUT_PATH);
+	       default_output_path());
+	printf("  --xml-output <path>        Optional JUnit XML output path for Flow upload\n");
 	printf("  --no-realtime|--no-schedule|--no-stress|--no-cmd|--no-workload\n");
+	printf("  --no-export                 Do not write result JSON\n");
 	printf("  -m, --multicore            Enable realtime multicore tests\n");
 	printf("  --quick                    Use bounded smoke settings\n");
 	printf("  --schedule-cycles <n>      Override schedule cycles\n");
@@ -236,7 +323,8 @@ static void print_test_schedule_usage(void)
 
 static void print_export_usage(void)
 {
-	printf("\nUsage: rtbench export-result [-o|--output <path>]\n\n");
+	printf("\nUsage: rtbench export-result [-o|--output <path>] [--xml-output <path>]\n");
+	printf("  default output path: %s\n\n", default_output_path());
 }
 
 static int validate_schedule_args(int cycles, int util_start,
@@ -402,6 +490,11 @@ static int parse_workload_args(int argc, char **argv,
 static int parse_test_all_args(int argc, char **argv,
 			       struct test_all_params *params)
 {
+	int cycles_set = 0;
+	int util_start_set = 0;
+	int util_end_set = 0;
+	int util_step_set = 0;
+
 	for (int i = 2; i < argc; i++) {
 		const char *value;
 		int matched;
@@ -418,6 +511,14 @@ static int parse_test_all_args(int argc, char **argv,
 			params->output_path = value;
 			continue;
 		}
+		matched = match_value_option(argc, argv, &i, NULL, "--xml-output", &value);
+		if (matched < 0) {
+			print_test_all_usage();
+			return -1;
+		} else if (matched) {
+			params->xml_output_path = value;
+			continue;
+		}
 		matched = match_value_option(argc, argv, &i, NULL, "--schedule-cycles", &value);
 		if (matched < 0) {
 			print_test_all_usage();
@@ -428,6 +529,7 @@ static int parse_test_all_args(int argc, char **argv,
 				print_test_all_usage();
 				return -1;
 			}
+			cycles_set = 1;
 			continue;
 		}
 		matched = match_value_option(argc, argv, &i, NULL, "--util-start", &value);
@@ -440,6 +542,7 @@ static int parse_test_all_args(int argc, char **argv,
 				print_test_all_usage();
 				return -1;
 			}
+			util_start_set = 1;
 			continue;
 		}
 		matched = match_value_option(argc, argv, &i, NULL, "--util-end", &value);
@@ -452,6 +555,7 @@ static int parse_test_all_args(int argc, char **argv,
 				print_test_all_usage();
 				return -1;
 			}
+			util_end_set = 1;
 			continue;
 		}
 		matched = match_value_option(argc, argv, &i, NULL, "--util-step", &value);
@@ -464,6 +568,7 @@ static int parse_test_all_args(int argc, char **argv,
 				print_test_all_usage();
 				return -1;
 			}
+			util_step_set = 1;
 			continue;
 		}
 		matched = match_value_option(argc, argv, &i, NULL, "--stress-job", &value);
@@ -484,6 +589,8 @@ static int parse_test_all_args(int argc, char **argv,
 			params->run_cmd = 0;
 		} else if (!strcmp(argv[i], "--no-workload")) {
 			params->run_workload = 0;
+		} else if (!strcmp(argv[i], "--no-export")) {
+			params->export_results = 0;
 		} else if (!strcmp(argv[i], "--multicore") || !strcmp(argv[i], "-m")) {
 			params->run_multicore = 1;
 		} else if (!strcmp(argv[i], "--quick")) {
@@ -497,10 +604,10 @@ static int parse_test_all_args(int argc, char **argv,
 		}
 	}
 	if (params->quick_mode) {
-		params->schedule_cycles = TEST_SCHEDULE_QUICK_CYCLES;
-		params->schedule_util_start = TEST_SCHEDULE_QUICK_UTIL_START;
-		params->schedule_util_end = TEST_SCHEDULE_QUICK_UTIL_END;
-		params->schedule_util_step = TEST_SCHEDULE_QUICK_UTIL_STEP;
+		if (!cycles_set) params->schedule_cycles = TEST_SCHEDULE_QUICK_CYCLES;
+		if (!util_start_set) params->schedule_util_start = TEST_SCHEDULE_QUICK_UTIL_START;
+		if (!util_end_set) params->schedule_util_end = TEST_SCHEDULE_QUICK_UTIL_END;
+		if (!util_step_set) params->schedule_util_step = TEST_SCHEDULE_QUICK_UTIL_STEP;
 	}
 	return validate_schedule_args(params->schedule_cycles,
 				      params->schedule_util_start,
@@ -516,6 +623,10 @@ static int run_test_schedule_with_args(int argc, char **argv)
 	int util_end = TEST_SCHEDULE_UTIL_END;
 	int util_step = TEST_SCHEDULE_UTIL_STEP;
 	int quick = 0;
+	int cycles_set = 0;
+	int util_start_set = 0;
+	int util_end_set = 0;
+	int util_step_set = 0;
 
 	for (int i = 2; i < argc; i++) {
 		const char *value;
@@ -529,24 +640,28 @@ static int run_test_schedule_with_args(int argc, char **argv)
 		if (matched < 0) return -1;
 		if (matched) {
 			if (parse_int_value(value, "cycles", 1, INT_MAX, &cycles) != 0) return -1;
+			cycles_set = 1;
 			continue;
 		}
 		matched = match_value_option(argc, argv, &i, NULL, "--util-start", &value);
 		if (matched < 0) return -1;
 		if (matched) {
 			if (parse_int_value(value, "util-start", 1, 100, &util_start) != 0) return -1;
+			util_start_set = 1;
 			continue;
 		}
 		matched = match_value_option(argc, argv, &i, NULL, "--util-end", &value);
 		if (matched < 0) return -1;
 		if (matched) {
 			if (parse_int_value(value, "util-end", 1, 100, &util_end) != 0) return -1;
+			util_end_set = 1;
 			continue;
 		}
 		matched = match_value_option(argc, argv, &i, NULL, "--util-step", &value);
 		if (matched < 0) return -1;
 		if (matched) {
 			if (parse_int_value(value, "util-step", 1, 100, &util_step) != 0) return -1;
+			util_step_set = 1;
 			continue;
 		}
 		if (!strcmp(argv[i], "--quick")) {
@@ -560,10 +675,10 @@ static int run_test_schedule_with_args(int argc, char **argv)
 		}
 	}
 	if (quick) {
-		cycles = TEST_SCHEDULE_QUICK_CYCLES;
-		util_start = TEST_SCHEDULE_QUICK_UTIL_START;
-		util_end = TEST_SCHEDULE_QUICK_UTIL_END;
-		util_step = TEST_SCHEDULE_QUICK_UTIL_STEP;
+		if (!cycles_set) cycles = TEST_SCHEDULE_QUICK_CYCLES;
+		if (!util_start_set) util_start = TEST_SCHEDULE_QUICK_UTIL_START;
+		if (!util_end_set) util_end = TEST_SCHEDULE_QUICK_UTIL_END;
+		if (!util_step_set) util_step = TEST_SCHEDULE_QUICK_UTIL_STEP;
 	}
 	if (validate_schedule_args(cycles, util_start, util_end, util_step,
 				   print_test_schedule_usage) != 0) {
@@ -577,6 +692,192 @@ static int run_test_schedule_with_args(int argc, char **argv)
 	return test_schedule_run_custom(cycles, util_start, util_end, util_step);
 }
 
+#define NS_TO_US(ns) ((double)(ns) / 1000.0)
+#define RAW_TO_GBS(v) ((double)(v) / 1000.0)
+
+static void collect_realtime_result(int run_multicore)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_realtime_result *rt;
+	uint64_t ctx_sw = 0;
+	uint64_t *interrupt = NULL;
+	uint64_t *syscall = NULL;
+	uint64_t *svc = NULL;
+
+	if (r == NULL) return;
+	rt = &r->realtime;
+	rt->valid = 1;
+	rt->multicore_valid = run_multicore ? 1 : 0;
+
+	if (get_realtime_context_switch != NULL) ctx_sw = get_realtime_context_switch();
+	if (get_realtime_interrupt != NULL) interrupt = get_realtime_interrupt();
+	if (get_realtime_syscall != NULL) syscall = get_realtime_syscall();
+	if (get_realtime_service_cost != NULL) svc = get_realtime_service_cost();
+
+	rt->context_switch_avg_us = NS_TO_US(ctx_sw);
+	if (interrupt != NULL) {
+		rt->interrupt_min_us = NS_TO_US(interrupt[0]);
+		rt->interrupt_max_us = NS_TO_US(interrupt[1]);
+		rt->interrupt_avg_us = NS_TO_US(interrupt[2]);
+	}
+	if (syscall != NULL) {
+		rt->syscall_min_us = NS_TO_US(syscall[0]);
+		rt->syscall_max_us = NS_TO_US(syscall[1]);
+		rt->syscall_avg_us = NS_TO_US(syscall[2]);
+	}
+	if (svc != NULL) {
+		static const char *svc_ops[] = {
+			"sem_take", "sem_release",
+			"mq_send", "mq_recv",
+			"mutex_take", "mutex_release",
+			"mempool_alloc", "mempool_free"
+		};
+		for (int i = 0; i < 8; i++) {
+			rtbench_realtime_add_service_cost(rt, svc_ops[i],
+				NS_TO_US(svc[i * 4 + 0]),
+				NS_TO_US(svc[i * 4 + 1]),
+				NS_TO_US(svc[i * 4 + 2]),
+				NS_TO_US(svc[i * 4 + 3]));
+		}
+	}
+
+	if (run_multicore &&
+	    get_multicore_memory_bandwidth != NULL &&
+	    get_multicore_ipc_bandwidth != NULL &&
+	    get_multicore_intra_inter_bandwidth != NULL &&
+	    get_multicore_init_dlt_latency != NULL) {
+		uint64_t *mem_bw = get_multicore_memory_bandwidth();
+		uint64_t *ipc_bw = get_multicore_ipc_bandwidth();
+		uint64_t *intra_inter = get_multicore_intra_inter_bandwidth();
+		uint64_t *task_lat = get_multicore_init_dlt_latency();
+		static const char *mem_types[] = {
+			"rd", "wr", "cp", "frd", "fwr", "fcp", "memset", "memcpy"
+		};
+
+		if (mem_bw != NULL) {
+			for (int i = 0; i < 8; i++) {
+				rtbench_realtime_add_mem_bw(rt, mem_types[i],
+					RAW_TO_GBS(mem_bw[i * 4 + 0]),
+					RAW_TO_GBS(mem_bw[i * 4 + 1]),
+					RAW_TO_GBS(mem_bw[i * 4 + 2]),
+					RAW_TO_GBS(mem_bw[i * 4 + 3]));
+			}
+		}
+		if (ipc_bw != NULL) {
+			rt->ipc_bw_c1 = RAW_TO_GBS(ipc_bw[0]);
+			rt->ipc_bw_c2 = RAW_TO_GBS(ipc_bw[1]);
+			rt->ipc_bw_c4 = RAW_TO_GBS(ipc_bw[2]);
+			rt->ipc_bw_c8 = RAW_TO_GBS(ipc_bw[3]);
+		}
+		if (intra_inter != NULL) {
+			rt->core_comm_intra = RAW_TO_GBS(intra_inter[0]);
+			rt->core_comm_inter = RAW_TO_GBS(intra_inter[1]);
+		}
+		if (task_lat != NULL) {
+			rt->task_lat_c1 = NS_TO_US(task_lat[0]);
+			rt->task_lat_c2 = NS_TO_US(task_lat[1]);
+			rt->task_lat_c4 = NS_TO_US(task_lat[2]);
+			rt->task_lat_c8 = NS_TO_US(task_lat[3]);
+		}
+	}
+}
+
+static void collect_schedule_result(int cycles, int util_start,
+				    int util_end, int util_step)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_schedule_result *sched;
+	const struct test_schedule_result *ts_result;
+
+	if (r == NULL || test_schedule_get_result == NULL) return;
+	ts_result = test_schedule_get_result();
+	if (ts_result == NULL) return;
+	sched = &r->schedule;
+	sched->valid = 1;
+	sched->cycles = cycles;
+	sched->util_start = util_start;
+	sched->util_end = util_end;
+	sched->util_step = util_step;
+	sched->average_miss_rate = ts_result->average_miss_rate;
+	sched->final_score = ts_result->final_score;
+	sched->gradient_count = ts_result->num_gradients;
+
+	for (int i = 0; i < ts_result->num_gradients && i < RTBENCH_MAX_GRADIENTS; i++) {
+		struct rtbench_gradient_result *dst = &sched->gradients[i];
+		const struct schedule_gradient_result *src = &ts_result->gradients[i];
+		dst->utilization_percent = src->utilization_percent;
+		dst->actual_utilization = src->actual_utilization;
+		dst->total_jobs = src->total_jobs;
+		dst->deadline_misses = src->total_misses;
+		dst->miss_rate = src->miss_rate;
+		dst->task_count = src->num_tasks;
+		for (int j = 0; j < src->num_tasks && j < RTBENCH_MAX_WORKLOADS; j++) {
+			struct rtbench_task_stat *tdst = &dst->task_stats[j];
+			const struct schedule_task_stats *tsrc = &src->task_stats[j];
+			if (tsrc->name != NULL) {
+				strncpy(tdst->name, tsrc->name, sizeof(tdst->name) - 1);
+			}
+			tdst->jobs = tsrc->total_jobs;
+			tdst->misses = tsrc->deadline_misses;
+			if (tsrc->total_jobs > 0) {
+				tdst->max_response_ms = (double)tsrc->max_response_ns / 1000000.0;
+			}
+		}
+	}
+}
+
+static void collect_stress_result(const char *job_name)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_stress_result *stress;
+	const struct test_stress_job_result *results;
+	int count = 0;
+	double total_dur = 0;
+
+	(void)job_name;
+	if (r == NULL || test_stress_get_job_results == NULL) return;
+	results = test_stress_get_job_results(&count);
+	if (results == NULL) return;
+	stress = &r->stress;
+	stress->valid = 1;
+	for (int i = 0; i < count; i++) total_dur += results[i].duration_sec;
+	stress->duration_sec = total_dur;
+	for (int i = 0; i < count; i++) {
+		const struct test_stress_job_result *jr = &results[i];
+		double metric_val = 0;
+		const char *metric_unit = "";
+		if (jr->metric_value > 0.00001 && jr->metric_unit[0] != '\0') {
+			metric_val = jr->metric_value;
+			metric_unit = jr->metric_unit;
+		}
+		rtbench_stress_add_stressor(stress, jr->name, jr->type, jr->stage,
+					    jr->bogo_ops, jr->duration_sec,
+					    metric_val, metric_unit);
+	}
+}
+
+static void collect_cmd_result(void)
+{
+	struct rtbench_result *r = rtbench_result_get();
+	struct rtbench_cmd_module_result *dst;
+	const struct test_cmd_module_result *src;
+
+	if (r == NULL || test_cmd_get_result == NULL) return;
+	src = test_cmd_get_result();
+	if (src == NULL || !src->valid) return;
+	dst = &r->cmd;
+	dst->valid = 1;
+	dst->cmd_count = src->cmd_count;
+	dst->pass_count = src->pass_count;
+	for (int i = 0; i < src->cmd_count && i < RTBENCH_MAX_CMD_COMMANDS; i++) {
+		strncpy(dst->results[i].command, src->results[i].command,
+			sizeof(dst->results[i].command) - 1);
+		strncpy(dst->results[i].name, src->results[i].name,
+			sizeof(dst->results[i].name) - 1);
+		dst->results[i].supported = src->results[i].supported;
+	}
+}
+
 static void collect_workload_results(int quick_mode)
 {
 	struct rtbench_result *r = rtbench_result_get();
@@ -588,17 +889,43 @@ static void collect_workload_results(int quick_mode)
 	for (int i = 0; i < rtosbench_workload_count() &&
 	     wl->workload_count < RTBENCH_MAX_WORKLOADS; i++) {
 		const struct rtosbench_workload *w = rtosbench_get_workload(i);
+		const struct sched_workload_wrapper *wrapper =
+			(quick_mode && w && w->name) ? sched_get_wrapper(w->name) : NULL;
 		int rounds = quick_mode ? 5 : 10;
 		long double start_ts, end_ts;
 		double total_ms;
-		if (w == NULL || w->name == NULL || w->exec == NULL) continue;
-		if (w->category != NULL && strcmp(w->category, "utility") == 0) continue;
-		if (w->init != NULL) w->init(0, NULL);
+
+		if (w == NULL || w->name == NULL ||
+		    (w->exec == NULL && (wrapper == NULL || wrapper->quick_exec == NULL))) {
+			continue;
+		}
+		if (w->category != NULL && strcmp(w->category, "synthetic") == 0) {
+			continue;
+		}
+		printf("  Running workload: %s%s\n", w->name,
+		       wrapper ? " (quick wrapper)" : "");
+		if (wrapper != NULL && wrapper->init != NULL) {
+			wrapper->init();
+		} else if (w->init != NULL) {
+			w->init(0, NULL);
+		}
 		start_ts = rtbench_get_timestamp();
-		for (int j = 0; j < rounds; j++) w->exec(0, NULL);
+		for (int j = 0; j < rounds; j++) {
+			if (wrapper != NULL && wrapper->quick_exec != NULL) {
+				wrapper->quick_exec();
+			} else {
+				w->exec(0, NULL);
+			}
+		}
 		end_ts = rtbench_get_timestamp();
-		if (w->teardown != NULL) w->teardown(0, NULL);
+		if (wrapper != NULL && wrapper->teardown != NULL) {
+			wrapper->teardown();
+		} else if (w->teardown != NULL) {
+			w->teardown(0, NULL);
+		}
 		total_ms = (double)(end_ts - start_ts) * 1000.0;
+		printf("    %s: %.3f ms total, %.3f ms avg\n",
+		       w->name, total_ms, total_ms / (double)rounds);
 		rtbench_workload_add_result(wl, w->name,
 					    w->category ? w->category : "",
 					    1, rounds, total_ms,
@@ -606,29 +933,60 @@ static void collect_workload_results(int quick_mode)
 	}
 }
 
-static int run_test_all(struct test_all_params *p)
+static int run_test_all_impl(void *ctx)
 {
+	struct test_all_params *p = (struct test_all_params *)ctx;
+	struct rtbench_platform_env env;
 	int ret = 0;
 
 	rtbench_result_init();
-	rtbench_result_set_env("Ruihua ReWorks", "6.1.1", "Ruihua-Board",
-			       "ARM", 0, 0);
+	memset(&env, 0, sizeof(env));
+	rtbench_platform_get_env(&env);
+	rtbench_result_set_env(env.os_name, env.os_version, env.board,
+			       env.cpu_type, env.cpu_freq_mhz,
+			       env.cpu_core_num);
 	rtbench_result_start();
 	ensure_workloads_registered();
 
+	printf("\n");
+	printf("=============================================================\n");
+	printf("[RTOS-Bench] Comprehensive Test Suite\n");
+	printf("=============================================================\n");
+	printf("Output: %s\n", p->output_path);
+	printf("Modules: realtime=%s schedule=%s stress=%s cmd=%s workload=%s\n",
+	       p->run_realtime ? "yes" : "no",
+	       p->run_schedule ? "yes" : "no",
+	       p->run_stress ? "yes" : "no",
+	       p->run_cmd ? "yes" : "no",
+	       p->run_workload ? "yes" : "no");
+	if (p->quick_mode) {
+		printf("Mode: QUICK (smoke test)\n");
+	}
+	printf("\n");
+
 	if (p->run_realtime) {
 		if (test_realtime_run != NULL) {
+			printf(">>> Running test-realtime...\n");
 			ret |= test_realtime_run(p->run_multicore);
+			collect_realtime_result(p->run_multicore);
 		} else {
 			printf("[test-realtime] module is not linked\n");
 		}
 	}
 	if (p->run_schedule) {
 		if (test_schedule_run_custom != NULL) {
+			printf("\n>>> Running test-schedule%s (cycles=%d util=%d-%d step %d)...\n",
+			       p->quick_mode ? " (quick)" : "",
+			       p->schedule_cycles, p->schedule_util_start,
+			       p->schedule_util_end, p->schedule_util_step);
 			ret |= test_schedule_run_custom(p->schedule_cycles,
 							p->schedule_util_start,
 							p->schedule_util_end,
 							p->schedule_util_step);
+			collect_schedule_result(p->schedule_cycles,
+						p->schedule_util_start,
+						p->schedule_util_end,
+						p->schedule_util_step);
 		} else {
 			printf("[test-schedule] module is not linked\n");
 		}
@@ -637,30 +995,55 @@ static int run_test_all(struct test_all_params *p)
 		const char *job = p->stress_job ?
 			p->stress_job : (p->quick_mode ? "all-quick" : "all");
 		if (test_stress_run_job != NULL) {
+			printf("\n>>> Running test-stress (job: %s)...\n", job);
 			ret |= test_stress_run_job(job);
+			collect_stress_result(job);
 		} else {
 			printf("[test-stress] module is not linked\n");
 		}
 	}
 	if (p->run_cmd) {
 		if (test_cmd_run != NULL) {
+			printf("\n>>> Running test-cmd...\n");
 			ret |= test_cmd_run();
+			collect_cmd_result();
 		} else {
 			printf("[test-cmd] module is not linked\n");
 		}
 	}
 	if (p->run_workload) {
+		printf("\n>>> Running typical workloads%s...\n",
+		       p->quick_mode ? " (quick)" : "");
 		collect_workload_results(p->quick_mode);
 	}
 
 	rtbench_result_end();
-	if (rtbench_result_export_json(p->output_path) != 0) {
+	if (!p->export_results) {
+		printf("\n=============================================================\n");
+		printf("[RTOS-Bench] Result export skipped (--no-export)\n");
+		printf("=============================================================\n");
+	} else if (rtbench_result_export_json(p->output_path) != 0) {
 		ret = -1;
 	} else {
+		printf("\n=============================================================\n");
 		printf("[RTOS-Bench] Results saved to: %s\n", p->output_path);
+		printf("=============================================================\n");
+	}
+	if (p->xml_output_path != NULL) {
+		if (rtbench_result_export_xml(p->xml_output_path) != 0) {
+			ret = -1;
+		} else {
+			printf("[RTOS-Bench] XML results saved to: %s\n",
+			       p->xml_output_path);
+		}
 	}
 	rtbench_result_cleanup();
 	return ret;
+}
+
+static int run_test_all(struct test_all_params *p)
+{
+	return rtbench_platform_run_test_all(run_test_all_impl, p);
 }
 
 static int run_workload_command(int argc, char **argv)
@@ -775,11 +1158,12 @@ int rtbench_command_main(int argc, char **argv)
 		memset(&params, 0, sizeof(params));
 		params.run_realtime = params.run_schedule = params.run_stress = 1;
 		params.run_cmd = params.run_workload = 1;
+		params.export_results = 1;
 		params.schedule_cycles = TEST_SCHEDULE_CYCLES;
 		params.schedule_util_start = TEST_SCHEDULE_UTIL_START;
 		params.schedule_util_end = TEST_SCHEDULE_UTIL_END;
 		params.schedule_util_step = TEST_SCHEDULE_UTIL_STEP;
-		params.output_path = RTBENCH_DEFAULT_OUTPUT_PATH;
+		params.output_path = default_output_path();
 		parse_ret = parse_test_all_args(argc, argv, &params);
 		if (parse_ret == RTBENCH_PARSE_HELP) return 0;
 		if (parse_ret != 0) return -1;
@@ -814,7 +1198,9 @@ int rtbench_command_main(int argc, char **argv)
 		return test_cmd_run();
 	}
 	if (!strcmp(argv[1], "export-result")) {
-		const char *output_path = RTBENCH_DEFAULT_OUTPUT_PATH;
+		const char *output_path = default_output_path();
+		const char *xml_output_path = NULL;
+		int ret;
 		for (int i = 2; i < argc; i++) {
 			const char *value;
 			int matched;
@@ -828,12 +1214,25 @@ int rtbench_command_main(int argc, char **argv)
 				return -1;
 			} else if (matched) {
 				output_path = value;
+				continue;
+			}
+			matched = match_value_option(argc, argv, &i, NULL, "--xml-output", &value);
+			if (matched < 0) {
+				print_export_usage();
+				return -1;
+			} else if (matched) {
+				xml_output_path = value;
+				continue;
 			} else {
 				print_export_usage();
 				return -1;
 			}
 		}
-		return rtbench_result_export_json(output_path);
+		ret = rtbench_result_export_json(output_path);
+		if (ret == 0 && xml_output_path != NULL) {
+			ret = rtbench_result_export_xml(xml_output_path);
+		}
+		return ret;
 	}
 	if (argv[1][0] != '-') {
 		printf("[rtbench] Unknown command: %s\n", argv[1]);

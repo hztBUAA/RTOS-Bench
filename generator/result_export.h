@@ -313,6 +313,17 @@ void rtbench_result_end(void);
 int rtbench_result_export_json(const char *filepath);
 
 /**
+ * @brief Export result to JUnit-compatible XML file
+ * @param filepath Output file path
+ * @return 0 on success, negative on error
+ *
+ * The Flow upload API currently accepts XML files only. This exporter keeps the
+ * structured RTOS-Bench JSON payload inside the XML system-out section so the
+ * uploaded artifact preserves the full benchmark result.
+ */
+int rtbench_result_export_xml(const char *filepath);
+
+/**
  * @brief Export result to JSON string
  * @param buf Output buffer
  * @param bufsize Buffer size

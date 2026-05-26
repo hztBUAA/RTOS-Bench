@@ -196,10 +196,12 @@ int mqtt_test(void) {
 
     printf("Starting MQTT Benchmark...\n");
     ret = pthread_create(&tid, &attr, mqtt_thread_entry, NULL);
-    pthread_attr_destroy(&attr);
-    
-    if (ret != 0) return -1;
+    if (ret != 0) {
+        printf("Error creating MQTT thread: %d\n", ret);
+        return -1;
+    }
     pthread_join(tid, NULL);
+    pthread_attr_destroy(&attr);
     return 0;
 }
 

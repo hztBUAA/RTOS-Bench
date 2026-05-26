@@ -470,12 +470,12 @@ static int cmd_rtbench(int argc, char **argv)
         /* Spawn worker task with large stack */
         static os_task_dummy_t test_all_task_cb;
         os_task_id task = os_task_create(&test_all_task_cb,
+                                          OS_NULL,
                                           RTBENCH_TEST_ALL_STACK_SIZE,
                                           "rtbench",
                                           test_all_thread_entry,
                                           &params,
-                                          OS_TASK_PRIORITY_MAX / 2,
-                                          10);
+                                          OS_TASK_PRIORITY_MAX / 2);
         if (task < 0) {
             printf("[RTOS-Bench] Failed to create test-all worker task\n");
             os_semaphore_destroy(params.done_sem);
@@ -812,16 +812,6 @@ SH_CMD_EXPORT(rtbench, cmd_rtbench, "RTOS-Bench workload runner");
 int cmd_rtbench_stub(int argc, char **argv) {
     return cmd_rtbench(argc, argv);
 }
-
-/* Auto-init on system startup */
-static int rtbench_auto_init(void)
-{
-    ensure_workloads_registered();
-    printf("[rtbench] RTOS-Bench initialized, %d workloads available\n",
-           rtosbench_workload_count());
-    return 0;
-}
-OS_APP_INIT(rtbench_auto_init);
 
 /* ============================================================================
  * Result Collection Functions

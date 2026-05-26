@@ -225,6 +225,7 @@ void stress_unlink(stress_args_t *args)
                 break;
             }
             stress_osal_sleep_ms(10);
+            continue;  /* 跳过后续阶段 */
         }
 
         /*

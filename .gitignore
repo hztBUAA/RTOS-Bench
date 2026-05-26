@@ -2,6 +2,7 @@
 !.gitattributes
 !.gitignore
 !.gitlab-ci.yml
+.env
 docs/*pdf
 docs/latex/*
 docs/*html
