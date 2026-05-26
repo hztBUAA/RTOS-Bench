@@ -76,6 +76,7 @@ struct test_all_params {
 	int schedule_util_start;
 	int schedule_util_end;
 	int schedule_util_step;
+	int export_results;
 	const char *stress_job;
 };
 
@@ -295,6 +296,7 @@ static void print_test_all_usage(void)
 	printf("  -o, --output <path>        Output JSON path (default: %s)\n",
 	       default_output_path());
 	printf("  --no-realtime|--no-schedule|--no-stress|--no-cmd|--no-workload\n");
+	printf("  --no-export                 Do not write result JSON\n");
 	printf("  -m, --multicore            Enable realtime multicore tests\n");
 	printf("  --quick                    Use bounded smoke settings\n");
 	printf("  --schedule-cycles <n>      Override schedule cycles\n");
@@ -577,6 +579,8 @@ static int parse_test_all_args(int argc, char **argv,
 			params->run_cmd = 0;
 		} else if (!strcmp(argv[i], "--no-workload")) {
 			params->run_workload = 0;
+		} else if (!strcmp(argv[i], "--no-export")) {
+			params->export_results = 0;
 		} else if (!strcmp(argv[i], "--multicore") || !strcmp(argv[i], "-m")) {
 			params->run_multicore = 1;
 		} else if (!strcmp(argv[i], "--quick")) {
@@ -1004,7 +1008,11 @@ static int run_test_all_impl(void *ctx)
 	}
 
 	rtbench_result_end();
-	if (rtbench_result_export_json(p->output_path) != 0) {
+	if (!p->export_results) {
+		printf("\n=============================================================\n");
+		printf("[RTOS-Bench] Result export skipped (--no-export)\n");
+		printf("=============================================================\n");
+	} else if (rtbench_result_export_json(p->output_path) != 0) {
 		ret = -1;
 	} else {
 		printf("\n=============================================================\n");
@@ -1132,6 +1140,7 @@ int rtbench_command_main(int argc, char **argv)
 		memset(&params, 0, sizeof(params));
 		params.run_realtime = params.run_schedule = params.run_stress = 1;
 		params.run_cmd = params.run_workload = 1;
+		params.export_results = 1;
 		params.schedule_cycles = TEST_SCHEDULE_CYCLES;
 		params.schedule_util_start = TEST_SCHEDULE_UTIL_START;
 		params.schedule_util_end = TEST_SCHEDULE_UTIL_END;

@@ -66,6 +66,8 @@ static void task_thread_entry(void *param);
 static int compare_double_desc(const void *a, const void *b);
 static int compare_wcet_desc(const void *a, const void *b);
 static int is_builtin_workload(const struct rtosbench_workload *wl);
+static int is_quick_safe_workload(const struct rtosbench_workload *wl,
+				  const struct sched_workload_wrapper *wrapper);
 static const struct sched_workload_wrapper *get_sched_wrapper_for_workload(
 	const struct rtosbench_workload *wl);
 static int sched_workload_init(const struct rtosbench_workload *wl,
@@ -91,6 +93,28 @@ static int is_builtin_workload(const struct rtosbench_workload *wl)
 		return 1;
 	}
 	return 0;
+}
+
+static int is_quick_safe_workload(const struct rtosbench_workload *wl,
+				  const struct sched_workload_wrapper *wrapper)
+{
+	if (wrapper && wrapper->quick_exec) {
+		return 1;
+	}
+	if (!wl || !wl->name) {
+		return 0;
+	}
+
+	/*
+	 * Quick mode is a smoke test. Some full workloads can block before WCET
+	 * filtering gets a chance to run, so only measure cases known to return
+	 * quickly on RTOS boards unless a dedicated schedule wrapper exists.
+	 */
+	return strcmp(wl->name, "fast") == 0 ||
+	       strcmp(wl->name, "ekf") == 0 ||
+	       strcmp(wl->name, "pid") == 0 ||
+	       strcmp(wl->name, "cusum") == 0 ||
+	       strcmp(wl->name, "ewma") == 0;
 }
 
 static const struct sched_workload_wrapper *get_sched_wrapper_for_workload(
@@ -509,12 +533,20 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	valid_idx = 0;
 	for (i = 0; i < total_workloads && valid_idx < num_workloads; i++) {
 		const struct rtosbench_workload *wl = rtosbench_get_workload(i);
+		const struct sched_workload_wrapper *wrapper;
 		if (!wl || !wl->name) {
 			continue;
 		}
 
 		/* Skip builtin utility workloads (stub, busywait) */
 		if (is_builtin_workload(wl)) {
+			continue;
+		}
+
+		wrapper = get_sched_wrapper_for_workload(wl);
+		if (is_quick && !is_quick_safe_workload(wl, wrapper)) {
+			SCHED_PRINTF("  [%s]: skip in quick mode before WCET measurement\n",
+				     wl->name);
 			continue;
 		}
 
