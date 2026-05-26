@@ -12,7 +12,7 @@
 #define PATH_MAX 256
 #endif
 
-#define OPEN_FILE_TEMPLATE      "o%d_%04d"
+#define OPEN_FILE_TEMPLATE      STRESS_FILE_BASE_DIR "o%d_%04d"
 
 static int32_t s_open_max = DEFAULT_OPEN_MAX;
 
@@ -180,8 +180,8 @@ void stress_open(stress_args_t *args)
     {
         char test_path[PATH_MAX];
         stress_osal_snprintf(test_path, PATH_MAX,
-                             "__open_pre_%d.tmp",
-                             (int)args->instance);
+                             "%s__open_pre_%d.tmp",
+                             STRESS_FILE_BASE_DIR, (int)args->instance);
 
         int fd_test = -1;
         int retries = 3;
@@ -197,18 +197,18 @@ void stress_open(stress_args_t *args)
             stress_osal_close(fd_test);
             stress_osal_unlink(test_path);
         } else {
-            stress_osal_print("rtos_stress: warn: [open-%d] "
+            stress_osal_print("rtos_stress: warn: [open-%d] base dir \"%s\""
                               " not writable after retries (errno=%d),"
                               " skipping\n",
-                              args->instance, errno);
+                              args->instance, STRESS_FILE_BASE_DIR, errno);
             goto cleanup;
         }
     }
     /* =================================================================== */
 
     stress_osal_print("rtos_stress: info: [open-%d] opening up to %d files"
-                      " per round\n",
-                      args->instance, max_fds);
+                      " per round (base dir: \"%s\")\n",
+                      args->instance, max_fds, STRESS_FILE_BASE_DIR);
 
     /* ===== 主循环 ===== */
     while (stress_continue(args)) {

@@ -29,6 +29,7 @@ static int32_t s_pipe_data_size = DEFAULT_PIPE_DATA_SIZE;
 
 static int stress_pipe_opt_data_size(const char *opt_name, const char *opt_arg)
 {
+    (void)opt_name;
     char *endptr;
     unsigned long long val = strtoull(opt_arg, &endptr, 10);
     if      (*endptr == 'k' || *endptr == 'K') val *= 1024ULL;
@@ -45,7 +46,7 @@ const stress_opt_t stress_pipe_opts[] = {
 };
 
 /* ---------------------------------------------------------------
- * Reader 线程（阻塞式 read，由关闭写端触发 EOF 退出）
+ * Reader 线程
  * --------------------------------------------------------------- */
 static void stress_pipe_reader(void *parameter)
 {
@@ -82,7 +83,7 @@ done:
 }
 
 /* ---------------------------------------------------------------
- * Writer 线程（阻塞式 write，由关闭读端触发 EPIPE 退出）
+ * Writer 线程
  * --------------------------------------------------------------- */
 static void stress_pipe_writer(void *parameter)
 {
@@ -110,7 +111,6 @@ static void stress_pipe_writer(void *parameter)
             ctx->args->bogo.current_ops++;
         } else if (n < 0) {
             if (errno == EINTR) continue;
-            /* EPIPE: 读端关闭; EBADF: fd 无效 → 退出 */
             break;
         }
     }
@@ -135,13 +135,13 @@ void stress_pipe(stress_args_t *args)
         return;
     }
     stress_osal_memset(ctx, 0, sizeof(pipe_context_t));
-    ctx->fds[0]     = -1;
-    ctx->fds[1]     = -1;
-    ctx->args       = args;
-    ctx->chunk_size = (size_t)s_pipe_data_size;
-    ctx->verify     = STRESS_FALSE;
+    ctx->fds[0]      = -1;
+    ctx->fds[1]      = -1;
+    ctx->args        = args;
+    ctx->chunk_size  = (size_t)s_pipe_data_size;
+    ctx->verify      = STRESS_FALSE;
     ctx->total_bytes = 0;
-    ctx->stop_flag  = 0;
+    ctx->stop_flag   = 0;
 
     static volatile uint32_t s_run_id = 0;
     uint32_t run_id = s_run_id++;
@@ -149,8 +149,22 @@ void stress_pipe(stress_args_t *args)
     stress_osal_snprintf(sem_rd, sizeof(sem_rd), "prd_%u", run_id);
     stress_osal_snprintf(sem_wr, sizeof(sem_wr), "pwr_%u", run_id);
 
-    if (stress_osal_pipe(ctx->fds) < 0) {
-        stress_osal_print("rtos_stress: error: [pipe] pipe() failed errno=%d\n", errno);
+    /* ===== 创建 pipe，运行时探测是否支持 ===== */
+    errno = 0;
+    int pipe_ret = stress_osal_pipe(ctx->fds);
+    int pipe_errno = errno;
+
+    if (pipe_ret != 0 || ctx->fds[0] < 0 || ctx->fds[1] < 0) {
+        if (pipe_errno == ENOSYS) {
+            stress_osal_print("rtos_stress: info: [pipe-%d] pipe not supported"
+                              " on this platform, skipping\n",
+                              args->instance);
+        } else {
+            stress_osal_print("rtos_stress: error: [pipe-%d] pipe() failed"
+                              " ret=%d errno=%d fds[0]=%d fds[1]=%d\n",
+                              args->instance, pipe_ret, pipe_errno,
+                              ctx->fds[0], ctx->fds[1]);
+        }
         stress_osal_free(ctx);
         return;
     }

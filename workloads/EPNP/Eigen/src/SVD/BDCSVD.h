@@ -484,7 +484,9 @@ void BDCSVD<MatrixType, Options>::structured_update(Block<MatrixXr, Dynamic, Dyn
     A.topRows(n1).noalias() = A1.leftCols(k1) * B1.topRows(k1);
     A.bottomRows(n2).noalias() = A2.leftCols(k2) * B2.topRows(k2);
   } else {
-    Map<MatrixXr, Aligned> tmp(m_workspace.data(), n, n);
+    // m_workspace.data() may not be guaranteed aligned on all platforms/allocators
+    // Use an unaligned Map here to avoid the runtime alignment assertion
+    Map<MatrixXr> tmp(m_workspace.data(), n, n);
     tmp.noalias() = A * B;
     A = tmp;
   }
@@ -659,7 +661,8 @@ void BDCSVD<MatrixType, Options>::divide(Index firstCol, Index lastCol, Index fi
   if (m_compU)
     structured_update(m_naiveU.block(firstCol, firstCol, n + 1, n + 1), UofSVD, (n + 2) / 2);
   else {
-    Map<Matrix<RealScalar, 2, Dynamic>, Aligned> tmp(m_workspace.data(), 2, n + 1);
+    // m_workspace.data() may not be aligned; use unaligned Map to avoid runtime assertion
+    Map<Matrix<RealScalar, 2, Dynamic> > tmp(m_workspace.data(), 2, n + 1);
     tmp.noalias() = m_naiveU.middleCols(firstCol, n + 1) * UofSVD;
     m_naiveU.middleCols(firstCol, n + 1) = tmp;
   }
@@ -935,8 +938,8 @@ void BDCSVD<MatrixType, Options>::computeSingVals(const ArrayRef& col0, const Ar
       swap(muPrev, muCur);
     }
 
-    // rational interpolation: fit a function of the form a / mu + b through the two previous
-    // iterates and use its zero to compute the next iterate
+    // rational interpolation: fit a function of the form a / mu + b through the two previous samples.
+    // And use its zero to compute the next iterate
     bool useBisection = fPrev * fCur > Literal(0);
     while (!numext::is_exactly_zero(fCur) &&
            abs(muCur - muPrev) >

@@ -18,6 +18,18 @@
 #define EXIT_NO_RESOURCE 2
 #endif
 
+static inline int __file_exists(const char *path)
+{
+    FILE *fp = fopen(path, "r");
+    if (fp != NULL) {
+        fclose(fp);
+        return 0;   /* �ļ����ڣ���Ӧ access() ���� 0 */
+    }
+    return -1;      /* �ļ������� */
+}
+#define FILE_ACCESS(path, mode) __file_exists(path)
+
+#define DIR_TEMPLATE        STRESS_FILE_BASE_DIR "stress_dentry_%d_dir"
 #define FILENAME_TEMPLATE   "d%d_%x"
 
 #define UNLIKELY(x)         __builtin_expect(!!(x), 0)
@@ -119,7 +131,7 @@ void stress_dentry(stress_args_t *args)
     }
     for(int i=0; i<num_dentries; i++) indices[i] = i;
 
-    stress_osal_snprintf(dir_path, sizeof(dir_path), "stress_dentry_%d_dir", (int)args->instance);
+    stress_osal_snprintf(dir_path, sizeof(dir_path), DIR_TEMPLATE, (int)args->instance);
 
     if (stress_osal_mkdir(dir_path, 0777) < 0 && errno != EEXIST) {
         stress_osal_print("rtos_stress: error: [dentry] failed to create dir %s (errno=%d)\n", dir_path, errno);
@@ -159,7 +171,7 @@ void stress_dentry(stress_args_t *args)
             if (UNLIKELY(!stress_continue(args))) break;
             uint64_t bogus_gc = gray_code(num_dentries + i + 100);
             stress_osal_snprintf(path, PATH_MAX, "%s/" FILENAME_TEMPLATE, dir_path, (int)args->instance, (unsigned int)bogus_gc);
-            if (access(path, F_OK) == 0) {
+            if (FILE_ACCESS(path, F_OK) == 0) {
             }
             args->bogo.current_ops++;
         }

@@ -104,8 +104,7 @@ int bench_get_cpu(void) {
 
 int bench_get_cpu(void) {
     // API
-    return (int)VMK_CpuIDGet();
+    return cpuIDGet();
 }
-
 
 #endif

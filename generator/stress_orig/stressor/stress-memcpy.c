@@ -202,7 +202,7 @@ static stress_bool_t run_one(mc_ctx_t      *ctx,
         if (diff < n) {
             stress_osal_print(
                 "rtos_stress: fail: [memcpy-%d] %s content check failed "
-                "(n=%zu offset=%zu expect=0x%02x got=0x%02x)\n",
+                "(n=%lu offset=%lu expect=0x%02x got=0x%02x)\n",
                 ctx->args->instance, method_name, n, diff,
                 (unsigned)ctx->src[diff],
                 (unsigned)ctx->dst[diff]);
@@ -253,7 +253,7 @@ void stress_memcpy(stress_args_t *args)
     size_t block = (sz + 63) & ~(size_t)63;
     buf = (uint8_t *)stress_osal_malloc(2 * block);
     if (!buf) {
-        stress_osal_print("rtos_stress: error: [memcpy-%d] OOM (%zu bytes)\n",
+        stress_osal_print("rtos_stress: error: [memcpy-%d] OOM (%lu bytes)\n",
                           args->instance, 2 * block);
         return;
     }
@@ -263,7 +263,7 @@ void stress_memcpy(stress_args_t *args)
     ctx.src  = buf;
     ctx.dst  = buf + block;
 
-    stress_osal_print("rtos_stress: info: [memcpy-%d] buffer size: 2 x %zu bytes\n",
+    stress_osal_print("rtos_stress: info: [memcpy-%d] buffer size: 2 x %lu bytes\n",
                       args->instance, sz);
 
     if (args->method_name != NULL &&

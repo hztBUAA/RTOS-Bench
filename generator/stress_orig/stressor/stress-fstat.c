@@ -16,9 +16,8 @@
  */
 #define NUM_WORKER_THREADS      (1)
 
-/*
- * 修复问题五：所有文件大小相关常量统一使用 FILE_DATA_SIZE。
- */
+#define DIR_TEMPLATE            STRESS_FILE_BASE_DIR "st_fstat_%d"
+
 #define FILE_DATA_SIZE          (64)
 
 /*
@@ -176,7 +175,7 @@ void stress_fstat(stress_args_t *args)
     int workers_spawned = 0;
 
     stress_osal_snprintf(dir_path, sizeof(dir_path),
-                         "st_fstat_%d", (int)args->instance);
+                         DIR_TEMPLATE, (int)args->instance);
 
     if (stress_osal_mkdir(dir_path, 0777) < 0 && errno != EEXIST) {
         stress_osal_print("rtos_stress: error: [fstat-%d] mkdir '%s'"

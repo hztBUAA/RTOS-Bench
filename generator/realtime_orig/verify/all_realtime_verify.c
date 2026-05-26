@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "bench_verify.h"
 #include "les.h"
+#include "test_list.h"
 
 static void *realtime_verify_all_thread(void *parameter) {
     printf("\n"
@@ -23,6 +24,8 @@ static void *realtime_verify_all_thread(void *parameter) {
 }
 
 void realtime_verify_all(void) {
+    thread_initialize();
+
     pthread_t tid;
     pthread_attr_t attr;
 	pthread_attr_init(&attr);

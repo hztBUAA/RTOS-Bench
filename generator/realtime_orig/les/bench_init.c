@@ -8,6 +8,15 @@
 
 #include "bench_verify.h"
 
+#if defined(DONGTU_PLATFORM)
+#include <inttypes.h>
+#include <stdio.h>
+#include "les.h"
+#include "test_list.h"
+
+#include "bench_verify.h"
+#endif
+
 #if defined(RUIHUA_PLATFORM)
 #include "reworks_int.h"
 extern int pthread_switch_hook_add(void(*)(thread_t, thread_t));
@@ -243,6 +252,26 @@ RTBENCH_LEGACY_ENTRY_VISIBLE void multicore_print(void) {
     printf("（除特殊说明外，上述单位均为GB/s）\n");
 }
 
+void thread_initialize(void) {
+
+#if defined(RUIHUA_PLATFORM)
+	pthread_switch_hook_add(task_switch_hook);
+#endif
+
+#if defined(DONGTU_PLATFORM)
+#undef LES_syscall_val
+#undef LES_syscall_flag
+	__LES_interrupt_start_val = (volatile uint64_t *)&stDEHeaderPtr->allirq_val;
+	__LES_interrupt_end_val = (volatile uint64_t *)&stDEHeaderPtr->systimeirq_val;
+	__LES_interrupt_flag = (volatile uint32_t *)&stDEHeaderPtr->interrupt_flag;
+	__LES_syscall_val = (volatile uint64_t *)&stDEHeaderPtr->LES_syscall_val;
+	__LES_syscall_flag = (volatile uint32_t *)&stDEHeaderPtr->LES_syscall_flag;
+#define LES_syscall_val (*__LES_syscall_val)
+#define LES_syscall_flag (*__LES_syscall_flag)
+#endif
+}
+
+
 /* =========================================================================
  * Threads for test_realtime wrapper
  * ========================================================================= */
@@ -255,9 +284,6 @@ static void *realtime_benchmark_run_thread(void *parameter)
 {
     BIND_THREAD_TO_CPU(0);
 
-#if defined(RUIHUA_PLATFORM)
-	pthread_switch_hook_add(task_switch_hook);
-#endif
 
     realtime_init();
     realtime_print();
@@ -271,10 +297,6 @@ static void *realtime_benchmark_run_thread(void *parameter)
 static void *realtime_benchmark_run_multicore_thread(void *parameter)
 {
     BIND_THREAD_TO_CPU(0);
-
-#if defined(RUIHUA_PLATFORM)
-	pthread_switch_hook_add(task_switch_hook);
-#endif
 
     multicore_init();
     multicore_print();
@@ -291,9 +313,6 @@ static void *realtime_benchmark_run_all_thread(void *parameter)
     BIND_THREAD_TO_CPU(0);
 
     int run_multicore = (int)(long)parameter;
-#if defined(RUIHUA_PLATFORM)
-	pthread_switch_hook_add(task_switch_hook);
-#endif
 
     realtime_init();
     realtime_print();
@@ -317,6 +336,8 @@ static void *realtime_benchmark_run_all_thread(void *parameter)
  */
 int realtime_benchmark_run(void)
 {
+    thread_initialize();
+
     pthread_t tid;
     pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -347,6 +368,8 @@ int realtime_benchmark_run(void)
  */
 int realtime_benchmark_run_multicore(void)
 {
+    thread_initialize();
+
     pthread_t tid;
     pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -378,6 +401,8 @@ int realtime_benchmark_run_multicore(void)
  */
 int realtime_benchmark_run_all(int run_multicore)
 {
+    thread_initialize();
+
     pthread_t tid;
     pthread_attr_t attr;
 	pthread_attr_init(&attr);

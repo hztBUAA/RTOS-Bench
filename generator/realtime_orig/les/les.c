@@ -15,6 +15,17 @@ volatile uint32_t LES_flag = 0;
 volatile uint32_t LES_syscall_flag = 0;
 volatile uint32_t LES_interrupt_flag = 0;
 */
+#elif defined(DONGTU_PLATFORM)
+
+volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
+volatile uint32_t LES_offset = 0;
+volatile uint64_t *__LES_syscall_val = NULL;
+volatile uint64_t *__LES_interrupt_start_val = NULL;
+volatile uint64_t *__LES_interrupt_end_val = NULL;
+volatile uint32_t LES_flag = 0;
+volatile uint32_t *__LES_syscall_flag = NULL;
+volatile uint32_t *__LES_interrupt_flag = NULL;
+
 #else
 volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
 volatile uint32_t LES_offset = 0;

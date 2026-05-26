@@ -8,6 +8,18 @@
  * Configuration Constants
  * ============================================================================ */
 
+/* file system mount point */
+#if defined(DONGTU_PLATFORM)
+  #ifndef STRESS_FILE_BASE_DIR
+  #define STRESS_FILE_BASE_DIR    "/nfsd/"
+  #endif
+  #define STRESS_NO_DEV_NULL      1
+#else
+  #ifndef STRESS_FILE_BASE_DIR
+  #define STRESS_FILE_BASE_DIR    ""
+  #endif
+#endif
+
 /* atomic */
 #define MIN_ATOMIC_THREADS      1
 #define DEFAULT_ATOMIC_THREADS  4

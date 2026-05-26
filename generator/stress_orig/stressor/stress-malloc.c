@@ -187,7 +187,7 @@ void stress_malloc(stress_args_t *args)
                  */
                 stress_osal_print(
                     "rtos_stress: fail: [malloc-%d] corruption "
-                    "slot=%zu ptr=%p size=%zu canary=0x%02x, quarantine\n",
+                    "slot=%lu ptr=%p size=%lu canary=0x%02x, quarantine\n",
                     args->instance, i,
                     slots[i].ptr, slots[i].size, slots[i].canary);
                 slots[i].ptr  = NULL;
@@ -219,7 +219,7 @@ void stress_malloc(stress_args_t *args)
             stress_osal_free(slots[k].ptr);
         } else {
             stress_osal_print(
-                "rtos_stress: warn: [malloc-%d] slot=%zu corrupted at cleanup, skip\n",
+                "rtos_stress: warn: [malloc-%d] slot=%lu corrupted at cleanup, skip\n",
                 args->instance, k);
         }
         slots[k].ptr  = NULL;

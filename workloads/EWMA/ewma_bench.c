@@ -109,10 +109,11 @@ int ewma_bench_run(void)
 	/* End timing */
 	uint64_t end_time = get_time_ns();
 	uint64_t total_ns = end_time - start_time;
-	double avg_ns = (double)total_ns / stream_len;
+	size_t total_samples = stream_len * (size_t)loops;
+	double avg_ns = (double)total_ns / (double)total_samples;
 
-	printf("[EWMA] samples=%zu total_time=%.3f ms avg_latency=%.3f us/sample\n",
-	       stream_len, (double)total_ns / 1000000.0, avg_ns / 1000.0);
+	printf("[EWMA] loops=%d stream_len_per_loop=%lu total_time=%.3f ms avg_latency=%.3f us/sample\n",
+	       loops, (unsigned long)stream_len, (double)total_ns / 1000000.0, avg_ns / 1000.0);
 
 	return alarms;
 }

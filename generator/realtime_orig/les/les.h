@@ -49,15 +49,35 @@
 #define GETTIMEVAL_ERROR -1
 
 /* 声明全局变量 */
+#if defined(DONGTU_PLATFORM)
+
+extern volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
+extern volatile uint32_t LES_offset;
+extern volatile uint64_t *__LES_syscall_val;
+extern volatile uint64_t *__LES_interrupt_start_val;
+extern volatile uint64_t *__LES_interrupt_end_val;
+extern volatile uint32_t LES_flag;
+extern volatile uint32_t *__LES_syscall_flag;
+extern volatile uint32_t *__LES_interrupt_flag;
+
+#define LES_syscall_val (*__LES_syscall_val)
+#define LES_interrupt_start_val (*__LES_interrupt_start_val)
+#define LES_interrupt_end_val (*__LES_interrupt_end_val)
+#define LES_syscall_flag (*__LES_syscall_flag)
+#define LES_interrupt_flag (*__LES_interrupt_flag)
+
+#else
+
 extern volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
 extern volatile uint32_t LES_offset;
 extern volatile uint64_t LES_syscall_val;
 extern volatile uint64_t LES_interrupt_start_val;
 extern volatile uint64_t LES_interrupt_end_val;
-
 extern volatile uint32_t LES_flag;
 extern volatile uint32_t LES_syscall_flag;
 extern volatile uint32_t LES_interrupt_flag;
+
+#endif
 
 /* 启动计时器 */
 /* 此函数默认为空，除非特定架构下的计时器有手动开启的需要 */
@@ -65,7 +85,7 @@ static inline void LES_start_timer(void) {
 #if defined(__aarch64__)
     /* ... */
 
-#elif defined(_M_X64) || defined(__x86_64__)
+#elif defined(_M_X64) || defined(__x86_64__) || defined(_X86_)
     /* ... */
 
 #elif defined(__riscv)
@@ -85,7 +105,7 @@ static inline uint64_t freqGet(void) {
 #if defined(__aarch64__)
     __asm__ volatile("mrs %0, cntfrq_el0" : "=r"(freq));
 
-#elif defined(_M_X64) || defined(__x86_64__)
+#elif defined(_M_X64) || defined(__x86_64__) || defined(_X86_)
     #if defined(SYLIXOS_PLATFORM)
         freq = 3599453234;
     #else
@@ -114,7 +134,7 @@ static inline uint64_t timeGet(void) {
 #if defined(__aarch64__)
     __asm__ volatile("mrs %0, cntpct_el0" : "=r"(val));
 
-#elif defined(_M_X64) || defined(__x86_64__)
+#elif defined(_M_X64) || defined(__x86_64__) || defined(_X86_)
     #if defined(_M_X64)
         #include <intrin.h>
         val = __rdtsc();

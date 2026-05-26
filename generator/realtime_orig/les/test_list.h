@@ -7,6 +7,8 @@
 #ifndef __TEST_LIST_H__
 #define __TEST_LIST_H__
 
+void thread_initialize(void);
+
 void test1(uint64_t*);	// context_switch
 void test2(uint64_t*, uint64_t*, uint64_t*);	// interrupt
 void test3(uint64_t*, uint64_t*, uint64_t*);	// syscall

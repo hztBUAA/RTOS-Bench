@@ -102,7 +102,6 @@ static const char *test_seq[] = {
     "cat ./test_cmd_dir/original.txt",
     "rm ./test_cmd_dir/original.txt",
 };
-
 #else
 
 /* Unsupported platform stub */
