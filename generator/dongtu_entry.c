@@ -332,6 +332,7 @@ static void *test_all_thread_entry(void *parameter)
 	return NULL;
 }
 
+extern int run_all_workloads(void);
 /**
  * @brief Shell command entry point for Dongtu RTOS
  *
