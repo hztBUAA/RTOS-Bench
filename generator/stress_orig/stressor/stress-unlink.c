@@ -15,6 +15,9 @@
 #define FILENAME_TEMPLATE       STRESS_FILE_BASE_DIR "u%d_%04d"
 
 #define UNLIKELY(x)             __builtin_expect(!!(x), 0)
+#define LIKELY(x)               __builtin_expect(!!(x), 1)
+
+#define FSYNC_STRIDE            (1 << 5)
 
 static int32_t s_unlink_files = DEFAULT_UNLINK_FILES;
 
@@ -24,10 +27,8 @@ static int stress_unlink_opt_files(const char *opt_name, const char *opt_arg)
     int val = atoi(opt_arg);
     if (val < MIN_UNLINK_FILES) val = MIN_UNLINK_FILES;
     if (val > MAX_UNLINK_FILES) val = MAX_UNLINK_FILES;
-
     s_unlink_files = val;
-    stress_osal_print("rtos_stress: debug: unlink-files set to %d\n",
-                      s_unlink_files);
+    stress_osal_print("rtos_stress: debug: unlink-files set to %d\n", s_unlink_files);
     return 0;
 }
 
@@ -50,30 +51,28 @@ static void stress_unlink_shuffle(int *idx, int size)
 
 static void safe_unlink_quiet(const char *path)
 {
-    if (stress_osal_unlink(path) != 0 && errno != ENOENT) {
-        /* 静默 */
-    }
+    stress_osal_unlink(path);
 }
 
 void stress_unlink(stress_args_t *args)
 {
-    int    num_files     = s_unlink_files;
-    int    actual_limit  = num_files;  /* 自适应上限 */
-    char **filenames     = NULL;
-    int   *fds           = NULL;
-    int   *perm_idx      = NULL;
-    char  *tmp_path      = NULL;       /* 堆分配，不用栈上大数组 */
-    int    i;
-    int    fsync_supported    = 0;
-    int    open_err_count     = 0;
-    int    unlink_err_count   = 0;
-    int    fd_limit_total     = 0;
-    int    fd_limit_logged    = 0;     /* 只打印前几次 */
+    int       num_files      = s_unlink_files;
+    int       actual_limit   = num_files;
+    char    **filenames      = NULL;
+    int      *fds            = NULL;
+    int      *perm_idx       = NULL;
+    char     *tmp_path       = NULL;
+    int       i;
+    int       fsync_supported    = 0;
+    int       fd_limit_total     = 0;
+    int       fd_limit_logged    = 0;
+    int       open_err_count     = 0;
+    int       unlink_err_count   = 0;
+    uint32_t  consecutive_zero   = 0;
 
     #define MAX_ERR_LOGS      5
     #define MAX_FD_LIMIT_LOGS 3
 
-    /* 堆分配临时路径缓冲（避免栈上 PATH_MAX） */
     tmp_path = (char *)stress_osal_malloc(PATH_MAX);
     if (!tmp_path) {
         stress_osal_print("rtos_stress: error: [unlink-%d] OOM for path buf\n",
@@ -81,12 +80,10 @@ void stress_unlink(stress_args_t *args)
         return;
     }
 
-    /* ===== 预检 base dir（用 OSAL + 重试） ===== */
     {
         stress_osal_snprintf(tmp_path, PATH_MAX,
                              "%s__unlink_pre_%d.tmp",
                              STRESS_FILE_BASE_DIR, (int)args->instance);
-
         int fd_test = -1;
         int retries = 3;
         while (retries-- > 0) {
@@ -106,7 +103,6 @@ void stress_unlink(stress_args_t *args)
         }
     }
 
-    /* ===== 运行时探测 fsync ===== */
     {
         stress_osal_snprintf(tmp_path, PATH_MAX,
                              "%s__unlink_fsync_%d.tmp",
@@ -122,18 +118,16 @@ void stress_unlink(stress_args_t *args)
         }
     }
 
-    /* ===== 分配资源（全部用 num_files 统一） ===== */
     filenames = (char **)stress_osal_malloc(num_files * sizeof(char *));
     fds       = (int   *)stress_osal_malloc(num_files * sizeof(int));
     perm_idx  = (int   *)stress_osal_malloc(num_files * sizeof(int));
 
     if (!filenames || !fds || !perm_idx) {
-        stress_osal_print("rtos_stress: error: [unlink-%d] OOM\n",
+        stress_osal_print("rtos_stress: error: [unlink-%d] OOM allocating arrays\n",
                           args->instance);
         goto cleanup;
     }
 
-    /* 初始化：确保所有元素有安全的初始值 */
     stress_osal_memset(filenames, 0, num_files * sizeof(char *));
     for (i = 0; i < num_files; i++) {
         fds[i]      = -1;
@@ -145,8 +139,6 @@ void stress_unlink(stress_args_t *args)
         if (!filenames[i]) {
             stress_osal_print("rtos_stress: error: [unlink-%d] OOM buf %d\n",
                               args->instance, i);
-            /* 注意：num_files 不变，cleanup 遍历 num_files，
-             * 未分配的 filenames[j] 为 NULL（memset 保证），安全 */
             goto cleanup;
         }
         stress_osal_snprintf(filenames[i], PATH_MAX,
@@ -154,16 +146,13 @@ void stress_unlink(stress_args_t *args)
                              (int)args->instance, i);
     }
 
-    stress_osal_print("rtos_stress: info: [unlink-%d] starting with"
-                      " %d files\n",
+    stress_osal_print("rtos_stress: info: [unlink-%d] starting with %d files\n",
                       args->instance, num_files);
 
-    /* ===== 主循环 ===== */
     while (stress_continue(args)) {
         int files_opened  = 0;
         int fd_limit_this = 0;
 
-        /* 打开文件（只到 actual_limit） */
         for (i = 0; i < actual_limit; i++) {
             if (UNLIKELY(!stress_continue(args))) break;
 
@@ -176,23 +165,12 @@ void stress_unlink(stress_args_t *args)
                 if (errno == EMFILE || errno == ENFILE) {
                     fd_limit_total++;
                     fd_limit_this = 1;
-
-                    /*
-                     * 自适应缩减：
-                     * 当前 slot i 打开失败 → 下轮上限改为 i（至少 2）
-                     */
-                    if (i >= 2) {
-                        actual_limit = i;
-                    } else {
-                        actual_limit = 2;
-                    }
-
-                    /* 限制打印次数 */
+                    actual_limit  = (i >= 2) ? i : 2;
                     if (fd_limit_logged < MAX_FD_LIMIT_LOGS) {
                         fd_limit_logged++;
                         stress_osal_print("rtos_stress: info: [unlink-%d]"
-                                          " fd limit at slot %d, adapted"
-                                          " to %d files [%d/%d]\n",
+                                          " fd limit at slot %d, adapted to"
+                                          " %d files [%d/%d]\n",
                                           args->instance, i, actual_limit,
                                           fd_limit_logged, MAX_FD_LIMIT_LOGS);
                     }
@@ -210,46 +188,41 @@ void stress_unlink(stress_args_t *args)
 
             files_opened++;
 
-            if (fsync_supported && (i & 0x1F) == 0) {
+            if (fsync_supported && (i & (FSYNC_STRIDE - 1)) == 0) {
+                char tiny = (char)(i & 0xFF);
+                stress_osal_write(fds[i], &tiny, 1);
                 stress_osal_fsync(fds[i]);
             }
 
             args->bogo.current_ops++;
         }
 
-        if (files_opened == 0 && !fd_limit_this && stress_continue(args)) {
-            if (open_err_count >= MAX_ERR_LOGS) {
-                stress_osal_print("rtos_stress: warn: [unlink-%d]"
-                                  " cannot open files, stopping\n",
+        if (files_opened == 0) {
+            consecutive_zero++;
+            if (consecutive_zero >= 50) {
+                stress_osal_print("rtos_stress: fail: [unlink-%d]"
+                                  " 50 consecutive rounds with 0 files"
+                                  " opened, aborting\n",
                                   args->instance);
                 break;
             }
             stress_osal_sleep_ms(10);
-            continue;  /* 跳过后续阶段 */
+            continue;
         }
+        consecutive_zero = 0;
 
-        /*
-         * 如果本轮没有触发 fd limit，尝试缓慢恢复上限，
-         * 探测是否有更多 fd 可用（其他 stressor 可能已释放）
-         */
         if (!fd_limit_this && actual_limit < num_files) {
             actual_limit += 2;
-            if (actual_limit > num_files) {
-                actual_limit = num_files;
+            if (actual_limit > num_files) actual_limit = num_files;
+        }
+
+        for (i = 0; i < num_files; i++) {
+            if (fds[i] >= 0) {
+                stress_osal_close(fds[i]);
+                fds[i] = -1;
             }
         }
 
-        /* 随机关闭部分 fd（模拟并发行为） */
-        stress_unlink_shuffle(perm_idx, actual_limit);
-        for (i = 0; i < actual_limit; i += 8) {
-            int idx = perm_idx[i];
-            if (idx < num_files && fds[idx] >= 0) {
-                stress_osal_close(fds[idx]);
-                fds[idx] = -1;
-            }
-        }
-
-        /* 随机 unlink（只遍历 actual_limit） */
         stress_unlink_shuffle(perm_idx, actual_limit);
         for (i = 0; i < actual_limit; i++) {
             if (UNLIKELY(!stress_continue(args))) break;
@@ -270,7 +243,6 @@ void stress_unlink(stress_args_t *args)
             }
         }
 
-        /* 关闭所有剩余 fd */
         for (i = 0; i < num_files; i++) {
             if (fds[i] >= 0) {
                 stress_osal_close(fds[i]);
@@ -278,29 +250,18 @@ void stress_unlink(stress_args_t *args)
             }
         }
 
-        /* 静默清理残留 */
-        for (i = 0; i < actual_limit; i++) {
-            if (i < num_files) {
-                safe_unlink_quiet(filenames[i]);
-            }
+        for (i = 0; i < actual_limit && i < num_files; i++) {
+            safe_unlink_quiet(filenames[i]);
         }
 
         stress_osal_sleep_ms(1);
     }
 
-    /* 汇总 */
-    if (fd_limit_total > 0) {
-        stress_osal_print("rtos_stress: SUMMARY: [unlink-%d]"
-                          " fd limit hit %d times, final limit=%d/%d\n",
-                          args->instance, fd_limit_total,
-                          actual_limit, num_files);
-    }
+    stress_osal_print("rtos_stress: SUMMARY: [unlink-%d]"
+                      " fd limit hit %d times, final limit=%d/%d\n",
+                      args->instance, fd_limit_total, actual_limit, num_files);
 
 cleanup:
-    /*
-     * 关键修复：cleanup 中所有循环都用 num_files（= 数组分配大小），
-     * 绝不用 s_unlink_files，避免越界访问！
-     */
     if (fds) {
         for (i = 0; i < num_files; i++) {
             if (fds[i] >= 0) stress_osal_close(fds[i]);
@@ -318,11 +279,6 @@ cleanup:
         stress_osal_free(filenames);
     }
 
-    if (perm_idx) {
-        stress_osal_free(perm_idx);
-    }
-
-    if (tmp_path) {
-        stress_osal_free(tmp_path);
-    }
+    if (perm_idx) stress_osal_free(perm_idx);
+    if (tmp_path) stress_osal_free(tmp_path);
 }
