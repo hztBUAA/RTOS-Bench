@@ -192,7 +192,7 @@ static void stress_stream_worker(void *parameter)
         args->bogo.metric_val[0] = mb_rate;
         stress_osal_strcpy(args->bogo.metric_name[0], "MB/sec");
         args->bogo.metric_val[1] = mflops;
-        stress_osal_strcpy(args->bogo.metric_name[0], "Mflop/sec");
+        stress_osal_strcpy(args->bogo.metric_name[1], "Mflop/sec");
 
         stress_osal_print("rtos_stress: info: [stream-%d] bandwidth: %.2f MB/sec, compute: %.2f Mflop/sec\n",
                    args->instance, mb_rate, mflops);
