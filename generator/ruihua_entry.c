@@ -112,6 +112,27 @@ int rtbench_help(void)
 	return 0;
 }
 
+int rtbench_list(void)
+{
+	char *argv[] = { "rtbench", "--list" };
+	return rtbench_command_main(2, argv);
+}
+
+int rtbench_stub(void)
+{
+	return rtbench_command_run_benchmark("stub", 0.1, 1);
+}
+
+int rtbench_busywait(void)
+{
+	return rtbench_command_run_benchmark("busywait", 0.1, 1);
+}
+
+int rtbench_ruihua_smoke(void)
+{
+	return rtbench_command_run_benchmark("ruihua-smoke", 0.1, 1);
+}
+
 int rtbench_test_all(void)
 {
 	char *argv[] = { "rtbench", "test-all" };
@@ -120,8 +141,11 @@ int rtbench_test_all(void)
 
 int rtbench_test_all_quick(void)
 {
-	char *argv[] = { "rtbench", "test-all", "--quick" };
-	return rtbench_command_main(3, argv);
+	char *argv[] = {
+		"rtbench", "test-all", "--quick",
+		"--no-realtime", "--no-stress",
+	};
+	return rtbench_command_main(5, argv);
 }
 
 int rtbench_test_schedule(void)
@@ -134,6 +158,12 @@ int rtbench_test_schedule_quick(void)
 {
 	char *argv[] = { "rtbench", "test-schedule", "--quick" };
 	return rtbench_command_main(3, argv);
+}
+
+int rtbench_test_schedule_cycles3(void)
+{
+	char *argv[] = { "rtbench", "test-schedule", "--cycles", "3" };
+	return rtbench_command_main(4, argv);
 }
 
 int rtbench_test_realtime(void)
@@ -164,7 +194,9 @@ int rtbench_export_result(const char *output_path)
 	return rtbench_command_main(4, argv);
 }
 
+#ifndef RTBENCH_NO_STANDALONE_MAIN
 int main(int argc, char **argv)
 {
 	return rtbench_command_main(argc, argv);
 }
+#endif

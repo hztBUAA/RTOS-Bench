@@ -1,9 +1,8 @@
 /**
  * @file timer.c
  * @brief POSIX-lite timer implementation for OneOS / Dongtu / Ruihua.
- * @details Reuses POSIX timer APIs (timer_create / timer_settime). If the
- *          target RTOS lacks SIGEV_THREAD, the BSP should provide a shim
- *          or swap this implementation.
+ * @details Ruihua/ReWorks does not provide SIGEV_THREAD timers in the tested
+ *          BSP, so the platform layer uses a small pthread-backed timer.
  */
 
 #include "platform_abstraction.h"
@@ -11,26 +10,51 @@
 #if defined(RTBENCH_PLATFORM_ONEOS) || defined(RTBENCH_PLATFORM_DONGTU) ||     \
 	defined(RTBENCH_PLATFORM_RUIHUA)
 
-#include <signal.h>
+#include <pthread.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <unistd.h>
 
 struct rtbench_timer_internal {
-	timer_t timer;
+	pthread_t thread;
 	rtbench_timer_callback_t callback;
 	void *user_data;
 	rtbench_timer_type_t type;
+	volatile int active;
+	int thread_started;
+	long sec;
+	long nsec;
 };
 
-static void rtbench_timer_dispatch(union sigval value)
+static void rtbench_timer_sleep(long sec, long nsec)
+{
+	uint64_t usec = (uint64_t)sec * 1000000ULL;
+	usec += (uint64_t)nsec / 1000ULL;
+	if (usec == 0) {
+		usec = 1;
+	}
+	usleep((useconds_t)usec);
+}
+
+static void *rtbench_timer_thread(void *arg)
 {
 	struct rtbench_timer_internal *timer =
-		(struct rtbench_timer_internal *)value.sival_ptr;
+		(struct rtbench_timer_internal *)arg;
 
-	if (timer != NULL && timer->callback != NULL) {
-		timer->callback(timer->user_data);
+	while (timer != NULL && timer->active) {
+		rtbench_timer_sleep(timer->sec, timer->nsec);
+		if (!timer->active) {
+			break;
+		}
+		if (timer->callback != NULL) {
+			timer->callback(timer->user_data);
+		}
+		if (timer->type != RTBENCH_TIMER_PERIOD) {
+			break;
+		}
 	}
+	return NULL;
 }
 
 rtbench_timer_t rtbench_timer_create(rtbench_timer_type_t timer_type,
@@ -38,8 +62,6 @@ rtbench_timer_t rtbench_timer_create(rtbench_timer_type_t timer_type,
 				      void *user_data)
 {
 	struct rtbench_timer_internal *timer = NULL;
-	struct sigevent event;
-	int res;
 
 	if (callback == NULL) {
 		return NULL;
@@ -50,23 +72,7 @@ rtbench_timer_t rtbench_timer_create(rtbench_timer_type_t timer_type,
 		return NULL;
 	}
 
-	memset(&event, 0, sizeof(event));
-#ifdef SIGEV_THREAD
-	event.sigev_notify = SIGEV_THREAD;
-	event.sigev_notify_function = rtbench_timer_dispatch;
-	event.sigev_value.sival_ptr = timer;
-#else
-	/* Fallback: unsupported */
-	free(timer);
-	return NULL;
-#endif
-
-	res = timer_create(CLOCK_REALTIME, &event, &timer->timer);
-	if (res != 0) {
-		free(timer);
-		return NULL;
-	}
-
+	memset(timer, 0, sizeof(*timer));
 	timer->callback = callback;
 	timer->user_data = user_data;
 	timer->type = timer_type;
@@ -78,25 +84,27 @@ int rtbench_timer_settime(rtbench_timer_t timer, long sec, long nsec)
 {
 	struct rtbench_timer_internal *t =
 		(struct rtbench_timer_internal *)timer;
-	struct itimerspec timer_spec;
 	int res;
 
 	if (t == NULL) {
 		return -1;
 	}
 
-	memset(&timer_spec, 0, sizeof(timer_spec));
-	timer_spec.it_value.tv_sec = sec;
-	timer_spec.it_value.tv_nsec = nsec;
-	if (t->type == RTBENCH_TIMER_PERIOD) {
-		timer_spec.it_interval.tv_sec = sec;
-		timer_spec.it_interval.tv_nsec = nsec;
+	if (t->thread_started) {
+		t->active = 0;
+		pthread_join(t->thread, NULL);
+		t->thread_started = 0;
 	}
 
-	res = timer_settime(t->timer, 0, &timer_spec, NULL);
-	if (res < 0) {
+	t->sec = sec;
+	t->nsec = nsec;
+	t->active = 1;
+	res = pthread_create(&t->thread, NULL, rtbench_timer_thread, t);
+	if (res != 0) {
+		t->active = 0;
 		return -1;
 	}
+	t->thread_started = 1;
 
 	return 0;
 }
@@ -111,7 +119,11 @@ int rtbench_timer_delete(rtbench_timer_t timer)
 		return -1;
 	}
 
-	res = timer_delete(t->timer);
+	t->active = 0;
+	res = 0;
+	if (t->thread_started && !pthread_equal(pthread_self(), t->thread)) {
+		res = pthread_join(t->thread, NULL);
+	}
 	free(t);
 	return (res == 0) ? 0 : -1;
 }
