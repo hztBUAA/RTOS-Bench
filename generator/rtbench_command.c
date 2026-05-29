@@ -23,6 +23,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(RUIHUA_PLATFORM)
+#include <unistd.h>
+#endif
 
 #if defined(__GNUC__)
 #define RTBENCH_WEAK __attribute__((weak))
@@ -1079,7 +1082,40 @@ static int run_workload_command(int argc, char **argv)
 	printf("[rtbench] workload=%s period=%ld.%09ld tasks=%llu\n",
 	       rtosbench_current_workload(), opts.period_sec, opts.period_nsec,
 	       (unsigned long long)opts.tasks_to_launch);
+#if defined(RUIHUA_PLATFORM)
+	{
+		unsigned long long count = opts.tasks_to_launch ? opts.tasks_to_launch : 1;
+		long double start;
+		long double end;
+		uint64_t period_us = (uint64_t)opts.period_sec * 1000000ULL +
+				     (uint64_t)opts.period_nsec / 1000ULL;
+
+		printf("[rtbench] Ruihua direct periodic mode, activations=%llu period=%llu us\n",
+		       count, (unsigned long long)period_us);
+		if (workload_init(0, NULL) != 0) {
+			printf("[rtbench] workload init failed\n");
+			return -1;
+		}
+		start = rtbench_get_timestamp();
+		for (unsigned long long i = 0; i < count; i++) {
+			long double iter_start = rtbench_get_timestamp();
+			workload_exec(0, NULL);
+			if (i + 1 < count && period_us > 0) {
+				long double elapsed = rtbench_get_timestamp() - iter_start;
+				uint64_t elapsed_us = (uint64_t)(elapsed * 1000000.0L);
+				if (elapsed_us < period_us) {
+					usleep((useconds_t)(period_us - elapsed_us));
+				}
+			}
+		}
+		end = rtbench_get_timestamp();
+		workload_teardown(0, NULL);
+		printf("[rtbench] workload complete, elapsed=%.6Lf sec\n", end - start);
+		return 0;
+	}
+#else
 	return periodic_benchmark(&opts);
+#endif
 }
 
 static int run_test_stress_command(int argc, char **argv)
