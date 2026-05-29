@@ -1,0 +1,44 @@
+# Vendor: Ruihua / ReWorks
+# Board: Ruihua Feiteng / Phytium Pi
+# RTOS: ReWorks 6.1.1 ARM
+# Record date: 2026-05-29
+# Historical validation date: 2026-05-28
+# Historical project:
+#   C:\rtos\6.1.1-ARM\workspace\feiteng4rtos
+# Historical TFTP image:
+#   C:\rtos\6.1.1-ARM\workspace\feiteng4rtos\gnuaarch64\FTE2000_SMP-64\reworks.elf
+# Purpose: compact build/validation record for documentation screenshots.
+# Note: no raw ReWorks compiler transcript was found during this archive pass.
+
+Build summary:
+The self-boot ReWorks image built successfully with RTOS-Bench integrated via
+the project-side gnuaarch64/user.mk hook.
+
+Latest verified image SHA256:
+7A66E3FB278846EBC58F7FDCA2F75900403C56D4F0236790DD0EAF921BF2BEB3
+
+Shell commands verified:
+rtbench_help
+rtbench_list
+rtbench_test_schedule_cycles3
+
+Schedule smoke excerpt:
+[test-schedule] Found 1 industrial workloads (excluded 2 utility workloads)
+[ruihua-smoke]: WCET = 50.000 ms (5 iters)
+U= 30%: MR=0.0000 (0 misses / 3 jobs)
+U= 40%: MR=0.0000 (0 misses / 3 jobs)
+U= 50%: MR=0.0000 (0 misses / 3 jobs)
+U= 60%: MR=0.0000 (0 misses / 3 jobs)
+U= 70%: MR=0.0000 (0 misses / 3 jobs)
+U= 80%: MR=0.0000 (0 misses / 3 jobs)
+U= 90%: MR=0.0000 (0 misses / 3 jobs)
+U=100%: MR=0.0000 (0 misses / 3 jobs)
+Average Miss Rate: 0.0000
+Final Score: 100.00 / 100
+
+Notes:
+- The ReWorks shell returned to reworks> after the run.
+- test-schedule passed after replacing Ruihua SIGEV_THREAD timer usage with a
+  pthread-backed timer.
+- Realtime, stress, and full industrial workload suites are not claimed as
+  validated in this log.

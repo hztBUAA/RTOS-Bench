@@ -1,0 +1,43 @@
+# Vendor: Dongtu / Intewell
+# Board: Orange Pi 5 / RK3588 VM target
+# Record date: 2026-05-29
+# Source raw log at archive time:
+#   utils/remote-test/logs/dongtu-orangepi-20260428-171416/build_20260429_161133_final_no_trace.log
+# Source metadata at archive time:
+#   utils/remote-test/logs/dongtu-orangepi-20260428-171416/build_20260429_161133_final_no_trace_metadata.json
+# Purpose: compact build-process excerpt for documentation screenshots.
+
+Metadata:
+timestamp: 20260429_161133
+make_exit: 0
+binary: D:\build\workspace\Developer_231Gizwits\IDE\BIN\Intewell_Developer\eclipse\workspace\download\vm_3588\Debug\make\vm_3588_hzt_20260429_161133_final_no_trace.bin
+sha256: B91A51948AF670AE37CD370B26E620C94B4FD3C4E0CDC1DFEEF1CE1D3810A24E
+size: 5234688
+
+C:/Intewell_Developer_V2.2.0_kyland_J6412-64_C2.P2_20260109/gnuwin/msys64/usr/bin/make crt0_clean
+make[1]: Entering directory '/cygdrive/d/build/workspace/Developer_231Gizwits/IDE/BIN/Intewell_Developer/eclipse/workspace/vm_3588/Debug/make'
+make[2]: Leaving directory '/cygdrive/c/Intewell_Developer_V2.2.0_kyland_J6412-64_C2.P2_20260109/target/RTCore/bsp/board/arm64/start/partition/ttos'
+make[1]: Leaving directory '/cygdrive/d/build/workspace/Developer_231Gizwits/IDE/BIN/Intewell_Developer/eclipse/workspace/vm_3588/Debug/make'
+
+Building RTOS-Bench file: C:/Users/hzt/yihui-workspace/rtos-bench/RTOS-Bench/generator/test_cmd.c
+C:/Intewell_Developer_V2.2.0_kyland_J6412-64_C2.P2_20260109/host/gnu/gcc-9.3.0/arm64/bin/aarch64-intewell-elf-gcc \
+  -DDONGTU_PLATFORM -DMULTI_WORKLOAD -Dalloca=__builtin_alloca \
+  -IC:/Users/hzt/yihui-workspace/rtos-bench/RTOS-Bench/generator \
+  -IC:/Users/hzt/yihui-workspace/rtos-bench/RTOS-Bench/generator/platform/dongtu \
+  -IC:/Users/hzt/yihui-workspace/rtos-bench/RTOS-Bench/workloads \
+  -ffunction-sections -fdata-sections -O2 -g -Wall \
+  -march=armv8.2-a -mcpu=cortex-a55 -DINTEWELL -D__AARCH64__ \
+  -o rtosbench_ext/generator/test_cmd.o \
+  C:/Users/hzt/yihui-workspace/rtos-bench/RTOS-Bench/generator/test_cmd.c
+
+Invoking: GCC Archiver
+C:/Intewell_Developer_V2.2.0_kyland_J6412-64_C2.P2_20260109/host/gnu/gcc-9.3.0/arm64/bin/aarch64-intewell-elf-ar -rUvs libvm_3588.a @prjObjs.lst
+r - ./rtosbench_ext/generator/dongtu_entry.o
+r - ./rtosbench_ext/generator/test_cmd.o
+r - ./rtosbench_ext/generator/test_schedule.o
+r - ./rtosbench_ext/generator/test_stress.o
+r - ./rtosbench_ext/generator/platform/dongtu/timer.o
+r - ./rtosbench_ext/workloads/rtbench_workloads.o
+
+Invoking: GCC C Linker
+Finished building target: D:/build/workspace/Developer_231Gizwits/IDE/BIN/Intewell_Developer/eclipse/workspace/vm_3588/Debug/make/vm_3588.elf

@@ -1,0 +1,30 @@
+# Vendor: Yihui / SylixOS
+# Board: Feiteng Pi
+# Record date: 2026-05-29
+# Source raw log at archive time:
+#   utils/remote-test/logs/sylixos-feiteng-fulltest-20260429/build_feiteng_epnp_aliasfix_20260430_031539.log
+# Purpose: compact build-process excerpt for documentation screenshots.
+
+aarch64-sylixos-elf-g++ -mcpu=generic -fPIC -DSYLIXOS -DSYLIXOS_PLATFORM ... \
+  -DENABLE_EPNP_WORKLOAD \
+  -I"./RTOS-Bench/generator" \
+  -I"./RTOS-Bench/workloads/EPNP" \
+  -I"C:/Users/hzt/yihui-workspace/feiteng_base_aarch64/libsylixos/SylixOS/include" \
+  -fno-exceptions -fno-rtti -std=c++14 \
+  -include ./RTOS-Bench/workloads/EPNP/fix_opengv.h \
+  -c RTOS-Bench/workloads/EPNP/methods.cpp \
+  -o Debug/obj/feiteng_rtos_bench/RTOS-Bench/workloads/EPNP/methods.o
+
+aarch64-sylixos-elf-g++ -mcpu=generic -Wl,-shared -fPIC -shared \
+  Debug/obj/feiteng_rtos_bench/RTOS-Bench/generator/sylixos_entry.o \
+  Debug/obj/feiteng_rtos_bench/RTOS-Bench/generator/test_schedule.o \
+  Debug/obj/feiteng_rtos_bench/RTOS-Bench/generator/test_realtime.o \
+  Debug/obj/feiteng_rtos_bench/RTOS-Bench/generator/test_stress.o \
+  Debug/obj/feiteng_rtos_bench/RTOS-Bench/generator/test_cmd.o \
+  Debug/obj/feiteng_rtos_bench/RTOS-Bench/workloads/EPNP/methods.o \
+  -L"C:/Users/hzt/yihui-workspace/feiteng_base_aarch64/libsylixos/Debug" \
+  -lm -latomic -lvpmpdm -lcextern -lstdc++ -ldsohandle -lgcc \
+  -o Debug/feiteng_rtos_bench
+
+aarch64-sylixos-elf-strip Debug/feiteng_rtos_bench -o Debug/strip/feiteng_rtos_bench
+create Debug/feiteng_rtos_bench Debug/strip/feiteng_rtos_bench success.

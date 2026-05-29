@@ -1,0 +1,34 @@
+# Vendor: OneOS
+# Board: Phytium Pi
+# Record date: 2026-05-29
+# Source logs at archive time:
+#   utils/remote-test/logs/oneos-phytium-20260429/configure_oneos_20260429_200303.log
+#   utils/remote-test/logs/oneos-phytium-20260429/build_oneos_20260429_200303.log
+#   utils/remote-test/logs/oneos-phytium-20260429/build_oneos_20260429_200303_retry_j1.log
+# Purpose: compact build-process excerpt for documentation screenshots.
+
+-- PRO_ROOT: C:/OneOSStudio/workspace/phytium_pi_out
+-- TOOLS_CMAKE_ROOT: C:\OneOS-Setup-QEMU-V1.1\Scripts
+-- BSP_ROOT: C:/OneOSStudio/workspace/phytium_pi_out/../phytium_pi
+-- KERNEL_LIB_DIR: C:/OneOSStudio/workspace/phytium_pi_out/../phytium_pi/kernel
+-- BSP_LIB_DIR: C:/OneOSStudio/workspace/phytium_pi_out/../phytium_pi/bsp
+-- ONEOS_BUILDER_PATH PATH:    C:/OneOS-Setup-QEMU-V1.1/Tools
+-- ONEOS_TOOLCHAIN_PATH PATH:  C:/OneOS-Setup-QEMU-V1.1/Tools/toolchain/aarch64-oos-eabi/bin
+-- ONEOS_PYTHON_PATH PATH:     C:/OneOS-Setup-QEMU-V1.1/Tools/Python3
+-- Toolchain Prefix: aarch64-oos-eabi
+-- gcc: C:/OneOS-Setup-QEMU-V1.1/Tools/toolchain/aarch64-oos-eabi/bin/aarch64-oos-eabi-gcc.exe
+-- python: C:/OneOS-Setup-QEMU-V1.1/Tools/Python3/python
+-- The C compiler identification is GNU 10.3.0
+-- The CXX compiler identification is GNU 10.3.0
+-- Configuring done (1.9s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/OneOSStudio/workspace/phytium_pi_out/build_hzt_20260429_200303
+
+[  0%] Building C object CMakeFiles/phytium_pi_out.dir/RTOS-Bench/generator/logging.c.obj
+[  1%] Building C object CMakeFiles/phytium_pi_out.dir/RTOS-Bench/generator/memory_watcher.c.obj
+[  2%] Building C object CMakeFiles/phytium_pi_out.dir/RTOS-Bench/generator/oneos_entry.c.obj
+[  3%] Building C object CMakeFiles/phytium_pi_out.dir/RTOS-Bench/generator/periodic_benchmark.c.obj
+[  3%] Building C object CMakeFiles/phytium_pi_out.dir/RTOS-Bench/generator/platform/oneos/posix_sched_adapter.c.obj
+[  4%] Building C object CMakeFiles/phytium_pi_out.dir/RTOS-Bench/generator/platform/oneos/scheduler.c.obj
+
+[100%] Built target phytium_pi_out
