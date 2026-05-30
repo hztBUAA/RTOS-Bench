@@ -13,6 +13,9 @@ future traceability.
   create-success excerpt.
 - `ruihua-feiteng-build.log`: Ruihua ReWorks build integration and verified
   image summary. No raw compiler transcript was found during this archive pass.
+- `ruihua-feiteng-build-20260530.log`: raw Ruihua/ReWorks `gnu_make clean all`
+  transcript captured from the current `feiteng4rtos` sample project, including
+  final `reworks.elf` size and SHA256.
 - `oneos-phytium-build.log`: OneOS CMake configure context and final target
   success excerpt.
 - `dongtu-orangepi-build.log`: Dongtu Intewell make/IDE build excerpt plus
@@ -23,8 +26,8 @@ future traceability.
 - Raw compiler evidence is available in the archived source logs for SylixOS and
   Dongtu, then copied here as concise excerpts.
 - OneOS evidence combines the configure log and the successful retry build log.
-- Ruihua evidence is a validation summary copied from the historical Ruihua
-  worktree; capture a raw ReWorks IDE compiler console log in a future run.
+- Ruihua now has both the earlier validation summary and a raw command-line
+  `gnu_make clean all` transcript from the current sample project.
 
 ## Future Capture Checklist
 
