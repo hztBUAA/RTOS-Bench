@@ -1,7 +1,7 @@
 CURRENT_TASK = {
     "board": "LS2K1000LA",
     "os": "SylixOS",
-    "job": "file",               #任务类型：cpu/memory/file/standby(待机)
+    "job": "file",                  #任务类型：cpu/memory/file/standby(待机)
     "is_debug": False,              #是否开启快速验证
     "power_port": "COM3",           #电源串口
     "dut_conn_type": "TELNET",      #通信方式
@@ -14,10 +14,26 @@ CURRENT_TASK = {
 
 BOARD_PROFILES = {
     "LS2K1000LA": {"voltage": 12.0, "current": 2.0, "protect_voltage": 13.2, "protect_current": 2.2},
+    "Orange-Pi5": {"voltage": 5.0, "current": 4.0, "protect_voltage": 5.5, "protect_current": 4.4},
+    "Phytium-Pi": {"voltage": 12.0, "current": 3.0, "protect_voltage": 13.2, "protect_current": 3.3},
+    "MIC-7700": {"voltage": 24.0, "current": 6.0, "protect_voltage": 26.4, "protect_current": 6.6},
+    "DH-1": {"voltage": 5.0, "current": 2.0, "protect_voltage": 5.5, "protect_current": 2.2}
 }
 
 OS_PROFILES = {
     "SylixOS": {
+        "start_cmd": ["cd /apps/stress-ng/", "./rtos_stress"],
+        "shutdown_cmd": ["sync", "shutdown"]
+    },
+    "intewell": {
+        "start_cmd": ["rtbench"],
+        "shutdown_cmd": ["reboot"]
+    },
+    "oneos": {
+        "start_cmd": ["cd /user/", "ld xx.out", "rtbench"],
+        "shutdown_cmd": ["sync", "shutdown"]
+    },
+    "rede": {
         "start_cmd": ["cd /apps/stress-ng/", "./rtos_stress"],
         "shutdown_cmd": ["sync", "shutdown"]
     },

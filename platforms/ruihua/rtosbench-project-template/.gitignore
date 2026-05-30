@@ -1,6 +1,7 @@
 makefile.local
 gnuarm/
 gnuaarch64/
+gnuloongarch64/
 *.o
 *.d
 *.out

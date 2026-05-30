@@ -18,7 +18,15 @@ REDE_HOME ?= C:/rtos/6.1.1-ARM
 ARCH ?= arm
 FULL_WORKLOADS ?= 0
 
-ifeq ($(ARCH),aarch64)
+ ifeq ($(ARCH),loongarch64)
+    CROSS_COMPILE ?= loongarch64-elf-
+    BUILD_DIR := gnuloongarch64
+
+    ARCH_FLAGS := -mabi=lp64d -march=loongarch64 -mstrict-align -G0
+    ARCH_FLAGS += -I"$(REDE_HOME)/resource/h/arch/LOONGARCH64_SMP"
+
+    ARCH_DEFS := -DCPU=MIPS64 -DREWORKS_LP64 -D_LOONGARCH_64_
+else ifeq ($(ARCH),aarch64)
     CROSS_COMPILE ?= aarch64-elf-
     BUILD_DIR := gnuaarch64
     ARCH_FLAGS := -I"$(REDE_HOME)/resource/h/arch/AARCH64_SMP"
@@ -179,7 +187,7 @@ OBJS_CXX := $(foreach src,$(SRCS_CXX),$(call cpp_to_obj,$(src)))
 OBJS := $(OBJS_C) $(OBJS_CXX)
 DEPS := $(OBJS:.o=.d)
 
-.PHONY: all clean init info arm aarch64
+.PHONY: all clean init info arm aarch64 loongarch64
 
 all: init $(BUILD_DIR) $(OUTPUT)
 	@echo ""
@@ -191,6 +199,9 @@ arm:
 
 aarch64:
 	$(MAKE) ARCH=aarch64 all
+
+loongarch64:
+    $(MAKE) ARCH=loongarch64 all
 
 info:
 	@echo "=== RTOS-Bench for Ruihua RTOS ==="
@@ -234,7 +245,7 @@ endef
 $(foreach src,$(SRCS_CXX),$(eval $(call make_cpp_rule,$(src))))
 
 clean:
-	@rm -rf gnuarm gnuaarch64
+	@rm -rf gnuarm gnuaarch64 gnuloongarch64
 	@echo "Clean complete"
 
 -include $(DEPS)
