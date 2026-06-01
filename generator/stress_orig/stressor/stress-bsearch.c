@@ -94,44 +94,49 @@ static void *stress_bsearch_ternary(
     const void *key, const void *base, size_t nmemb, size_t size,
     int (*compare)(const void *p1, const void *p2))
 {
+    if (nmemb == 0) {
+        return NULL;
+    }
+
     size_t lower = 0;
-    size_t upper = nmemb;
+    size_t upper = nmemb - 1;
 
-    while (LIKELY(upper >= lower)) {
-        if (upper == lower) {
-             if (upper < nmemb) {
-                const void *ptr = (const char *)base + (upper * size);
-                if (compare(key, ptr) == 0) return UNCONSTIFY(ptr);
-             }
-             break;
-        }
-
+    while (LIKELY(lower <= upper)) {
         const size_t diff = upper - lower;
         const size_t mid1 = lower + (diff / 3);
         const size_t mid2 = upper - (diff / 3);
-        const void *ptr1, *ptr2;
-        int cmp1, cmp2;
 
-        ptr1 = (const void *)((const char *)base + (mid1 * size));
-        cmp1 = compare(key, ptr1);
-        if (cmp1 == 0) return UNCONSTIFY(ptr1);
+        const void *ptr1 = (const char *)base + (mid1 * size);
+        const int cmp1 = compare(key, ptr1);
+        if (cmp1 == 0) {
+            return UNCONSTIFY(ptr1);
+        }
 
-        ptr2 = (const void *)((const char *)base + (mid2 * size));
-        cmp2 = compare(key, ptr2);
-        if (cmp2 == 0) return UNCONSTIFY(ptr2);
+        const void *ptr2 = (const char *)base + (mid2 * size);
+        const int cmp2 = compare(key, ptr2);
+        if (cmp2 == 0) {
+            return UNCONSTIFY(ptr2);
+        }
 
         if (cmp1 < 0) {
-            if (mid1 == 0) break;
+            if (mid1 == 0) {
+                break;
+            }
             upper = mid1 - 1;
         } else if (cmp2 > 0) {
             lower = mid2 + 1;
         } else {
             lower = mid1 + 1;
+            if (mid2 == 0) {
+                break;
+            }
             upper = mid2 - 1;
         }
     }
+
     return NULL;
 }
+
 
 /* ==================================================================
  * 注册表

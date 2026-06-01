@@ -22,7 +22,7 @@ FULL_WORKLOADS ?= 0
     CROSS_COMPILE ?= loongarch64-elf-
     BUILD_DIR := gnuloongarch64
 
-    ARCH_FLAGS := -mabi=lp64d -march=loongarch64 -mstrict-align -G0
+    ARCH_FLAGS := -mabi=lp64d -march=loongarch64 -mstrict-align
     ARCH_FLAGS += -I"$(REDE_HOME)/resource/h/arch/LOONGARCH64_SMP"
 
     ARCH_DEFS := -DCPU=MIPS64 -DREWORKS_LP64 -D_LOONGARCH_64_
@@ -55,6 +55,16 @@ CFLAGS += -D__multi_core__ -D__REWORKS__ -DUSE_REWORKS_IPNET_69 -DRUIHUA_PLATFOR
 CFLAGS += -DMULTI_WORKLOAD
 CFLAGS += -MMD -MP
 
+# LoongArch ReWorks DKM loader does not support PLT/GOT/GP-relative
+# relocations emitted by the default LoongArch code model.  These options match
+# the ReDe-generated LoongArch downloadable project rules, for example testdown.
+ifeq ($(ARCH),loongarch64)
+CFLAGS += -fno-plt
+CFLAGS += -Wa,-mla-local-with-abs
+CFLAGS += -Wa,-mla-global-with-abs
+CFLAGS += -DRTOSBENCH_USE_MANUAL_WORKLOAD_REGISTRATION
+endif
+
 # Ruihua SDK headers.
 CFLAGS += -I"$(REDE_HOME)/user resource/h/vx"
 CFLAGS += -I"$(REDE_HOME)/resource/h"
@@ -84,8 +94,17 @@ CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/ICP"
 CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/MODBUS"
 CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/MQTT"
 
-CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
-LDFLAGS = -r
+CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti -DRUIHUA_PLATFORM
+CXXFLAGS += -I"$(RTOSBENCH_SRC)/workloads/EKF/include" \
+			-I"$(RTOSBENCH_SRC)/workloads/EKF/include/matrix" \
+			-I"$(RTOSBENCH_SRC)/workloads/EKF/geo_lookup" \
+			-I"$(RTOSBENCH_SRC)/workloads/EKF/geo"
+CXXFLAGS += -DEIGEN_DONT_VECTORIZE \
+            -DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT \
+            -DEIGEN_MAX_ALIGN_BYTES=8 \
+            -DEIGEN_HAS_C99_MATH=0
+
+LDFLAGS := -r $(CONFIG_LINK_DYNAMIC_FLAGS)
 
 #==============================================================================
 # Source files
@@ -126,7 +145,7 @@ REALTIME_SRC := \
 STRESS_SRC := \
 	$(RTOSBENCH_SRC)/generator/stress_orig/stress_bench.c \
 	$(wildcard $(RTOSBENCH_SRC)/generator/stress_orig/common/*.c) \
-	$(RTOSBENCH_SRC)/generator/stress_orig/osal/os_sylixos.c \
+	$(RTOSBENCH_SRC)/generator/stress_orig/osal/os_rede.c \
 	$(wildcard $(RTOSBENCH_SRC)/generator/stress_orig/stressor/*.c)
 
 WORKLOAD_WRAPPER_SRC := $(RTOSBENCH_SRC)/workloads/rtbench_workloads.cpp
@@ -148,7 +167,29 @@ WORKLOAD_CPP_SRC += \
 	$(RTOSBENCH_SRC)/workloads/PID/pid_bench.cpp \
 	$(RTOSBENCH_SRC)/workloads/PID/PID_v1.cpp \
 	$(RTOSBENCH_SRC)/workloads/PID/pid_wrapper.cpp
-WORKLOAD_CPP_SRC += $(RTOSBENCH_SRC)/workloads/EKF/ekf_bench.cpp
+WORKLOAD_CPP_SRC += \
+	$(RTOSBENCH_SRC)/workloads/EKF/ekf_bench.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/EKFGSF_yaw.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/airspeed_fusion.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/control.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/covariance.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/drag_fusion.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/ekf.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/ekf_helper.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/estimator_interface.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/gps_checks.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/gps_yaw_fusion.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/imu_down_sampler.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/mag_control.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/mag_fusion.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/optflow_fusion.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/sensor_range_finder.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/sideslip_fusion.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/terrain_estimator.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/utils.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/vel_pos_fusion.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/geo/geo.cpp \
+	$(RTOSBENCH_SRC)/workloads/EKF/geo_lookup/geo_mag_declination.cpp
 WORKLOAD_CPP_SRC += \
 	$(RTOSBENCH_SRC)/workloads/EPNP/cayley.cpp \
 	$(RTOSBENCH_SRC)/workloads/EPNP/CentralAbsoluteAdapter.cpp \
@@ -201,7 +242,7 @@ aarch64:
 	$(MAKE) ARCH=aarch64 all
 
 loongarch64:
-    $(MAKE) ARCH=loongarch64 all
+	$(MAKE) ARCH=loongarch64 all
 
 info:
 	@echo "=== RTOS-Bench for Ruihua RTOS ==="

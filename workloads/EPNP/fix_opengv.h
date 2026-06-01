@@ -1,6 +1,7 @@
 #ifndef FIX_OPENGV_H
 #define FIX_OPENGV_H
 
+#if defined(DONGTU_PLATFORM)
 /*
  * Intewell's C++ <cmath> only exposes C99 math names such as std::log2,
  * std::expm1, and std::fma when these libstdc++ feature macros are set before
@@ -13,6 +14,7 @@
 #ifndef __riscv
 #ifndef _GLIBCXX_USE_C99_MATH_TR1
 #define _GLIBCXX_USE_C99_MATH_TR1 1
+#endif
 #endif
 #endif
 

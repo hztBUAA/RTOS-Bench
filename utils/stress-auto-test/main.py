@@ -47,8 +47,8 @@ def run_automation():
         power.set_current(board_cfg["current"])
 
         power.turn_on()
-
-        logging.info("[Test]请手动按下龙芯派上的[电源按钮]启动设备。正在等待网络连通...")
+        if board_name == "LS2K1000LA":
+            logging.info("[Test]请手动按下龙芯派上的[电源按钮]启动设备。正在等待网络连通...")
         wait_for_ping(task["dut_conn_params"]["ip"])
         logging.info("[Test]设备网络已就绪，正在建立连接...")
 

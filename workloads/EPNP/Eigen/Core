@@ -11,7 +11,7 @@
 #ifndef EIGEN_CORE_MODULE_H
 #define EIGEN_CORE_MODULE_H
 
-#ifdef DONGTU_PLATFORM
+#if defined(DONGTU_PLATFORM) || defined(RUIHUA_PLATFORM)
 #include "../fix_opengv.h"
 #endif
 

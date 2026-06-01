@@ -23,7 +23,7 @@
 // 启用必要的特性
 #define MG_ENABLE_SOCKET 1
 
-#if defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM)
+#if defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM) || defined(RUIHUA_PLATFORM)
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdlib.h>

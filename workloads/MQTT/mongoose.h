@@ -48,7 +48,7 @@ extern "C" {
 #define MG_ARCH_NEWLIB MG_ARCH_ARMGCC  // Alias, deprecate in 2025
 #define MG_ARCH MG_ARCH_UNIX
 
-#if defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM)
+#if defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM) || defined(RUIHUA_PLATFORM)
 #define MG_ARCH MG_ARCH_CUSTOM
 #endif
 

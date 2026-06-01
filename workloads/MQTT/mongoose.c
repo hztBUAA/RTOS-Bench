@@ -2763,7 +2763,9 @@ struct mg_connection *mg_http_listen(struct mg_mgr *mgr, const char *url,
 
 
 
-
+#ifdef roundup
+#undef roundup
+#endif
 
 static size_t roundup(size_t size, size_t align) {
   return align == 0 ? size : (size + align - 1) / align * align;
