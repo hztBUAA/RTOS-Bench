@@ -13,11 +13,135 @@
 - 板端 telnet: `192.168.2.100:23`
 - Shell prompt: `reworks>`
 
+当前这块板子没有整理成“校园网内大家共用一个公网/内网端口”的服务模式。真实调试方式是：谁要调试，谁就把自己的 Windows 电脑用网线直连飞腾派网口，再在本机起 TFTP、编译 `reworks.elf`、重启板子、telnet 进 ReWorks shell。这样最稳定，也和我们目前验证通过的链路一致。
+
 最新一次命令行构建成功的 `reworks.elf` SHA256:
 
 ```text
 31BC67B133FBDEE3869D646D7B6A95BC6DACF9CB899157F3222B9B0C06E6E71C
 ```
+
+## 给同事的从零调试 SOP
+
+这一节是给接手同事看的最短操作流程。假设同事已经拿到了飞腾派、12V 电源、网线，并且 Windows 电脑上装好了 Ruihua ReWorks/ReDe 6.1.1 ARM 环境。
+
+### 1. 物理连接
+
+1. 用 12V 3A 圆口电源给飞腾派供电。我们实测优先使用随板的 GVE 12V 3A 电源，电流余量更稳。
+2. 用网线把 Windows 电脑的有线网卡直接接到飞腾派网口。历史资料里要求使用飞腾派 **网口 0**；如果有多个网口，优先插网口 0。
+3. 如果需要看 U-Boot 早期日志，再接 USB 转串口。日常 RTOS-Bench 验证通常只需要网线加 telnet。
+
+### 2. Windows 网卡设置
+
+把 Windows 这块直连飞腾派的有线网卡设置为静态 IPv4：
+
+```text
+IP address: 192.168.2.61
+Netmask:    255.255.255.0
+Gateway:    留空即可
+DNS:        留空即可
+```
+
+不要把这块网卡配到校园网 DHCP，也不要期待通过校园网某个共享端口访问这块板。当前板卡调试网络就是 `192.168.2.0/24` 这个本地直连网段。
+
+### 3. 板端已知地址
+
+ReWorks 启动完成后的 telnet 地址是：
+
+```text
+192.168.2.100:23
+```
+
+Windows 上可以这样连接：
+
+```bat
+telnet 192.168.2.100
+```
+
+进入后正常提示符是：
+
+```text
+reworks>
+```
+
+如果连不上，先确认：板子已经启动完成、网线插在正确网口、Windows 有线网卡是 `192.168.2.61/24`、防火墙没有拦截本地专用网络通信。
+
+### 4. TFTP 目录
+
+当前高频调试方式是让 U-Boot 从 Windows 侧 TFTP 目录加载同名 `reworks.elf`。我们样板工程直接把 `reworks.elf` 构建在这个目录下：
+
+```text
+C:\rtos\6.1.1-ARM\workspace\feiteng4rtos\gnuaarch64\FTE2000_SMP-64
+```
+
+所以 TFTP server 的根目录也建议指向这个目录。这样每次重新构建后，不需要手动复制文件，重启板子即可让 U-Boot 取到最新 `reworks.elf`。
+
+如果同事使用 tftpd64、tftpd32 或 Ruihua/厂商指定 TFTP 工具，需要确认：
+
+- TFTP 根目录里有 `reworks.elf`。
+- 如果当前 U-Boot 启动命令也加载设备树，目录里还要有 `e2000q-phytiumPi-board.dtb`。
+- Windows 防火墙允许 TFTP 服务通过当前有线网卡。
+- U-Boot 里的 `serverip` 指向 Windows，即 `192.168.2.61`。
+- U-Boot 里的板卡 IP 和 Windows 在同一网段；当前 ReWorks shell 侧已知地址是 `192.168.2.100`。
+
+如果需要确认 U-Boot 变量，接串口后在 U-Boot 中查看：
+
+```bash
+printenv
+printenv ipaddr
+printenv serverip
+printenv bootcmd
+```
+
+不同板卡批次或厂家预配置可能略有差异，不要在不确认 `printenv` 的情况下覆盖别人的 U-Boot 环境。
+
+### 5. 编译镜像
+
+进入样板工程构建目录：
+
+```bat
+cd /d C:\rtos\6.1.1-ARM\workspace\feiteng4rtos\gnuaarch64\FTE2000_SMP-64
+```
+
+执行构建：
+
+```bat
+cmd /c "set PATH=C:\rtos\6.1.1-ARM\tools\bin;C:\rtos\6.1.1-ARM\tools\build\gnuaarch64\bin;%PATH%&& gnu_make all"
+```
+
+如果要完整重新构建：
+
+```bat
+cmd /c "set PATH=C:\rtos\6.1.1-ARM\tools\bin;C:\rtos\6.1.1-ARM\tools\build\gnuaarch64\bin;%PATH%&& gnu_make clean all"
+```
+
+成功后会在当前目录生成：
+
+```text
+reworks.elf
+reworks
+feiteng4rtos.obj
+```
+
+### 6. 重启和验证
+
+构建成功后，重启或重新上电飞腾派。当前 TFTP 配好后，U-Boot 会从 Windows 侧 TFTP 目录取最新 `reworks.elf`。ReWorks 启动后，用 telnet 登录：
+
+```bat
+telnet 192.168.2.100
+```
+
+建议按这个顺序验证 RTOS-Bench：
+
+```text
+rtbench_help
+rtbench_list
+rtbench_ruihua_smoke
+rtbench_test_schedule_quick
+rtbench_test_schedule_cycles3
+```
+
+`rtbench_test_schedule_cycles3` 跑完后应该能回到 `reworks>`，并看到 `Final Score: 100.00 / 100`。如果 telnet 卡死或端口不可达，先电源重启板子，再从 `rtbench_help`、`rtbench_list` 这种无风险命令开始排查。
 
 ## 目录关系
 
@@ -209,6 +333,8 @@ C:\rtos\6.1.1-ARM\workspace\feiteng4rtos\gnuaarch64\FTE2000_SMP-64\reworks.elf
 ```
 
 因此构建成功后通常不需要手动复制镜像。重启板子，U-Boot 会重新取这个 `reworks.elf`。
+
+当前推荐的物理网络拓扑是 Windows 电脑和飞腾派网线直连，不提供校园网内共用端口。Windows 直连网卡使用 `192.168.2.61/24`，板端 ReWorks telnet 使用 `192.168.2.100:23`。如果同事把板子接到路由器或交换机上，需要自行确认 DHCP/静态 IP、TFTP server 和 U-Boot `serverip`，这不是当前已验证链路。
 
 板端 shell：
 
