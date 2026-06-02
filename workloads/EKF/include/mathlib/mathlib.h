@@ -53,6 +53,15 @@
 #define M_PI 3.141592653589793238462643383280
 #endif
 
+/* Some OneOS/D1H BSP headers define min/max as macros, which breaks
+ * namespaced C++ calls such as math::max and matrix::min. */
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
 namespace math
 {
 template <typename Type>

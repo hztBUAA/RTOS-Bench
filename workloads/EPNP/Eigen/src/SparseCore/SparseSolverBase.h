@@ -35,7 +35,7 @@ std::enable_if_t<Rhs::ColsAtCompileTime != 1 && Dest::ColsAtCompileTime != 1> so
   Eigen::Matrix<DestScalar, Dynamic, Dynamic> tmp(size, tmpCols);
   Eigen::Matrix<DestScalar, Dynamic, Dynamic> tmpX(size, tmpCols);
   for (Index k = 0; k < rhsCols; k += NbColsAtOnce) {
-    Index actualCols = std::min<Index>(rhsCols - k, NbColsAtOnce);
+    Index actualCols = (std::min<Index>)(rhsCols - k, NbColsAtOnce);
     tmp.leftCols(actualCols) = rhs.middleCols(k, actualCols);
     tmpX.leftCols(actualCols) = dec.solve(tmp.leftCols(actualCols));
     dest.middleCols(k, actualCols) = tmpX.leftCols(actualCols).sparseView();

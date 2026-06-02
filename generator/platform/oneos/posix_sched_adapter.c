@@ -6,16 +6,16 @@
  * pthread_attr_getinheritsched that are missing from OneOS's POSIX layer.
  *
  * For V1.x ARM32: Works with pthread_attr_t's inheritsched field.
- * For V2.0 ARM64: Uses a static variable since pthread_attr_t lacks this field.
+ * For V2 style musl targets: Uses a static variable since pthread_attr_t lacks this field.
  */
 
 #include "platform_abstraction.h"
 #include <pthread.h>
 #include <errno.h>
 
-#if defined(ONEOS_V2_ARM64)
+#if defined(ONEOS_V2_MUSL_LIBC) || defined(ONEOS_V2_ARM64)
 /*
- * OneOS V2.0 ARM64: pthread_attr_t doesn't have inheritsched member.
+ * OneOS V2 style targets: pthread_attr_t doesn't expose inheritsched member.
  * Use a static variable to track the setting (per-process, not per-attr).
  */
 static int g_default_inheritsched = PTHREAD_INHERIT_SCHED;
@@ -105,4 +105,4 @@ int pthread_attr_getinheritsched(const pthread_attr_t *attr, int *inheritsched)
 
     return 0;
 }
-#endif /* ONEOS_V2_ARM64 */
+#endif /* ONEOS_V2_MUSL_LIBC || ONEOS_V2_ARM64 */

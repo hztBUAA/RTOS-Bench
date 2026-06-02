@@ -97,7 +97,7 @@ void minimum_degree_ordering(SparseMatrix<Scalar, ColMajor, StorageIndex>& C,
                             nvj, nvk, mark, wnvi, ok, nel = 0, p, p1, p2, p3, p4, pj, pk, pk1, pk2, pn, q, t, h;
 
   StorageIndex n = StorageIndex(C.cols());
-  dense = std::max<StorageIndex>(16, StorageIndex(10 * sqrt(double(n)))); /* find dense threshold */
+  dense = (std::max<StorageIndex>)(16, StorageIndex(10 * sqrt(double(n)))); /* find dense threshold */
   dense = (std::min)(n - 2, dense);
 
   StorageIndex cnz = StorageIndex(C.nonZeros());
@@ -307,7 +307,7 @@ void minimum_degree_ordering(SparseMatrix<Scalar, ColMajor, StorageIndex>& C,
         nv[i] = 0;
         elen[i] = -1; /* node i is dead */
       } else {
-        degree[i] = std::min<StorageIndex>(degree[i], d); /* update degree(i) */
+        degree[i] = (std::min<StorageIndex>)(degree[i], d); /* update degree(i) */
         Ci[pn] = Ci[p3];                                  /* move first node to end */
         Ci[p3] = Ci[p1];                                  /* move 1st el. to end of Ei */
         Ci[p1] = k;                                       /* add k as 1st element in of Ei */
@@ -319,7 +319,7 @@ void minimum_degree_ordering(SparseMatrix<Scalar, ColMajor, StorageIndex>& C,
       }
     }               /* scan2 is done */
     degree[k] = dk; /* finalize |Lk| */
-    lemax = std::max<StorageIndex>(lemax, dk);
+    lemax = (std::max<StorageIndex>)(lemax, dk);
     mark = internal::cs_wclear<StorageIndex>(mark + lemax, lemax, w, n); /* clear w */
 
     /* --- Supernode detection ------------------------------------------ */
@@ -363,12 +363,12 @@ void minimum_degree_ordering(SparseMatrix<Scalar, ColMajor, StorageIndex>& C,
       if ((nvi = -nv[i]) <= 0) continue; /* skip if i is dead */
       nv[i] = nvi;                       /* restore nv[i] */
       d = degree[i] + dk - nvi;          /* compute external degree(i) */
-      d = std::min<StorageIndex>(d, n - nel - nvi);
+      d = (std::min<StorageIndex>)(d, n - nel - nvi);
       if (head[d] != -1) last[head[d]] = i;
       next[i] = head[d]; /* put i back in degree list */
       last[i] = -1;
       head[d] = i;
-      mindeg = std::min<StorageIndex>(mindeg, d); /* find new minimum degree */
+      mindeg = (std::min<StorageIndex>)(mindeg, d); /* find new minimum degree */
       degree[i] = d;
       Ci[p++] = i; /* place i in Lk */
     }

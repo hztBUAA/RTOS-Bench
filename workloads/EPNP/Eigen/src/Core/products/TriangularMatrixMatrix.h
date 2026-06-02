@@ -147,7 +147,7 @@ EIGEN_DONT_INLINE void product_triangular_matrix_matrix<
     if (IsLower || actual_k2 < rows) {
       // for each small vertical panels of lhs
       for (Index k1 = 0; k1 < actual_kc; k1 += panelWidth) {
-        Index actualPanelWidth = std::min<Index>(actual_kc - k1, panelWidth);
+        Index actualPanelWidth = (std::min<Index>)(actual_kc - k1, panelWidth);
         Index lengthTarget = IsLower ? actual_kc - k1 - actualPanelWidth : k1;
         Index startBlock = actual_k2 + k1;
         Index blockBOffset = k1;
@@ -276,7 +276,7 @@ EIGEN_DONT_INLINE void product_triangular_matrix_matrix<
     // pack the triangular part of the rhs padding the unrolled blocks with zeros
     if (ts > 0) {
       for (Index j2 = 0; j2 < actual_kc; j2 += SmallPanelWidth) {
-        Index actualPanelWidth = std::min<Index>(actual_kc - j2, SmallPanelWidth);
+        Index actualPanelWidth = (std::min<Index>)(actual_kc - j2, SmallPanelWidth);
         Index actual_j2 = actual_k2 + j2;
         Index panelOffset = IsLower ? j2 + actualPanelWidth : 0;
         Index panelLength = IsLower ? actual_kc - j2 - actualPanelWidth : j2;
@@ -303,7 +303,7 @@ EIGEN_DONT_INLINE void product_triangular_matrix_matrix<
       // triangular kernel
       if (ts > 0) {
         for (Index j2 = 0; j2 < actual_kc; j2 += SmallPanelWidth) {
-          Index actualPanelWidth = std::min<Index>(actual_kc - j2, SmallPanelWidth);
+          Index actualPanelWidth = (std::min<Index>)(actual_kc - j2, SmallPanelWidth);
           Index panelLength = IsLower ? actual_kc - j2 : j2 + actualPanelWidth;
           Index blockOffset = IsLower ? j2 : 0;
 

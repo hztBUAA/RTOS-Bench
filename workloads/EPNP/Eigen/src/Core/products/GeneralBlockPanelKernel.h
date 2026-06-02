@@ -1464,7 +1464,7 @@ EIGEN_DONT_INLINE void gebp_kernel<LhsScalar, RhsScalar, Index, DataMapper, mr, 
     // suggests we should be using: either because our known l1 cache size is inaccurate (e.g. on Android, we can only
     // guess), or because we are testing specific blocking sizes.
     const Index actual_panel_rows =
-        (3 * LhsProgress) * std::max<Index>(1, ((l1 - sizeof(ResScalar) * mr * nr - depth * nr * sizeof(RhsScalar)) /
+        (3 * LhsProgress) * (std::max<Index>)(1, ((l1 - sizeof(ResScalar) * mr * nr - depth * nr * sizeof(RhsScalar)) /
                                                 (depth * sizeof(LhsScalar) * 3 * LhsProgress)));
     for (Index i1 = 0; i1 < peeled_mc3; i1 += actual_panel_rows) {
       const Index actual_panel_end = (std::min)(i1 + actual_panel_rows, peeled_mc3);
@@ -1931,7 +1931,7 @@ EIGEN_DONT_INLINE void gebp_kernel<LhsScalar, RhsScalar, Index, DataMapper, mr, 
     // suggests we should be using: either because our known l1 cache size is inaccurate (e.g. on Android, we can only
     // guess), or because we are testing specific blocking sizes.
     Index actual_panel_rows =
-        (2 * LhsProgress) * std::max<Index>(1, ((l1 - sizeof(ResScalar) * mr * nr - depth * nr * sizeof(RhsScalar)) /
+        (2 * LhsProgress) * (std::max<Index>)(1, ((l1 - sizeof(ResScalar) * mr * nr - depth * nr * sizeof(RhsScalar)) /
                                                 (depth * sizeof(LhsScalar) * 2 * LhsProgress)));
 
     for (Index i1 = peeled_mc3; i1 < peeled_mc2; i1 += actual_panel_rows) {

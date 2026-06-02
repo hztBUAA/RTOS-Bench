@@ -35,8 +35,8 @@
 #include "test_cmd.h"
 #include "result_export.h"
 
-/* API compatibility: V2.0 uses os_tick_get_value(), V1.x uses os_tick_get() */
-#if defined(ONEOS_V2_ARM64)
+/* API compatibility: V2 style targets use os_tick_get_value(), V1.x uses os_tick_get() */
+#if defined(ONEOS_V2_MUSL_LIBC) || defined(ONEOS_V2_ARM64)
     #define RTBENCH_GET_TICK()  os_tick_get_value()
 #else
     #define RTBENCH_GET_TICK()  os_tick_get()

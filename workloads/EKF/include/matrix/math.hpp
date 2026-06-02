@@ -2,6 +2,15 @@
 #include <assert.h>
 #include "stdlib_imports.hpp"
 
+/* D1H BSP headers may leak C-style min/max macros into C++ translation units.
+ * Undefine them before declaring matrix::min/matrix::max templates. */
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
 #ifdef U
 #undef U
 #endif

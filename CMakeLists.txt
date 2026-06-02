@@ -3,7 +3,7 @@ if(NOT TARGET ${PROJECT_NAME})
 endif()
 
 # 收集核心源文件
-file(GLOB RTOS_BENCH_CORE 
+file(GLOB RTOS_BENCH_CORE
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/oneos_entry.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_realtime.c"
@@ -44,7 +44,7 @@ file(GLOB_RECURSE REALTIME_ORIG_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/generator/r
 option(RTOS_WORKLOADS "Enable RTOS workloads" ON)
 if(RTOS_WORKLOADS)
 
-    file(GLOB_RECURSE RTOS_BENCH_WORKLOADS 
+    file(GLOB_RECURSE RTOS_BENCH_WORKLOADS
         "${CMAKE_CURRENT_SOURCE_DIR}/workloads/*.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/workloads/*.cpp"
     )
@@ -116,6 +116,6 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-std=c++14>
     $<$<COMPILE_LANGUAGE:CXX>:-Wno-error>
     $<$<COMPILE_LANGUAGE:CXX>:-Wno-literal-suffix>
-    $<$<COMPILE_LANGUAGE:CXX>:-include cassert>
+    $<$<COMPILE_LANGUAGE:CXX>:-include "${CMAKE_CURRENT_SOURCE_DIR}/generator/platform/oneos/include/oneos_cxx_compat.hpp">
     #$<$<COMPILE_LANGUAGE:CXX>:-include "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EPNP/fix_opengv.h">
 )
