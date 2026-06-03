@@ -1,0 +1,18 @@
+{
+  "run_id": "20260603_114100",
+  "method": "POST",
+  "url": "http://101.37.88.128:30000/data/api/v1/performance_safety/index",
+  "dataset_key": "performance_safety",
+  "biz_id": "rtbench-joint-debug-20260603_114100-orangepi-testall",
+  "podName": "cursor-local-joint-debug-20260603_114100",
+  "input_file": "utils/remote-test/logs/sylixos-entry-validation-20260427-final/orangepi_testall_20260427_233446.json",
+  "body_file": "utils/remote-test/logs/data-process-upload-20260603_114100/sent_document.json",
+  "headers": {
+    "X-API-Key": "VEsx9q...yt2L",
+    "X-Timestamp": "1780458060491",
+    "X-Signature": "5117c8e242...785ebf0b",
+    "Content-Type": "application/json"
+  },
+  "body_sha256": "c93288b26c8caeb153442b1b173c076f05e31b146b9e396f0ec7fc88331aba1e",
+  "body_bytes": 17296
+}

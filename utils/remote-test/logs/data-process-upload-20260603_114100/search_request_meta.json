@@ -1,0 +1,22 @@
+{
+  "method": "POST",
+  "url": "http://101.37.88.128:30000/data/api/v1/performance_safety/search",
+  "dataset_key": "performance_safety",
+  "query": {
+    "query": {
+      "ids": {
+        "values": [
+          "rtbench-joint-debug-20260603_114100-orangepi-testall"
+        ]
+      }
+    },
+    "size": 1
+  },
+  "headers": {
+    "X-API-Key": "VEsx9q...yt2L",
+    "X-Timestamp": "1780458075375",
+    "X-Signature": "cef6751adc...ee01dd12",
+    "Content-Type": "application/json"
+  },
+  "body_sha256": "9e683bca40809db6ae76060f9ffe93d077bf5e4bd526c3a3982db39a49355a5b"
+}

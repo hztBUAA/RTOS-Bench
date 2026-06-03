@@ -1,0 +1,560 @@
+{
+  "biz_id": "rtbench-joint-debug-20260603_114100-orangepi-testall",
+  "name": "RTOS-Bench SylixOS-Board",
+  "project": "RTOS-Bench",
+  "source": "rtbench",
+  "podName": "cursor-local-joint-debug-20260603_114100",
+  "upload_path": "rtbench-results",
+  "source_file": "orangepi_testall_20260427_233446.json",
+  "artifact_file": "orangepi_testall_20260427_233446.json",
+  "result_format": "json",
+  "raw_result": "{\n  \"meta\": {\n    \"framework_version\": \"1.0.0\",\n    \"test_timestamp\": \"2000-01-01T12:25:51Z\",\n    \"total_duration_sec\": 454.000\n  },\n  \"env\": {\n    \"os_name\": \"SylixOS\",\n    \"os_version\": \"2.x\",\n    \"board\": \"SylixOS-Board\",\n    \"cpu_type\": \"ARM\",\n    \"cpu_freq_mhz\": 0,\n    \"cpu_core_num\": 1\n  },\n  \"modules\": {\n    \"test-realtime\": {\n      \"status\": \"passed\",\n      \"duration_sec\": 0.000,\n      \"single_core\": {\n        \"context_switch\": { \"avg_us\": 0.712 },\n        \"interrupt\": { \"min_us\": 0.291, \"max_us\": 0.583, \"avg_us\": 0.293 },\n        \"syscall\": { \"min_us\": 0.291, \"max_us\": 0.291, \"avg_us\": 0.291 },\n        \"service_cost\": [\n          { \"operation\": \"sem_take\", \"immediate_us\": 0.291, \"suspend_us\": 0.833, \"low_prio_us\": 0.000, \"high_prio_us\": 0.000 },\n          { \"operation\": \"sem_release\", \"immediate_us\": 0.416, \"suspend_us\": 0.000, \"low_prio_us\": 0.416, \"high_prio_us\": 0.833 },\n          { \"operation\": \"mq_send\", \"immediate_us\": 1.500, \"suspend_us\": 1.666, \"low_prio_us\": 1.583, \"high_prio_us\": 1.666 },\n          { \"operation\": \"mq_recv\", \"immediate_us\": 1.458, \"suspend_us\": 3.166, \"low_prio_us\": 1.625, \"high_prio_us\": 3.208 },\n          { \"operation\": \"mutex_take\", \"immediate_us\": 0.333, \"suspend_us\": 0.916, \"low_prio_us\": 0.000, \"high_prio_us\": 0.000 },\n          { \"operation\": \"mutex_release\", \"immediate_us\": 0.416, \"suspend_us\": 0.000, \"low_prio_us\": 0.500, \"high_prio_us\": 0.958 },\n          { \"operation\": \"mempool_alloc\", \"immediate_us\": 0.875, \"suspend_us\": 0.000, \"low_prio_us\": 0.000, \"high_prio_us\": 0.000 },\n          { \"operation\": \"mempool_free\", \"immediate_us\": 0.791, \"suspend_us\": 0.000, \"low_prio_us\": 0.000, \"high_prio_us\": 0.000 }\n        ]\n      }    },\n    \"test-schedule\": {\n      \"status\": \"passed\",\n      \"duration_sec\": 0.000,\n      \"config\": { \"cycles\": 1, \"util_start\": 30, \"util_end\": 30, \"util_step\": 30 },\n      \"wcet_measurements\": [\n      ],\n      \"gradients\": [\n        {\n          \"utilization_percent\": 30,\n          \"actual_utilization\": 0.3000,\n          \"total_jobs\": 9,\n          \"deadline_misses\": 0,\n          \"miss_rate\": 0.000000,\n          \"task_stats\": [\n            { \"name\": \"modbus\", \"utilization\": 0.0000, \"period_ms\": 0.000, \"jobs\": 1, \"misses\": 0, \"max_response_ms\": 9100.023 },\n            { \"name\": \"mqtt\", \"utilization\": 0.0000, \"period_ms\": 0.000, \"jobs\": 1, \"misses\": 0, \"max_response_ms\": 1331.783 },\n            { \"name\": \"ekf\", \"utilization\": 0.0000, \"period_ms\": 0.000, \"jobs\": 1, \"misses\": 0, \"max_response_ms\": 561.150 },\n            { \"name\": \"icp\", \"utilization\": 0.0000, \"period_ms\": 0.000, \"jobs\": 1, \"misses\": 0, \"max_response_ms\": 650.438 },\n            { \"name\": \"pid\", \"utilization\": 0.0000, \"period_ms\": 0.000, \"jobs\": 1, \"misses\": 0, \"max_response_ms\": 111.425 },\n            { \"name\": \"ewma\", \"utilization\": 0.0000, \"period_ms\": 0.000, \"jobs\": 1, \"misses\": 0, \"max_response_ms\": 54.374 },\n            { \"name\": \"cusum\", \"utilization\": 0.0000, \"period_ms\": 0.000, \"jobs\": 1, \"misses\": 0, \"max_response_ms\": 19.008 },\n            { \"name\": \"fast\", \"utilization\": 0.0000, \"period_ms\": 0.000, \"jobs\": 1, \"misses\": 0, \"max_response_ms\": 14.752 },\n            { \"name\": \"epnp\", \"utilization\": 0.0000, \"period_ms\": 0.000, \"jobs\": 1, \"misses\": 0, \"max_response_ms\": 5.491 }\n          ]\n        }\n      ],\n      \"summary\": { \"average_miss_rate\": 0.000000, \"final_score\": 100.00 }\n    },\n    \"test-stress\": {\n      \"status\": \"passed\",\n      \"duration_sec\": 27.824,\n      \"stressors\": [\n        { \"name\": \"cpu\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 280, \"duration_sec\": 0.256 },\n        { \"name\": \"matrix\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 640, \"duration_sec\": 0.740 },\n        { \"name\": \"qsort\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 250, \"duration_sec\": 0.386 },\n        { \"name\": \"atomic\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 300000, \"duration_sec\": 0.129 },\n        { \"name\": \"bitops\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 2400, \"duration_sec\": 0.498 },\n        { \"name\": \"bsearch\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 310, \"duration_sec\": 0.416 },\n        { \"name\": \"context\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 69000, \"duration_sec\": 0.200 },\n        { \"name\": \"fp\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 105, \"duration_sec\": 0.987 },\n        { \"name\": \"prime\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 270840, \"duration_sec\": 0.787 },\n        { \"name\": \"stack\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 690, \"duration_sec\": 0.747 },\n        { \"name\": \"str\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 130000, \"duration_sec\": 0.144 },\n        { \"name\": \"trig\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 21, \"duration_sec\": 0.188 },\n        { \"name\": \"vecmath\", \"type\": \"cpu\", \"stage\": 1, \"bogo_ops\": 270, \"duration_sec\": 0.455 },\n        { \"name\": \"memcpy\", \"type\": \"memory\", \"stage\": 1, \"bogo_ops\": 1500, \"duration_sec\": 0.332 },\n        { \"name\": \"stream\", \"type\": \"memory\", \"stage\": 1, \"bogo_ops\": 5200, \"duration_sec\": 0.411, \"metric_value\": 2251.960, \"metric_unit\": \"Mflop/sec\" },\n        { \"name\": \"vm\", \"type\": \"memory\", \"stage\": 1, \"bogo_ops\": 4200704, \"duration_sec\": 0.305 },\n        { \"name\": \"malloc\", \"type\": \"memory\", \"stage\": 1, \"bogo_ops\": 170000, \"duration_sec\": 0.289 },\n        { \"name\": \"memthrash\", \"type\": \"memory\", \"stage\": 1, \"bogo_ops\": 230, \"duration_sec\": 1.027 },\n        { \"name\": \"ptr-chase\", \"type\": \"memory\", \"stage\": 1, \"bogo_ops\": 8600576, \"duration_sec\": 0.272 },\n        { \"name\": \"hdd\", \"type\": \"file\", \"stage\": 1, \"bogo_ops\": 42, \"duration_sec\": 0.902 },\n        { \"name\": \"open\", \"type\": \"file\", \"stage\": 1, \"bogo_ops\": 250, \"duration_sec\": 3.619 },\n        { \"name\": \"copy-file\", \"type\": \"file\", \"stage\": 1, \"bogo_ops\": 220, \"duration_sec\": 1.266 },\n        { \"name\": \"unlink\", \"type\": \"file\", \"stage\": 1, \"bogo_ops\": 250, \"duration_sec\": 3.730 },\n        { \"name\": \"fstat\", \"type\": \"file\", \"stage\": 1, \"bogo_ops\": 600, \"duration_sec\": 0.785 },\n        { \"name\": \"dentry\", \"type\": \"file\", \"stage\": 1, \"bogo_ops\": 300, \"duration_sec\": 6.214 },\n        { \"name\": \"rename\", \"type\": \"file\", \"stage\": 1, \"bogo_ops\": 200, \"duration_sec\": 2.540 },\n        { \"name\": \"pipe\", \"type\": \"file\", \"stage\": 1, \"bogo_ops\": 12825, \"duration_sec\": 0.200, \"metric_value\": 64096.986, \"metric_unit\": \"KB/sec\" }\n      ]\n    },\n    \"test-cmd\": {\n      \"status\": \"passed\",\n      \"cmd_count\": 11,\n      \"pass_count\": 5,\n      \"commands\": [\n        { \"name\": \"date\", \"command\": \"date\", \"supported\": true },\n        { \"name\": \"ps\", \"command\": \"ps\", \"supported\": true },\n        { \"name\": \"mkdir\", \"command\": \"mkdir -p test_cmd_dir\", \"supported\": false },\n        { \"name\": \"cd\", \"command\": \"cd .\", \"supported\": true },\n        { \"name\": \"pwd\", \"command\": \"pwd\", \"supported\": true },\n        { \"name\": \"echo\", \"command\": \"echo 'HELLO' > ./test_cmd_dir/original.txt\", \"supported\": false },\n        { \"name\": \"cp\", \"command\": \"cp ./test_cmd_dir/original.txt ./test_cmd_dir/backup.txt\", \"supported\": false },\n        { \"name\": \"mv\", \"command\": \"mv ./test_cmd_dir/backup.txt ./test_cmd_dir/final_target.txt\", \"supported\": false },\n        { \"name\": \"ls\", \"command\": \"ls\", \"supported\": true },\n        { \"name\": \"cat\", \"command\": \"cat ./test_cmd_dir/original.txt\", \"supported\": false },\n        { \"name\": \"rm\", \"command\": \"rm -rf ./test_cmd_dir\", \"supported\": false }\n      ]\n    },\n    \"typical-workload\": {\n      \"status\": \"passed\",\n      \"duration_sec\": 0.000,\n      \"workloads\": [\n        { \"name\": \"stub\", \"category\": \"utility\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 0.003, \"avg_time_ms\": 0.001 },\n        { \"name\": \"busywait\", \"category\": \"utility\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 0.501, \"avg_time_ms\": 0.100 },\n        { \"name\": \"fast\", \"category\": \"vision\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 112.389, \"avg_time_ms\": 22.478 },\n        { \"name\": \"epnp\", \"category\": \"vision\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 47.649, \"avg_time_ms\": 9.530 },\n        { \"name\": \"ekf\", \"category\": \"estimation\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 2952.402, \"avg_time_ms\": 590.480 },\n        { \"name\": \"icp\", \"category\": \"vision\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 3008.767, \"avg_time_ms\": 601.753 },\n        { \"name\": \"modbus\", \"category\": \"network\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 45499.452, \"avg_time_ms\": 9099.890 },\n        { \"name\": \"mqtt\", \"category\": \"network\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 8541.087, \"avg_time_ms\": 1708.217 },\n        { \"name\": \"pid\", \"category\": \"control\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 433.906, \"avg_time_ms\": 86.781 },\n        { \"name\": \"cusum\", \"category\": \"detection\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 134.241, \"avg_time_ms\": 26.848 },\n        { \"name\": \"ewma\", \"category\": \"detection\", \"success\": true, \"rounds\": 5, \"exec_time_ms\": 245.761, \"avg_time_ms\": 49.152 }\n      ]\n    }\n  }\n}\n",
+  "uploaded_at_ms": 1780458060491,
+  "rtbench_result": {
+    "meta": {
+      "framework_version": "1.0.0",
+      "test_timestamp": "2000-01-01T12:25:51Z",
+      "total_duration_sec": 454.0
+    },
+    "env": {
+      "os_name": "SylixOS",
+      "os_version": "2.x",
+      "board": "SylixOS-Board",
+      "cpu_type": "ARM",
+      "cpu_freq_mhz": 0,
+      "cpu_core_num": 1
+    },
+    "modules": {
+      "test-realtime": {
+        "status": "passed",
+        "duration_sec": 0.0,
+        "single_core": {
+          "context_switch": {
+            "avg_us": 0.712
+          },
+          "interrupt": {
+            "min_us": 0.291,
+            "max_us": 0.583,
+            "avg_us": 0.293
+          },
+          "syscall": {
+            "min_us": 0.291,
+            "max_us": 0.291,
+            "avg_us": 0.291
+          },
+          "service_cost": [
+            {
+              "operation": "sem_take",
+              "immediate_us": 0.291,
+              "suspend_us": 0.833,
+              "low_prio_us": 0.0,
+              "high_prio_us": 0.0
+            },
+            {
+              "operation": "sem_release",
+              "immediate_us": 0.416,
+              "suspend_us": 0.0,
+              "low_prio_us": 0.416,
+              "high_prio_us": 0.833
+            },
+            {
+              "operation": "mq_send",
+              "immediate_us": 1.5,
+              "suspend_us": 1.666,
+              "low_prio_us": 1.583,
+              "high_prio_us": 1.666
+            },
+            {
+              "operation": "mq_recv",
+              "immediate_us": 1.458,
+              "suspend_us": 3.166,
+              "low_prio_us": 1.625,
+              "high_prio_us": 3.208
+            },
+            {
+              "operation": "mutex_take",
+              "immediate_us": 0.333,
+              "suspend_us": 0.916,
+              "low_prio_us": 0.0,
+              "high_prio_us": 0.0
+            },
+            {
+              "operation": "mutex_release",
+              "immediate_us": 0.416,
+              "suspend_us": 0.0,
+              "low_prio_us": 0.5,
+              "high_prio_us": 0.958
+            },
+            {
+              "operation": "mempool_alloc",
+              "immediate_us": 0.875,
+              "suspend_us": 0.0,
+              "low_prio_us": 0.0,
+              "high_prio_us": 0.0
+            },
+            {
+              "operation": "mempool_free",
+              "immediate_us": 0.791,
+              "suspend_us": 0.0,
+              "low_prio_us": 0.0,
+              "high_prio_us": 0.0
+            }
+          ]
+        }
+      },
+      "test-schedule": {
+        "status": "passed",
+        "duration_sec": 0.0,
+        "config": {
+          "cycles": 1,
+          "util_start": 30,
+          "util_end": 30,
+          "util_step": 30
+        },
+        "wcet_measurements": [],
+        "gradients": [
+          {
+            "utilization_percent": 30,
+            "actual_utilization": 0.3,
+            "total_jobs": 9,
+            "deadline_misses": 0,
+            "miss_rate": 0.0,
+            "task_stats": [
+              {
+                "name": "modbus",
+                "utilization": 0.0,
+                "period_ms": 0.0,
+                "jobs": 1,
+                "misses": 0,
+                "max_response_ms": 9100.023
+              },
+              {
+                "name": "mqtt",
+                "utilization": 0.0,
+                "period_ms": 0.0,
+                "jobs": 1,
+                "misses": 0,
+                "max_response_ms": 1331.783
+              },
+              {
+                "name": "ekf",
+                "utilization": 0.0,
+                "period_ms": 0.0,
+                "jobs": 1,
+                "misses": 0,
+                "max_response_ms": 561.15
+              },
+              {
+                "name": "icp",
+                "utilization": 0.0,
+                "period_ms": 0.0,
+                "jobs": 1,
+                "misses": 0,
+                "max_response_ms": 650.438
+              },
+              {
+                "name": "pid",
+                "utilization": 0.0,
+                "period_ms": 0.0,
+                "jobs": 1,
+                "misses": 0,
+                "max_response_ms": 111.425
+              },
+              {
+                "name": "ewma",
+                "utilization": 0.0,
+                "period_ms": 0.0,
+                "jobs": 1,
+                "misses": 0,
+                "max_response_ms": 54.374
+              },
+              {
+                "name": "cusum",
+                "utilization": 0.0,
+                "period_ms": 0.0,
+                "jobs": 1,
+                "misses": 0,
+                "max_response_ms": 19.008
+              },
+              {
+                "name": "fast",
+                "utilization": 0.0,
+                "period_ms": 0.0,
+                "jobs": 1,
+                "misses": 0,
+                "max_response_ms": 14.752
+              },
+              {
+                "name": "epnp",
+                "utilization": 0.0,
+                "period_ms": 0.0,
+                "jobs": 1,
+                "misses": 0,
+                "max_response_ms": 5.491
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "average_miss_rate": 0.0,
+          "final_score": 100.0
+        }
+      },
+      "test-stress": {
+        "status": "passed",
+        "duration_sec": 27.824,
+        "stressors": [
+          {
+            "name": "cpu",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 280,
+            "duration_sec": 0.256
+          },
+          {
+            "name": "matrix",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 640,
+            "duration_sec": 0.74
+          },
+          {
+            "name": "qsort",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 250,
+            "duration_sec": 0.386
+          },
+          {
+            "name": "atomic",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 300000,
+            "duration_sec": 0.129
+          },
+          {
+            "name": "bitops",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 2400,
+            "duration_sec": 0.498
+          },
+          {
+            "name": "bsearch",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 310,
+            "duration_sec": 0.416
+          },
+          {
+            "name": "context",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 69000,
+            "duration_sec": 0.2
+          },
+          {
+            "name": "fp",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 105,
+            "duration_sec": 0.987
+          },
+          {
+            "name": "prime",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 270840,
+            "duration_sec": 0.787
+          },
+          {
+            "name": "stack",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 690,
+            "duration_sec": 0.747
+          },
+          {
+            "name": "str",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 130000,
+            "duration_sec": 0.144
+          },
+          {
+            "name": "trig",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 21,
+            "duration_sec": 0.188
+          },
+          {
+            "name": "vecmath",
+            "type": "cpu",
+            "stage": 1,
+            "bogo_ops": 270,
+            "duration_sec": 0.455
+          },
+          {
+            "name": "memcpy",
+            "type": "memory",
+            "stage": 1,
+            "bogo_ops": 1500,
+            "duration_sec": 0.332
+          },
+          {
+            "name": "stream",
+            "type": "memory",
+            "stage": 1,
+            "bogo_ops": 5200,
+            "duration_sec": 0.411,
+            "metric_value": 2251.96,
+            "metric_unit": "Mflop/sec"
+          },
+          {
+            "name": "vm",
+            "type": "memory",
+            "stage": 1,
+            "bogo_ops": 4200704,
+            "duration_sec": 0.305
+          },
+          {
+            "name": "malloc",
+            "type": "memory",
+            "stage": 1,
+            "bogo_ops": 170000,
+            "duration_sec": 0.289
+          },
+          {
+            "name": "memthrash",
+            "type": "memory",
+            "stage": 1,
+            "bogo_ops": 230,
+            "duration_sec": 1.027
+          },
+          {
+            "name": "ptr-chase",
+            "type": "memory",
+            "stage": 1,
+            "bogo_ops": 8600576,
+            "duration_sec": 0.272
+          },
+          {
+            "name": "hdd",
+            "type": "file",
+            "stage": 1,
+            "bogo_ops": 42,
+            "duration_sec": 0.902
+          },
+          {
+            "name": "open",
+            "type": "file",
+            "stage": 1,
+            "bogo_ops": 250,
+            "duration_sec": 3.619
+          },
+          {
+            "name": "copy-file",
+            "type": "file",
+            "stage": 1,
+            "bogo_ops": 220,
+            "duration_sec": 1.266
+          },
+          {
+            "name": "unlink",
+            "type": "file",
+            "stage": 1,
+            "bogo_ops": 250,
+            "duration_sec": 3.73
+          },
+          {
+            "name": "fstat",
+            "type": "file",
+            "stage": 1,
+            "bogo_ops": 600,
+            "duration_sec": 0.785
+          },
+          {
+            "name": "dentry",
+            "type": "file",
+            "stage": 1,
+            "bogo_ops": 300,
+            "duration_sec": 6.214
+          },
+          {
+            "name": "rename",
+            "type": "file",
+            "stage": 1,
+            "bogo_ops": 200,
+            "duration_sec": 2.54
+          },
+          {
+            "name": "pipe",
+            "type": "file",
+            "stage": 1,
+            "bogo_ops": 12825,
+            "duration_sec": 0.2,
+            "metric_value": 64096.986,
+            "metric_unit": "KB/sec"
+          }
+        ]
+      },
+      "test-cmd": {
+        "status": "passed",
+        "cmd_count": 11,
+        "pass_count": 5,
+        "commands": [
+          {
+            "name": "date",
+            "command": "date",
+            "supported": true
+          },
+          {
+            "name": "ps",
+            "command": "ps",
+            "supported": true
+          },
+          {
+            "name": "mkdir",
+            "command": "mkdir -p test_cmd_dir",
+            "supported": false
+          },
+          {
+            "name": "cd",
+            "command": "cd .",
+            "supported": true
+          },
+          {
+            "name": "pwd",
+            "command": "pwd",
+            "supported": true
+          },
+          {
+            "name": "echo",
+            "command": "echo 'HELLO' > ./test_cmd_dir/original.txt",
+            "supported": false
+          },
+          {
+            "name": "cp",
+            "command": "cp ./test_cmd_dir/original.txt ./test_cmd_dir/backup.txt",
+            "supported": false
+          },
+          {
+            "name": "mv",
+            "command": "mv ./test_cmd_dir/backup.txt ./test_cmd_dir/final_target.txt",
+            "supported": false
+          },
+          {
+            "name": "ls",
+            "command": "ls",
+            "supported": true
+          },
+          {
+            "name": "cat",
+            "command": "cat ./test_cmd_dir/original.txt",
+            "supported": false
+          },
+          {
+            "name": "rm",
+            "command": "rm -rf ./test_cmd_dir",
+            "supported": false
+          }
+        ]
+      },
+      "typical-workload": {
+        "status": "passed",
+        "duration_sec": 0.0,
+        "workloads": [
+          {
+            "name": "stub",
+            "category": "utility",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 0.003,
+            "avg_time_ms": 0.001
+          },
+          {
+            "name": "busywait",
+            "category": "utility",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 0.501,
+            "avg_time_ms": 0.1
+          },
+          {
+            "name": "fast",
+            "category": "vision",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 112.389,
+            "avg_time_ms": 22.478
+          },
+          {
+            "name": "epnp",
+            "category": "vision",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 47.649,
+            "avg_time_ms": 9.53
+          },
+          {
+            "name": "ekf",
+            "category": "estimation",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 2952.402,
+            "avg_time_ms": 590.48
+          },
+          {
+            "name": "icp",
+            "category": "vision",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 3008.767,
+            "avg_time_ms": 601.753
+          },
+          {
+            "name": "modbus",
+            "category": "network",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 45499.452,
+            "avg_time_ms": 9099.89
+          },
+          {
+            "name": "mqtt",
+            "category": "network",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 8541.087,
+            "avg_time_ms": 1708.217
+          },
+          {
+            "name": "pid",
+            "category": "control",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 433.906,
+            "avg_time_ms": 86.781
+          },
+          {
+            "name": "cusum",
+            "category": "detection",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 134.241,
+            "avg_time_ms": 26.848
+          },
+          {
+            "name": "ewma",
+            "category": "detection",
+            "success": true,
+            "rounds": 5,
+            "exec_time_ms": 245.761,
+            "avg_time_ms": 49.152
+          }
+        ]
+      }
+    }
+  }
+}

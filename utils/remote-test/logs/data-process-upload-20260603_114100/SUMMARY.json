@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "status": 200,
+  "dataset_key": "performance_safety",
+  "biz_id": "rtbench-joint-debug-20260603_114100-orangepi-testall",
+  "podName": "cursor-local-joint-debug-20260603_114100",
+  "request_meta": "utils/remote-test/logs/data-process-upload-20260603_114100/request_meta.json",
+  "sent_document": "utils/remote-test/logs/data-process-upload-20260603_114100/sent_document.json",
+  "response": "utils/remote-test/logs/data-process-upload-20260603_114100/response.json"
+}
