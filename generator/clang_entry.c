@@ -1,9 +1,9 @@
 /*
- * This entry is a clang framework smoke entry for acceptance test TC-TOOL-002.
- * It intentionally excludes RTOS/BSP-dependent benchmark modules.
+ * This entry is a clang framework validation entry for acceptance test
+ * TC-TOOL-002. It intentionally excludes RTOS/BSP-dependent benchmark modules.
  *
  * The file models a minimal RTOS-Bench framework closure that can be compiled
- * as a freestanding ARM target object.  It does not depend on libc output,
+ * as a freestanding ARM target object. It does not depend on libc output,
  * pthread, shell/msh, serial, filesystem, BSP code, workloads, or RTOS APIs.
  */
 
@@ -17,15 +17,16 @@ static const char *const rtbench_clang_modules[] = {
 };
 
 static const char rtbench_clang_version[] =
-    "RTOS-Bench clang framework smoke TC-TOOL-002";
+    "RTOS-Bench clang framework validation TC-TOOL-002";
 
 static const char rtbench_clang_help[] =
     "commands: help, version, modules, result";
 
 static const char rtbench_clang_result_skeleton[] =
     "{"
-    "\"meta\":{\"case\":\"TC-TOOL-002\",\"scope\":\"framework-smoke\"},"
-    "\"env\":{\"target\":\"arm-none-eabi\",\"mode\":\"freestanding-object\"},"
+    "\"meta\":{\"case\":\"TC-TOOL-002\",\"scope\":\"framework-validation\"},"
+    "\"env\":{\"target\":\"arm-none-eabi\",\"cpu\":\"cortex-a53\","
+    "\"artifact\":\"32-bit ARM EABI relocatable object\"},"
     "\"modules\":["
     "\"test-all\","
     "\"test-realtime\","

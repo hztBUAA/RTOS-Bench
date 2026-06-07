@@ -10,15 +10,19 @@ Target: arm64-apple-darwin24.3.0
 Thread model: posix
 InstalledDir: /Library/Developer/CommandLineTools/usr/bin
 
-clang --target=arm-none-eabi -mcpu=cortex-a53 -ffreestanding -fdata-sections -ffunction-sections -Wall -Wextra -c utils/clang-smoke/clang_entry.c -o build/clang-arm/clang_entry.o
+clang target architecture: primary arm-none-eabi with -mcpu=cortex-a53
+target artifact: 32-bit ARM EABI relocatable object for Cortex-A53/AArch32
+fallback target: aarch64-none-elf for 64-bit AArch64 ELF object if the primary target is unavailable
+
+clang --target=arm-none-eabi -mcpu=cortex-a53 -ffreestanding -fdata-sections -ffunction-sections -Wall -Wextra -c generator/clang_entry.c -o build/clang-arm/clang_entry.o
 generated object: build/clang-arm/clang_entry.o
 
 warning: llvm-objdump not found; skipping object header dump
-/Users/hzt/dp/rtos-bench-clang-smoke/build/clang-arm/clang_entry.o: ELF 32-bit LSB relocatable, ARM, EABI5 version 1 (SYSV), not stripped
+/Users/hzt/dp/RTOS-Bench/build/clang-arm/clang_entry.o: ELF 32-bit LSB relocatable, ARM, EABI5 version 1 (SYSV), not stripped
 
-trying optional ELF link: build/clang-arm/rtbench_clang_smoke.elf
+trying optional ELF link: build/clang-arm/rtbench_clang_framework.elf
 clang: error: unable to execute command: Executable "ld.lld" doesn't exist!
 clang: error: ld.lld command failed with exit code 1 (use -v to see invocation)
 warning: optional ELF link failed; object generation is the required pass condition
 
-clang ARM framework smoke compile success
+clang ARM framework compile success
