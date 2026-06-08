@@ -1,0 +1,24 @@
+[package]
+name = "rtos-rust-bench"
+version = "0.1.0"
+edition = "2018"
+publish = false
+
+[workspace]
+
+[lib]
+name = "rtos_rust_bench"
+path = "src/lib.rs"
+crate-type = ["rlib", "staticlib"]
+
+[[bin]]
+name = "rtos-rust-bench-demo"
+path = "src/bin/demo.rs"
+
+[dependencies]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
