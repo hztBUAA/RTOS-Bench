@@ -1,0 +1,24 @@
+LOCAL=D:\build\workspace\Developer_231Gizwits\IDE\BIN\Intewell_Developer\eclipse\workspace\vm_3588\Debug\make\vm_3588.bin
+LOCAL_SIZE=5218304
+LOCAL_SHA256=4fd1b734f6f372a9211477f387b1673f94a343a3189b062621917fe62931d012
+
+>>> sha256sum /download/vm_3588.bin /download/config.bin 2>&1 || true; cp -f /download/vm_3588.bin /download/vm_3588_backup_before_20260609_2248_export_path.bin; ls -l /download/vm_3588_backup_before_20260609_2248_export_path.bin
+37cd239cb52ce6260f916ee5be929dd4360dd8de114e602a0cf2214ce82e18dc  /download/vm_3588.bin
+ebdf06c6930bc266f5ec2fe54d752d80eb9c86d9dd09e891e58b5da013c21c6a  /download/config.bin
+-rw-r--r-- 1 root root 5218304 Jun  2 12:42 /download/vm_3588_backup_before_20260609_2248_export_path.bin
+
+[exit=0]
+
+>>> sftp put D:\build\workspace\Developer_231Gizwits\IDE\BIN\Intewell_Developer\eclipse\workspace\vm_3588\Debug\make\vm_3588.bin /download/.vm_3588.export.uploading
+
+>>> cp -f /download/vm_3588_hzt_acceptance_20260609_2248_export_path.bin /download/vm_3588.bin; sync; ls -l /download/vm_3588.bin /download/vm_3588_hzt_acceptance_20260609_2248_export_path.bin /download/vm_3588_backup_before_20260609_2248_export_path.bin /download/config.bin; sha256sum /download/vm_3588.bin /download/vm_3588_hzt_acceptance_20260609_2248_export_path.bin /download/vm_3588_backup_before_20260609_2248_export_path.bin /download/config.bin
+-rw-r--r-- 1 root root  135168 Jun  2 12:37 /download/config.bin
+-rw-r--r-- 1 root root 5218304 Jun  2 12:42 /download/vm_3588_backup_before_20260609_2248_export_path.bin
+-rw-r--r-- 1 root root 5218304 Jun  2 12:42 /download/vm_3588.bin
+-rw-r--r-- 1 root root 5218304 Jun  2 12:42 /download/vm_3588_hzt_acceptance_20260609_2248_export_path.bin
+4fd1b734f6f372a9211477f387b1673f94a343a3189b062621917fe62931d012  /download/vm_3588.bin
+4fd1b734f6f372a9211477f387b1673f94a343a3189b062621917fe62931d012  /download/vm_3588_hzt_acceptance_20260609_2248_export_path.bin
+37cd239cb52ce6260f916ee5be929dd4360dd8de114e602a0cf2214ce82e18dc  /download/vm_3588_backup_before_20260609_2248_export_path.bin
+ebdf06c6930bc266f5ec2fe54d752d80eb9c86d9dd09e891e58b5da013c21c6a  /download/config.bin
+
+[exit=0]

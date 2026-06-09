@@ -1,0 +1,23 @@
+
+>>> rt start 2>&1 || true
+****    userInfo not exist        ****
+****    rt system unauthorized    ****
+
+[exit=0]
+
+>>> sleep 5; rt status 2>&1 || true
+start
+
+[exit=0]
+
+>>> rt ifconfig 2>&1 || true
+vm1 
+  vnetF_linux0
+    IP:192.168.31.207    MASK:255.255.255.0    GATEWAY:
+
+  vnetF_linux1
+    IP:192.168.182.116    MASK:255.255.255.0    GATEWAY:
+
+
+
+[exit=0]
