@@ -14,6 +14,12 @@
 
 #define RTBENCH_RUIHUA_MAX_ARGS 32
 
+#if defined(__GNUC__)
+extern int run_all_workloads(void) __attribute__((weak));
+#else
+extern int run_all_workloads(void);
+#endif
+
 static int split_command_line(char *buf, char **argv, int max_args)
 {
 	int argc = 0;
@@ -131,6 +137,17 @@ int rtbench_busywait(void)
 int rtbench_ruihua_smoke(void)
 {
 	return rtbench_command_run_benchmark("ruihua-smoke", 0.1, 1);
+}
+
+int rtbench_run_workloads(void)
+{
+#if defined(__GNUC__)
+	if (run_all_workloads == NULL) {
+		printf("[rtbench] run_all_workloads is not linked\n");
+		return -1;
+	}
+#endif
+	return run_all_workloads();
 }
 
 int rtbench_test_all(void)
