@@ -995,8 +995,12 @@ static int run_test_all_impl(void *ctx)
 		}
 	}
 	if (p->run_stress) {
-		const char *job = p->stress_job ?
-			p->stress_job : (p->quick_mode ? "all-quick" : "all");
+		const char *job = p->stress_job ? p->stress_job :
+#ifdef DONGTU_PLATFORM
+			"all-quick";
+#else
+			(p->quick_mode ? "all-quick" : "all");
+#endif
 		if (test_stress_run_job != NULL) {
 			printf("\n>>> Running test-stress (job: %s)...\n", job);
 			ret |= test_stress_run_job(job);
@@ -1199,6 +1203,13 @@ int rtbench_command_main(int argc, char **argv)
 		params.schedule_util_start = TEST_SCHEDULE_UTIL_START;
 		params.schedule_util_end = TEST_SCHEDULE_UTIL_END;
 		params.schedule_util_step = TEST_SCHEDULE_UTIL_STEP;
+#ifdef DONGTU_PLATFORM
+		params.quick_mode = 1;
+		params.schedule_cycles = TEST_SCHEDULE_QUICK_CYCLES;
+		params.schedule_util_start = TEST_SCHEDULE_QUICK_UTIL_START;
+		params.schedule_util_end = TEST_SCHEDULE_QUICK_UTIL_END;
+		params.schedule_util_step = TEST_SCHEDULE_QUICK_UTIL_STEP;
+#endif
 		params.output_path = default_output_path();
 		parse_ret = parse_test_all_args(argc, argv, &params);
 		if (parse_ret == RTBENCH_PARSE_HELP) return 0;

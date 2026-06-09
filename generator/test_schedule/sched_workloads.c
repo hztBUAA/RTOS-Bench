@@ -7,6 +7,13 @@
 #include <string.h>
 #include <stddef.h>
 
+extern int epnp_bench_run(size_t iterations);
+
+static int sched_epnp_quick_exec(void)
+{
+	return epnp_bench_run(1);
+}
+
 /**
  * @brief Static table of workload wrappers for test-schedule
  *
@@ -28,6 +35,14 @@ static const struct sched_workload_wrapper g_sched_wrappers[] = {
 		.quick_exec = sched_modbus_quick_exec,
 		.teardown = sched_modbus_teardown,
 		.max_wcet_ms = 2000,
+		.needs_state_reset = 0,
+	},
+	{
+		.name = "epnp",
+		.init = NULL,
+		.quick_exec = sched_epnp_quick_exec,
+		.teardown = NULL,
+		.max_wcet_ms = 250,
 		.needs_state_reset = 0,
 	},
 };

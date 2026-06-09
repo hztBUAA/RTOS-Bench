@@ -85,3 +85,37 @@
 - `rtbench test-schedule` 已完成，调度分数 `100.00 / 100`。
 - `rtbench test-all --no-stress` 已完成，`test-cmd` 为 `5/5`，导出 JSON 可解析。
 - `test-stress --job cpu` 在东土上仍会卡在 `Running Job: 0/65 -> cpu`，当前记录为待后续专项处理。
+
+## Orange Pi 当前固定验收路径
+
+2026-06-09 后，东土 Orange Pi 的当前验收链路按 `VALIDATION_20260609.md` 记录执行。常用路径如下：
+
+- Windows/Intewell 工程路径：`D:/build/workspace/Developer_231Gizwits/IDE/BIN/Intewell_Developer/eclipse/workspace/vm_3588`
+- 命令行构建目录：`D:/build/workspace/Developer_231Gizwits/IDE/BIN/Intewell_Developer/eclipse/workspace/vm_3588/Debug/make`
+- 本地构建产物：`D:/build/workspace/Developer_231Gizwits/IDE/BIN/Intewell_Developer/eclipse/workspace/vm_3588/Debug/make/vm_3588.bin`
+- 外层 Linux SSH：`root@192.168.31.241`
+- 外层活动镜像：`/download/vm_3588.bin`
+- 外层配置镜像：`/download/config.bin`
+- 内层 RTOS telnet：`192.168.31.207:23`
+- 内层导出 JSON：`/nfsd/rtbench_result.json`
+- 外层可取回 JSON：`/nfs_root/vm1/rtbench_result.json`
+
+外层 Linux 不直接运行 RTOS-Bench。外层只负责镜像部署和 VM 控制，进入内层 RTOS 后才运行 `rtbench`：
+
+```sh
+ssh root@192.168.31.241
+rt status
+rt stop
+rt start
+rt ifconfig
+```
+
+`rt start` 后确认 `rt ifconfig` 输出 `192.168.31.207`，再从同网段机器执行：
+
+```sh
+telnet 192.168.31.207 23
+rtbench -L
+rtbench test-all
+```
+
+如果 `192.168.31.207:23` 不通，先看外层 `rt status`。状态为 `stop` 时，执行 `rt start`；状态为 `start` 但 telnet 不通时，执行 `rt stop` 后再 `rt start`。
