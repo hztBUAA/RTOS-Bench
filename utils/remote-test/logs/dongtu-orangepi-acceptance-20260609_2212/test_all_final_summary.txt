@@ -1,0 +1,103 @@
+--- Quick mode enabled
+(none)
+--- Modules:
+Modules: realtime=yes schedule=yes stress=yes cmd=yes workload=yes
+--- [test-realtime] Benchmark completed
+[test-realtime] Benchmark completed with code: 0
+--- [Phase 3] Final Results
+[Phase 3] Final Results
+--- Final Score:
+Final Score: 100.00 / 100
+--- >>> Running test-stress
+>>> Running test-stress (job: all-quick)...
+--- Job 'all-quick' completed
+[test-stress] Job 'all-quick' completed: 27 stressor runs
+--- >>> Running test-cmd
+>>> Running test-cmd...
+--- [RTOS-Bench] Results saved to:
+[RTOS-Bench] Results saved to: /nfsd/rtbench_result.json
+--- TEST_ALL_EXIT_CODE=0
+vm1 [ /nfsd/ ]# TEST_ALL_EXIT_CODE=0
+--- Failed to open
+(none)
+--- tail
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+[SCHED-MQTT] Quick mode timeout after 2000.000 ms
+
+[SCHED-MQTT] Sending login (24 bytes)...
+
+    mqtt: 10104.692 ms total, 2020.938 ms avg
+
+  Running workload: pid
+
+Creating POSIX thread for PID benchmark...
+
+Creating POSIX thread for PID benchmark...
+
+Creating POSIX thread for PID benchmark...
+
+Creating POSIX thread for PID benchmark...
+
+Creating POSIX thread for PID benchmark...
+
+    pid: 364.414 ms total, 72.883 ms avg
+
+  Running workload: cusum
+
+    cusum: 182.422 ms total, 36.484 ms avg
+
+  Running workload: ewma
+
+    ewma: 993.349 ms total, 198.670 ms avg
+
+
+
+=============================================================
+
+[RTOS-Bench] Results saved to: /nfsd/rtbench_result.json
+
+=============================================================
+
+vm1 [ /nfsd/ ]# TEST_ALL_EXIT_CODE=0
+

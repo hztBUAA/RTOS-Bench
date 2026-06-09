@@ -1,0 +1,7 @@
+-rwxrwxrwx 1 2001 users 8244 Jun  2 12:46 /nfs_root/vm1/rtbench_result.json
+40e0d53b5d5ca0fef051957bf33bdf53ed8f24b0aa6e951e69204ab528688baa  /nfs_root/vm1/rtbench_result.json
+LOCAL=C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\dongtu-orangepi-acceptance-20260609_2212\rtbench_result_final_success.json
+LOCAL_SIZE=8244
+LOCAL_SHA256=40e0d53b5d5ca0fef051957bf33bdf53ed8f24b0aa6e951e69204ab528688baa
+JSON_OK=1
+TOP_LEVEL_KEYS=['meta', 'env', 'modules']
