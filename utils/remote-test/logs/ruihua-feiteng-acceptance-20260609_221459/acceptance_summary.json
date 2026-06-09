@@ -1,0 +1,122 @@
+[
+  {
+    "command": "rtbench_help",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 1.3057706356048584,
+    "bytes": 1305,
+    "contains_module_not_linked": false,
+    "contains_final_score": false,
+    "final_scores": [],
+    "contains_all_quick": false,
+    "cmd_results": [],
+    "stress_completed": false,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_list",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 1.3053972721099854,
+    "bytes": 350,
+    "contains_module_not_linked": false,
+    "contains_final_score": false,
+    "final_scores": [],
+    "contains_all_quick": false,
+    "cmd_results": [],
+    "stress_completed": false,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_test_cmd",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 1.3050732612609863,
+    "bytes": 818,
+    "contains_module_not_linked": false,
+    "contains_final_score": false,
+    "final_scores": [],
+    "contains_all_quick": false,
+    "cmd_results": [
+      "10/10 commands supported"
+    ],
+    "stress_completed": false,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_test_realtime",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 3.4243876934051514,
+    "bytes": 778,
+    "contains_module_not_linked": false,
+    "contains_final_score": false,
+    "final_scores": [],
+    "contains_all_quick": false,
+    "cmd_results": [],
+    "stress_completed": false,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_test_schedule_cycles3",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 6.671388149261475,
+    "bytes": 3520,
+    "contains_module_not_linked": false,
+    "contains_final_score": true,
+    "final_scores": [
+      "100.00 / 100"
+    ],
+    "contains_all_quick": false,
+    "cmd_results": [],
+    "stress_completed": false,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_test_stress",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 116.70519185066223,
+    "bytes": 8950,
+    "contains_module_not_linked": false,
+    "contains_final_score": false,
+    "final_scores": [],
+    "contains_all_quick": true,
+    "cmd_results": [],
+    "stress_completed": true,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_test_all",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 124.896240234375,
+    "bytes": 14346,
+    "contains_module_not_linked": false,
+    "contains_final_score": true,
+    "final_scores": [
+      "100.00 / 100"
+    ],
+    "contains_all_quick": true,
+    "cmd_results": [
+      "10/10 commands supported"
+    ],
+    "stress_completed": true,
+    "results_saved": true,
+    "return_zero": true,
+    "contains_error_word": false
+  }
+]

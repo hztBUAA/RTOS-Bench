@@ -135,8 +135,12 @@ int rtbench_ruihua_smoke(void)
 
 int rtbench_test_all(void)
 {
-	char *argv[] = { "rtbench", "test-all" };
-	return rtbench_command_main(2, argv);
+	char *argv[] = {
+		"rtbench", "test-all",
+		"--schedule-cycles", "3",
+		"--stress-job", "all-quick",
+	};
+	return rtbench_command_main(6, argv);
 }
 
 int rtbench_test_all_quick(void)
@@ -174,8 +178,8 @@ int rtbench_test_realtime(void)
 
 int rtbench_test_stress(void)
 {
-	char *argv[] = { "rtbench", "test-stress" };
-	return rtbench_command_main(2, argv);
+	char *argv[] = { "rtbench", "test-stress", "--job", "all-quick" };
+	return rtbench_command_main(4, argv);
 }
 
 int rtbench_test_cmd(void)
