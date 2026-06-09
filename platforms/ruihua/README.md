@@ -22,6 +22,7 @@ C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench
 | Board | 飞腾派 / Phytium Pi, AArch64 SMP |
 | SDK | `C:\rtos\6.1.1-ARM` |
 | 样板工程 | `C:\rtos\6.1.1-ARM\workspace\feiteng4rtos` |
+| 仓库模板 | `platforms/ruihua/feiteng4rtos-template` |
 | 构建目录 | `C:\rtos\6.1.1-ARM\workspace\feiteng4rtos\gnuaarch64\FTE2000_SMP-64` |
 | 输出镜像 | `...\FTE2000_SMP-64\reworks.elf` |
 | 校园网板端 IP | `192.168.31.210:23` |
@@ -38,7 +39,13 @@ rtbench@10.134.151.45:/tftp/ruihua-feiteng-reworks-192.168.31.210-20260602.elf
 
 ## 样板工程结构
 
-这些文件是当前飞腾派适配需要的最小样板。`rtosbench_port` **仍然需要**，它不是可删除的临时目录，而是 Ruihua 工程侧 glue layer：负责开机 smoke、手工注册 workload，并让 `test-schedule` 使用 workload registry。
+这些文件是当前飞腾派适配需要的最小样板。仓库内已经提供对应模板：
+
+```text
+platforms/ruihua/feiteng4rtos-template
+```
+
+使用时先以 `C:\rtos\6.1.1-ARM\workspace\feiteng4rtos` 这个可用 ReDe 工程为底座，再把模板中的手工维护文件覆盖到工程对应位置。`rtosbench_port` **仍然需要**，它不是可删除的临时目录，而是 Ruihua 工程侧 glue layer：负责开机 smoke、手工注册 workload，并让 `test-schedule` 使用 workload registry。
 
 ```text
 C:\rtos\6.1.1-ARM\workspace\feiteng4rtos
@@ -51,6 +58,8 @@ C:\rtos\6.1.1-ARM\workspace\feiteng4rtos
 │       ├── makefile                  # IDE 生成，不手工编辑
 │       ├── subdir.mk                 # 自动 include $(ROOT)/user.mk
 │       └── rtosbench_port\subdir.mk  # IDE 生成 rtosbench_port/*.c 编译规则
+├── les\
+│   └── bench_init.c                  # 包含仓库维护的 realtime wrapper
 └── rtosbench_port\
     ├── rtosbench_boot.c              # 开机后调用 help/list/schedule quick
     ├── ruihua_workloads.c            # 注册 stub/busywait/ruihua-smoke

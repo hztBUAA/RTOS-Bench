@@ -1,0 +1,22 @@
+/*
+ * Copy the relevant GEM0 settings into the sample project's usrArgs.h.
+ * Keep the selected IP in sync with the network boot/deployment mode.
+ */
+
+#define GEM0_NAME "gem0"
+#define GEM0_IPV4_NETMASK "255.255.255.0"
+
+/* Campus-network validation mode. */
+#define GEM0_IPV4_ADDR "192.168.31.210"
+
+/*
+ * Direct PC-to-board mode uses:
+ *   Windows NIC: 192.168.2.61/24
+ *   Board IP:    192.168.2.100/24
+ *
+ * Replace GEM0_IPV4_ADDR with the line below when building a direct-connect
+ * image.
+ */
+/* #define GEM0_IPV4_ADDR "192.168.2.100" */
+
+#define GEM0_NUM 0
