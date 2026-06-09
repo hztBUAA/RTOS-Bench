@@ -26,6 +26,27 @@ volatile uint32_t LES_flag = 0;
 volatile uint32_t *__LES_syscall_flag = NULL;
 volatile uint32_t *__LES_interrupt_flag = NULL;
 
+#undef LES_syscall_val
+#undef LES_interrupt_start_val
+#undef LES_interrupt_end_val
+#undef LES_syscall_flag
+#undef LES_interrupt_flag
+extern volatile uint64_t *LES_syscall_val
+	__attribute__((alias("__LES_syscall_val")));
+extern volatile uint64_t *LES_interrupt_start_val
+	__attribute__((alias("__LES_interrupt_start_val")));
+extern volatile uint64_t *LES_interrupt_end_val
+	__attribute__((alias("__LES_interrupt_end_val")));
+extern volatile uint32_t *LES_syscall_flag
+	__attribute__((alias("__LES_syscall_flag")));
+extern volatile uint32_t *LES_interrupt_flag
+	__attribute__((alias("__LES_interrupt_flag")));
+#define LES_syscall_val (*__LES_syscall_val)
+#define LES_interrupt_start_val (*__LES_interrupt_start_val)
+#define LES_interrupt_end_val (*__LES_interrupt_end_val)
+#define LES_syscall_flag (*__LES_syscall_flag)
+#define LES_interrupt_flag (*__LES_interrupt_flag)
+
 #else
 volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
 volatile uint32_t LES_offset = 0;

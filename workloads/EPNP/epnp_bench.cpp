@@ -30,7 +30,7 @@ using namespace std;
 using namespace Eigen;
 using namespace opengv;
 
-#if defined(ONEOS_PLATFORM) || defined(RUIHUA_PLATFORM)
+#if defined(ONEOS_PLATFORM) || defined(RUIHUA_PLATFORM) || defined(DONGTU_PLATFORM)
 #define THREAD_STACK_SIZE (64 * 1024)
 #else 
 #define THREAD_STACK_SIZE (5 * 1024)

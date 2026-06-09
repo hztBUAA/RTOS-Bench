@@ -24,6 +24,18 @@ extern int pthread_switch_hook_add(void(*)(thread_t, thread_t));
 
 #if defined(DONGTU_PLATFORM)
 #define RTBENCH_LEGACY_ENTRY_VISIBLE
+
+#undef LES_syscall_val
+#undef LES_syscall_flag
+typedef struct {
+	T_ULONG recordFlag;
+	void *event;
+	T_ULONG interrupt_flag;
+	T_ULONG LES_syscall_flag;
+	T_UDWORD LES_syscall_val;
+	T_UDWORD allirq_val;
+	T_UDWORD systimeirq_val;
+} debugEventHeader_t;
 #else
 #define RTBENCH_LEGACY_ENTRY_VISIBLE static
 #endif
@@ -259,8 +271,8 @@ void thread_initialize(void) {
 #endif
 
 #if defined(DONGTU_PLATFORM)
-#undef LES_syscall_val
-#undef LES_syscall_flag
+	debugEventHeader_t *stDEHeaderPtr =
+		(debugEventHeader_t *)0xFFFFFFF500000000ULL;
 	__LES_interrupt_start_val = (volatile uint64_t *)&stDEHeaderPtr->allirq_val;
 	__LES_interrupt_end_val = (volatile uint64_t *)&stDEHeaderPtr->systimeirq_val;
 	__LES_interrupt_flag = (volatile uint32_t *)&stDEHeaderPtr->interrupt_flag;

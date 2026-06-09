@@ -34,6 +34,10 @@
 #define SCHED_POSIX_STACK_SIZE (4 * 1024 * 1024)
 #endif
 
+#ifdef DONGTU_PLATFORM
+#define TEST_SCHEDULE_MAX_PERIOD_NS (10ULL * 1000ULL * 1000ULL * 1000ULL)
+#endif
+
 /**
  * Global flag: when nonzero, workloads should suppress console output.
  * Set during concurrent task execution in test-schedule to prevent
@@ -558,6 +562,15 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 			? TEST_SCHEDULE_QUICK_WCET_ITERATIONS
 			: TEST_SCHEDULE_WCET_ITERATIONS;
 		uint64_t wcet = measure_wcet_ns(wl, wcet_iters);
+		if (wrapper && wrapper->max_wcet_ms > 0) {
+			uint64_t max_wcet =
+				(uint64_t)wrapper->max_wcet_ms * 1000000ULL;
+			if (wcet > max_wcet) {
+				SCHED_PRINTF("    cap scheduler WCET to %d ms for %s wrapper\n",
+					     wrapper->max_wcet_ms, wl->name);
+				wcet = max_wcet;
+			}
+		}
 		tasks[valid_idx].wcet_ns = wcet;
 		wcets_ns[valid_idx] = (double)wcet;
 
@@ -628,6 +641,12 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 				/* Very low utilization - use a very long period */
 				tasks[i].period_ns = 10000000000ULL; /* 10 seconds */
 			}
+
+#ifdef DONGTU_PLATFORM
+			if (tasks[i].period_ns > TEST_SCHEDULE_MAX_PERIOD_NS) {
+				tasks[i].period_ns = TEST_SCHEDULE_MAX_PERIOD_NS;
+			}
+#endif
 
 			/* Implicit deadline: D = T */
 			tasks[i].deadline_ns = tasks[i].period_ns;
