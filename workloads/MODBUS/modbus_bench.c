@@ -50,6 +50,9 @@ extern int g_sched_suppress_output;
 #ifndef TCP_NODELAY
 #define TCP_NODELAY 0x01
 #endif
+#ifndef SHUT_RDWR
+#define SHUT_RDWR 2
+#endif
 #endif
 
 #define NANOMODBUS_IMPLEMENTATION
@@ -115,6 +118,8 @@ int32_t transport_write(const uint8_t* buf, uint16_t count, int32_t timeout_ms, 
 }
 
 static volatile int g_server_stop = 0;
+static volatile int g_server_fd = -1;
+static volatile int g_server_client_fd = -1;
 
 static void* server_thread_entry(void* parameter) {
     int server_fd, client_fd;
@@ -125,6 +130,7 @@ static void* server_thread_entry(void* parameter) {
     plc_init();
 
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    g_server_fd = server_fd;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -150,6 +156,7 @@ static void* server_thread_entry(void* parameter) {
 
         /* Output suppressed to avoid affecting performance measurements */
         // printf("[Server] Client connected\n");
+        g_server_client_fd = client_fd;
 
         int flag = 1;
         setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
@@ -180,7 +187,7 @@ static void* server_thread_entry(void* parameter) {
 
         int request_count = 0;
 
-        while (1) {
+        while (!g_server_stop) {
             nmbs_error err = nmbs_server_poll(&nmbs);
             if (err != NMBS_ERROR_NONE) {
                 if (err == NMBS_ERROR_TIMEOUT) {
@@ -206,9 +213,11 @@ static void* server_thread_entry(void* parameter) {
         /* Output suppressed to avoid affecting performance measurements */
         // printf("[Server] Client disconnected (processed %d requests)\n", request_count);
         close(client_fd);
+        g_server_client_fd = -1;
     }
     
     close(server_fd);
+    g_server_fd = -1;
     return NULL;
 }
 
@@ -350,6 +359,16 @@ int modbus_test(void) {
     }
     pthread_join(c_tid, NULL);
     g_server_stop = 1;
+    if (g_server_client_fd >= 0) {
+        shutdown(g_server_client_fd, SHUT_RDWR);
+        close(g_server_client_fd);
+        g_server_client_fd = -1;
+    }
+    if (g_server_fd >= 0) {
+        shutdown(g_server_fd, SHUT_RDWR);
+        close(g_server_fd);
+        g_server_fd = -1;
+    }
     pthread_join(s_tid, NULL);
     /* Output suppressed to avoid affecting performance measurements */
     // printf("[MODBUS] Server thread joined. Test complete.\n");
