@@ -14,6 +14,8 @@
 
 #define RTBENCH_RUIHUA_MAX_ARGS 32
 
+extern int run_all_workloads(void);
+
 static int split_command_line(char *buf, char **argv, int max_args)
 {
 	int argc = 0;
@@ -137,6 +139,10 @@ int rtbench_test_all(void)
 {
 	char *argv[] = { "rtbench", "test-all" };
 	return rtbench_command_main(2, argv);
+}
+
+int rtbench_run_workloads(void) {
+	return run_all_workloads();
 }
 
 int rtbench_test_all_quick(void)
