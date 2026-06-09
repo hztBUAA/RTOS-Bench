@@ -1,0 +1,905 @@
+REMOTE_RUN rtbench_help timeout 30
+REMOTE_DONE rtbench_help prompt True elapsed 1.31 module_not_linked False cmd [] scores [] stress False saved False
+REMOTE_RUN rtbench_list timeout 30
+REMOTE_DONE rtbench_list prompt True elapsed 1.31 module_not_linked False cmd [] scores [] stress False saved False
+REMOTE_RUN rtbench_test_cmd timeout 90
+REMOTE_DONE rtbench_test_cmd prompt True elapsed 1.31 module_not_linked False cmd ['10/10 commands supported'] scores [] stress False saved False
+REMOTE_RUN rtbench_test_realtime timeout 180
+REMOTE_DONE rtbench_test_realtime prompt True elapsed 3.42 module_not_linked False cmd [] scores [] stress False saved False
+REMOTE_RUN rtbench_test_schedule_cycles3 timeout 360
+REMOTE_DONE rtbench_test_schedule_cycles3 prompt True elapsed 6.67 module_not_linked False cmd [] scores ['100.00 / 100'] stress False saved False
+REMOTE_RUN rtbench_test_stress timeout 900
+REMOTE_WAIT bytes=3931
+REMOTE_DONE rtbench_test_stress prompt True elapsed 116.71 module_not_linked False cmd [] scores [] stress True saved False
+REMOTE_RUN rtbench_test_all timeout 1200
+REMOTE_WAIT bytes=8299
+REMOTE_WAIT bytes=11865
+REMOTE_DONE rtbench_test_all prompt True elapsed 124.90 module_not_linked False cmd ['10/10 commands supported'] scores ['100.00 / 100'] stress True saved True
+JSON_RESULT_START
+[
+  {
+    "command": "rtbench_help",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 1.3057706356048584,
+    "bytes": 1305,
+    "contains_module_not_linked": false,
+    "contains_final_score": false,
+    "final_scores": [],
+    "contains_all_quick": false,
+    "cmd_results": [],
+    "stress_completed": false,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_list",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 1.3053972721099854,
+    "bytes": 350,
+    "contains_module_not_linked": false,
+    "contains_final_score": false,
+    "final_scores": [],
+    "contains_all_quick": false,
+    "cmd_results": [],
+    "stress_completed": false,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_test_cmd",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 1.3050732612609863,
+    "bytes": 818,
+    "contains_module_not_linked": false,
+    "contains_final_score": false,
+    "final_scores": [],
+    "contains_all_quick": false,
+    "cmd_results": [
+      "10/10 commands supported"
+    ],
+    "stress_completed": false,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_test_realtime",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 3.4243876934051514,
+    "bytes": 778,
+    "contains_module_not_linked": false,
+    "contains_final_score": false,
+    "final_scores": [],
+    "contains_all_quick": false,
+    "cmd_results": [],
+    "stress_completed": false,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_test_schedule_cycles3",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 6.671388149261475,
+    "bytes": 3520,
+    "contains_module_not_linked": false,
+    "contains_final_score": true,
+    "final_scores": [
+      "100.00 / 100"
+    ],
+    "contains_all_quick": false,
+    "cmd_results": [],
+    "stress_completed": false,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_test_stress",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 116.70519185066223,
+    "bytes": 8950,
+    "contains_module_not_linked": false,
+    "contains_final_score": false,
+    "final_scores": [],
+    "contains_all_quick": true,
+    "cmd_results": [],
+    "stress_completed": true,
+    "results_saved": false,
+    "return_zero": true,
+    "contains_error_word": false
+  },
+  {
+    "command": "rtbench_test_all",
+    "connect_prompt": true,
+    "ok_prompt_returned": true,
+    "elapsed_sec": 124.896240234375,
+    "bytes": 14346,
+    "contains_module_not_linked": false,
+    "contains_final_score": true,
+    "final_scores": [
+      "100.00 / 100"
+    ],
+    "contains_all_quick": true,
+    "cmd_results": [
+      "10/10 commands supported"
+    ],
+    "stress_completed": true,
+    "results_saved": true,
+    "return_zero": true,
+    "contains_error_word": false
+  }
+]
+JSON_RESULT_END
+TEXT_LOG_START
+
+
+######## rtbench_help ########
+
+===== CONNECT =====
+
+Type 'help' for help (no quotes)
+
+reworks>
+===== COMMAND rtbench_help =====
+rtbench_help
+
+
+RTOS-Bench - Cross-platform Industrial RTOS Benchmark Framework
+
+USAGE:
+  rtbench [OPTIONS]                    Run workload benchmark
+  rtbench test-all [OPTIONS]           Run comprehensive test suite
+  rtbench test-realtime [OPTIONS]      Run realtime performance test
+  rtbench test-schedule [OPTIONS]      Run schedulability test
+  rtbench test-stress [OPTIONS]        Run stress test
+  rtbench test-cmd                     Run shell command support test
+  rtbench export-result [OPTIONS]      Export current results to JSON
+  rtbench -L | --list                  List available workloads
+  rtbench -h | --help                  Show this help message
+
+WORKLOAD OPTIONS:
+  -b, -w, --workload <name>  Workload name
+  -p, --period <sec>         Period in seconds (default: 1.0)
+  -d, --deadline <sec>       Deadline in seconds
+  -t, --tasks <count>        Number of activations (0 = infinite)
+  -f, --fifo <prio>          FIFO priority
+  -c, --core-affinity <cpu>  CPU affinity (0-31)
+  -A, --all-workloads        Run all registered workloads
+  -G, --category <list>      Run workload categories
+  -q                         Quiet mode
+
+0x00000000 (0)
+
+reworks>
+
+
+######## rtbench_list ########
+
+===== CONNECT =====
+
+Type 'help' for help (no quotes)
+
+reworks>
+===== COMMAND rtbench_list =====
+rtbench_list
+
+Available workloads (3):
+  stub [utility] - No-op stub workload for testing
+  busywait [utility] - CPU busy-wait workload
+  ruihua-smoke [industrial] - Deterministic CPU smoke workload for Ruihua bring-up
+0x00000000 (0)
+
+reworks>
+
+
+######## rtbench_test_cmd ########
+
+===== CONNECT =====
+
+Type 'help' for help (no quotes)
+
+reworks>
+===== COMMAND rtbench_test_cmd =====
+rtbench_test_cmd
+
+=======================================================================
+>> Result: Command 'date' finished.
+>> Result: Command 'uname' finished.
+>> Result: Command 'meminfo' finished.
+>> Result: Command 'pwd' finished.
+>> Result: Command 'ls' finished.
+>> Result: Command 'i' finished.
+>> Result: Command 'netstat' finished.
+>> Result: Command 'route' finished.
+>> Result: Command 'ifconfig' finished.
+>> Result: Command 'help' finished.
+=======================================================================
+Supported commands: date uname meminfo pwd ls i netstat route ifconfig help 
+Unsupported commands: 
+[test-cmd] Result: 10/10 commands supported
+0x00000000 (0)
+
+reworks>
+
+
+######## rtbench_test_realtime ########
+
+===== CONNECT =====
+
+Type 'help' for help (no quotes)
+
+reworks>
+===== COMMAND rtbench_test_realtime =====
+rtbench_test_realtime
+
+
+=============================================================
+[test-realtime] Starting realtime performance benchmark
+=============================================================
+Mode: Single-core tests only
+
+Finish test 1.
+Finish test 2.
+Finish test 3.
+Finish test 4_1, 4_1.
+Finish test 4_2, 5_4.
+Finish test 5_3.
+Finish test 6_1, 7_1.
+Finish test 6_3.
+Finish test 6_4, 7_2.
+mq_open 鍙戠敓鍏朵粬閿欒
+: Invalid argument
+
+=============================================================
+[test-realtime] Benchmark completed with code: 0
+=============================================================
+0x00000000 (0)
+
+reworks>
+
+
+######## rtbench_test_schedule_cycles3 ########
+
+===== CONNECT =====
+
+Type 'help' for help (no quotes)
+
+reworks>
+===== COMMAND rtbench_test_schedule_cycles3 =====
+rtbench_test_schedule_cycles3
+
+[test-schedule] Found 1 industrial workloads (excluded 2 utility workloads)
+=============================================================
+[Phase 1] Measuring WCET for 1 workloads...
+=============================================================
+  [ruihua-smoke]: WCET = 50.000 ms (50 iters)
+[Phase 1] 1 workloads measured
+
+=============================================================
+[Phase 2] Running Task Sets (U: 30% - 100%, step 10%)
+=============================================================
+
+>>> Utilization Gradient: 30% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 30.00    | 166.667     
+Running task set for 3 cycles...
+Gradient 30% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 40% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 40.00    | 125.000     
+Running task set for 3 cycles...
+Gradient 40% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 50% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 50.00    | 100.000     
+Running task set for 3 cycles...
+Gradient 50% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 60% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 60.00    | 83.333      
+Running task set for 3 cycles...
+Gradient 60% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 70% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 70.00    | 71.429      
+Running task set for 3 cycles...
+Gradient 70% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 80% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 80.00    | 62.500      
+Running task set for 3 cycles...
+Gradient 80% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 90% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 90.00    | 55.556      
+Running task set for 3 cycles...
+Gradient 90% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 100% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 100.00   | 50.000      
+Running task set for 3 cycles...
+Gradient 100% complete: MR = 0.0000 (0/3)
+
+=============================================================
+[Phase 3] Final Results
+=============================================================
+U= 30%: MR=0.0000 (0 misses / 3 jobs)
+U= 40%: MR=0.0000 (0 misses / 3 jobs)
+U= 50%: MR=0.0000 (0 misses / 3 jobs)
+U= 60%: MR=0.0000 (0 misses / 3 jobs)
+U= 70%: MR=0.0000 (0 misses / 3 jobs)
+U= 80%: MR=0.0000 (0 misses / 3 jobs)
+U= 90%: MR=0.0000 (0 misses / 3 jobs)
+U=100%: MR=0.0000 (0 misses / 3 jobs)
+
+------------------------------------------------------
+Average Miss Rate: 0.0000
+Final Score: 100.00 / 100
+------------------------------------------------------
+0x00000000 (0)
+
+reworks>
+
+
+######## rtbench_test_stress ########
+
+===== CONNECT =====
+
+Type 'help' for help (no quotes)
+
+reworks>
+===== COMMAND rtbench_test_stress =====
+rtbench_test_stress
+
+
+=============================================================
+[test-stress] Running job: all-quick
+=============================================================
+Initializing Job: stored_jobfile_cpu_quick.txt...
+
+Running Job: [>                             ] 0/13 (0%) -> cpu      
+rtos_stress: debug: cpu-load set to 20%
+rtos_stress: info: [cpu] load set to 20% (busy: 20ms, sleep: 80ms)
+rtos_stress: info: [cpu] using 'all' methods (round-robin)
+
+Running Job: [==>                           ] 1/13 (7%) -> matrix      
+rtos_stress: debug: matrix-size set to 32
+rtos_stress: info: [matrix-0] size=32, method=all
+
+Running Job: [====>                         ] 2/13 (15%) -> qsort      
+rtos_stress: debug: qsort-size set to 1024 elements
+rtos_stress: info: [qsort-0] sorting 1024 elements (4 KB)
+rtos_stress: info: [qsort-0] using 'all' methods
+
+Running Job: [======>                       ] 3/13 (23%) -> atomic      
+rtos_stress: debug: atomic-threads set to 0
+
+Running Job: [=========>                    ] 4/13 (30%) -> bitops      
+rtos_stress: info: [bitops-0] using 'all' methods
+
+Running Job: [===========>                  ] 5/13 (38%) -> bsearch      
+rtos_stress: debug: bsearch-size set to 1024 elements
+rtos_stress: info: [bsearch-0] using 1024 elements (4 KB)
+rtos_stress: info: [bsearch-0] using 'all' methods
+
+Running Job: [=============>                ] 6/13 (46%) -> context      
+
+Running Job: [================>             ] 7/13 (53%) -> fp      
+rtos_stress: info: [fp-0] float/double/long double math stressor
+rtos_stress: info: [fp-0] using 'all' methods
+
+Running Job: [==================>           ] 8/13 (61%) -> prime      
+rtos_stress: info: [prime-0] using 'all' methods
+
+Running Job: [====================>         ] 9/13 (69%) -> stack      
+rtos_stress: debug: stack-size set to 4096 bytes
+rtos_stress: info: [stack-0] started (stack: 4 KB, depth: ~0)
+
+Running Job: [=======================>      ] 10/13 (76%) -> str      
+rtos_stress: debug: str-size set to 1024 bytes
+rtos_stress: info: [str-0] string size 1024 bytes
+rtos_stress: info: [str-0] using 'all' methods
+
+Running Job: [=========================>    ] 11/13 (84%) -> trig      
+rtos_stress: info: [trig-0] starting trigonometric stressor
+rtos_stress: info: [trig-0] using 'all' methods
+
+Running Job: [===========================>  ] 12/13 (92%) -> vecmath      
+
+Running Job: [==============================] 13/13 (100%) -> Finished      
+
+
+========================================================================
+ Job: stored_jobfile_cpu_quick.txt [Built-in]
+========================================================================
+ Stressor    | Stage | Bogo Ops     | Time(s)  | Metric
+------------------------------------------------------------------------
+ cpu         | 1     | 280          | 0.56     | N/A
+ matrix      | 1     | 640          | 6.45     | N/A
+ qsort       | 1     | 250          | 2.55     | N/A
+ atomic      | 1     | 300000       | 0.19     | N/A
+ bitops      | 1     | 2400         | 3.48     | N/A
+ bsearch     | 1     | 310          | 3.15     | N/A
+ context     | 1     | 69000        | 0.21     | N/A
+ fp          | 1     | 105          | 3.20     | N/A
+ prime       | 1     | 270840       | 6.94     | N/A
+ stack       | 1     | 690          | 6.95     | N/A
+ str         | 1     | 130000       | 0.10     | N/A
+ trig        | 1     | 21           | 0.41     | N/A
+ vecmath     | 1     | 270          | 2.75     | N/A
+------------------------------------------------------------------------
+Total Run Time: 0m 36s
+Initializing Job: stored_jobfile_memory_quick.txt...
+
+Running Job: [>                             ] 0/6 (0%) -> memcpy      
+rtos_stress: debug: memcpy-size set to 32768
+rtos_stress: info: [memcpy-0] buffer size: 2 x 32768 bytes
+rtos_stress: info: [memcpy-0] using 'all' methods
+
+Running Job: [=====>                        ] 1/6 (16%) -> stream      
+rtos_stress: debug: stream-elem set to 2048 elements
+rtos_stress: info: [stream-0] using 2048 elements (approx 48 KB total)
+rtos_stress: info: [stream-0] bandwidth: 892.86 MB/sec, compute: 46.81 Mflop/sec
+
+Running Job: [==========>                   ] 2/6 (33%) -> vm      
+rtos_stress: debug: vm-bytes set to 1048576 bytes
+rtos_stress: info: [vm-0] allocated 1024 KB buffer
+rtos_stress: info: [vm-0] using 'all' methods
+
+Running Job: [===============>              ] 3/6 (50%) -> malloc      
+rtos_stress: debug: malloc-bytes set to 256
+rtos_stress: info: [malloc-0] max_slots=256 max_bytes=256
+rtos_stress: info: [malloc-0] done
+
+Running Job: [====================>         ] 4/6 (66%) -> memthrash      
+rtos_stress: info: [memthrash-0] allocated 64 KB
+rtos_stress: info: [memthrash-0] using 'all' methods
+
+Running Job: [=========================>    ] 5/6 (83%) -> ptr-chase      
+rtos_stress: debug: ptr-chase-pages set to 128
+rtos_stress: info: [ptr-chase-0] chasing 128 pages (512 KB)
+rtos_stress: info: [ptr-chase-0] finished. visited 65536 of 65536 pointers (100.00%)
+
+Running Job: [==============================] 6/6 (100%) -> Finished      
+
+
+========================================================================
+ Job: stored_jobfile_memory_quick.txt [Built-in]
+========================================================================
+ Stressor    | Stage | Bogo Ops     | Time(s)  | Metric
+------------------------------------------------------------------------
+ memcpy      | 1     | 1500         | 60.01    | N/A
+ stream      | 1     | 5200         | 0.96     | 892.86 MB/sec, 46.81 Mflop/sec
+ vm          | 1     | 4200704      | 0.57     | N/A
+ malloc      | 1     | 170000       | 3.38     | N/A
+ memthrash   | 1     | 230          | 9.25     | N/A
+ ptr-chase   | 1     | 8600576      | 1.25     | N/A
+------------------------------------------------------------------------
+Total Run Time: 1m 15s
+Initializing Job: stored_jobfile_file_quick.txt...
+
+Running Job: [>                             ] 0/8 (0%) -> hdd      
+rtos_stress: debug: hdd-bytes set to 131072 bytes
+rtos_stress: info: [hdd-0] testing file '0.tmp', size 128 KB
+
+Running Job: [===>                          ] 1/8 (12%) -> open      
+rtos_stress: debug: open-max set to 32
+rtos_stress: info: [open] /dev/zero not available, skipping
+rtos_stress: info: [open] 4 open methods active
+rtos_stress: info: [open-0] opening up to 32 files per round (base dir: "")
+
+Running Job: [=======>                      ] 2/8 (25%) -> copy-file      
+rtos_stress: debug: copy-file-bytes set to 131072 bytes
+rtos_stress: info: [copy-file-0] file size 131072 bytes, chunk 8192, verify every 8 ops
+rtos_stress: info: [copy-file-0] fsync available
+rtos_stress: info: [copy-file-0] pre-allocating 131072 bytes...
+rtos_stress: info: [copy-file-0] pre-alloc done, starting copy loop
+
+Running Job: [===========>                  ] 3/8 (37%) -> unlink      
+rtos_stress: info: [unlink-0] starting with 32 files
+rtos_stress: SUMMARY: [unlink-0] fd limit hit 0 times, final limit=32/32
+
+Running Job: [===============>              ] 4/8 (50%) -> fstat      
+rtos_stress: debug: fstat-files set to 10
+rtos_stress: info: [fstat-0] created 10/10 files
+
+Running Job: [==================>           ] 5/8 (62%) -> dentry      
+rtos_stress: debug: dentries set to 32
+rtos_stress: info: [dentry-0] using 32 dentries in stress_dentry_0_dir
+
+Running Job: [======================>       ] 6/8 (75%) -> rename      
+rtos_stress: info: [rename-0] using dir 'R0', file size 16 bytes
+
+Running Job: [==========================>   ] 7/8 (87%) -> pipe      
+rtos_stress: info: [pipe-0] pipe not supported on this platform, skipping
+
+Running Job: [==============================] 8/8 (100%) -> Finished      
+
+
+========================================================================
+ Job: stored_jobfile_file_quick.txt [Built-in]
+========================================================================
+ Stressor    | Stage | Bogo Ops     | Time(s)  | Metric
+------------------------------------------------------------------------
+ hdd         | 1     | 42           | 0.16     | N/A
+ open        | 1     | 250          | 0.13     | N/A
+ copy-file   | 1     | 220          | 0.32     | N/A
+ unlink      | 1     | 250          | 0.09     | N/A
+ fstat       | 1     | 600          | 0.15     | N/A
+ dentry      | 1     | 300          | 0.10     | N/A
+ rename      | 1     | 200          | 2.05     | N/A
+ pipe        | 1     | 0            | 0.05     | N/A
+------------------------------------------------------------------------
+Total Run Time: 0m 3s
+
+[test-stress] Job 'all-quick' completed: 27 stressor runs
+=============================================================
+0x00000000 (0)
+
+reworks>
+
+
+######## rtbench_test_all ########
+
+===== CONNECT =====
+
+Type 'help' for help (no quotes)
+
+reworks>
+===== COMMAND rtbench_test_all =====
+rtbench_test_all
+
+
+=============================================================
+[RTOS-Bench] Comprehensive Test Suite
+=============================================================
+Output: /rtbench_result.json
+Modules: realtime=yes schedule=yes stress=yes cmd=yes workload=yes
+
+>>> Running test-realtime...
+
+=============================================================
+[test-realtime] Starting realtime performance benchmark
+=============================================================
+Mode: Single-core tests only
+
+Finish test 1.
+Finish test 2.
+Finish test 3.
+Finish test 4_1, 4_1.
+Finish test 4_2, 5_4.
+Finish test 5_3.
+Finish test 6_1, 7_1.
+Finish test 6_3.
+Finish test 6_4, 7_2.
+mq_open 鍙戠敓鍏朵粬閿欒
+: Invalid argument
+
+=============================================================
+[test-realtime] Benchmark completed with code: 0
+=============================================================
+
+>>> Running test-schedule (cycles=3 util=30-100 step 10)...
+[test-schedule] Found 1 industrial workloads (excluded 2 utility workloads)
+=============================================================
+[Phase 1] Measuring WCET for 1 workloads...
+=============================================================
+  [ruihua-smoke]: WCET = 50.000 ms (50 iters)
+[Phase 1] 1 workloads measured
+
+=============================================================
+[Phase 2] Running Task Sets (U: 30% - 100%, step 10%)
+=============================================================
+
+>>> Utilization Gradient: 30% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 30.00    | 166.667     
+Running task set for 3 cycles...
+Gradient 30% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 40% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 40.00    | 125.000     
+Running task set for 3 cycles...
+Gradient 40% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 50% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 50.00    | 100.000     
+Running task set for 3 cycles...
+Gradient 50% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 60% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 60.00    | 83.333      
+Running task set for 3 cycles...
+Gradient 60% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 70% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 70.00    | 71.429      
+Running task set for 3 cycles...
+Gradient 70% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 80% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 80.00    | 62.500      
+Running task set for 3 cycles...
+Gradient 80% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 90% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 90.00    | 55.556      
+Running task set for 3 cycles...
+Gradient 90% complete: MR = 0.0000 (0/3)
+
+>>> Utilization Gradient: 100% <<<
+Name         | WCET(ms)   | Util(%)  | Period(ms)  
+------------------------------------------------------
+ruihua-smoke | 50.000     | 100.00   | 50.000      
+Running task set for 3 cycles...
+Gradient 100% complete: MR = 0.0000 (0/3)
+
+=============================================================
+[Phase 3] Final Results
+=============================================================
+U= 30%: MR=0.0000 (0 misses / 3 jobs)
+U= 40%: MR=0.0000 (0 misses / 3 jobs)
+U= 50%: MR=0.0000 (0 misses / 3 jobs)
+U= 60%: MR=0.0000 (0 misses / 3 jobs)
+U= 70%: MR=0.0000 (0 misses / 3 jobs)
+U= 80%: MR=0.0000 (0 misses / 3 jobs)
+U= 90%: MR=0.0000 (0 misses / 3 jobs)
+U=100%: MR=0.0000 (0 misses / 3 jobs)
+
+------------------------------------------------------
+Average Miss Rate: 0.0000
+Final Score: 100.00 / 100
+------------------------------------------------------
+
+>>> Running test-stress (job: all-quick)...
+
+=============================================================
+[test-stress] Running job: all-quick
+=============================================================
+Initializing Job: stored_jobfile_cpu_quick.txt...
+
+Running Job: [>                             ] 0/13 (0%) -> cpu      
+rtos_stress: debug: cpu-load set to 20%
+rtos_stress: info: [cpu] load set to 20% (busy: 20ms, sleep: 80ms)
+rtos_stress: info: [cpu] using 'all' methods (round-robin)
+
+Running Job: [==>                           ] 1/13 (7%) -> matrix      
+rtos_stress: debug: matrix-size set to 32
+rtos_stress: info: [matrix-0] size=32, method=all
+
+Running Job: [====>                         ] 2/13 (15%) -> qsort      
+rtos_stress: debug: qsort-size set to 1024 elements
+rtos_stress: info: [qsort-0] sorting 1024 elements (4 KB)
+rtos_stress: info: [qsort-0] using 'all' methods
+
+Running Job: [======>                       ] 3/13 (23%) -> atomic      
+rtos_stress: debug: atomic-threads set to 0
+
+Running Job: [=========>                    ] 4/13 (30%) -> bitops      
+rtos_stress: info: [bitops-0] using 'all' methods
+
+Running Job: [===========>                  ] 5/13 (38%) -> bsearch      
+rtos_stress: debug: bsearch-size set to 1024 elements
+rtos_stress: info: [bsearch-0] using 1024 elements (4 KB)
+rtos_stress: info: [bsearch-0] using 'all' methods
+
+Running Job: [=============>                ] 6/13 (46%) -> context      
+
+Running Job: [================>             ] 7/13 (53%) -> fp      
+rtos_stress: info: [fp-0] float/double/long double math stressor
+rtos_stress: info: [fp-0] using 'all' methods
+
+Running Job: [==================>           ] 8/13 (61%) -> prime      
+rtos_stress: info: [prime-0] using 'all' methods
+
+Running Job: [====================>         ] 9/13 (69%) -> stack      
+rtos_stress: debug: stack-size set to 4096 bytes
+rtos_stress: info: [stack-0] started (stack: 4 KB, depth: ~0)
+
+Running Job: [=======================>      ] 10/13 (76%) -> str      
+rtos_stress: debug: str-size set to 1024 bytes
+rtos_stress: info: [str-0] string size 1024 bytes
+rtos_stress: info: [str-0] using 'all' methods
+
+Running Job: [=========================>    ] 11/13 (84%) -> trig      
+rtos_stress: info: [trig-0] starting trigonometric stressor
+rtos_stress: info: [trig-0] using 'all' methods
+
+Running Job: [===========================>  ] 12/13 (92%) -> vecmath      
+
+Running Job: [==============================] 13/13 (100%) -> Finished      
+
+
+========================================================================
+ Job: stored_jobfile_cpu_quick.txt [Built-in]
+========================================================================
+ Stressor    | Stage | Bogo Ops     | Time(s)  | Metric
+------------------------------------------------------------------------
+ cpu         | 1     | 280          | 0.55     | N/A
+ matrix      | 1     | 640          | 6.45     | N/A
+ qsort       | 1     | 250          | 2.55     | N/A
+ atomic      | 1     | 300000       | 0.19     | N/A
+ bitops      | 1     | 2400         | 3.48     | N/A
+ bsearch     | 1     | 310          | 3.15     | N/A
+ context     | 1     | 69000        | 0.21     | N/A
+ fp          | 1     | 105          | 3.20     | N/A
+ prime       | 1     | 270840       | 6.94     | N/A
+ stack       | 1     | 690          | 6.95     | N/A
+ str         | 1     | 130000       | 0.10     | N/A
+ trig        | 1     | 21           | 0.47     | N/A
+ vecmath     | 1     | 270          | 2.75     | N/A
+------------------------------------------------------------------------
+Total Run Time: 0m 36s
+Initializing Job: stored_jobfile_memory_quick.txt...
+
+Running Job: [>                             ] 0/6 (0%) -> memcpy      
+rtos_stress: debug: memcpy-size set to 32768
+rtos_stress: info: [memcpy-0] buffer size: 2 x 32768 bytes
+rtos_stress: info: [memcpy-0] using 'all' methods
+
+Running Job: [=====>                        ] 1/6 (16%) -> stream      
+rtos_stress: debug: stream-elem set to 2048 elements
+rtos_stress: info: [stream-0] using 2048 elements (approx 48 KB total)
+rtos_stress: info: [stream-0] bandwidth: 892.86 MB/sec, compute: 46.81 Mflop/sec
+
+Running Job: [==========>                   ] 2/6 (33%) -> vm      
+rtos_stress: debug: vm-bytes set to 1048576 bytes
+rtos_stress: info: [vm-0] allocated 1024 KB buffer
+rtos_stress: info: [vm-0] using 'all' methods
+
+Running Job: [===============>              ] 3/6 (50%) -> malloc      
+rtos_stress: debug: malloc-bytes set to 256
+rtos_stress: info: [malloc-0] max_slots=256 max_bytes=256
+rtos_stress: info: [malloc-0] done
+
+Running Job: [====================>         ] 4/6 (66%) -> memthrash      
+rtos_stress: info: [memthrash-0] allocated 64 KB
+rtos_stress: info: [memthrash-0] using 'all' methods
+
+Running Job: [=========================>    ] 5/6 (83%) -> ptr-chase      
+rtos_stress: debug: ptr-chase-pages set to 128
+rtos_stress: info: [ptr-chase-0] chasing 128 pages (512 KB)
+rtos_stress: info: [ptr-chase-0] finished. visited 65536 of 65536 pointers (100.00%)
+
+Running Job: [==============================] 6/6 (100%) -> Finished      
+
+
+========================================================================
+ Job: stored_jobfile_memory_quick.txt [Built-in]
+========================================================================
+ Stressor    | Stage | Bogo Ops     | Time(s)  | Metric
+------------------------------------------------------------------------
+ memcpy      | 1     | 1500         | 60.05    | N/A
+ stream      | 1     | 5200         | 0.96     | 892.86 MB/sec, 46.81 Mflop/sec
+ vm          | 1     | 4200704      | 0.57     | N/A
+ malloc      | 1     | 170000       | 3.38     | N/A
+ memthrash   | 1     | 230          | 9.25     | N/A
+ ptr-chase   | 1     | 8600576      | 1.25     | N/A
+------------------------------------------------------------------------
+Total Run Time: 1m 15s
+Initializing Job: stored_jobfile_file_quick.txt...
+
+Running Job: [>                             ] 0/8 (0%) -> hdd      
+rtos_stress: debug: hdd-bytes set to 131072 bytes
+rtos_stress: info: [hdd-0] testing file '0.tmp', size 128 KB
+
+Running Job: [===>                          ] 1/8 (12%) -> open      
+rtos_stress: debug: open-max set to 32
+rtos_stress: info: [open-0] opening up to 32 files per round (base dir: "")
+
+Running Job: [=======>                      ] 2/8 (25%) -> copy-file      
+rtos_stress: debug: copy-file-bytes set to 131072 bytes
+rtos_stress: info: [copy-file-0] file size 131072 bytes, chunk 8192, verify every 8 ops
+rtos_stress: info: [copy-file-0] fsync available
+rtos_stress: info: [copy-file-0] pre-allocating 131072 bytes...
+rtos_stress: info: [copy-file-0] pre-alloc done, starting copy loop
+
+Running Job: [===========>                  ] 3/8 (37%) -> unlink      
+rtos_stress: info: [unlink-0] starting with 32 files
+rtos_stress: SUMMARY: [unlink-0] fd limit hit 0 times, final limit=32/32
+
+Running Job: [===============>              ] 4/8 (50%) -> fstat      
+rtos_stress: debug: fstat-files set to 10
+rtos_stress: info: [fstat-0] created 10/10 files
+
+Running Job: [==================>           ] 5/8 (62%) -> dentry      
+rtos_stress: debug: dentries set to 32
+rtos_stress: info: [dentry-0] using 32 dentries in stress_dentry_0_dir
+
+Running Job: [======================>       ] 6/8 (75%) -> rename      
+rtos_stress: info: [rename-0] using dir 'R0', file size 16 bytes
+
+Running Job: [==========================>   ] 7/8 (87%) -> pipe      
+rtos_stress: info: [pipe-0] pipe not supported on this platform, skipping
+
+Running Job: [==============================] 8/8 (100%) -> Finished      
+
+
+========================================================================
+ Job: stored_jobfile_file_quick.txt [Built-in]
+========================================================================
+ Stressor    | Stage | Bogo Ops     | Time(s)  | Metric
+------------------------------------------------------------------------
+ hdd         | 1     | 42           | 0.16     | N/A
+ open        | 1     | 250          | 0.13     | N/A
+ copy-file   | 1     | 220          | 0.32     | N/A
+ unlink      | 1     | 250          | 0.09     | N/A
+ fstat       | 1     | 600          | 0.15     | N/A
+ dentry      | 1     | 300          | 0.10     | N/A
+ rename      | 1     | 200          | 2.05     | N/A
+ pipe        | 1     | 0            | 0.05     | N/A
+------------------------------------------------------------------------
+Total Run Time: 0m 3s
+
+[test-stress] Job 'all-quick' completed: 27 stressor runs
+=============================================================
+
+>>> Running test-cmd...
+=======================================================================
+>> Result: Command 'date' finished.
+>> Result: Command 'uname' finished.
+>> Result: Command 'meminfo' finished.
+>> Result: Command 'pwd' finished.
+>> Result: Command 'ls' finished.
+>> Result: Command 'i' finished.
+>> Result: Command 'netstat' finished.
+>> Result: Command 'route' finished.
+>> Result: Command 'ifconfig' finished.
+>> Result: Command 'help' finished.
+=======================================================================
+Supported commands: date uname meminfo pwd ls i netstat route ifconfig help 
+Unsupported commands: 
+[test-cmd] Result: 10/10 commands supported
+
+>>> Running typical workloads...
+  Running workload: stub
+    stub: 0.000 ms total, 0.000 ms avg
+  Running workload: busywait
+    busywait: 100.000 ms total, 10.000 ms avg
+  Running workload: ruihua-smoke
+    ruihua-smoke: 500.000 ms total, 50.000 ms avg
+
+=============================================================
+[RTOS-Bench] Results saved to: /rtbench_result.json
+=============================================================
+0x00000000 (0)
+
+reworks>
+TEXT_LOG_END
