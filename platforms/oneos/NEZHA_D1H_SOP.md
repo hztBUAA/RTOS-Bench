@@ -151,6 +151,12 @@ ld /user/phytium_pi_out.out
 
 哪吒派建议按飞腾派流程验收，但镜像名、模块名、网卡名、挂载分区和 U-Boot 加载地址要以哪吒派 vendor 模板为准。
 
+多人协作时，TFTP 源文件不要直接放在 `/tftp` 根目录裸名覆盖。推荐使用共享主机
+`rtbench:/tftp/oneos/nezha-d1h/<YYYYMMDD_HHMMSS>/` 归档产物，并将通过基础检查的一组产物发布到
+`/tftp/oneos/nezha-d1h/current/`。板端 `/user` 仍使用稳定短名，例如 `/user/ctest.out`，
+因为 runner 会按固定模块路径查找主模块。完整共享 TFTP 流程见
+[NEZHA_D1H_SHARED_TFTP_SOP.md](NEZHA_D1H_SHARED_TFTP_SOP.md)。
+
 ```text
 内核镜像工程：d1h-nezha
 out 模块工程：d1h-nezha_out
@@ -168,6 +174,13 @@ mkdir /user
 mount -t fatfs <storage-partition> /user
 tftp_client <tftp-server-ip> get d1h-nezha_out.out /user/d1h-nezha_out.out
 ld /user/d1h-nezha_out.out
+```
+
+如果使用共享 TFTP 的 `current` 目录，主模块部署命令示例：
+
+```text
+tftp_client 192.168.31.110 get oneos/nezha-d1h/current/ctest.out /user/ctest.out
+ld /user/ctest.out
 ```
 
 如果内核镜像里使用了 `rtbench_cmd_stub.c` 这种固定转发入口，要确认它查找的模块路径和实际 `ld` 的路径一致。例如 stub 仍然查 `/user/phytium_pi_out.out`，那就要么沿用这个板端文件名，要么把 stub 改成 `/user/d1h-nezha_out.out` 后重新编译内核镜像。

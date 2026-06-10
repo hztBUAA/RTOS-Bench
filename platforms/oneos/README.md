@@ -27,6 +27,10 @@
 Studio 工程不同。全量 workload 编译、TFTP/Telnet 验收和校园网路由器接入
 流程见 [NEZHA_D1H_SOP.md](NEZHA_D1H_SOP.md)。
 
+如果多人协作或需要摆脱个人 Windows TFTP 目录，请使用共享主机
+`rtbench:/tftp` 的语义化目录流程，见
+[NEZHA_D1H_SHARED_TFTP_SOP.md](NEZHA_D1H_SHARED_TFTP_SOP.md)。
+
 ---
 
 ## 2. 测试套件移植
