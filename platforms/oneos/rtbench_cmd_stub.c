@@ -24,7 +24,7 @@ typedef int (*shell_cmd_func_t)(int argc, char **argv);
 
 int rtbench_stub(int argc, char **argv)
 {
-    const char *module_name = "/user/phytium_pi_out.out";
+    const char *module_name = "/user/ls2k1000_pi_out.out";
     struct os_module *handle;
     os_ubase_t symbol_addr = 0;
 

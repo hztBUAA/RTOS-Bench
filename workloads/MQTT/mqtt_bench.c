@@ -34,6 +34,7 @@ static inline int _mqtt_printf(const char *fmt, ...) {
 // #define MQTT_URL "tcp://44.232.241.40:1883"
 #define TOPIC_DATA "car/tracker/location"
 #define PUB_INTERVAL_MS 2000
+#define MQTT_CONNECT_TIMEOUT_US 3000000ULL
 
 // 线程配置
 #define THREAD_PRIORITY         20
@@ -55,10 +56,14 @@ static int g_login_sent = 0;
 static int g_tcp_connected = 0;
 static uint64_t g_start_time = 0;
 static int g_benchmark_started = 0;
+static int g_mqtt_failed = 0;
 
 static void fn(struct mg_connection* c, int ev, void* ev_data) {
     if (ev == MG_EV_ERROR) {
         printf("[MQTT] Error: %s\n", (char *)ev_data);
+        g_mqtt_failed = 1;
+        g_stop_flag = 1;
+        if (c != NULL) c->is_closing = 1;
     }
     else if (ev == MG_EV_OPEN) {
         printf("[MQTT] Socket Created\n");
@@ -146,6 +151,7 @@ static void* mqtt_thread_entry(void *parameter) {
     g_tcp_connected = 0;
     g_start_time = 0;
     g_benchmark_started = 0;
+    g_mqtt_failed = 0;
 
     printf("[MQTT] Thread Started...\n");
 
@@ -157,11 +163,22 @@ static void* mqtt_thread_entry(void *parameter) {
     
     if (c == NULL) {
         printf("[MQTT] Conn failed\n");
+        g_mqtt_failed = 1;
+        mg_mgr_free(&mgr);
         return NULL;
     }
 
+    uint64_t connect_start = get_time_us();
     while (g_stop_flag == 0) {
-        mg_mgr_poll(&mgr, 20); 
+        mg_mgr_poll(&mgr, 20);
+        if (!g_mqtt_ready && !g_mqtt_failed &&
+            (get_time_us() - connect_start) >= MQTT_CONNECT_TIMEOUT_US) {
+            printf("[MQTT] Connection timeout after %.3f ms\n",
+                   (double)MQTT_CONNECT_TIMEOUT_US / 1000.0);
+            g_mqtt_failed = 1;
+            g_stop_flag = 1;
+            if (c != NULL) c->is_closing = 1;
+        }
     }
 
     uint64_t end_time = get_time_us();
@@ -202,7 +219,7 @@ int mqtt_test(void) {
     }
     pthread_join(tid, NULL);
     pthread_attr_destroy(&attr);
-    return 0;
+    return g_mqtt_failed ? -1 : 0;
 }
 
 MSH_CMD_EXPORT(mqtt_test, run MQTT benchmark);
@@ -210,5 +227,6 @@ MSH_CMD_EXPORT(mqtt_test, run MQTT benchmark);
 int mqtt_bench_run(void)
 {
     /* Run synchronously without spawning a detached thread */
-    return mqtt_thread_entry(NULL) == NULL ? 0 : 0;
+    mqtt_thread_entry(NULL);
+    return g_mqtt_failed ? -1 : 0;
 }

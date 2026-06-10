@@ -36,7 +36,7 @@
 #include "result_export.h"
 
 /* API compatibility: V2.0 uses os_tick_get_value(), V1.x uses os_tick_get() */
-#if defined(ONEOS_V2_ARM64)
+#if defined(ONEOS_V2_ARM64) || defined(ONEOS_V2_LOONGARCH64)
     #define RTBENCH_GET_TICK()  os_tick_get_value()
 #else
     #define RTBENCH_GET_TICK()  os_tick_get()
@@ -406,6 +406,7 @@ static void test_all_thread_entry(void *parameter)
 /* ============================================================================
  * Shell Command Implementation
  * ============================================================================ */
+extern int run_all_workloads(void);
 
 static int cmd_rtbench(int argc, char **argv)
 {
@@ -417,6 +418,11 @@ static int cmd_rtbench(int argc, char **argv)
     if (argc < 2) {
         print_usage();
         return 0;
+    }
+
+    
+    if (argc == 2 && strcmp(argv[1], "-s") == 0) {
+        return run_all_workloads();
     }
 
     /* Handle test-all subcommand - comprehensive test suite */
