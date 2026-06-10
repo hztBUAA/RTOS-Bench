@@ -170,7 +170,7 @@ std::ostream& print_matrix(std::ostream& s, const Derived& _m, const IOFormat& f
         std::stringstream sstr;
         sstr.copyfmt(s);
         sstr << static_cast<PrintType>(m.coeff(i, j));
-        width = std::max<Index>(width, Index(sstr.str().length()));
+        width = (std::max<Index>)(width, Index(sstr.str().length()));
       }
   }
   std::streamsize old_width = s.width();

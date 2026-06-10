@@ -23,14 +23,19 @@
     /* OneOS: POSIX-lite profile; prefer POSIX APIs when available */
     #define RTBENCH_PLATFORM_ONEOS
 
-    /* Auto-detect OneOS V2.0 ARM64 (uses musl libc with pre-defined types) */
+    /* Auto-detect OneOS V2 style targets that use musl libc with pre-defined types. */
+    #if defined(__aarch64__) || defined(_M_ARM64) || defined(__riscv)
+        #define ONEOS_V2_MUSL_LIBC 1
+    #endif
+
+    /* Compatibility macro kept for existing OneOS ARM64 platform code paths. */
     #if defined(__aarch64__) || defined(_M_ARM64)
         #define ONEOS_V2_ARM64 1
     #endif
 
-    /* For musl libc (OneOS V2.0 ARM64), these types are already defined
-     * in bits/alltypes.h. Only define for non-musl systems (V1.x ARM32). */
-    #ifndef ONEOS_V2_ARM64
+    /* For musl libc (OneOS V2 targets), these types are already defined in
+     * bits/alltypes.h. Only define for non-musl systems (V1.x ARM32). */
+    #ifndef ONEOS_V2_MUSL_LIBC
         #ifndef _CLOCK_T_DECLARED
         typedef unsigned long clock_t;
         #define _CLOCK_T_DECLARED
@@ -287,7 +292,7 @@ typedef void (*rtbench_signal_handler_t)(rtbench_signal_t sig, void *context);
  * @param handler Handler function
  * @return 0 on success, negative on failure
  */
-int rtbench_signal_register(rtbench_signal_t signal, 
+int rtbench_signal_register(rtbench_signal_t signal,
                             rtbench_signal_handler_t handler);
 
 #endif /* PLATFORM_ABSTRACTION_H */

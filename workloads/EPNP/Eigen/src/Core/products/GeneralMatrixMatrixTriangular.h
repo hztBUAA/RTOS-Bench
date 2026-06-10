@@ -166,7 +166,7 @@ struct tribb_kernel {
     // let's process the block per panel of actual_mc x BlockSize,
     // again, each is split into three parts, etc.
     for (Index j = 0; j < size; j += BlockSize) {
-      Index actualBlockSize = std::min<Index>(BlockSize, size - j);
+      Index actualBlockSize = (std::min<Index>)(BlockSize, size - j);
       const RhsScalar* actual_b = blockB + j * depth;
 
       if (UpLo == Upper)

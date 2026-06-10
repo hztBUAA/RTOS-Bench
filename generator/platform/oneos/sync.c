@@ -11,9 +11,9 @@
 #include <os_sem.h>
 #include <os_memory.h>
 
-/* Header compatibility for OneOS V2.0 ARM64 */
-#if defined(ONEOS_V2_ARM64)
-    /* V2.0 ARM64 may not have these headers; define fallback constants */
+/* Header compatibility for OneOS V2 style targets */
+#if defined(ONEOS_V2_MUSL_LIBC) || defined(ONEOS_V2_ARM64)
+    /* V2 style targets may not have these headers; define fallback constants. */
     #ifndef OS_EOK
     #define OS_EOK 0
     #endif

@@ -69,9 +69,9 @@ class BandMatrixBase : public EigenBase<Derived> {
     Index len = coeffs().rows();
     if (i <= supers()) {
       start = supers() - i;
-      len = (std::min)(rows(), std::max<Index>(0, coeffs().rows() - (supers() - i)));
+      len = (std::min)(rows(), (std::max<Index>)(0, coeffs().rows() - (supers() - i)));
     } else if (i >= rows() - subs())
-      len = std::max<Index>(0, coeffs().rows() - (i + 1 - rows() + subs()));
+      len = (std::max<Index>)(0, coeffs().rows() - (i + 1 - rows() + subs()));
     return Block<CoefficientsType, Dynamic, 1>(coeffs(), start, i, len, 1);
   }
 
@@ -118,13 +118,13 @@ class BandMatrixBase : public EigenBase<Derived> {
   /** \returns a vector expression of the \a i -th sub or super diagonal */
   inline Block<CoefficientsType, 1, Dynamic> diagonal(Index i) {
     eigen_assert((i < 0 && -i <= subs()) || (i >= 0 && i <= supers()));
-    return Block<CoefficientsType, 1, Dynamic>(coeffs(), supers() - i, std::max<Index>(0, i), 1, diagonalLength(i));
+    return Block<CoefficientsType, 1, Dynamic>(coeffs(), supers() - i, (std::max<Index>)(0, i), 1, diagonalLength(i));
   }
 
   /** \returns a vector expression of the \a i -th sub or super diagonal */
   inline const Block<const CoefficientsType, 1, Dynamic> diagonal(Index i) const {
     eigen_assert((i < 0 && -i <= subs()) || (i >= 0 && i <= supers()));
-    return Block<const CoefficientsType, 1, Dynamic>(coeffs(), supers() - i, std::max<Index>(0, i), 1,
+    return Block<const CoefficientsType, 1, Dynamic>(coeffs(), supers() - i, (std::max<Index>)(0, i), 1,
                                                      diagonalLength(i));
   }
 

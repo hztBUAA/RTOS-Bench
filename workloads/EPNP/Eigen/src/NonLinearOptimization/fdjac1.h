@@ -59,7 +59,7 @@ DenseIndex fdjac1(const FunctorType &Functor, Matrix<Scalar, Dynamic, 1> &x, Mat
         h = eps * abs(wa2[j]);
         if (h == 0.) h = eps;
         fjac.col(j).setZero();
-        start = std::max<Index>(0, j - mu);
+        start = (std::max<Index>)(0, j - mu);
         length = (std::min)(n - 1, j + ml) - start + 1;
         fjac.col(j).segment(start, length) = (wa1.segment(start, length) - fvec.segment(start, length)) / h;
       }

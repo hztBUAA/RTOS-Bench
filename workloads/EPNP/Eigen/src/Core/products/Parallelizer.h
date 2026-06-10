@@ -178,15 +178,15 @@ EIGEN_STRONG_INLINE void parallelize_gemm(const Functor& func, Index rows, Index
   // This first heuristic takes into account that the product kernel is fully optimized when working with nr columns at
   // once.
   Index size = transpose ? rows : cols;
-  Index pb_max_threads = std::max<Index>(1, size / Functor::Traits::nr);
+  Index pb_max_threads = (std::max<Index>)(1, size / Functor::Traits::nr);
 
   // compute the maximal number of threads from the total amount of work:
   double work = static_cast<double>(rows) * static_cast<double>(cols) * static_cast<double>(depth);
   double kMinTaskSize = 50000;  // FIXME improve this heuristic.
-  pb_max_threads = std::max<Index>(1, std::min<Index>(pb_max_threads, static_cast<Index>(work / kMinTaskSize)));
+  pb_max_threads = (std::max<Index>)(1, (std::min<Index>)(pb_max_threads, static_cast<Index>(work / kMinTaskSize)));
 
   // compute the number of threads we are going to use
-  int threads = std::min<int>(nbThreads(), static_cast<int>(pb_max_threads));
+  int threads = (std::min<int>)(nbThreads(), static_cast<int>(pb_max_threads));
 
   // if multi-threading is explicitly disabled, not useful, or if we already are
   // inside a parallel session, then abort multi-threading

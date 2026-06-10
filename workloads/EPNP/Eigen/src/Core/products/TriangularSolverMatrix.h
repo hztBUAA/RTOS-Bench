@@ -182,8 +182,8 @@ EIGEN_DONT_INLINE void triangular_solve_matrix<Scalar, Index, OnTheLeft, Mode, C
 
   // the goal here is to subdivise the Rhs panels such that we keep some cache
   // coherence when accessing the rhs elements
-  Index subcols = cols > 0 ? l2 / (4 * sizeof(Scalar) * std::max<Index>(otherStride, size)) : 0;
-  subcols = std::max<Index>((subcols / Traits::nr) * Traits::nr, Traits::nr);
+  Index subcols = cols > 0 ? l2 / (4 * sizeof(Scalar) * (std::max<Index>)(otherStride, size)) : 0;
+  subcols = (std::max<Index>)((subcols / Traits::nr) * Traits::nr, Traits::nr);
 
   for (Index k2 = IsLower ? 0 : size; IsLower ? k2 < size : k2 > 0; IsLower ? k2 += kc : k2 -= kc) {
     const Index actual_kc = (std::min)(IsLower ? size - k2 : k2, kc);
@@ -205,7 +205,7 @@ EIGEN_DONT_INLINE void triangular_solve_matrix<Scalar, Index, OnTheLeft, Mode, C
       Index actual_cols = (std::min)(cols - j2, subcols);
       // for each small vertical panels [T1k^T, T2k^T]^T of lhs
       for (Index k1 = 0; k1 < actual_kc; k1 += SmallPanelWidth) {
-        Index actualPanelWidth = std::min<Index>(actual_kc - k1, SmallPanelWidth);
+        Index actualPanelWidth = (std::min<Index>)(actual_kc - k1, SmallPanelWidth);
         // tr solve
         {
           Index i = IsLower ? k2 + k1 : k2 - k1;
@@ -330,7 +330,7 @@ EIGEN_DONT_INLINE void triangular_solve_matrix<Scalar, Index, OnTheRight, Mode, 
     // neglecting the blocks overlapping the diagonal
     {
       for (Index j2 = 0; j2 < actual_kc; j2 += SmallPanelWidth) {
-        Index actualPanelWidth = std::min<Index>(actual_kc - j2, SmallPanelWidth);
+        Index actualPanelWidth = (std::min<Index>)(actual_kc - j2, SmallPanelWidth);
         Index actual_j2 = actual_k2 + j2;
         Index panelOffset = IsLower ? j2 + actualPanelWidth : 0;
         Index panelLength = IsLower ? actual_kc - j2 - actualPanelWidth : j2;
@@ -351,7 +351,7 @@ EIGEN_DONT_INLINE void triangular_solve_matrix<Scalar, Index, OnTheRight, Mode, 
                                                                               : Index(SmallPanelWidth)))
                                 : 0;
              IsLower ? j2 >= 0 : j2 < actual_kc; IsLower ? j2 -= SmallPanelWidth : j2 += SmallPanelWidth) {
-          Index actualPanelWidth = std::min<Index>(actual_kc - j2, SmallPanelWidth);
+          Index actualPanelWidth = (std::min<Index>)(actual_kc - j2, SmallPanelWidth);
           Index absolute_j2 = actual_k2 + j2;
           Index panelOffset = IsLower ? j2 + actualPanelWidth : 0;
           Index panelLength = IsLower ? actual_kc - j2 - actualPanelWidth : j2;

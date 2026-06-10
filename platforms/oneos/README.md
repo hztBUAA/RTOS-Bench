@@ -21,6 +21,12 @@
 2. 安装到本地 (建议路径不含中文和空格)
 3. 启动 IDE，创建或打开一个工作空间 (Workspace)
 
+### 哪吒派 D1H
+
+哪吒派 D1H 使用 OneOS multi-CMake/Linux 命令行工程，和飞腾派 OneOS
+Studio 工程不同。全量 workload 编译、TFTP/Telnet 验收和校园网路由器接入
+流程见 [NEZHA_D1H_SOP.md](NEZHA_D1H_SOP.md)。
+
 ---
 
 ## 2. 测试套件移植
@@ -75,10 +81,10 @@ int main(void *arg)
 3. 在 phytium_pi_out/CMakeLists.txt 结尾新增内容：
 ```
 # 添加子目录
-add_subdirectory(src) 
+add_subdirectory(src)
 
 # 新增
-add_subdirectory(RTOS-Bench) 
+add_subdirectory(RTOS-Bench)
 ```
 
 #### A.4: 最终的目录结构
