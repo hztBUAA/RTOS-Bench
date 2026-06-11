@@ -165,6 +165,7 @@ static void print_usage(void)
     printf("  --no-stress           Skip stress test\n");
     printf("  --no-cmd              Skip shell command support test\n");
     printf("  --no-workload         Skip typical workload tests\n");
+    printf("  --no-export           Do not write result JSON\n");
     printf("  -m, --multicore       Enable multicore tests\n");
     printf("  --quick               Quick mode (smoke test)\n");
     printf("  -q                    Quiet mode\n");
@@ -309,6 +310,7 @@ struct test_all_params {
     int run_workload;
     int run_multicore;
     int quick_mode;
+    int export_results;
     int result;
     os_semaphore_id done_sem;
 };
@@ -388,12 +390,18 @@ static void test_all_thread_entry(void *parameter)
 
     /* Finalize and export */
     rtbench_result_end();
-    p->result = rtbench_result_export_json(p->output_path);
-    if (p->result == 0) {
+    if (!p->export_results) {
+        p->result = 0;
+        printf("\n=============================================================\n");
+        printf("[RTOS-Bench] Result export skipped (--no-export)\n");
+        printf("=============================================================\n");
+    } else if (rtbench_result_export_json(p->output_path) == 0) {
+        p->result = 0;
         printf("\n=============================================================\n");
         printf("[RTOS-Bench] Results saved to: %s\n", p->output_path);
         printf("=============================================================\n");
     } else {
+        p->result = -1;
         printf("\n[RTOS-Bench] Failed to save results: %d\n", p->result);
     }
 
@@ -430,6 +438,7 @@ static int cmd_rtbench(int argc, char **argv)
         params.run_workload = 1;
         params.run_multicore = 0;
         params.quick_mode = 0;
+        params.export_results = 1;
 
         /* Parse optional arguments */
         for (int i = 2; i < argc; i++) {
@@ -445,6 +454,8 @@ static int cmd_rtbench(int argc, char **argv)
                 params.run_cmd = 0;
             } else if (strcmp(argv[i], "--no-workload") == 0) {
                 params.run_workload = 0;
+            } else if (strcmp(argv[i], "--no-export") == 0) {
+                params.export_results = 0;
             } else if (strcmp(argv[i], "--multicore") == 0 || strcmp(argv[i], "-m") == 0) {
                 params.run_multicore = 1;
             } else if (strcmp(argv[i], "--quick") == 0) {

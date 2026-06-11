@@ -14,6 +14,12 @@
 
 #include <stdio.h>
 
+#if defined(__GNUC__)
+#define RTBENCH_REALTIME_WEAK __attribute__((weak))
+#else
+#define RTBENCH_REALTIME_WEAK
+#endif
+
 #ifdef RT_THREAD_PLATFORM
 #include <rtthread.h>
 #define REALTIME_PRINTF rt_kprintf
@@ -22,9 +28,9 @@
 #endif
 
 /* Forward declaration - implemented in realtime_orig/les/bench_init.c */
-extern int realtime_benchmark_run_all(int run_multicore);
+extern int realtime_benchmark_run_all(int run_multicore) RTBENCH_REALTIME_WEAK;
 /* Forward declaration - implemented in realtime_orig/verify/all_realtime_verify.c */
-extern void realtime_verify_all(void);
+extern void realtime_verify_all(void) RTBENCH_REALTIME_WEAK;
 
 int test_realtime_run(int run_multicore)
 {
@@ -40,6 +46,11 @@ int test_realtime_run(int run_multicore)
     }
     REALTIME_PRINTF("\n");
 
+    if (realtime_benchmark_run_all == NULL) {
+        REALTIME_PRINTF("[test-realtime] skipped: realtime backend is not linked.\n");
+        return -1;
+    }
+
     int ret = realtime_benchmark_run_all(run_multicore);
 
     REALTIME_PRINTF("\n");
@@ -51,5 +62,9 @@ int test_realtime_run(int run_multicore)
 }
 
 void test_realtime_verify(void) {
-    realtime_verify_all();
+    if (realtime_verify_all != NULL) {
+        realtime_verify_all();
+    } else {
+        REALTIME_PRINTF("[test-realtime] verify skipped: realtime backend is not linked.\n");
+    }
 }

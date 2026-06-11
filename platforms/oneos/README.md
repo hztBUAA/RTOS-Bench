@@ -114,6 +114,16 @@ phytium_pi_out/                     # out工程
 
 ## 3. 编译、部署和运行
 
+### 3.0 哪吒派共享 TFTP 流程
+
+OneOS 哪吒派 D1H 推荐使用共享主机 `rtbench:/tftp` 作为统一部署入口，避免依赖某一台 Windows 电脑的本地 TFTP 服务。多人协作时，开发者在自己的电脑或厂家 IDE 中编译 `.out`，再通过 `scp` 上传到 `rtbench:/tftp`，板子统一从 `192.168.31.110` 拉取。
+
+详细步骤见 [NEZHA_D1H_SHARED_TFTP_SOP.md](NEZHA_D1H_SHARED_TFTP_SOP.md)。
+
+2026-06-10 哪吒派 D1H 完整验收通过的 `.out` 二进制已在 Windows 本机归档，路径和 SHA256 见 [NEZHA_D1H_ACCEPTED_BINARIES_20260610.md](NEZHA_D1H_ACCEPTED_BINARIES_20260610.md)。
+
+若只使用 Windows 电脑和哪吒派直连进行快速 debug，不经过 `rtbench` 共享主机，请阅读闭包文档 [NEZHA_D1H_WIN_DIRECT_DEBUG_CLOSURE.md](NEZHA_D1H_WIN_DIRECT_DEBUG_CLOSURE.md)。其中包含 Windows 本地 TFTP、OneOS 启动镜像与 `.out` 动态模块的区别、构建数据流、部署命令和验收证据。
+
 ### 3.1 编译
 点击IDE中“锤子”图标编译工程
 

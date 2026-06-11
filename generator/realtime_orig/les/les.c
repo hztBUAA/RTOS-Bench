@@ -5,7 +5,6 @@
 #include "cpu_affinity.h"
 
 #if defined (SYLIXOS_PLATFORM) || defined (ONEOS_PLATFORM)
-/*
 volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
 volatile uint32_t LES_offset = 0;
 volatile uint64_t LES_syscall_val = 0;
@@ -14,7 +13,6 @@ volatile uint64_t LES_interrupt_end_val = 0;
 volatile uint32_t LES_flag = 0;
 volatile uint32_t LES_syscall_flag = 0;
 volatile uint32_t LES_interrupt_flag = 0;
-*/
 #elif defined(DONGTU_PLATFORM)
 
 volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
