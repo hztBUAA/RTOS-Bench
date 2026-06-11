@@ -35,6 +35,12 @@
 #include "test_cmd.h"
 #include "result_export.h"
 
+#if defined(__GNUC__)
+#define RTBENCH_WEAK_SYMBOL __attribute__((weak))
+#else
+#define RTBENCH_WEAK_SYMBOL
+#endif
+
 /* API compatibility: V2 style targets use os_tick_get_value(), V1.x uses os_tick_get() */
 #if defined(ONEOS_V2_MUSL_LIBC) || defined(ONEOS_V2_ARM64)
     #define RTBENCH_GET_TICK()  os_tick_get_value()
@@ -49,6 +55,9 @@ extern const struct rtosbench_workload rtosbench_busywait_workload;
 /* Forward declarations for C workloads */
 extern int cusum_bench_run(void);
 extern int ewma_bench_run(void);
+
+/* Provided by workloads/rtbench_workloads.cpp when the full workload bundle is linked. */
+extern void rtosbench_register_rtos_workloads(void) RTBENCH_WEAK_SYMBOL;
 
 /* Default result output path */
 #define RTBENCH_DEFAULT_OUTPUT_PATH "/rtbench_result.json"
@@ -112,6 +121,10 @@ static void ensure_workloads_registered(void)
     rtosbench_register_workload(&rtosbench_busywait_workload);
     rtosbench_register_workload(&rtosbench_cusum_workload);
     rtosbench_register_workload(&rtosbench_ewma_workload);
+
+    if (rtosbench_register_rtos_workloads != NULL) {
+        rtosbench_register_rtos_workloads();
+    }
 }
 
 /* ============================================================================

@@ -403,7 +403,9 @@ Results saved to: /user/wlfull.json
 
 ## 9. 已知边界
 
-- 当前 OneOS D1H `.out` 实际注册 workloads 为 `stub`、`busywait`、`cusum`、`ewma`，不是 9 个。
+- 2026-06-10 已验收版本实际注册 workloads 为 `stub`、`busywait`、`cusum`、`ewma`，这是当前已注册 4 workload 的验收版，不是 9 workload 完全体。
+- 2026-06-11 已定位 9 workload 缺口：`generator/oneos_entry.c` 只手写注册了 `stub`、`busywait`、`cusum`、`ewma`，没有显式调用 `workloads/rtbench_workloads.cpp` 的 `rtosbench_register_rtos_workloads()`；动态 `.out` 下不能依赖 C++ constructor 自动注册。
+- 2026-06-11 已在 PR worktree 中加入显式注册调用，并在 WSL `d1h-nezha_out` 工程内完成 9 workload 主模块编译。新的 `ctest.out` 已归档到 Windows 本地 TFTP 目录，但因 `COM9` 被其它程序占用，尚未完成板端 `ld /user/ctest.out` + `ld /user/wlfull.out` 实跑验收。
 - `schedrun.out` 是 quick schedule runner，只跑 `cycles=1`、`util=30%`。
 - `wlfull.out` 是非 quick workloads-only runner，当前 4 个 workloads 均以 `rounds=10` 通过。
 - `test-realtime` 当前 image 下 interrupt latency 采样为 `0/200`，作为平台中断插桩覆盖缺口记录。
@@ -434,4 +436,18 @@ Win 本地 TFTP server：
 
 ```text
 utils/remote-test/win_tftp_ro_server.py
+```
+
+9 workload 推进证据：
+
+```text
+utils/remote-test/logs/oneos-nezha-d1h-9workload-build-20260611_144530/build.log
+utils/remote-test/logs/oneos-nezha-d1h-9workload-build-20260611_144530/build.rc
+C:\Users\hzt\yihui-workspace\oneos-nezha-artifacts\accepted\oneos-nezha-d1h-9workload-20260611_144550\ctest.out
+```
+
+新 `ctest.out` 的 SHA256：
+
+```text
+54A1EB21749228CBCAB47F99E9458007F4732686E4A28B3F0AC77E54B6559F97
 ```
