@@ -124,6 +124,8 @@ OneOS 哪吒派 D1H 推荐使用共享主机 `rtbench:/tftp` 作为统一部署�
 
 若只使用 Windows 电脑和哪吒派直连进行快速 debug，不经过 `rtbench` 共享主机，请阅读闭包文档 [NEZHA_D1H_WIN_DIRECT_DEBUG_CLOSURE.md](NEZHA_D1H_WIN_DIRECT_DEBUG_CLOSURE.md)。其中包含 Windows 本地 TFTP、OneOS 启动镜像与 `.out` 动态模块的区别、构建数据流、部署命令和验收证据。
 
+2026-06-11 已完成 Win 直连 TFTP + `COM9` 串口复验，日志摘要为 `utils/remote-test/logs/oneos-nezha-d1h-win-direct-20260611_152709/oneos_nezha_serial_tftp_acceptance_20260611_152711.md`，返回码为 `0`。
+
 ### 3.1 编译
 点击IDE中“锤子”图标编译工程
 

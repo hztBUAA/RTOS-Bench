@@ -2,6 +2,8 @@
 
 本文记录 2026-06-10 通过完整板端验收的 OneOS 哪吒派 D1H `.out` 二进制版本。二进制文件本体保留在 Windows 本机固定归档目录中，仓库只记录路径、校验和和验收证据，避免把大体积或板端临时产物直接提交进 Git。
 
+2026-06-11 已使用 Windows 直连 TFTP + `COM9` 串口重新完成正式复验，验收脚本返回 `ACCEPTANCE_RC=0`。复验日志和摘要见本文第 6 节。
+
 ## 1. 归档位置
 
 - Windows 归档目录：`C:\Users\hzt\yihui-workspace\oneos-nezha-artifacts\accepted\oneos-nezha-d1h-acceptance-20260610_132750`
@@ -68,3 +70,47 @@ Get-FileHash -Algorithm SHA256 "C:\Users\hzt\yihui-workspace\oneos-nezha-artifac
 ```bash
 ssh rtbench "sha256sum /tftp/oneos-nezha-d1h-current.out /tftp/oneos-nezha-d1h-schedule-current.out /tftp/oneos-nezha-d1h-realtime-current.out /tftp/wlrun.out /tftp/strun.out /tftp/allrun.out /tftp/wlfull.out"
 ```
+
+## 6. 2026-06-11 Windows 直连复验
+
+本次复验不依赖 `rtbench:/tftp`，而是使用 Windows 本机 TFTP server：
+
+```text
+TFTP root:
+C:\Users\hzt\yihui-workspace\oneos-nezha-artifacts\accepted\oneos-nezha-d1h-9workload-20260611_144550
+
+TFTP bind:
+192.168.31.100:69
+```
+
+正式复验前，已将该 TFTP root 内的 `ctest.out` 替换回 2026-06-10 已验收主模块：
+
+```text
+ctest.out size   = 1544096
+ctest.out SHA256 = 275ED7E09EB13F06C8816255D19582091775ECC12BE50B8A5803AB4954C53FE5
+```
+
+正式复验日志：
+
+```text
+C:\Users\hzt\yihui-workspace\rtos-bench-oneos-nezha-pr\utils\remote-test\logs\oneos-nezha-d1h-win-direct-20260611_152709\oneos_nezha_serial_tftp_acceptance_20260611_152711.log
+C:\Users\hzt\yihui-workspace\rtos-bench-oneos-nezha-pr\utils\remote-test\logs\oneos-nezha-d1h-win-direct-20260611_152709\oneos_nezha_serial_tftp_acceptance_20260611_152711.rc
+C:\Users\hzt\yihui-workspace\rtos-bench-oneos-nezha-pr\utils\remote-test\logs\oneos-nezha-d1h-win-direct-20260611_152709\oneos_nezha_serial_tftp_acceptance_20260611_152711.md
+```
+
+复验结果：
+
+```text
+P-main-ctest       PASS
+P0 test-schedule   PASS
+P1 test-realtime   PASS
+P2 workloads quick PASS
+P3 test-stress     PASS
+P4 test-all quick  PASS
+P5 workloads full  PASS
+ACCEPTANCE_RC=0
+```
+
+复验过程中确认 Windows 直连 TFTP 会偶发 `timeout`。`oneos_nezha_serial_tftp_acceptance.ps1` 已增强为短文件名部署、TFTP 重试、下载失败不执行 `ld`，避免把传输残缺文件误判为 RTOS-Bench 模块问题。
+
+注意：`oneos-nezha-d1h-9workload-20260611_144550` 目录内曾生成过 9-workload 方向的新 `ctest.out`，其 SHA256 为 `54A1EB21749228CBCAB47F99E9458007F4732686E4A28B3F0AC77E54B6559F97`。该模块在当前 OneOS D1H image 下 `ld /user/ctest.out` 报 `ELF64_R_TYPE(rela->r_info)=7 unreloced`，未纳入验收二进制。当前正式通过范围仍以已验收主模块实际注册的 workloads 为准。

@@ -53,8 +53,8 @@ utils/remote-test/win_tftp_ro_server.py
 
 ```powershell
 python utils\remote-test\win_tftp_ro_server.py `
-  --root "C:\Users\hzt\yihui-workspace\oneos-nezha-artifacts\accepted\oneos-nezha-d1h-acceptance-20260610_132750" `
-  --bind 0.0.0.0 `
+  --root "C:\Users\hzt\yihui-workspace\oneos-nezha-artifacts\accepted\oneos-nezha-d1h-9workload-20260611_144550" `
+  --bind 192.168.31.100 `
   --port 69
 ```
 
@@ -99,6 +99,14 @@ wlfull.out                             -> wlfull.out
 ```text
 C:\Users\hzt\yihui-workspace\oneos-nezha-artifacts\accepted\oneos-nezha-d1h-acceptance-20260610_132750
 ```
+
+2026-06-11 Win 直连复验使用的 TFTP root：
+
+```text
+C:\Users\hzt\yihui-workspace\oneos-nezha-artifacts\accepted\oneos-nezha-d1h-9workload-20260611_144550
+```
+
+正式复验前，该目录内 `ctest.out` 已替换为 2026-06-10 已验收主模块，大小 `1544096`，SHA256 为 `275ED7E09EB13F06C8816255D19582091775ECC12BE50B8A5803AB4954C53FE5`。
 
 仓库记录：
 
@@ -403,11 +411,10 @@ Results saved to: /user/wlfull.json
 
 ## 9. 已知边界
 
-- 2026-06-10 已验收版本实际注册 workloads 为 `stub`、`busywait`、`cusum`、`ewma`，这是当前已注册 4 workload 的验收版，不是 9 workload 完全体。
-- 2026-06-11 已定位 9 workload 缺口：`generator/oneos_entry.c` 只手写注册了 `stub`、`busywait`、`cusum`、`ewma`，没有显式调用 `workloads/rtbench_workloads.cpp` 的 `rtosbench_register_rtos_workloads()`；动态 `.out` 下不能依赖 C++ constructor 自动注册。
-- 2026-06-11 已在 PR worktree 中加入显式注册调用，并在 WSL `d1h-nezha_out` 工程内完成 9 workload 主模块编译。新的 `ctest.out` 已归档到 Windows 本地 TFTP 目录，但因 `COM9` 被其它程序占用，尚未完成板端 `ld /user/ctest.out` + `ld /user/wlfull.out` 实跑验收。
+- 2026-06-11 Win 直连正式复验已通过，日志目录为 `utils/remote-test/logs/oneos-nezha-d1h-win-direct-20260611_152709`，`oneos_nezha_serial_tftp_acceptance_20260611_152711.rc` 为 `0`。
+- 当前正式验收版实际注册 workloads 为 `stub`、`busywait`、`cusum`、`ewma`。`wlfull.out` 是非 quick workloads-only runner，以上 workloads 均以 `rounds=10` 通过。
+- 2026-06-11 曾构建 9-workload 方向的新 `ctest.out`，大小约 `5029896`，SHA256 为 `54A1EB21749228CBCAB47F99E9458007F4732686E4A28B3F0AC77E54B6559F97`。该模块在当前 OneOS D1H image 下 `ld /user/ctest.out` 报 `ELF64_R_TYPE(rela->r_info)=7 unreloced`，未纳入验收二进制。
 - `schedrun.out` 是 quick schedule runner，只跑 `cycles=1`、`util=30%`。
-- `wlfull.out` 是非 quick workloads-only runner，当前 4 个 workloads 均以 `rounds=10` 通过。
 - `test-realtime` 当前 image 下 interrupt latency 采样为 `0/200`，作为平台中断插桩覆盖缺口记录。
 - `test-cmd` 中 `ps` 不支持，整体命令支持率为 `10/11`。
 - `stress all-quick` 中 bsearch/ternary 会打印 fail，但 stress 汇总仍返回 passed。
@@ -418,6 +425,7 @@ Results saved to: /user/wlfull.json
 
 ```text
 utils/remote-test/logs/oneos-nezha-d1h-acceptance-20260610_132750/ACCEPTANCE_SUMMARY.md
+utils/remote-test/logs/oneos-nezha-d1h-win-direct-20260611_152709/oneos_nezha_serial_tftp_acceptance_20260611_152711.md
 ```
 
 通过验收的二进制 manifest：
@@ -451,3 +459,5 @@ C:\Users\hzt\yihui-workspace\oneos-nezha-artifacts\accepted\oneos-nezha-d1h-9wor
 ```text
 54A1EB21749228CBCAB47F99E9458007F4732686E4A28B3F0AC77E54B6559F97
 ```
+
+该 9-workload `ctest.out` 当前不是验收二进制，原因见第 9 节。

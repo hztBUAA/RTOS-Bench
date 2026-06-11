@@ -219,6 +219,15 @@ powershell -ExecutionPolicy Bypass -File utils\remote-test\oneos_nezha_serial_re
 powershell -ExecutionPolicy Bypass -File utils\remote-test\oneos_nezha_serial_tftp_acceptance.ps1
 ```
 
+如果是 Windows 直连板卡、本机 TFTP server 监听在 `192.168.31.100:69`，使用：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File utils\remote-test\oneos_nezha_serial_tftp_acceptance.ps1 `
+  -RtbenchIp 192.168.31.100 `
+  -TftpRetries 5 `
+  -TftpWaitMilliseconds 45000
+```
+
 该脚本会执行：
 
 1. 串口恢复控制面：`default_netif e00`、`telnetd start`、`ifconfig`、`ping 192.168.31.110`
@@ -226,6 +235,8 @@ powershell -ExecutionPolicy Bypass -File utils\remote-test\oneos_nezha_serial_tf
 3. 按顺序加载 `schedrun.out`、`rtrt.out`、`wlrun.out`、`strun.out`、`allrun.out`、`wlfull.out`
 4. 分别检查 `test-schedule`、`test-realtime`、workloads quick、`test-stress`、quick `test-all`、非 quick workloads full 的通过标志
 5. 生成 `.log`、`.rc` 和 Markdown summary
+
+2026-06-11 起，该脚本会使用短 TFTP 文件名部署 runner，并在每个 `.out` 下载失败时自动重试；只有看到 `TFTP client get file end, err=0` 才执行 `ld`，避免把残缺文件加载错误误判为 RTOS-Bench 执行失败。
 
 如果网络/TFTP 当前不可达，但板端 `/user` 已经保留了通过验收的 `.out`，可以先用串口-only 方式复验完整运行链路：
 

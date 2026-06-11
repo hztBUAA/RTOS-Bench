@@ -4,7 +4,9 @@ param(
     [string]$RtbenchIp = "192.168.31.110",
     [string]$LogRoot = "C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench\utils\remote-test\logs\oneos-nezha-d1h-acceptance-20260610_132750",
     [switch]$UseExistingBoardFiles,
-    [switch]$SkipRecovery
+    [switch]$SkipRecovery,
+    [int]$TftpRetries = 3,
+    [int]$TftpWaitMilliseconds = 45000
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,13 +19,15 @@ $SummaryPath = Join-Path $LogRoot "oneos_nezha_serial_tftp_acceptance_$Timestamp
 
 function Write-AcceptanceLog {
     param([string]$Text)
-    $Text | Tee-Object -FilePath $LogPath -Append
+    Add-Content -Encoding UTF8 -Path $LogPath -Value $Text
+    Write-Host $Text
 }
 
 function Read-SerialFor {
     param(
         [System.IO.Ports.SerialPort]$Serial,
-        [int]$Milliseconds
+        [int]$Milliseconds,
+        [string]$StopPattern = ""
     )
     $deadline = (Get-Date).AddMilliseconds($Milliseconds)
     $buffer = ""
@@ -33,6 +37,9 @@ function Read-SerialFor {
             if ($chunk) {
                 $buffer += $chunk
                 Write-AcceptanceLog $chunk
+                if ($StopPattern -and ($buffer -match $StopPattern)) {
+                    return $buffer
+                }
             }
         } catch {
             # Idle serial reads time out normally.
@@ -46,12 +53,13 @@ function Send-SerialCommand {
     param(
         [System.IO.Ports.SerialPort]$Serial,
         [string]$Command,
-        [int]$WaitMilliseconds = 2000
+        [int]$WaitMilliseconds = 2000,
+        [string]$StopPattern = ""
     )
     Write-AcceptanceLog ""
     Write-AcceptanceLog "===== CMD: $Command ====="
     $Serial.Write($Command + "`r")
-    return Read-SerialFor -Serial $Serial -Milliseconds $WaitMilliseconds
+    return Read-SerialFor -Serial $Serial -Milliseconds $WaitMilliseconds -StopPattern $StopPattern
 }
 
 function Run-Phase {
@@ -69,9 +77,28 @@ function Run-Phase {
     $phaseOutput = ""
     if (-not $UseExistingBoardFiles) {
         $phaseOutput += Send-SerialCommand -Serial $Serial -Command "rm $BoardPath" -WaitMilliseconds 2000
-        $phaseOutput += Send-SerialCommand -Serial $Serial -Command "tftp_client $RtbenchIp get $Remote $BoardPath" -WaitMilliseconds 30000
+        $transferOk = $false
+        for ($attempt = 1; $attempt -le $TftpRetries; $attempt++) {
+            Write-AcceptanceLog "TFTP_ATTEMPT $Name $attempt/$TftpRetries remote=$Remote board=$BoardPath"
+            $tftpOutput = Send-SerialCommand -Serial $Serial -Command "tftp_client $RtbenchIp get $Remote $BoardPath" -WaitMilliseconds $TftpWaitMilliseconds -StopPattern "TFTP client get file end, err=-?\d+"
+            $phaseOutput += $tftpOutput
+            if ($tftpOutput -match "TFTP client get file end, err=0") {
+                $transferOk = $true
+                break
+            }
+            Write-AcceptanceLog "TFTP_RETRY $Name attempt=$attempt"
+            $phaseOutput += Send-SerialCommand -Serial $Serial -Command "rm $BoardPath" -WaitMilliseconds 2000
+        }
+        if (-not $transferOk) {
+            Write-AcceptanceLog "PHASE_RESULT $Name=False"
+            return [pscustomobject]@{
+                Name = $Name
+                Passed = $false
+                Pattern = "TFTP transfer failed before module load"
+            }
+        }
     }
-    $phaseOutput += Send-SerialCommand -Serial $Serial -Command "ld $BoardPath" -WaitMilliseconds $WaitMilliseconds
+    $phaseOutput += Send-SerialCommand -Serial $Serial -Command "ld $BoardPath" -WaitMilliseconds $WaitMilliseconds -StopPattern $PassPattern
     $passed = $phaseOutput -match $PassPattern
     Write-AcceptanceLog "PHASE_RESULT $Name=$passed"
     return [pscustomobject]@{
@@ -110,7 +137,7 @@ try {
     }
 
     if (-not $UseExistingBoardFiles) {
-        Run-Phase -Serial $serial -Name "P-main-ctest" -Remote "ctest.out" -BoardPath "/user/ctest.out" -WaitMilliseconds 8000 -PassPattern "module\[/user/ctest\.out\] loaded|loaded \[cleanup" | Out-Null
+        $results += Run-Phase -Serial $serial -Name "P-main-ctest" -Remote "ctest.out" -BoardPath "/user/ctest.out" -WaitMilliseconds 8000 -PassPattern "module\[/user/ctest\.out\] loaded|loaded \[cleanup"
     } else {
         Send-SerialCommand -Serial $serial -Command "list_lmodule" -WaitMilliseconds 5000 | Out-Null
     }
@@ -151,7 +178,10 @@ $summaryLines = @(
     "|---|---:|---|"
 )
 foreach ($result in $results) {
-    $summaryLines += "| `$($result.Name)` | $(if ($result.Passed) { 'PASS' } else { 'FAIL' }) | `$($result.Pattern)` |"
+    $phaseName = $result.Name
+    $statusText = if ($result.Passed) { 'PASS' } else { 'FAIL' }
+    $patternText = $result.Pattern -replace '\|', '\|'
+    $summaryLines += "| ``$phaseName`` | $statusText | ``$patternText`` |"
 }
 $summaryLines | Set-Content -Encoding UTF8 -Path $SummaryPath
 
