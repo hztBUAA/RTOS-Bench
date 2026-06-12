@@ -118,8 +118,6 @@ int32_t transport_write(const uint8_t* buf, uint16_t count, int32_t timeout_ms, 
 }
 
 static volatile int g_server_stop = 0;
-static volatile int g_server_fd = -1;
-static volatile int g_server_client_fd = -1;
 
 static void* server_thread_entry(void* parameter) {
     int server_fd, client_fd;
@@ -130,7 +128,6 @@ static void* server_thread_entry(void* parameter) {
     plc_init();
 
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    g_server_fd = server_fd;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -138,7 +135,7 @@ static void* server_thread_entry(void* parameter) {
     bind(server_fd, (struct sockaddr*)&address, sizeof(address));
     listen(server_fd, 3);
     
-    struct timeval server_tv = {3, 0};
+    struct timeval server_tv = {1, 0};
     setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, &server_tv, sizeof(server_tv));
 
     /* Output suppressed to avoid affecting performance measurements */
@@ -156,7 +153,6 @@ static void* server_thread_entry(void* parameter) {
 
         /* Output suppressed to avoid affecting performance measurements */
         // printf("[Server] Client connected\n");
-        g_server_client_fd = client_fd;
 
         int flag = 1;
         setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
@@ -182,6 +178,7 @@ static void* server_thread_entry(void* parameter) {
         callbacks.write_multiple_registers = cb_write_mult_regs;
 
         nmbs_server_create(&nmbs, 1, &conf, &callbacks);
+        nmbs_set_read_timeout(&nmbs, 100);
         /* Output suppressed to avoid affecting performance measurements */
         // printf("[Server] Modbus server created\n");
 
@@ -213,11 +210,9 @@ static void* server_thread_entry(void* parameter) {
         /* Output suppressed to avoid affecting performance measurements */
         // printf("[Server] Client disconnected (processed %d requests)\n", request_count);
         close(client_fd);
-        g_server_client_fd = -1;
     }
     
     close(server_fd);
-    g_server_fd = -1;
     return NULL;
 }
 
@@ -348,6 +343,7 @@ int modbus_test(void) {
     ret = pthread_create(&s_tid, &attr, server_thread_entry, NULL);
     if (ret != 0) {
         MDB_PRINTF("Error creating server thread: %d\n", ret);
+        pthread_attr_destroy(&attr);
         return -1;
     }
     // pthread_detach(s_tid);
@@ -355,20 +351,13 @@ int modbus_test(void) {
     ret = pthread_create(&c_tid, &attr, client_thread_entry, NULL);
     if (ret != 0) {
         MDB_PRINTF("Error creating client thread: %d\n", ret);
+        g_server_stop = 1;
+        pthread_join(s_tid, NULL);
+        pthread_attr_destroy(&attr);
         return -1;
     }
     pthread_join(c_tid, NULL);
     g_server_stop = 1;
-    if (g_server_client_fd >= 0) {
-        shutdown(g_server_client_fd, SHUT_RDWR);
-        close(g_server_client_fd);
-        g_server_client_fd = -1;
-    }
-    if (g_server_fd >= 0) {
-        shutdown(g_server_fd, SHUT_RDWR);
-        close(g_server_fd);
-        g_server_fd = -1;
-    }
     pthread_join(s_tid, NULL);
     /* Output suppressed to avoid affecting performance measurements */
     // printf("[MODBUS] Server thread joined. Test complete.\n");
