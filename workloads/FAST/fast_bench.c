@@ -112,7 +112,7 @@ void fast_test(void) {
     /* 初始化线程属性 */
     pthread_attr_init(&attr);
     
-    pthread_attr_setstacksize(&attr, 64 * 1024); 
+    pthread_attr_setstacksize(&attr, 16 * 1024); 
     
     /* 设置优先级 (可选) */
     struct sched_param param;
