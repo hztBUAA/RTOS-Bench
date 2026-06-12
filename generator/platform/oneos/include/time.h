@@ -34,9 +34,10 @@ extern "C" {
 #define CLOCK_MONOTONIC CLOCK_REALTIME
 
 /* clockid_t type */
-#ifndef __clockid_t_defined
+#if !defined(__clockid_t_defined) && !defined(__DEFINED_clockid_t)
 typedef int clockid_t;
 #define __clockid_t_defined
+#define __DEFINED_clockid_t
 #endif
 
 /* clock_gettime declaration (provided by OneOS POSIX layer) */
