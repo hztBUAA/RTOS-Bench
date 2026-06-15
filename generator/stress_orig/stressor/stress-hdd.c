@@ -1,13 +1,17 @@
 /* applications/stress-ng/stress-hdd.c */
 #include "stress-ng.h"
 #include "stress_osal.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <stdio.h>
 #include <errno.h>
+#include <stdint.h>
+
 #include <stress-config.h>
 
 #define HDD_WRITE_SIZE      (64 * 1024)
@@ -21,18 +25,30 @@ static uint64_t s_hdd_bytes = DEFAULT_HDD_BYTES;
 static int stress_hdd_opt_bytes(const char *opt_name, const char *opt_arg)
 {
     char *endptr;
-    unsigned long long val = strtoull(opt_arg, &endptr, 10);
+    unsigned long long val;
 
-    if (*endptr == 'k' || *endptr == 'K') val *= 1024ULL;
-    else if (*endptr == 'm' || *endptr == 'M') val *= (1024ULL * 1024ULL);
-    else if (*endptr == 'g' || *endptr == 'G') val *= (1024ULL * 1024ULL * 1024ULL);
+    (void)opt_name;
 
-    if (val < MIN_HDD_BYTES) val = MIN_HDD_BYTES;
-    if (val > MAX_HDD_BYTES) val = MAX_HDD_BYTES;
+    val = strtoull(opt_arg, &endptr, 10);
+
+    if (*endptr == 'k' || *endptr == 'K') {
+        val *= 1024ULL;
+    } else if (*endptr == 'm' || *endptr == 'M') {
+        val *= 1024ULL * 1024ULL;
+    } else if (*endptr == 'g' || *endptr == 'G') {
+        val *= 1024ULL * 1024ULL * 1024ULL;
+    }
+
+    if (val < MIN_HDD_BYTES) {
+        val = MIN_HDD_BYTES;
+    }
+
+    if (val > MAX_HDD_BYTES) {
+        val = MAX_HDD_BYTES;
+    }
 
     s_hdd_bytes = (uint64_t)val;
-    stress_osal_print("rtos_stress: debug: hdd-bytes set to %llu bytes\n",
-                      (unsigned long long)s_hdd_bytes);
+
     return 0;
 }
 
@@ -48,32 +64,38 @@ static inline uint8_t data_value(uint64_t offset, uint64_t index, uint32_t insta
 
 static void hdd_fill_buf(uint8_t *buf, size_t size, uint64_t offset, uint32_t instance)
 {
-    for (size_t i = 0; i < size; i++) {
+    size_t i;
+
+    for (i = 0; i < size; i++) {
         buf[i] = data_value(offset, i, instance);
     }
 }
 
 static int hdd_verify_buf(const uint8_t *buf, size_t size,
-                           uint64_t offset, uint32_t instance)
+                          uint64_t offset, uint32_t instance)
 {
-    for (size_t i = 0; i < size; i++) {
+    size_t i;
+
+    for (i = 0; i < size; i++) {
         uint8_t expected = data_value(offset, i, instance);
+
         if (buf[i] != expected) {
             return -1;
         }
     }
+
     return 0;
 }
 
 void stress_hdd(stress_args_t *args)
 {
-    int      fd          = -1;
-    uint8_t *buf         = NULL;
+    int      fd            = -1;
+    uint8_t *buf           = NULL;
     char     filename[64];
-    uint64_t hdd_bytes   = s_hdd_bytes;
-    uint64_t total_written;
-    uint64_t total_read;
-    int      rc          = EXIT_SUCCESS;
+    uint64_t hdd_bytes     = s_hdd_bytes;
+    uint64_t total_written = 0;
+    uint64_t total_read    = 0;
+    int      rc            = EXIT_SUCCESS;
 
     if (hdd_bytes < HDD_WRITE_SIZE) {
         hdd_bytes = HDD_WRITE_SIZE;
@@ -94,40 +116,56 @@ void stress_hdd(stress_args_t *args)
                       (unsigned long long)(hdd_bytes / 1024));
 
     while (stress_continue(args)) {
+        total_written = 0;
+        total_read = 0;
 
+        errno = 0;
         fd = stress_osal_open(filename, O_CREAT | O_RDWR | O_TRUNC, 0666);
         if (fd < 0) {
-            stress_osal_print("rtos_stress: fail: [hdd-%d] open '%s' failed"
-                              " (errno=%d)\n",
-                              args->instance, filename, errno);
+            int saved_errno = errno;
+
+            stress_osal_print("rtos_stress: fail: [hdd-%d] open '%s' failed errno=%d\n",
+                              args->instance, filename, saved_errno);
             rc = EXIT_FAILURE;
             break;
         }
 
-        total_written = 0;
-
         while (total_written < hdd_bytes) {
-            if (!stress_continue(args)) goto do_cleanup;
+            size_t chunk;
+            ssize_t ret;
 
-            size_t chunk = HDD_WRITE_SIZE;
+            if (!stress_continue(args)) {
+                goto do_cleanup;
+            }
+
+            chunk = HDD_WRITE_SIZE;
             if (total_written + chunk > hdd_bytes) {
                 chunk = (size_t)(hdd_bytes - total_written);
             }
 
             hdd_fill_buf(buf, chunk, total_written, args->instance);
 
-            ssize_t ret = stress_osal_write(fd, buf, chunk);
+            errno = 0;
+            ret = stress_osal_write(fd, buf, chunk);
+
             if (ret <= 0) {
-                if (errno == ENOSPC) {
+                int saved_errno = errno;
+
+                if (saved_errno == ENOSPC) {
                     stress_osal_print("rtos_stress: warn: [hdd-%d] device full"
                                       " at %llu bytes written\n",
                                       args->instance,
                                       (unsigned long long)total_written);
                     goto do_fsync;
                 }
+
                 stress_osal_print("rtos_stress: fail: [hdd-%d] write failed"
-                                  " (errno=%d)\n",
-                                  args->instance, errno);
+                                  " ret=%ld errno=%d off=%llu chunk=%lu\n",
+                                  args->instance,
+                                  (long)ret,
+                                  saved_errno,
+                                  (unsigned long long)total_written,
+                                  (unsigned long)chunk);
                 rc = EXIT_FAILURE;
                 goto do_cleanup;
             }
@@ -141,36 +179,61 @@ void stress_hdd(stress_args_t *args)
         }
 
 do_fsync:
+        errno = 0;
         if (stress_osal_fsync(fd) != 0) {
-            stress_osal_print("rtos_stress: warn: [hdd-%d] fsync failed"
-                              " (errno=%d)\n",
-                              args->instance, errno);
+            int saved_errno = errno;
+
+            stress_osal_print("rtos_stress: warn: [hdd-%d] fsync failed errno=%d\n",
+                              args->instance, saved_errno);
         }
 
-        if (!stress_continue(args)) goto do_cleanup;
-
-        if (lseek(fd, 0, SEEK_SET) != 0) {
-            stress_osal_print("rtos_stress: fail: [hdd-%d] lseek failed"
-                              " (errno=%d)\n",
-                              args->instance, errno);
-            rc = EXIT_FAILURE;
+        if (!stress_continue(args)) {
             goto do_cleanup;
         }
 
-        total_read = 0;
-        while (total_read < total_written) {
-            if (!stress_continue(args)) goto do_cleanup;
+        errno = 0;
+        {
+            off_t pos = lseek(fd, 0, SEEK_SET);
 
-            size_t chunk = HDD_WRITE_SIZE;
+            if (pos != 0) {
+                int saved_errno = errno;
+
+                stress_osal_print("rtos_stress: fail: [hdd-%d] lseek failed errno=%d\n",
+                                  args->instance, saved_errno);
+                rc = EXIT_FAILURE;
+                goto do_cleanup;
+            }
+        }
+
+        total_read = 0;
+
+        while (total_read < total_written) {
+            size_t chunk;
+            ssize_t ret;
+
+            if (!stress_continue(args)) {
+                goto do_cleanup;
+            }
+
+            chunk = HDD_WRITE_SIZE;
             if (total_read + chunk > total_written) {
                 chunk = (size_t)(total_written - total_read);
             }
 
-            ssize_t ret = stress_osal_read(fd, buf, chunk);
+            errno = 0;
+            ret = stress_osal_read(fd, buf, chunk);
+
             if (ret <= 0) {
+                int saved_errno = errno;
+
                 stress_osal_print("rtos_stress: fail: [hdd-%d] read failed"
-                                  " (errno=%d)\n",
-                                  args->instance, errno);
+                                  " ret=%ld errno=%d off=%llu chunk=%lu written=%llu\n",
+                                  args->instance,
+                                  (long)ret,
+                                  saved_errno,
+                                  (unsigned long long)total_read,
+                                  (unsigned long)chunk,
+                                  (unsigned long long)total_written);
                 rc = EXIT_FAILURE;
                 goto do_cleanup;
             }
@@ -194,28 +257,43 @@ do_fsync:
         }
 
 do_cleanup:
-        stress_osal_close(fd);
-        fd = -1;
-
-        if (stress_osal_unlink(filename) != 0 && errno != ENOENT) {
-            stress_osal_print("rtos_stress: warn: [hdd-%d] unlink '%s' failed"
-                              " (errno=%d)\n",
-                              args->instance, filename, errno);
+        if (fd >= 0) {
+            stress_osal_close(fd);
+            fd = -1;
         }
 
-        if (rc != EXIT_SUCCESS) break;
+        errno = 0;
+        if (stress_osal_unlink(filename) != 0) {
+            int saved_errno = errno;
+
+            if (saved_errno != ENOENT) {
+                stress_osal_print("rtos_stress: warn: [hdd-%d] unlink '%s' failed errno=%d\n",
+                                  args->instance, filename, saved_errno);
+            }
+        }
+
+        if (rc != EXIT_SUCCESS) {
+            break;
+        }
 
         stress_osal_sleep_ms(10);
     }
 
     if (fd >= 0) {
         stress_osal_close(fd);
+        fd = -1;
     }
 
-    if (stress_osal_unlink(filename) != 0 && errno != ENOENT) {
-        stress_osal_print("rtos_stress: warn: [hdd-%d] final unlink '%s'"
-                          " failed (errno=%d)\n",
-                          args->instance, filename, errno);
+    errno = 0;
+    if (stress_osal_unlink(filename) != 0) {
+        int saved_errno = errno;
+
+        if (saved_errno != ENOENT) {
+            stress_osal_print("rtos_stress: warn: [hdd-%d] final unlink '%s'"
+                              " failed errno=%d\n",
+                              args->instance, filename, saved_errno);
+        }
     }
+
     stress_osal_free(buf);
 }

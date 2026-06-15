@@ -164,6 +164,8 @@ WORKLOAD_C_SRC += \
 	$(RTOSBENCH_SRC)/workloads/MQTT/mqtt_bench.c
 
 WORKLOAD_CPP_SRC += \
+	$(RTOSBENCH_SRC)/workloads/run_all_workloads.cpp
+WORKLOAD_CPP_SRC += \
 	$(RTOSBENCH_SRC)/workloads/PID/pid_bench.cpp \
 	$(RTOSBENCH_SRC)/workloads/PID/PID_v1.cpp \
 	$(RTOSBENCH_SRC)/workloads/PID/pid_wrapper.cpp

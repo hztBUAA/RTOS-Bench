@@ -178,12 +178,35 @@ int rtbench_test_realtime(void)
 	return rtbench_command_main(2, argv);
 }
 
-int rtbench_test_stress(void)
+int rtbench_test_stress_all(void)
 {
-	char *argv[] = { "rtbench", "test-stress" };
-	return rtbench_command_main(2, argv);
+	char *argv[] = { "rtbench", "test-stress", "--job", "all"};
+	return rtbench_command_main(4, argv);
 }
 
+int rtbench_test_stress_all_quick(void)
+{
+	char *argv[] = { "rtbench", "test-stress", "--job", "all-quick"};
+	return rtbench_command_main(4, argv);
+}
+
+int rtbench_test_stress_cpu(void)
+{
+	char *argv[] = { "rtbench", "test-stress", "--job", "cpu"};
+	return rtbench_command_main(4, argv);
+}
+
+int rtbench_test_stress_memory(void)
+{
+	char *argv[] = { "rtbench", "test-stress", "--job", "memory"};
+	return rtbench_command_main(4, argv);
+}
+
+int rtbench_test_stress_file(void)
+{
+	char *argv[] = { "rtbench", "test-stress", "--job", "file"};
+	return rtbench_command_main(4, argv);
+}
 int rtbench_test_cmd(void)
 {
 	char *argv[] = { "rtbench", "test-cmd" };
