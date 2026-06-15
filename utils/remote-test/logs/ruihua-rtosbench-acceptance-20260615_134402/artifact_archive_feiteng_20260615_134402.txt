@@ -1,0 +1,4 @@
+﻿archive=C:\Users\hzt\yihui-workspace\rtos-bench-artifacts\ruihua\feiteng\20260615_134402\reworks.elf
+remote=/tftp/ruihua-feiteng-reworks-192.168.31.210-20260602.elf
+size=11092248
+sha256=90BCF57E9B4FBABC6FE1FDC13E9E2D165A6DD475089608CBFC1598740F000DD5

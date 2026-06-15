@@ -26,7 +26,37 @@ RTOSBENCH_CFLAGS := \
 	-I"$(RTOSBENCH_SRC)/generator/stress_orig/osal" \
 	-I"$(RTOSBENCH_SRC)/generator/stress_orig/stressor" \
 	-I"$(RTOSBENCH_SRC)/workloads" \
+	-I"$(RTOSBENCH_SRC)/workloads/FAST" \
+	-I"$(RTOSBENCH_SRC)/workloads/EPNP" \
+	-I"$(RTOSBENCH_SRC)/workloads/EPNP/Eigen" \
+	-I"$(RTOSBENCH_SRC)/workloads/EKF" \
+	-I"$(RTOSBENCH_SRC)/workloads/EKF/include" \
+	-I"$(RTOSBENCH_SRC)/workloads/EKF/include/matrix" \
+	-I"$(RTOSBENCH_SRC)/workloads/EKF/geo" \
+	-I"$(RTOSBENCH_SRC)/workloads/EKF/geo_lookup" \
+	-I"$(RTOSBENCH_SRC)/workloads/ICP" \
+	-I"$(RTOSBENCH_SRC)/workloads/MODBUS" \
+	-I"$(RTOSBENCH_SRC)/workloads/MQTT" \
+	-I"$(RTOSBENCH_SRC)/workloads/PID" \
+	-I"$(RTOSBENCH_SRC)/workloads/CUSUM" \
+	-I"$(RTOSBENCH_SRC)/workloads/EWMA" \
 	-I"$(RTOSBENCH_PORT)"
+
+RTOSBENCH_CXXFLAGS := \
+	$(RTOSBENCH_CFLAGS) \
+	-std=c++14 \
+	-Wno-error \
+	-Wno-literal-suffix \
+	-Wno-cpp \
+	-DEIGEN_DONT_VECTORIZE \
+	-DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT \
+	-DECL_STANDALONE \
+	-D__STDC_FORMAT_MACROS \
+	-D__STDC_LIMIT_MACROS \
+	-D_GLIBCXX_USE_C99 \
+	-D_GLIBCXX_USE_C99_MATH \
+	-D_USE_MATH_DEFINES \
+	-include "$(RTOSBENCH_SRC)/workloads/EPNP/fix_opengv.h"
 
 rtosbench_port/%.o: CPPFLAGS += $(RTOSBENCH_CFLAGS)
 les/%.o: CPPFLAGS += $(RTOSBENCH_CFLAGS)
@@ -94,6 +124,62 @@ RTOSBENCH_MODULE_SRCS := \
 
 RTOSBENCH_MODULE_OBJS := $(addprefix $(RTOSBENCH_OBJDIR)/,$(RTOSBENCH_MODULE_SRCS:.c=.o))
 
+RTOSBENCH_WORKLOAD_C_SRCS := \
+	FAST/fast_bench.c \
+	FAST/fast.c \
+	FAST/fast_9.c \
+	CUSUM/cusum_bench.c \
+	EWMA/ewma_bench.c \
+	MODBUS/modbus_bench.c \
+	MODBUS/nanomodbus.c \
+	MQTT/mqtt_bench.c \
+	MQTT/mongoose.c
+
+RTOSBENCH_WORKLOAD_CPP_SRCS := \
+	PID/pid_bench.cpp \
+	PID/PID_v1.cpp \
+	PID/pid_wrapper.cpp \
+	ICP/icp_bench.cpp \
+	ICP/matrix.cpp \
+	ICP/icp.cpp \
+	ICP/icpPointToPlane.cpp \
+	ICP/icpPointToPoint.cpp \
+	ICP/kdtree.cpp \
+	EPNP/epnp_bench.cpp \
+	EPNP/methods.cpp \
+	EPNP/Epnp.cpp \
+	EPNP/random_generators.cpp \
+	EPNP/time_measurement.cpp \
+	EPNP/experiment_helpers.cpp \
+	EPNP/cayley.cpp \
+	EPNP/CentralAbsoluteAdapter.cpp \
+	EKF/ekf_bench.cpp \
+	EKF/geo/geo.cpp \
+	EKF/geo_lookup/geo_mag_declination.cpp \
+	EKF/EKF_core/vel_pos_fusion.cpp \
+	EKF/EKF_core/utils.cpp \
+	EKF/EKF_core/sideslip_fusion.cpp \
+	EKF/EKF_core/terrain_estimator.cpp \
+	EKF/EKF_core/optflow_fusion.cpp \
+	EKF/EKF_core/sensor_range_finder.cpp \
+	EKF/EKF_core/mag_control.cpp \
+	EKF/EKF_core/mag_fusion.cpp \
+	EKF/EKF_core/gps_checks.cpp \
+	EKF/EKF_core/gps_yaw_fusion.cpp \
+	EKF/EKF_core/imu_down_sampler.cpp \
+	EKF/EKF_core/estimator_interface.cpp \
+	EKF/EKF_core/ekf_helper.cpp \
+	EKF/EKF_core/covariance.cpp \
+	EKF/EKF_core/drag_fusion.cpp \
+	EKF/EKF_core/ekf.cpp \
+	EKF/EKF_core/control.cpp \
+	EKF/EKF_core/airspeed_fusion.cpp \
+	EKF/EKF_core/EKFGSF_yaw.cpp
+
+RTOSBENCH_WORKLOAD_OBJS := \
+	$(addprefix $(RTOSBENCH_OBJDIR)/workloads/,$(RTOSBENCH_WORKLOAD_C_SRCS:.c=.o)) \
+	$(addprefix $(RTOSBENCH_OBJDIR)/workloads/,$(RTOSBENCH_WORKLOAD_CPP_SRCS:.cpp=.o))
+
 RTOSBENCH_OBJS += \
 	$(RTOSBENCH_OBJDIR)/ruihua_entry.o \
 	$(RTOSBENCH_OBJDIR)/rtbench_command.o \
@@ -112,7 +198,8 @@ RTOSBENCH_OBJS += \
 	$(RTOSBENCH_OBJDIR)/ruihua_timestamp.o \
 	$(RTOSBENCH_OBJDIR)/ruihua_scheduler.o \
 	$(RTOSBENCH_OBJDIR)/ruihua_signal.o \
-	$(RTOSBENCH_MODULE_OBJS)
+	$(RTOSBENCH_MODULE_OBJS) \
+	$(RTOSBENCH_WORKLOAD_OBJS)
 
 OBJS += $(RTOSBENCH_OBJS)
 C_DEPS += $(RTOSBENCH_OBJS:.o=.d)
@@ -124,6 +211,16 @@ $(RTOSBENCH_OBJDIR)/%.o: $(RTOSBENCH_SRC)/generator/%.c | $(RTOSBENCH_OBJDIR)
 	@mkdir -p "$(dir $@)"
 	@echo_rede 'Building file: $<'
 	aarch64-elf-gcc -O0 -gdwarf-2 -Wall -c -fmessage-length=0 $(CONFIG_COMPLILE_FLAGS) $(CPPFLAGS) $(RTOSBENCH_CFLAGS) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$@" -o"$@" "$<"
+
+$(RTOSBENCH_OBJDIR)/workloads/%.o: $(RTOSBENCH_SRC)/workloads/%.c | $(RTOSBENCH_OBJDIR)
+	@mkdir -p "$(dir $@)"
+	@echo_rede 'Building workload: $<'
+	aarch64-elf-gcc -O0 -gdwarf-2 -Wall -c -fmessage-length=0 $(CONFIG_COMPLILE_FLAGS) $(CPPFLAGS) $(RTOSBENCH_CFLAGS) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$@" -o"$@" "$<"
+
+$(RTOSBENCH_OBJDIR)/workloads/%.o: $(RTOSBENCH_SRC)/workloads/%.cpp | $(RTOSBENCH_OBJDIR)
+	@mkdir -p "$(dir $@)"
+	@echo_rede 'Building C++ workload: $<'
+	aarch64-elf-g++ -O0 -gdwarf-2 -Wall -c -fmessage-length=0 $(CONFIG_COMPLILE_FLAGS) $(CPPFLAGS) $(RTOSBENCH_CXXFLAGS) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$@" -o"$@" "$<"
 
 $(RTOSBENCH_OBJDIR)/ruihua_entry.o: $(RTOSBENCH_SRC)/generator/ruihua_entry.c | $(RTOSBENCH_OBJDIR)
 	@echo_rede 'Building file: $<'

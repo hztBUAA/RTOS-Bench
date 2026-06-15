@@ -12,7 +12,7 @@ RTOS-Bench 源码仍使用本仓库：
 C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench
 ```
 
-当前接入方式不是运行独立 `.out` 动态模块，而是把 RTOS-Bench 直接链接进 ReWorks 自启动镜像 `reworks.elf`。板子重启后由 U-Boot 通过 TFTP 拉取 `reworks.elf`，ReWorks 启动完成后通过 telnet 进入 `reworks>` shell，调用 `rtbench_*` wrapper 完成验证。
+当前接入方式不是运行独立 `.out` 动态模块，而是把 RTOS-Bench 直接链接进 ReWorks 自启动镜像。本地构建产物文件名是 `reworks.elf`，但上传到共享 rtbench TFTP 时必须改用飞腾派专用文件名；不要覆盖 `/tftp/reworks.elf`，该通用文件可能属于龙芯派或其他板子。板子重启后由 U-Boot 通过 TFTP 拉取 `bootcmd` 指向的飞腾专用镜像，ReWorks 启动完成后通过 telnet 进入 `reworks>` shell，调用 `rtbench_*` wrapper 完成验证。
 
 ## 当前环境
 
@@ -35,7 +35,22 @@ C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench
 rtbench@10.134.151.45:/tftp/ruihua-feiteng-reworks-192.168.31.210-20260602.elf
 ```
 
-同一目录下保留了按时间戳命名的历史镜像备份，不要覆盖龙芯派或其他板子的 `reworks.elf`。
+同一目录下保留了按时间戳命名的历史镜像备份。共享 TFTP 上的 `/tftp/reworks.elf` 不属于飞腾验收流程，禁止覆盖。
+
+完整验收通过的飞腾二进制在 Windows 本机归档为：
+
+```text
+C:\Users\hzt\yihui-workspace\rtos-bench-artifacts\ruihua\feiteng\20260615_134402\reworks.elf
+```
+
+对应信息：
+
+```text
+remote: rtbench@10.134.151.45:/tftp/ruihua-feiteng-reworks-192.168.31.210-20260602.elf
+size:   11092248
+sha256: 90BCF57E9B4FBABC6FE1FDC13E9E2D165A6DD475089608CBFC1598740F000DD5
+logs:   utils/remote-test/logs/ruihua-rtosbench-acceptance-20260615_134402
+```
 
 ## 样板工程结构
 
@@ -145,7 +160,7 @@ Get-FileHash -Algorithm SHA256 "C:\rtos\6.1.1-ARM\workspace\feiteng4rtos\gnuaarc
 
 ### 校园网 / rtbench TFTP
 
-将本地构建出的 `reworks.elf` 上传到 rtbench TFTP，建议使用飞腾派专用文件名，不要覆盖其他板子的镜像：
+将本地构建出的 `reworks.elf` 上传到 rtbench TFTP，必须使用飞腾派专用文件名，不要覆盖其他板子的镜像，尤其不要写入 `/tftp/reworks.elf`：
 
 ```powershell
 scp -P 1026 "C:\rtos\6.1.1-ARM\workspace\feiteng4rtos\gnuaarch64\FTE2000_SMP-64\reworks.elf" `
@@ -190,7 +205,7 @@ C:\rtos\6.1.1-ARM\workspace\feiteng4rtos\gnuaarch64\FTE2000_SMP-64
 
 ## 启动和连接
 
-重启或重新上电板子，让 U-Boot 从 TFTP 拉取最新 `reworks.elf`。启动完成后连接 telnet：
+重启或重新上电板子，让 U-Boot 从 TFTP 拉取 `bootcmd` 指向的飞腾派专用镜像，例如 `/tftp/ruihua-feiteng-reworks-192.168.31.210-20260602.elf`。启动完成后连接 telnet：
 
 ```bat
 telnet 192.168.31.210 23

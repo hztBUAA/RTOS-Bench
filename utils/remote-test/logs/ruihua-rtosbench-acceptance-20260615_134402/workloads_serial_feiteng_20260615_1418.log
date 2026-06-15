@@ -1,0 +1,46 @@
+# Ruihua workloads serial run
+
+## fast
+Command: rtbench_fast
+Return code: 0
+Log: /tmp/ruihua_accept_20260615_134402_p2/workload_fast_feiteng_20260615_1418.log
+
+## epnp
+Command: rtbench_epnp
+Return code: 0
+Log: /tmp/ruihua_accept_20260615_134402_p2/workload_epnp_feiteng_20260615_1418.log
+
+## ekf
+Command: rtbench_ekf
+Return code: 0
+Log: /tmp/ruihua_accept_20260615_134402_p2/workload_ekf_feiteng_20260615_1418.log
+
+## icp
+Command: rtbench_icp
+Return code: 0
+Log: /tmp/ruihua_accept_20260615_134402_p2/workload_icp_feiteng_20260615_1418.log
+
+## modbus
+Command: rtbench_modbus
+Return code: 0
+Log: /tmp/ruihua_accept_20260615_134402_p2/workload_modbus_feiteng_20260615_1418.log
+
+## mqtt
+Command: rtbench_mqtt
+Return code: 0
+Log: /tmp/ruihua_accept_20260615_134402_p2/workload_mqtt_feiteng_20260615_1418.log
+
+## pid
+Command: rtbench_pid
+Return code: 0
+Log: /tmp/ruihua_accept_20260615_134402_p2/workload_pid_feiteng_20260615_1418.log
+
+## cusum
+Command: rtbench_cusum
+Return code: 0
+Log: /tmp/ruihua_accept_20260615_134402_p2/workload_cusum_feiteng_20260615_1418.log
+
+## ewma
+Command: rtbench_ewma
+Return code: 0
+Log: /tmp/ruihua_accept_20260615_134402_p2/workload_ewma_feiteng_20260615_1418.log

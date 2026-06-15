@@ -180,10 +180,13 @@ static void* server_thread_entry(void* parameter) {
 
         int request_count = 0;
 
-        while (1) {
+        while (!g_server_stop) {
             nmbs_error err = nmbs_server_poll(&nmbs);
             if (err != NMBS_ERROR_NONE) {
                 if (err == NMBS_ERROR_TIMEOUT) {
+                    if (g_server_stop) {
+                        break;
+                    }
                     sched_yield();
                     continue;
                 }
@@ -196,6 +199,9 @@ static void* server_thread_entry(void* parameter) {
                 // printf("[Server] Poll error: ");
                 // print_nmbs_error(err);
                 // printf("\n");
+                if (g_server_stop) {
+                    break;
+                }
                 continue;
             }
             request_count++;

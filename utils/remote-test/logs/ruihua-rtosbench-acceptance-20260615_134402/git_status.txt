@@ -1,0 +1,36 @@
+﻿ M generator/oneos_entry.c
+ M generator/realtime_orig/les/les.c
+ M generator/ruihua_entry.c
+ M generator/test_realtime.c
+ M platforms/oneos/README.md
+ M platforms/ruihua/README.md
+ M platforms/ruihua/feiteng4rtos-template/gnuaarch64/user.mk
+ M platforms/ruihua/feiteng4rtos-template/rtosbench_port/rtosbench_boot.c
+ M platforms/ruihua/feiteng4rtos-template/rtosbench_port/ruihua_workloads.c
+ M platforms/ruihua/feiteng4rtos-template/rtosbench_port/sched_workloads_stub.c
+ M workloads/EPNP/epnp_bench.cpp
+ M workloads/MODBUS/modbus_bench.c
+?? platforms/oneos/NEZHA_D1H_ACCEPTED_BINARIES_20260610.md
+?? platforms/oneos/NEZHA_D1H_SHARED_TFTP_SOP.md
+?? platforms/oneos/NEZHA_D1H_WIN_DIRECT_DEBUG_CLOSURE.md
+?? utils/remote-test/logs/dongtu-orangepi-acceptance-20260610_133819/
+?? utils/remote-test/logs/dongtu-orangepi-direct-20260602_235004/
+?? utils/remote-test/logs/oneos-nezha-d1h-acceptance-20260610_132750/
+?? utils/remote-test/logs/oneos-nezha-validation-20260602_2359/
+?? utils/remote-test/logs/oneos-nezha-validation-20260607_221921/
+?? utils/remote-test/logs/oneos-nezha-validation-20260609_221837/
+?? utils/remote-test/logs/oneos-phytium-connectivity-20260601_2319/
+?? utils/remote-test/logs/oneos-phytium-epnp-smoke-20260601_2319/
+?? utils/remote-test/logs/oneos-phytium-module-list-after-hang-20260601_2319/
+?? utils/remote-test/logs/oneos-phytium-redeploy-20260601_2337/
+?? utils/remote-test/logs/oneos-phytium-stub-nonquiet-20260601_2319/
+?? utils/remote-test/logs/ruihua-feiteng-9workloads-20260610_1311/
+?? utils/remote-test/logs/ruihua-feiteng-campus-20260602_2347/
+?? utils/remote-test/logs/ruihua-feiteng-fullmodules-20260607_2210/
+?? utils/remote-test/logs/ruihua-loongson-acceptance-20260615_131758/
+?? utils/remote-test/logs/ruihua-rtosbench-acceptance-20260610_133034/
+?? utils/remote-test/logs/ruihua-rtosbench-acceptance-20260610_134011/
+?? utils/remote-test/logs/ruihua-rtosbench-acceptance-20260615_134402/
+?? utils/remote-test/oneos_nezha_serial_recover.ps1
+?? utils/remote-test/oneos_nezha_serial_tftp_acceptance.ps1
+?? utils/remote-test/win_tftp_ro_server.py

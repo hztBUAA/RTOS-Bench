@@ -133,6 +133,51 @@ int rtbench_ruihua_smoke(void)
 	return rtbench_command_run_benchmark("ruihua-smoke", 0.1, 1);
 }
 
+int rtbench_fast(void)
+{
+	return rtbench_command_run_benchmark("fast", 1.0, 1);
+}
+
+int rtbench_epnp(void)
+{
+	return rtbench_command_run_benchmark("epnp", 1.0, 1);
+}
+
+int rtbench_ekf(void)
+{
+	return rtbench_command_run_benchmark("ekf", 1.0, 1);
+}
+
+int rtbench_icp(void)
+{
+	return rtbench_command_run_benchmark("icp", 1.0, 1);
+}
+
+int rtbench_modbus(void)
+{
+	return rtbench_command_run_benchmark("modbus", 1.0, 1);
+}
+
+int rtbench_mqtt(void)
+{
+	return rtbench_command_run_benchmark("mqtt", 1.0, 1);
+}
+
+int rtbench_pid(void)
+{
+	return rtbench_command_run_benchmark("pid", 1.0, 1);
+}
+
+int rtbench_cusum(void)
+{
+	return rtbench_command_run_benchmark("cusum", 0.5, 1);
+}
+
+int rtbench_ewma(void)
+{
+	return rtbench_command_run_benchmark("ewma", 0.5, 1);
+}
+
 int rtbench_test_all(void)
 {
 	char *argv[] = {
@@ -140,16 +185,17 @@ int rtbench_test_all(void)
 		"--schedule-cycles", "3",
 		"--stress-job", "all-quick",
 	};
-	return rtbench_command_main(6, argv);
+	return rtbench_command_main(7, argv);
 }
 
 int rtbench_test_all_quick(void)
 {
 	char *argv[] = {
 		"rtbench", "test-all", "--quick",
-		"--no-realtime", "--no-stress",
+		"--schedule-cycles", "3",
+		"--stress-job", "all-quick",
 	};
-	return rtbench_command_main(5, argv);
+	return rtbench_command_main(7, argv);
 }
 
 int rtbench_test_schedule(void)
@@ -196,6 +242,11 @@ int rtbench_export_result(const char *output_path)
 		argv[3] = (char *)output_path;
 	}
 	return rtbench_command_main(4, argv);
+}
+
+int rtbench_export_result_default(void)
+{
+	return rtbench_export_result("/rtbench_result.json");
 }
 
 #ifndef RTBENCH_NO_STANDALONE_MAIN
