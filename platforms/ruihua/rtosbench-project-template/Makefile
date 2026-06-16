@@ -209,13 +209,8 @@ WORKLOAD_CPP_SRC += \
 	$(RTOSBENCH_SRC)/workloads/ICP/kdtree.cpp \
 	$(RTOSBENCH_SRC)/workloads/ICP/matrix.cpp
 
-ifeq ($(FULL_WORKLOADS),1)
 SRCS_C := $(CORE_SRC) $(PLATFORM_SRC) $(REALTIME_SRC) $(STRESS_SRC) $(ENTRY_SRC) $(WORKLOAD_C_SRC)
 SRCS_CXX := $(WORKLOAD_WRAPPER_SRC) $(WORKLOAD_CPP_SRC)
-else
-SRCS_C := $(CORE_SRC) $(PLATFORM_SRC) $(REALTIME_SRC) $(STRESS_SRC) $(ENTRY_SRC)
-SRCS_CXX :=
-endif
 
 define c_to_obj
 $(BUILD_DIR)/$(subst :,,$(subst /,_,$(basename $(1)))).o
