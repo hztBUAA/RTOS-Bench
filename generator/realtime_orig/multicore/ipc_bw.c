@@ -191,6 +191,7 @@ uint64_t multicore_ipc_bw(int mode, int pair_count) {
 		"/ipc_bw_queue_6", "/ipc_bw_queue_7"
 	};
     struct mq_attr attr_m;
+	memset(&attr_m, 0, sizeof(attr_m));
 
     attr_m.mq_flags = 0;
     attr_m.mq_maxmsg = 2;

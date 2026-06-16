@@ -117,6 +117,7 @@ static void message_test_high_preempt(uint64_t *a, uint64_t *b) {
 
 	static const char *mq_name = "/6_4_queue";
     struct mq_attr attr_m;
+    memset(&attr_m, 0, sizeof(attr_m));
 
     attr_m.mq_flags = 0;
     attr_m.mq_maxmsg = 1;
