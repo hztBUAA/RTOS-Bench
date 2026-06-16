@@ -50,10 +50,6 @@ const stress_opt_t stress_copy_file_opts[] = {
     { NULL, NULL }
 };
 
-/* ------------------------------------------------------------------ */
-/* 每个 worker 独立的 RNG                                              */
-/* ------------------------------------------------------------------ */
-
 typedef struct {
     uint32_t state;
 } worker_rng_t;
@@ -78,15 +74,11 @@ static uint8_t rng_next8(worker_rng_t *rng)
     return (uint8_t)(rng_next32(rng) & 0xFF);
 }
 
-/* ------------------------------------------------------------------ */
-/* 自适应参数                                                          */
-/* ------------------------------------------------------------------ */
-
 static size_t choose_chunk_size(uint64_t file_bytes)
 {
     if (file_bytes <= 32768ULL)       return 4096;
     if (file_bytes <= 131072ULL)      return 8192;
-    return 16384;
+    return 4096;
 }
 
 static uint32_t choose_verify_interval(uint64_t file_bytes)
@@ -95,10 +87,6 @@ static uint32_t choose_verify_interval(uint64_t file_bytes)
     if (file_bytes <= 131072ULL)      return 8;
     return 16;
 }
-
-/* ------------------------------------------------------------------ */
-/* 辅助函数                                                            */
-/* ------------------------------------------------------------------ */
 
 static void safe_unlink(const char *path, int instance, const char *tag)
 {
@@ -109,11 +97,6 @@ static void safe_unlink(const char *path, int instance, const char *tag)
     }
 }
 
-/*
- * close + reopen：NFS close-to-open 语义的唯一可靠保证。
- *   close → 刷写缓冲到服务端 + 丢弃本地所有缓存（读+写）
- *   open  → 从服务端重新获取 attr + 后续 read 必须走网络
- */
 static int reopen_fd(int *fd, const char *path, int instance, const char *tag)
 {
     if (*fd >= 0) {
@@ -307,7 +290,6 @@ void stress_copy_file(stress_args_t *args)
         return;
     }
 
-    /* 运行时探测 fsync */
     {
         errno = 0;
         if (stress_osal_fsync(fd_in) == 0) {
@@ -353,14 +335,24 @@ void stress_copy_file(stress_args_t *args)
         do_verify = ((loop_count % verify_interval) == 0) ? 1 : 0;
 
         if (file_bytes > (uint64_t)chunk_size) {
-            off_in_orig  = (off_t)(rng_next32(&rng) %
-                                   (uint32_t)(file_bytes - chunk_size));
-            off_out_orig = (off_t)(rng_next32(&rng) %
-                                   (uint32_t)(file_bytes - chunk_size));
+            uint64_t slots;
+
+            slots = file_bytes / (uint64_t)chunk_size;
+
+            if (slots == 0) {
+                off_in_orig  = 0;
+                off_out_orig = 0;
+            } else {
+                off_in_orig = (off_t)((uint64_t)(rng_next32(&rng) % (uint32_t)slots) *
+                                      (uint64_t)chunk_size);
+                off_out_orig = (off_t)((uint64_t)(rng_next32(&rng) % (uint32_t)slots) *
+                                       (uint64_t)chunk_size);
+            }
         } else {
             off_in_orig  = 0;
             off_out_orig = 0;
         }
+
 
         off_in  = off_in_orig;
         off_out = off_out_orig;
@@ -376,19 +368,6 @@ void stress_copy_file(stress_args_t *args)
 
         if (!stress_continue(args)) break;
 
-        /*
-         * ========== Step 2: verify 轮 — reopen fd_in BEFORE copy ==========
-         *
-         * 关键修复：reopen 必须在 copy 之前！
-         *
-         * NFS close-to-open 语义：
-         *   close(fd) → 写缓冲刷到服务端 + 丢弃本地所有缓存
-         *   open(fd)  → 后续 read 必须从服务端重新获取
-         *
-         * 如果 reopen 在 copy 之后（旧代码），copy 的 read 仍然
-         * 命中旧的 NFS 读缓存，复制的是脏数据。
-         * reopen 放在 copy 之前，确保 copy 读到的是 fill 真正写入的数据。
-         */
         if (do_verify) {
             if (reopen_fd(&fd_in, filename_in, args->instance, "pre-copy") < 0) {
                 break;
@@ -433,14 +412,8 @@ void stress_copy_file(stress_args_t *args)
             continue;
         }
 
-        /* ========== Step 4: verify 轮 — reopen both AFTER copy, then verify ========== */
+        /* ========== Step 4: verify — reopen both AFTER copy, then verify ========== */
         if (do_verify) {
-            /*
-             * reopen fd_out：刷 copy 写入的数据到服务端 + 清读缓存
-             * reopen fd_in ：清读缓存（copy 过程中可能缓存了部分读数据）
-             *
-             * 这样 verify 的两次 read 都从服务端获取最新数据。
-             */
             if (reopen_fd(&fd_out, filename_out, args->instance, "pre-verify-out") < 0 ||
                 reopen_fd(&fd_in,  filename_in,  args->instance, "pre-verify-in")  < 0) {
                 break;
@@ -478,7 +451,6 @@ void stress_copy_file(stress_args_t *args)
         }
     }
 
-    /* 汇总 */
     if (mismatch_count > 0) {
         uint64_t total = args->bogo.current_ops + (uint64_t)mismatch_count;
         stress_osal_print("rtos_stress: SUMMARY: [copy-file-%d]"
