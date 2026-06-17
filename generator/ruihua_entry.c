@@ -178,6 +178,18 @@ int rtbench_test_realtime(void)
 	return rtbench_command_main(2, argv);
 }
 
+int rtbench_test_realtime_multicore(void)
+{
+	char *argv[] = { "rtbench", "test-realtime", "--multicore" };
+	return rtbench_command_main(3, argv);
+}
+
+int rtbench_test_realtime_verify(void)
+{
+	char *argv[] = { "rtbench", "test-realtime", "--verify" };
+	return rtbench_command_main(3, argv);
+}
+
 int rtbench_test_stress_all(void)
 {
 	char *argv[] = { "rtbench", "test-stress", "--job", "all"};

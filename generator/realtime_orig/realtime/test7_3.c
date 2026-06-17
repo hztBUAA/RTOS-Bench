@@ -102,6 +102,7 @@ static void message_test_low_ready(uint64_t *a) {
 
 	static const char *mq_name = "/7_3_queue";
     struct mq_attr attr_m;
+    memset(&attr_m, 0, sizeof(attr_m));
 
     attr_m.mq_flags = 0;
     attr_m.mq_maxmsg = 1;

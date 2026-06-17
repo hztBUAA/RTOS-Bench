@@ -59,6 +59,7 @@ static int message_pre_test() {
 
 	static const char *mq_name = "/6_0_queue";
     struct mq_attr attr_m;
+    memset(&attr_m, 0, sizeof(attr_m));
 
     attr_m.mq_flags = 0;
     attr_m.mq_maxmsg = 1;
@@ -71,7 +72,8 @@ static int message_pre_test() {
         if (errno == EEXIST) {
             printf("报错：队列 '%s' 已存在，无法重新创建。\n", mq_name);
         } else {
-            perror("mq_open 发生其他错误\n");
+            printf("errno: %d\n", errno);
+            perror("mq_open 发生其他错误");
         }
         exit(1);
     }
