@@ -1,46 +1,128 @@
-# Plan: Anchor-Conditioned Repair SFT for Terminal Agents
+# Plan: Anchor-Conditioned Expert Correction SFT for Terminal Agents
 
 _Last updated: 2026-06-17_
 
-This document turns the current brainstorm into an execution plan for fast validation experiments. The goal is to give the server-side coding/research agent a concrete target: build the minimum viable pipeline, run small predictive experiments, and decide whether the idea should be scaled.
+This document is the current execution plan for the paper idea tentatively called **ACE-SFT / ACR-SFT**.
 
-The method is currently named:
+Recommended method name:
 
-> **Anchor-Conditioned Repair SFT (ACR-SFT)**
+> **ACE-SFT: Anchor-Conditioned Expert Correction for Terminal-Agent Fine-Tuning**
 
-Alternative short names:
+Alternative names:
 
+- **ACR-SFT: Anchor-Conditioned Repair SFT**
 - **Anchor-Replay SFT**
 - **Error-Coverage Recovery SFT**
 - **Executable Replay Distillation**
 
-Recommended paper-style title:
+Current preferred one-sentence summary:
 
-> **Anchor-Conditioned Repair SFT: Efficient Terminal-Agent Supervision from Replayable Failure States**
+> **ACE-SFT learns where an expert should take over in a student-induced terminal failure trajectory, then distills verifier-passing expert continuations as SFT data.**
 
----
+Chinese summary:
 
-## 1. Core insight
-
-Current terminal-agent SFT pipelines mostly learn from clean expert trajectories. These trajectories answer:
-
-> How does an expert solve the task from a clean initial environment?
-
-But deployed terminal agents often face a different situation:
-
-> The agent has already executed some wrong commands and moved the workspace into an error state. How should it recover from there?
-
-The core hypothesis is:
-
-> Under a fixed teacher-call and training-token budget, covering **recoverable model-induced error states** can be more data-efficient than collecting more clean expert trajectories.
-
-The proposed method does not train directly on failed trajectories. Instead, it finds **teachable anchors** inside failed rollouts, asks a teacher to repair from those anchors, verifies the repair, and trains on the verified repair suffix.
+> **ACE-SFT 学习在学生失败轨迹中的哪个状态让专家接管最有价值，然后把专家从该状态继续完成并通过 verifier 的后缀转成 SFT 数据。**
 
 ---
 
-## 2. What problem are we solving?
+## 0. Important corrections from the latest discussion
 
-### 2.1 SFT under-covers deployment states
+This section fixes several ambiguities in earlier drafts.
+
+### 0.1 Anchor source must match the target student
+
+If the target model is Qwen3-32B, the main training anchors should come from **Qwen3-32B or its current checkpoint** rolled out on non-evaluation task instances.
+
+The core method should not be described as mining anchors from arbitrary existing teacher trajectories. Existing teacher/model failures can be used for a pilot, but the main paper claim should rely on target-student failed rollouts.
+
+Correct main pipeline:
+
+```text
+target student checkpoint
+  -> rollout on non-TB2 training tasks
+  -> failed trajectories
+  -> turn-level anchor selection
+  -> expert/teacher continuation from selected anchors
+  -> verifier filtering
+  -> recovery-SFT data
+```
+
+### 0.2 Do not use TB2 final evaluation tasks for training-data construction
+
+If Terminal-Bench 2 is used as the final benchmark, we must not roll out on TB2 tasks, mine TB2 failure anchors, generate repairs, and then evaluate on TB2. That would create benchmark contamination, because the training process would have used evaluation task environments and verifier feedback.
+
+Recommended split:
+
+| Usage | Task sources |
+|---|---|
+| Anchor mining / repair data construction | MAP 5k, CLI-Gym, TerminalTraj instances, self-synthesized Harbor tasks, NVIDIA synthetic tasks, and other non-TB2 training pools |
+| Dev / ablation selection | held-out subset from non-TB2 sources |
+| Final evaluation | TB2 / TB-Pro / separate held-out benchmark |
+
+### 0.3 Anchor is turn-level, not token-level
+
+For terminal agents, an anchor should be defined at the **turn/action/state level**:
+
+> after an environment observation and before the next assistant action.
+
+It is not a token index inside an assistant message.
+
+A typical anchor context is:
+
+```text
+task instruction
+student command/action history
+latest observation: stdout/stderr/exit_code/test output
+workspace diff if available
+<ANCHOR: teacher takes over here>
+```
+
+The teacher generates the next repair continuation from this point.
+
+### 0.4 Existing multi-teacher clean-start trajectories are not repair data
+
+The DS / Claude / GLM trajectories already collected from clean initial states are a **reference bank**, not an anchor-conditioned repair bank. They can help with baseline construction, solvability priors, reference summaries, and optional teacher routing, but they should not be treated as the main new supervision.
+
+### 0.5 Main method can use a single strong teacher
+
+Multi-teacher repair is optional. The cleanest main method is:
+
+```text
+target student failed rollouts + anchor selection + one strong teacher + verifier + SFT
+```
+
+Multi-teacher trajectories can remain as:
+
+- pilot proxy data;
+- reference bank;
+- optional teacher-routing ablation;
+- optional multi-repair diversity ablation.
+
+Do not make naive multi-teacher SFT the core contribution.
+
+---
+
+## 1. Core research question
+
+Current terminal-agent SFT mostly answers:
+
+> How does an expert solve a task from a clean initial environment?
+
+But deployed terminal agents often face:
+
+> The agent has already executed wrong commands and moved the workspace into an error state. How should it recover from there?
+
+The central hypothesis is:
+
+> Under a fixed teacher-call and training-token budget, covering **recoverable student-induced error states** is more useful than collecting more clean expert trajectories.
+
+The research object is therefore **error-state coverage**, not only task coverage.
+
+---
+
+## 2. Relation to SFT, RL, OPD, DAgger, and OEC
+
+### 2.1 Standard SFT
 
 Standard SFT optimizes:
 
@@ -48,28 +130,9 @@ Standard SFT optimizes:
 \mathcal{L}_{SFT}=-\sum_t \log \pi_\theta(a_t^{expert}\mid h_t^{expert})
 \]
 
-It increases the probability of expert tokens under expert prefixes. This is stable and efficient, but the training contexts are clean expert states.
+It increases expert-token probability under expert prefixes. This is stable, cheap, and scalable, but the training contexts are clean expert states.
 
-At deployment time, the model visits:
-
-\[
-h_t^{student}\neq h_t^{expert}
-\]
-
-For terminal agents, the mismatch is stronger than ordinary text generation because earlier commands change the workspace:
-
-- wrong file edits;
-- failed tests;
-- corrupted configs;
-- dependency/path errors;
-- repeated no-progress loops;
-- timeout states;
-- misleading stdout/stderr;
-- verifier failures after partial progress.
-
-Therefore, more clean trajectories may not teach the model how to recover from its own mistakes.
-
-### 2.2 RL is on-policy but sparse and expensive
+### 2.2 RL / GRPO
 
 RL/GRPO uses student rollouts:
 
@@ -83,789 +146,470 @@ and optimizes roughly:
 \mathcal{L}_{RL}=-\sum_t A_t\log\pi_\theta(a_t\mid h_t)
 \]
 
-If \(A_t>0\), the sampled token/action is reinforced. If \(A_t<0\), it is suppressed. This is on-policy, but terminal tasks often provide only sparse final rewards. Credit assignment over long command sequences is difficult and rollout cost is high.
+If \(A_t>0\), the sampled action/token is reinforced; if \(A_t<0\), it is suppressed. This is on-policy but terminal rewards are often sparse and credit assignment is hard over long command sequences.
 
-### 2.3 OPD is useful but too broad for terminal repair
+### 2.3 OPD
 
-On-policy distillation (OPD) asks the student to roll out first, then uses a teacher to score or supervise student-generated prefixes. A simplified sampled-token OPD signal is:
+On-policy distillation lets the student generate trajectories and asks the teacher to supervise the student-generated prefixes. A sampled-token OPD signal can be written as:
 
 \[
 \log\pi_T(a_t\mid h_t^{student})-\log\pi_\theta(a_t\mid h_t^{student})
 \]
 
-This gives dense teacher feedback on student states. However, in long-horizon terminal tasks, student mistakes can move the environment into a drifted executable state. Token-level KL on every prefix may be expensive and may not provide a concrete recovery path.
+OPD attacks the same distribution-shift problem as ACE-SFT, but it often relies on token-level KL/logprob feedback over many student prefixes. In long-horizon terminal tasks, this can be expensive and may not provide a concrete recovery path from a corrupted workspace state.
 
-ACR-SFT borrows the core motivation of OPD, but changes the supervision unit:
+### 2.4 DAgger and OEC
 
-> OPD asks whether each student token is teacher-like. ACR-SFT asks where the teacher should intervene and how to recover from that state.
+DAgger is the classical imitation-learning ancestor: roll out the learner, query the expert on learner-visited states, and aggregate those examples into the training set.
+
+OEC (On-policy Expert Corrections) is the closest LLM-agent precedent: start the rollout with a student model, then switch to an expert model partway through the trajectory, producing partially on-policy expert correction data.
+
+Our intended novelty should therefore not be "student begins, teacher continues" in general. That is already very close to OEC. The sharper novelty is:
+
+> **terminal-specific, verifier-grounded, anchor-conditioned expert correction**: we learn/select which turn-level failure states are worth expert intervention, use executable evidence such as stderr/tests/diffs/verifier feedback, and optimize repair-data yield under a teacher-call budget.
 
 ---
 
-## 3. Method overview
+## 3. Method: ACE-SFT
 
-ACR-SFT has five stages:
+### 3.1 Inputs
 
-1. **Collect or reuse failed rollouts** from current students or existing model trajectories.
-2. **Mine candidate anchors** inside each failed trajectory.
-3. **Score anchors** by recoverability, teachability, replayability, and error coverage.
-4. **Ask a teacher to repair from selected anchors**, optionally using an anchor profile.
-5. **Verify and train** on repair suffixes with ordinary SFT.
+- A target student checkpoint to improve.
+- Non-TB2 task pool for rollout and data construction.
+- Strong teacher model(s), preferably one primary teacher first.
+- Verifier/test infrastructure.
+- Optional clean-start teacher trajectory bank as reference.
 
-The final training loss is:
+### 3.2 Output datasets
+
+- \(D_{expert}\): clean expert SFT data.
+- \(D_{fail}\): failed target-student rollouts on training tasks.
+- \(D_{anchor}\): selected turn-level candidate anchors.
+- \(D_{repair}\): verifier-passing teacher continuations from selected anchors.
+- \(D_{train}\): final SFT mixture.
+
+### 3.3 High-level pipeline
+
+1. Roll out the **target student** on non-TB2 train tasks.
+2. Keep failed trajectories and convert them into turn-level records.
+3. Propose candidate anchors with high-recall execution-event detectors.
+4. Build anchor profiles.
+5. Select anchors by repairability, teachability, cost, and error coverage.
+6. Ask teacher to generate K repair continuations from selected anchors.
+7. Execute verifier and keep successful repairs.
+8. Train with ordinary SFT: failed prefix/profile as context, teacher repair suffix as target, bad prefix masked from loss.
+
+---
+
+## 4. Anchor definition and scorer
+
+### 4.1 Candidate anchor
+
+An anchor is a turn-level takeover point:
 
 \[
-\mathcal{L}=\mathcal{L}_{expert}+\lambda\mathcal{L}_{repair}
+a = (H_t, o_t, m_t)
 \]
 
 where:
 
-\[
-\mathcal{L}_{repair}=-\sum_{(P,\rho)\in D_{repair}}w(P,\rho)\sum_i\log\pi_\theta(\rho_i\mid P,\rho_{<i})
-\]
+- \(H_t\): task instruction and command/action history up to the current turn;
+- \(o_t\): latest environment observation;
+- \(m_t\): metadata such as anchor type, failure type, diff, verifier info.
 
-- \(P\): anchor profile, constructed from the student/model failed state.
-- \(\rho\): verified teacher repair suffix.
-- \(w(P,\rho)\): optional weight based on anchor quality, repair success, diversity, and cost.
+### 4.2 Candidate proposal is not the contribution
 
-The failed prefix is retained as context but masked from loss. The model learns the repair suffix, not the bad action.
+Candidate proposal can use cheap rules for high recall:
 
----
+- after first critical stderr;
+- after first failed test following an edit;
+- after dependency/path/permission error;
+- before or at repeated no-progress loop;
+- at last meaningful state before timeout;
+- after final verifier failure observation;
+- after divergence from a successful reference trajectory, if available.
 
-## 4. Key definitions
-
-### 4.1 Failed rollout
-
-A terminal-agent rollout is:
-
-\[
-\tau=(s_0,a_0,o_1,s_1,a_1,o_2,\ldots,s_T)
-\]
-
-where:
-
-- \(s_t\): terminal/workspace state;
-- \(a_t\): command/action;
-- \(o_{t+1}\): stdout, stderr, exit code, test output, verifier feedback;
-- final verifier result indicates success/failure.
-
-### 4.2 Anchor
-
-An anchor is a selected intermediate state \(s_k\) inside a failed rollout.
-
-It is not necessarily the first wrong action or the final failed state. It should be a **teachable failure state**:
-
-- error evidence is visible;
-- recovery is still possible;
-- repair from this point is likely to teach reusable behavior;
-- the state can be replayed or summarized;
-- the failure type contributes to error coverage.
+These rules are not the core contribution. They are only a proposal layer. The core research question is whether we can identify **which** proposed anchors are worth teacher intervention.
 
 ### 4.3 Anchor profile
 
-An anchor profile is a compressed representation of the state given to the teacher:
+For each candidate anchor, build a compact teacher-facing profile:
 
 ```text
 Task objective
 Useful progress so far
 Recent commands
-Last failed command
-stdout/stderr/test output
-Relevant file diff
+Last student action
+Latest stdout/stderr/test output
+Relevant file diff if available
+Verifier feedback if available
 Suspected failure type
 What should not be repeated
-Verifier feedback if available
-Optional reference summary from successful teacher trajectory
+Optional summary of a successful reference trajectory
 ```
 
-The profile avoids sending a long noisy transcript and makes teacher repair cheaper and more stable.
+### 4.4 Anchor scorer
 
-### 4.4 Repair suffix
+The scorer input is a candidate anchor profile, or a trajectory slice with an explicit `<ANCHOR>` marker.
 
-A repair suffix is a teacher-generated continuation from the selected anchor state/profile. It is only used as training data if executing the suffix passes the verifier.
-
----
-
-## 5. Role of existing multi-teacher trajectories
-
-We already have trajectories from several teachers such as DeepSeek, Claude, and GLM. These trajectories are important, but their role must be stated carefully.
-
-### 5.1 What they are
-
-They are a **multi-teacher clean-start trajectory bank**:
+The scorer output is a scalar:
 
 \[
-\mathcal{B}_T(x)=\{\tau_{DS}(x),\tau_{Claude}(x),\tau_{GLM}(x)\}
+q_\phi(a)=P(\text{teacher repair from anchor }a\text{ will pass verifier and be useful})
 \]
 
-### 5.2 What they are not
-
-They are not anchor-conditioned repair trajectories. A clean-start teacher trajectory usually cannot be appended to a student failed prefix because the workspace states may differ.
-
-### 5.3 Correct usage
-
-Use the existing teacher trajectories as:
-
-1. **Expert-only baseline data**: successful clean-start trajectories for ordinary SFT.
-2. **Solvability prior**: if any teacher solves a task, the task is likely solvable.
-3. **Recoverability prior**: if the student fails but a teacher succeeds on the same task, the failure state may be worth repairing.
-4. **Reference signal for anchor mining**: compare failed traces with successful traces to find divergence points.
-5. **Teacher routing signal**: historical teacher success can decide which teacher to call for a selected anchor.
-6. **Repair diversity source**: for high-value anchors, multiple teachers can generate repair candidates and verifier selects the best.
-
-Avoid making naive multi-teacher SFT the core method. Mixing teacher trajectories can introduce inconsistent styles and action priors. It is useful as a baseline or analysis, not necessarily as the main contribution.
-
----
-
-## 6. Error coverage
-
-The main research object is not just task coverage, but **error-state coverage**.
-
-A failure state can be bucketed by:
-
-1. **Failure type**
-   - command syntax error;
-   - wrong path;
-   - dependency/setup failure;
-   - permission error;
-   - wrong file edit;
-   - bad test interpretation;
-   - insufficient inspection;
-   - repeated no-progress loop;
-   - timeout after partial progress;
-   - verifier overfitting or shortcut.
-
-2. **Evidence type**
-   - stderr;
-   - failing test;
-   - hidden verifier failure;
-   - file diff inconsistency;
-   - runtime exception;
-   - assertion failure;
-   - no visible error but no progress.
-
-3. **Recovery operation**
-   - inspect relevant files;
-   - revert or repair wrong edit;
-   - fix dependency;
-   - rerun tests;
-   - localize failing function;
-   - compare expected vs actual output;
-   - clean generated artifacts;
-   - change strategy after loop.
-
-4. **Anchor type**
-   - first critical stderr;
-   - first failed test after edit;
-   - repeated-loop start;
-   - final verifier failure;
-   - divergence from successful teacher reference;
-   - last meaningful state before timeout.
-
-A simple coverage objective:
+Labels are generated by teacher repair attempts and verifier execution:
 
 \[
-Coverage(D)=\sum_{b\in\mathcal{B}}w_b\min\left(\frac{count_D(b)}{target_b},1\right)
+y(a)=\frac{1}{K}\sum_{k=1}^{K}\mathbb{1}[Verifier(Repair_k(a))=1]
 \]
 
-When choosing anchors, prefer high marginal coverage gain:
-
-\[
-\Delta Coverage(a)=Coverage(D\cup\{a\})-Coverage(D)
-\]
-
-This creates a research question:
-
-> Does error-state coverage explain SFT improvement better than raw trajectory count?
-
----
-
-## 7. Anchor scorer
-
-A small anchor scorer can be trained from 100-1000 labeled anchors.
-
-### 7.1 Label generation
-
-For each candidate anchor:
-
-1. Build anchor profile.
-2. Ask teacher to generate K repair candidates.
-3. Execute each repair.
-4. Label anchor positive if any repair passes verifier.
-
-\[
-y(a)=\mathbb{1}[\exists k\le K, Verifier(Repair_k(a))=1]
-\]
-
-### 7.2 Scorer objective
-
-Train:
-
-\[
-q_\phi(a)=P(y(a)=1\mid a)
-\]
-
-with binary cross entropy:
+The scorer can be trained with binary/soft-label cross entropy:
 
 \[
 \mathcal{L}_{anchor}=-y\log q_\phi(a)-(1-y)\log(1-q_\phi(a))
 \]
 
-### 7.3 Selection score
-
-Use:
+Selection score:
 
 \[
 Score(a)=q_\phi(a)+\alpha\Delta Coverage(a)-\beta Cost(a)-\gamma Risk(a)
 \]
 
-where:
-
-- \(q_\phi(a)\): predicted repairability/teachability;
-- \(\Delta Coverage(a)\): error coverage gain;
-- \(Cost(a)\): teacher call / replay / context cost;
-- \(Risk(a)\): nondeterminism, missing metadata, irreversible workspace damage.
+where coverage measures whether the anchor covers underrepresented error buckets.
 
 ---
 
-## 8. Pseudocode
+## 5. Teacher repair
 
-### 8.1 Standard SFT
+### 5.1 Primary repair path
 
-```python
-for batch in expert_data:
-    loss = 0
-    for example in batch:
-        for prefix, token in example.teacher_tokens:
-            loss += -logprob(student, token, prefix)
-    update(student, loss)
-```
+Use one strong teacher first for the main method. Examples:
 
-Learns: increase expert-token probability under expert prefixes.
+- Qwen3-72B if open-weight reproducibility/logprobs are important;
+- Claude/DeepSeek if completion quality is more important;
+- Qwen3-32B self-repair only as a self-training or weaker ablation.
 
-### 8.2 RL / GRPO
+### 5.2 Sampling
 
-```python
-for tasks in task_batch:
-    groups = []
-    for task in tasks:
-        rollouts = [student.rollout(task) for _ in range(G)]
-        rewards = [verifier(r) for r in rollouts]
-        advantages = group_normalize(rewards)
-        groups.append((rollouts, advantages))
-
-    loss = 0
-    for rollouts, advantages in groups:
-        for rollout, A in zip(rollouts, advantages):
-            for prefix, token in rollout.student_tokens:
-                loss += -A * logprob(student, token, prefix)
-    update(student, loss)
-```
-
-Learns: reinforce or suppress student-sampled tokens using reward-derived advantage.
-
-### 8.3 Standard sampled-token OPD
-
-```python
-for task in task_batch:
-    rollout = student.rollout(task)
-    loss = 0
-    for prefix, token in rollout.student_tokens:
-        student_logp = logprob(student, token, prefix)
-        teacher_logp = logprob(teacher, token, prefix)
-        reverse_kl = student_logp - teacher_logp
-        loss += reverse_kl
-    update(student, loss)
-```
-
-Learns: make student-sampled tokens more teacher-like under student prefixes.
-
-### 8.4 ACR-SFT
-
-```python
-D_expert = extract_successful_clean_trajectories(teacher_bank)
-D_failure = collect_or_reuse_failed_rollouts(student_or_models)
-D_repair = []
-
-# Pilot: label anchors
-anchor_labels = []
-for trace in sample(D_failure):
-    candidates = propose_anchors(trace)
-    for anchor in candidates:
-        profile = build_anchor_profile(anchor)
-        repairs = [teacher.generate(profile) for _ in range(K)]
-        success = any(run_verifier(profile.env, repair) for repair in repairs)
-        anchor_labels.append((anchor, success))
-
-anchor_scorer = train_anchor_scorer(anchor_labels)
-
-# Data construction
-for trace in D_failure:
-    candidates = propose_anchors(trace)
-    scored = []
-    for anchor in candidates:
-        score = anchor_scorer(anchor) + coverage_gain(anchor) - replay_cost(anchor)
-        scored.append((score, anchor))
-
-    for anchor in select_topk(scored, budget=k):
-        state_or_profile = replay_or_profile(anchor)
-        teacher = route_teacher(anchor, teacher_bank)
-        repairs = sample_repairs(teacher, state_or_profile, K=K)
-        for repair in repairs:
-            if run_verifier(state_or_profile, repair):
-                D_repair.append(package_recovery_sft(anchor, repair))
-
-# SFT training
-D_train = mix(D_expert, D_repair, strategy="coverage_balanced")
-train_sft(student, D_train)
-```
-
-Learns: under failed-state contexts, increase the probability of verified teacher repair suffixes.
-
----
-
-## 9. Why this should work
-
-### 9.1 From the token-gradient perspective
-
-SFT/RL/OPD all change next-token distributions. For a simplified weighted SFT loss:
+For each selected anchor, sample K repairs:
 
 \[
-\mathcal{L}=-w\log\pi_\theta(y\mid h)
+\rho_1,\ldots,\rho_K\sim\pi_T(\cdot\mid P_a)
 \]
 
-If \(w>0\), gradient descent increases the logit/probability of token \(y\) under context \(h\).
+Run each repair in the environment and keep only verifier-passing continuations:
 
-ACR-SFT chooses contexts \(h\) from failed model-induced states and chooses targets \(y\) from verified teacher repair suffixes. Therefore, the update specifically teaches:
+\[
+D_{repair}=\{(P_a,\rho_k): Verifier(Replay(a),\rho_k)=1\}
+\]
 
-> When the model sees a similar failed state, increase the probability of repair actions rather than repeating the bad action.
+### 5.3 Closed-source vs open-source teacher
 
-### 9.2 Why it may beat clean SFT
+Closed-source API teachers may only provide completions. That is sufficient for SFT.
 
-Clean SFT improves behavior on expert-like prefixes. ACR-SFT improves behavior on failure-like prefixes. If evaluation failures are caused by missing recovery behavior, repair data should be more efficient than adding more clean successes.
-
-### 9.3 Why it may beat raw failure mixing
-
-Raw failed trajectories contain bad actions and dead ends. ACR-SFT uses failed prefixes only as context, while training targets are verifier-passing repairs.
-
-### 9.4 Why it may beat full OPD in our setting
-
-Full OPD scores every student prefix/token, which is costly and potentially unstable in long terminal trajectories. ACR-SFT uses selective intervention and teacher-generated repair continuations, giving the model an explicit path out of the error state.
+Open-source teachers may additionally provide token logprobs or entropy, which can support optional weighting, but logprobs are not required for the first version.
 
 ---
 
-## 10. Fast validation experiments
+## 6. Training objective
 
-These experiments are meant to be predictive, not final SOTA experiments.
+The final objective is ordinary weighted SFT:
 
-### Experiment A: Data availability and replay feasibility
+\[
+\mathcal{L}=\mathcal{L}_{expert}+\lambda\mathcal{L}_{repair}
+\]
 
-Goal: determine whether existing logs support anchor mining.
+with:
 
-Tasks:
+\[
+\mathcal{L}_{repair}=-\sum_{(P,\rho)\in D_{repair}}w(P,\rho)\sum_i\log\pi_\theta(\rho_i\mid P,\rho_{<i})
+\]
 
-1. Parse existing trajectories.
-2. Split success/failure.
-3. Convert failed traces into step-level records.
-4. Check which records have command history, stdout/stderr, exit code, tests, verifier, and Docker image.
-5. Estimate prefix replay feasibility.
+The failed prefix/profile is context. Only the teacher repair suffix is supervised.
 
-Deliverables:
+From the token-gradient perspective, the update teaches:
 
-- `trajectory_inventory.md`
-- `trajectory_summary.csv`
-- `failed_trace_index.jsonl`
-- `replay_feasibility_report.md`
+> under a failed-state context, increase the probability of verified repair actions instead of repeating the bad trajectory.
 
-Success criterion:
+---
 
-- At least hundreds of failed traces have enough information for anchor profiles.
-- A nontrivial subset can be replayed or approximated by transcript/profile.
+## 7. Error coverage
 
-### Experiment B: Anchor candidate mining
+Error-state coverage is the proposed scientific lens.
 
-Goal: mine candidate anchors without teacher calls.
+Bucket failures by:
 
-Anchor policies:
+1. **Failure type**: wrong file, bad path, dependency error, failed test, loop, timeout, wrong verifier use, bad test interpretation.
+2. **Evidence type**: stderr, test output, file diff, hidden verifier failure, no-progress signal.
+3. **Recovery operation**: inspect, revert, repair edit, rerun test, fix dependency, change strategy, verify.
+4. **Anchor type**: first stderr, first failed test, loop start, final meaningful state, divergence from success reference.
 
-1. first critical stderr;
-2. first failed test after edit;
-3. repeated-loop start;
-4. dependency/path/permission error;
-5. last meaningful state before timeout;
-6. final verifier failure;
-7. divergence from successful teacher reference.
+Coverage objective:
 
-Deliverables:
+\[
+Coverage(D)=\sum_{b\in\mathcal{B}}w_b\min\left(\frac{count_D(b)}{target_b},1\right)
+\]
 
-- `anchor_candidates.jsonl`
-- `anchor_bucket_distribution.csv`
-- `anchor_examples.md`
-- `error_coverage_report.md`
+Marginal coverage gain:
 
-Success criterion:
+\[
+\Delta Coverage(a)=Coverage(D\cup\{a\})-Coverage(D)
+\]
 
-- Candidate anchors cover multiple failure buckets.
-- Manual/LLM inspection suggests many anchors are teachable.
+---
 
-### Experiment C: Teacher repair pilot
+## 8. What exactly should early experiments prove?
 
-Goal: test whether selected anchors can be repaired.
+### Experiment 1: Anchor selection improves repair yield
 
-Plan:
+This is a data-construction efficiency experiment.
 
-1. Sample 100-300 anchors across failure buckets.
-2. Build anchor profiles.
-3. Call one teacher first, then optionally multiple teachers for high-value anchors.
-4. Execute/verify repairs where possible.
+Given the same number of teacher calls, compare how many verifier-passing repairs are obtained by different anchor policies:
 
-Baselines:
+| Anchor policy | Metric |
+|---|---|
+| random candidate anchor | verified repairs per 100 teacher calls |
+| final failed state | verified repairs per 100 teacher calls |
+| first stderr | verified repairs per 100 teacher calls |
+| first failed test | verified repairs per 100 teacher calls |
+| learned/scored anchor | verified repairs per 100 teacher calls |
 
-- random failed state;
-- final failed state;
-- first stderr;
-- first failed test;
-- anchor-score selected.
+If scored anchors produce more verified repairs, anchor selection is useful.
 
-Metrics:
+### Experiment 2: Anchor-conditioned repairs improve SFT
 
-- teacher repair success rate;
-- verifier pass rate;
-- average repair length;
-- teacher calls per successful repair;
-- bucket-wise repair rate;
-- profile quality;
-- restart ratio;
-- repeated bad action ratio.
+Compare equal-token SFT groups:
 
-Deliverables:
+1. clean expert only;
+2. expert + raw failed traces;
+3. expert + final-state repairs;
+4. expert + random-anchor repairs;
+5. expert + scored-anchor repairs;
+6. optional: expert + scored-anchor repairs with profile compression.
 
-- `teacher_repair_pilot.md`
-- `repair_attempts.jsonl`
-- `verified_repairs.jsonl`
-- `repair_success_by_anchor_policy.csv`
+Evaluate not only final pass rate but also recovery behavior:
 
-Success criterion:
-
-- Anchor-selected repair has higher success rate than random/final-state repair.
-- Enough verified repairs can be produced for a small SFT ablation.
-
-### Experiment D: Anchor scorer pilot
-
-Goal: train a small model/classifier to predict useful anchors.
-
-Inputs:
-
-- 100-1000 labeled anchors from Experiment C.
-
-Candidate models:
-
-- rule-based score;
-- embedding + logistic regression;
-- small LLM judge SFT;
-- Qwen 7B-style classifier if available.
-
-Metrics:
-
-- AUC/accuracy for repair success prediction;
-- precision@top-k;
-- coverage diversity among selected top-k anchors;
-- teacher calls saved per verified repair.
-
-Deliverables:
-
-- `anchor_scorer_report.md`
-- `anchor_scorer_predictions.csv`
-- `topk_anchor_selection.jsonl`
-
-Success criterion:
-
-- Top-k anchors selected by scorer are more repairable than heuristic/random anchors.
-
-### Experiment E: Small SFT ablation
-
-Goal: test whether verified repair data improves a student.
-
-Training groups under equal token budget:
-
-1. `expert_only`: clean successful trajectories only.
-2. `expert_plus_raw_fail`: clean successes + raw failed trajectories.
-3. `expert_plus_random_repair`: clean successes + teacher repairs from random/final anchors.
-4. `expert_plus_acr_repair`: clean successes + anchor-selected verified repairs.
-5. `expert_plus_acr_profile`: same but using anchor profiles instead of full transcripts.
-6. optional: `expert_plus_acr_weighted`: repair examples weighted by anchor quality/coverage.
-
-Evaluation:
-
-- TB2 pass rate or subset pass rate;
-- held-out Harbor tasks;
 - timeout rate;
 - repeated command ratio;
 - stderr utilization;
 - test usage;
-- recovery-after-first-failure metric;
+- wrong-file edit rate;
+- recovery-after-first-error;
 - failure-type-specific improvement.
 
-Deliverables:
+### Experiment 3: Anchor scorer feasibility
 
-- `sft_ablation_plan.md`
-- `sft_data_manifest.json`
-- `eval_results.csv`
-- `ablation_report.md`
+Train a turn-level scorer from 100-1000 labeled anchors.
 
-Success criterion:
+Metrics:
 
-- `expert_plus_acr_repair` improves over expert-only and raw-failure mixing.
-- Even small positive trend is enough to justify scaling.
-
----
-
-## 11. What to do if first results are weak
-
-Weak early results do not necessarily invalidate the idea. Likely failure modes and fixes:
-
-### 11.1 Low teacher repair success
-
-Possible causes:
-
-- anchors selected too late;
-- state is unrecoverable;
-- profile misses key files/tests;
-- teacher prompt allows restart or gets confused;
-- verifier/replay is unstable.
-
-Fixes:
-
-- select earlier anchors;
-- include file diff and failing test snippets;
-- use matched successful teacher trajectory summary;
-- restrict teacher to inspect before edit;
-- allow multiple repair samples;
-- use stronger teacher only for hard buckets.
-
-### 11.2 Repair data does not improve SFT
-
-Possible causes:
-
-- repair suffixes too long/noisy;
-- too few examples;
-- bad prefix leaks into loss;
-- repair distribution too teacher-specific;
-- repair tasks overlap poorly with evaluation.
-
-Fixes:
-
-- mask bad prefix strictly;
-- train only command/action tokens;
-- add critique+repair format;
-- filter by repair length and test usage;
-- balance by failure type;
-- mix with strong expert data;
-- evaluate failure behavior, not only final pass rate.
-
-### 11.3 Anchor scorer does not work
-
-Possible causes:
-
-- labels too noisy;
-- features insufficient;
-- too few anchors;
-- random teacher sampling makes labels unstable.
-
-Fixes:
-
-- use multiple repair attempts per anchor;
-- define soft label: repair success rate over K attempts;
-- add deterministic features: stderr type, test failure, diff size, loop score;
-- use LLM judge as auxiliary label;
-- train simpler bucket-level selector first.
-
-### 11.4 Multi-teacher repair conflicts
-
-Possible causes:
-
-- teachers use inconsistent styles;
-- multiple correct repairs differ in setup assumptions;
-- repair suffixes are not normalized.
-
-Fixes:
-
-- use verifier selection;
-- normalize output format;
-- teacher routing instead of naive mixture;
-- diversity-select only among verified repairs;
-- keep teacher id metadata for ablation.
+- AUC / accuracy for repair success prediction;
+- precision@top-k;
+- teacher calls saved per verified repair;
+- coverage diversity among top-k selected anchors.
 
 ---
 
-## 12. Scaling plan if pilot is positive
+## 9. Minimal implementation plan
 
-If Experiment C/E is positive:
+### Stage A: Task and data split
 
-1. Scale anchor mining to all available failed rollouts.
-2. Train anchor scorer on 1k-5k labeled anchors.
-3. Generate 5k-20k verified repairs.
-4. Build three training mixtures:
-   - expert-heavy;
-   - balanced expert/repair;
-   - repair-heavy by failure bucket.
-5. Train 7B/8B model first.
-6. Evaluate on TB2, CLI-Gym-derived held-out tasks, and self-synthesized Harbor tasks.
-7. Add second iteration:
-   - rollout improved student;
-   - mine new failures;
-   - generate second-round repairs;
-   - train again.
+1. Identify non-TB2 train task pool.
+2. Identify dev task pool.
+3. Keep TB2 only for final evaluation.
 
----
+### Stage B: Target-student failed rollouts
 
-## 13. Paper positioning
+1. Choose target checkpoint.
+2. Roll out on 200-500 non-TB2 tasks.
+3. Store full traces.
+4. Split success/failure.
 
-### 13.1 Main claim
+### Stage C: Anchor candidate mining
 
-> Terminal-agent SFT should optimize not only task coverage, but error-state coverage. ACR-SFT identifies where teachers should intervene in failed student trajectories and turns verifier-passing repairs into efficient SFT supervision.
+1. Convert traces into turn-level records.
+2. Generate candidates with high-recall rules.
+3. Build anchor profiles.
+4. Produce `anchor_candidates.jsonl` and `sample_anchor_profiles.jsonl`.
 
-### 13.2 Contributions
+### Stage D: Teacher repair pilot
 
-1. **Problem formulation**: introduce error-state coverage as a missing dimension in terminal-agent SFT data construction.
-2. **Method**: propose anchor-conditioned repair synthesis with anchor mining/scoring, teacher routing, verifier filtering, and recovery-SFT packaging.
-3. **Empirical study**: compare clean expert SFT, raw failure mixing, injected-error repair, naive repair anchors, and coverage-aware anchor-conditioned repairs under equal budgets.
+1. Sample 100-300 candidate anchors.
+2. For each anchor, sample K repairs from a strong teacher.
+3. Execute verifier.
+4. Save `repair_attempts.jsonl` and `verified_repairs.jsonl`.
 
-### 13.3 Key comparisons
+### Stage E: Anchor scorer pilot
 
-- **Clean SFT**: learns expert behavior from clean starts but misses model-induced error states.
-- **RL/GRPO**: uses student states but sparse rewards and high rollout cost.
-- **OPD**: dense teacher feedback on student prefixes but costly and potentially unstable for long terminal trajectories.
-- **TermiGen-style injected repair**: creates correction cycles, but errors may not match the student's actual failure distribution.
-- **ACR-SFT**: selective teacher intervention at recoverable failed states, verified repair suffixes, ordinary SFT training.
+1. Train simple baseline scorer.
+2. Compare top-k selection with random/final/first-stderr baselines.
+3. Estimate verified-repair yield.
 
-### 13.4 Publication-ready abstract sketch
+### Stage F: Small SFT ablation
 
-Terminal agents are commonly trained by supervised fine-tuning on expert trajectories collected from clean initial environments. While effective, this training distribution under-covers the executable error states that agents enter after their own commands, such as wrong-file edits, failed tests, dependency errors, and repeated no-progress loops. We propose Anchor-Conditioned Repair SFT, a recovery-oriented data construction framework that identifies teachable anchors inside failed rollouts, asks a stronger teacher to repair from these states, verifies the repairs by execution, and distills the resulting repair suffixes with standard SFT. Unlike full on-policy distillation, our method does not require online teacher KL supervision; unlike raw failure mixing, it trains only on verifier-passing recovery continuations. We study whether covering recoverable error states improves terminal-agent robustness more efficiently than adding clean expert trajectories under the same teacher-call and token budget.
+1. Build small repair SFT dataset.
+2. Train one or two small models first.
+3. Compare expert-only vs repair-enhanced variants.
 
 ---
 
-## 14. Instructions for a coding agent
+## 10. Closest related work and positioning
 
-Use the following prompt to start implementation.
+### DAgger
+
+DAgger shows the classical issue: in sequential prediction, learner actions change the future observation distribution. It addresses this by querying experts on learner-visited states and aggregating the resulting data.
+
+Our relation:
+
+> ACE-SFT is DAgger-like in motivation, but the expert query is selective, turn-level, verifier-grounded, and produces a repair continuation rather than a single action label.
+
+### OEC
+
+OEC is the closest LLM-agent work. It starts rollouts with a student and switches to an expert partway through, producing partially on-policy expert correction trajectories for SWE tasks.
+
+Our intended distinction:
+
+> ACE-SFT studies how to choose the takeover point in terminal failures, labels anchor usefulness with teacher repair + verifier execution, and optimizes error-state coverage and teacher-call efficiency.
+
+### OPD / OPD Survey
+
+OPD provides dense teacher feedback on student-generated prefixes, often with KL/logprob signals. It motivates why student-induced states matter.
+
+Our distinction:
+
+> ACE-SFT does not do online KL over every prefix. It performs selective state-level expert correction and trains on verified repair suffixes with standard SFT.
+
+### TCOD / Guided-OPD / OPD failure analyses
+
+These works show that multi-turn OPD can suffer from prefix drift, compounding errors, and unreliable teacher signals.
+
+Our relation:
+
+> ACE-SFT responds by not supervising every drifted prefix. It identifies recoverable anchors and asks the teacher to generate a concrete repair path.
+
+### MOPD
+
+MOPD uses successful and failed peer rollouts to construct more informative teacher signals.
+
+Our relation:
+
+> Multi-rollout information can be used in anchor profiles or reference summaries, but the main target is anchor-conditioned verified repair.
+
+### TermiGen
+
+TermiGen injects errors to synthesize error-correction cycles for terminal agents.
+
+Our distinction:
+
+> TermiGen creates correction cycles by error injection; ACE-SFT mines failure states from the target student and selects repairable anchors.
+
+### FATE
+
+FATE transforms verifier-scored failure trajectories into repair supervision for agentic safety alignment.
+
+Our relation:
+
+> It supports the broad principle that failed trajectories can become repair supervision, but ACE-SFT is focused on terminal task solving, teacher correction, anchor selection, and error coverage.
+
+### HarnessFix
+
+HarnessFix diagnoses failed trajectories and repairs harness flaws.
+
+Our relation:
+
+> It validates step-level trajectory diagnosis as important, but ACE-SFT uses diagnosis to construct training data rather than patching harnesses.
+
+### AutoTTS / Meta-Harness
+
+AutoTTS and Meta-Harness support the broader methodological idea of using pre-collected traces, execution feedback, and search/selection policies instead of hand-designed heuristics alone.
+
+Our relation:
+
+> ACE-SFT uses offline trajectory traces to search/select data-construction interventions, not inference-time controllers or harness patches.
+
+---
+
+## 11. Coding-agent prompt for the next pilot
 
 ```text
 You are working in the tb2-terminal-agent-scaling repository.
 
 Goal:
-Prototype Anchor-Conditioned Repair SFT (ACR-SFT) for terminal agents. The purpose is not to run a full training pipeline yet, but to validate whether failed trajectories contain teachable anchors that can be repaired by teachers and converted into SFT data.
+Prototype ACE-SFT / ACR-SFT. The goal is to validate whether target-student failed rollouts on non-TB2 tasks contain turn-level anchors from which a strong teacher can generate verifier-passing repair continuations.
 
 Output directory:
-analysis_reports/acr_sft_<timestamp>/
+analysis_reports/ace_sft_<timestamp>/
 
-Constraints:
-- Do not modify existing datasets or training code.
+Critical constraints:
+- Do not use Terminal-Bench 2 final evaluation tasks for training-data construction.
+- Use non-TB2 task pools first: MAP 5k, CLI-Gym, TerminalTraj instances, self-synthesized Harbor tasks, or NVIDIA synthetic tasks.
+- If target model is Qwen3-32B, collect failures from Qwen3-32B or its current checkpoint when possible.
+- Existing DS/Claude/GLM trajectories may be used as pilot/reference data, but do not treat them as anchor-conditioned repairs.
 - Do not print secrets/API keys.
 - If a job takes more than 10 minutes, use tmux and log the session name.
-- Prefer dry-run scripts first.
-- Keep all scripts rerunnable.
 
 Tasks:
-1. Locate trajectory logs and datasets.
-   - MAP 5k teacher/model trajectories.
-   - CLI-Gym trajectories.
-   - Harbor/TB2 rollout logs.
-   - Any existing student failed rollouts.
+1. Identify train/dev/test task pools and explicitly mark TB2 as evaluation-only.
+2. Locate target-student rollout logs or prepare a dry-run rollout plan on 200-500 non-TB2 tasks.
+3. Parse failed rollouts into turn-level records.
+4. Generate candidate anchors after observations, not token-level positions.
+5. Build compact anchor profiles.
+6. Sample 100-300 anchors across failure buckets.
+7. Prepare dry-run teacher repair prompts.
+8. If teacher calls are enabled, sample K repairs per anchor and verify them.
+9. Train or simulate a simple anchor scorer from repair outcomes.
+10. Report verified-repair yield by anchor policy.
 
-2. Build a trajectory inventory.
-   Output: trajectory_summary.csv and trajectory_inventory.md.
-   Include task_id, model, success/failure, number of turns, availability of stdout/stderr, verifier, docker image, and command history.
-
-3. Build failed trace index.
-   Output: failed_trace_index.jsonl.
-   Each row should contain trajectory_id, task_id, model, final status, command history, observations, and metadata.
-
-4. Build step-level records.
-   Output: trajectory_graph_steps.jsonl.
-   Each row:
-   {
-     "trajectory_id": "...",
-     "task_id": "...",
-     "model": "...",
-     "step_id": 0,
-     "prefix_commands": [...],
-     "action": "...",
-     "stdout": "...",
-     "stderr": "...",
-     "exit_code": null,
-     "file_diff": null,
-     "verifier_result": null,
-     "final_success": false,
-     "replay_status": "unknown",
-     "metadata": {}
-   }
-
-5. Mine candidate anchors.
-   Implement heuristics:
-   - first critical stderr;
-   - first failed test after edit;
-   - dependency/path/permission error;
-   - repeated command loop;
-   - last meaningful state before timeout;
-   - final verifier failure;
-   - divergence from successful teacher reference if matched trajectories exist.
-   Output: anchor_candidates.jsonl and anchor_bucket_distribution.csv.
-
-6. Build anchor profiles.
-   For top 100-300 candidates, produce compact profiles:
-   - task objective;
-   - useful progress so far;
-   - recent commands;
-   - last failed command;
-   - stdout/stderr/test output;
-   - relevant diff if available;
-   - suspected failure type;
-   - what not to repeat.
-   Output: sample_anchor_profiles.jsonl.
-
-7. Produce a dry-run teacher repair prompt file.
-   Do not call paid models unless explicitly configured.
-   Output: sample_repair_prompts.jsonl.
-
-8. Produce an error coverage report.
-   Include failure type counts, evidence type counts, anchor type counts, and recommended pilot sampling plan.
-   Output: error_coverage_report.md.
-
-9. Produce a final report.
-   Output: report.md.
-   Include feasibility, missing metadata, risks, and next-step instructions for teacher repair pilot.
+Deliverables:
+- task_split_report.md
+- trajectory_inventory.md
+- failed_turn_records.jsonl
+- anchor_candidates.jsonl
+- sample_anchor_profiles.jsonl
+- repair_prompt_dryrun.jsonl
+- repair_attempts.jsonl, if teacher calls are enabled
+- verified_repairs.jsonl, if verifier runs are enabled
+- anchor_policy_yield_report.md
+- next_step_sft_ablation_plan.md
 ```
 
 ---
 
-## 15. Immediate next decision
+## 12. What counts as positive signal?
 
-Before large-scale generation, decide the first pilot source:
+A small pilot is positive if:
 
-Option A: use existing failed trajectories from MAP 5k multi-model runs.
+1. target-student failed rollouts have enough structured observations to build anchor profiles;
+2. selected anchors yield substantially more verifier-passing repairs than random/final-state anchors;
+3. verified repairs are clean enough to become SFT data;
+4. a small SFT ablation shows better recovery behavior than expert-only or raw-failure mixing.
 
-- Fastest.
-- May not be strictly on-policy for the final student.
-- Good for parser, anchor mining, and repair feasibility.
-
-Option B: rollout current student/checkpoint on 200-500 tasks.
-
-- More faithful to the method.
-- Requires rollout cost.
-- Better for paper claims.
-
-Recommended path:
-
-1. Start with Option A for infrastructure and anchor feasibility.
-2. Once scripts work, run Option B for the main pilot.
+Even if final pass-rate gain is small at first, strong repair-yield improvement is already useful: it means anchor selection improves the quality/cost ratio of synthetic recovery data.
 
 ---
 
-## 16. Final reminder
+## 13. What to avoid
 
-The strongest version of this project is not:
+- Do not claim we invented the general idea of student-prefix expert continuation; OEC is very close.
+- Do not use TB2 failure trajectories as training data if TB2 is final evaluation.
+- Do not define anchors at token-level for terminal command agents; use turn-level takeover points.
+- Do not treat clean-start teacher trajectories as repair suffixes.
+- Do not make naive multi-teacher SFT the main contribution.
+- Do not train on raw failed traces as positive supervision.
 
-> We use failed trajectories.
+---
 
-It is:
+## 14. Updated contribution statement
 
-> We learn which failure states are worth repairing, generate verifier-passing teacher repairs from those states, and show that error-state coverage is a more efficient SFT signal than additional clean demonstrations.
+A publication-ready contribution statement should be:
+
+1. **Anchor-conditioned expert correction for terminal agents.** We formulate where an expert should take over in a student-induced terminal failure trajectory as a learnable/verifier-grounded selection problem.
+2. **Error-state coverage.** We argue that terminal-agent SFT should cover recoverable error states, not only clean task solutions.
+3. **Efficient recovery-data construction.** We show that anchor scoring improves verifier-passing repair yield under a fixed teacher-call budget and that these repairs can be distilled with standard SFT.
+
+---
+
+## 15. Updated abstract sketch
+
+Terminal agents are commonly trained by supervised fine-tuning on expert trajectories collected from clean initial environments. While effective, such data under-covers the executable error states that agents enter after their own commands. Inspired by interactive imitation learning and on-policy expert correction, we propose ACE-SFT, an anchor-conditioned data construction framework for terminal-agent fine-tuning. ACE-SFT rolls out the target student on non-evaluation tasks, identifies turn-level failure anchors where expert intervention is likely to be useful, asks a stronger teacher to continue from those anchors, and retains only verifier-passing repair continuations as SFT targets. Unlike standard OPD, ACE-SFT does not require token-level online KL supervision; unlike raw failure mixing, it masks the failed prefix and trains only on verified repairs. We study whether error-state coverage and anchor selection improve the efficiency of terminal-agent SFT under fixed teacher-call and training-token budgets.
