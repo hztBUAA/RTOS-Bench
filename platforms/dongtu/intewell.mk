@@ -1,21 +1,19 @@
 ################################################################################
-# RTOS-Bench integration for Dongtu/Intewell vm_3588 projects.
+# RTOS-Bench integration for Dongtu/Intewell vm_3588 and x86 projects.
 #
-# Include this from the vm_3588 project-local config_os.mk. The Intewell
-# generated Debug/make/makefile reads that file through:
-#   -include $(PROJECT_PATH)/config_os.mk
+# Include this file from the Intewell project-local config_os.mk:
 #
-#   RTOS_BENCH_ROOT ?= C:/path/to/RTOS-Bench
-#   include $(RTOS_BENCH_ROOT)/platforms/dongtu/intewell_vm3588.mk
-#
-# The vm_3588 project keeps only board/project files. RTOS-Bench sources remain
-# under RTOS_BENCH_ROOT as the single source of truth.
+#   RTOS_BENCH_ROOT := A:/path/to/RTOS-Bench
+#   include $(RTOS_BENCH_ROOT)/platforms/dongtu/intewell.mk
 ################################################################################
 
 RTBENCH_DONGTU_MK_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 RTOS_BENCH_ROOT ?= $(abspath $(RTBENCH_DONGTU_MK_DIR)/../..)
 RTBENCH_EXT_OBJ_DIR ?= ./rtosbench_ext
 ARCH ?= __ARM64__
+
+RTBENCH_DONGTU_IS_X86 := $(filter _X86_ _X86_32_ _I386_ __X86__,$(ARCH))
+RTBENCH_DONGTU_IS_ARM64 := $(filter __ARM64__ __AARCH64__ __aarch64__ _AARCH64_,$(ARCH))
 
 RTBENCH_GENERATOR_SRCS := \
 	dongtu_entry.c \
@@ -78,6 +76,7 @@ RTBENCH_REALTIME_SRCS := \
 	les/cpu_affinity.c \
 	les/data_tools.c \
 	les/les.c \
+	les/intewell_init.c \
 	les/reworks_int.c \
 	les/safe_sleep.c \
 	multicore/ipc_bw.c \
@@ -159,37 +158,58 @@ RTBENCH_WORKLOAD_CXX_SRCS := \
 	PID/pid_bench.cpp
 
 RTBENCH_DONGTU_PLATFORM_SRCS := \
-	compat.c \
 	shell.c
+
+ifneq ($(wildcard $(RTOS_BENCH_ROOT)/platforms/dongtu/compat.c),)
+RTBENCH_DONGTU_PLATFORM_SRCS += compat.c
+endif
 
 RTBENCH_GENERATOR_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/generator/,$(RTBENCH_GENERATOR_SRCS:.c=.o))
 RTBENCH_REALTIME_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/generator/realtime_orig/,$(RTBENCH_REALTIME_SRCS:.c=.o))
 RTBENCH_WORKLOAD_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/workloads/,$(RTBENCH_WORKLOAD_SRCS:.c=.o))
 RTBENCH_WORKLOAD_CXX_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/workloads/,$(RTBENCH_WORKLOAD_CXX_SRCS:.cpp=.o))
 RTBENCH_DONGTU_PLATFORM_OBJS := $(addprefix $(RTBENCH_EXT_OBJ_DIR)/platforms/dongtu/,$(RTBENCH_DONGTU_PLATFORM_SRCS:.c=.o))
+
 RTBENCH_GENERATOR_DEPS := $(RTBENCH_GENERATOR_OBJS:.o=.d)
 RTBENCH_REALTIME_DEPS := $(RTBENCH_REALTIME_OBJS:.o=.d)
 RTBENCH_WORKLOAD_DEPS := $(RTBENCH_WORKLOAD_OBJS:.o=.d)
 RTBENCH_WORKLOAD_CXX_DEPS := $(RTBENCH_WORKLOAD_CXX_OBJS:.o=.d)
 RTBENCH_DONGTU_PLATFORM_DEPS := $(RTBENCH_DONGTU_PLATFORM_OBJS:.o=.d)
+
 RTBENCH_DONGTU_SHELL_OBJ := $(RTBENCH_EXT_OBJ_DIR)/platforms/dongtu/shell.o
 RTBENCH_DONGTU_ARCHIVE_PLATFORM_OBJS := $(filter-out $(RTBENCH_DONGTU_SHELL_OBJ),$(RTBENCH_DONGTU_PLATFORM_OBJS))
 
 CONFIG_CPLUSPLUS := 1
 HAS_CPP := Y
+
 C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/generator/,$(RTBENCH_GENERATOR_SRCS))
 C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/generator/realtime_orig/,$(RTBENCH_REALTIME_SRCS))
 C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/workloads/,$(RTBENCH_WORKLOAD_SRCS))
 C_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/platforms/dongtu/,$(RTBENCH_DONGTU_PLATFORM_SRCS))
 CXX_SRCS += $(addprefix $(RTOS_BENCH_ROOT)/workloads/,$(RTBENCH_WORKLOAD_CXX_SRCS))
-OBJS += $(RTBENCH_GENERATOR_OBJS) $(RTBENCH_REALTIME_OBJS) $(RTBENCH_WORKLOAD_OBJS) $(RTBENCH_WORKLOAD_CXX_OBJS) $(RTBENCH_DONGTU_PLATFORM_OBJS)
-DEPS += $(RTBENCH_GENERATOR_DEPS) $(RTBENCH_REALTIME_DEPS) $(RTBENCH_WORKLOAD_DEPS) $(RTBENCH_WORKLOAD_CXX_DEPS) $(RTBENCH_DONGTU_PLATFORM_DEPS)
+
+OBJS += $(RTBENCH_GENERATOR_OBJS)
+OBJS += $(RTBENCH_REALTIME_OBJS)
+OBJS += $(RTBENCH_WORKLOAD_OBJS)
+OBJS += $(RTBENCH_WORKLOAD_CXX_OBJS)
+OBJS += $(RTBENCH_DONGTU_PLATFORM_OBJS)
+
+DEPS += $(RTBENCH_GENERATOR_DEPS)
+DEPS += $(RTBENCH_REALTIME_DEPS)
+DEPS += $(RTBENCH_WORKLOAD_DEPS)
+DEPS += $(RTBENCH_WORKLOAD_CXX_DEPS)
+DEPS += $(RTBENCH_DONGTU_PLATFORM_DEPS)
+
+# Only shell.o is linked directly into the final ELF.
+# This keeps SHELL_CMD_REGISTER(rtbench, ...) alive without directly linking
+# dongtu_entry.o and without whole-archiving librtosbench_*.a.
 USER_OBJS += $(RTBENCH_DONGTU_SHELL_OBJ)
 
 RTBENCH_DONGTU_FLAGS := \
 	-DDONGTU_PLATFORM \
 	-DMULTI_WORKLOAD \
 	-Dalloca=__builtin_alloca \
+	-I$(RTOS_BENCH_ROOT)/platforms/dongtu \
 	-I$(RTOS_BENCH_ROOT)/generator \
 	-I$(RTOS_BENCH_ROOT)/generator/platform/dongtu \
 	-I$(RTOS_BENCH_ROOT)/generator/test_schedule \
@@ -219,9 +239,15 @@ RTBENCH_DONGTU_FLAGS := \
 	-I$(RTOS_BENCH_ROOT)/workloads/PID
 
 RTBENCH_DONGTU_CXX ?= $(subst -gcc,-g++,$(CC))
+
+RTBENCH_DONGTU_CXX_COMPAT_FLAGS :=
+ifneq ($(RTBENCH_DONGTU_IS_ARM64),)
+RTBENCH_DONGTU_CXX_COMPAT_FLAGS := -include $(RTOS_BENCH_ROOT)/platforms/dongtu/cxx_compat.h
+endif
+
 RTBENCH_DONGTU_CXX_FLAGS := \
 	$(RTBENCH_DONGTU_FLAGS) \
-	-include $(RTOS_BENCH_ROOT)/platforms/dongtu/cxx_compat.h \
+	$(RTBENCH_DONGTU_CXX_COMPAT_FLAGS) \
 	-UENABLE_CPLUSPLUS \
 	-DENABLE_CPLUSPLUS=1 \
 	-D_SYS_REENT_H_ \
@@ -280,13 +306,21 @@ $(RTBENCH_EXT_OBJ_DIR)/platforms/dongtu/%.o: $(RTOS_BENCH_ROOT)/platforms/dongtu
 	$(CC) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(RTBENCH_EXTRA_FLAGS) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -o $@ $< && \
 	$(CC) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(RTBENCH_EXTRA_FLAGS) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -MM -MG -P -w -MT $@ $< > $(@:%.o=%.d)
 
-RTBENCH_VM3588_BASE_OBJS := \
+RTBENCH_BASE_OBJS := \
 	./src/userAppInit.o
 
-RTBENCH_VM3588_PRJ_OBJS := $(RTBENCH_VM3588_BASE_OBJS) $(RTBENCH_GENERATOR_OBJS) $(RTBENCH_REALTIME_OBJS) $(RTBENCH_WORKLOAD_OBJS) $(RTBENCH_WORKLOAD_CXX_OBJS) $(RTBENCH_DONGTU_ARCHIVE_PLATFORM_OBJS)
+RTBENCH_PRJ_OBJS := \
+	$(RTBENCH_BASE_OBJS) \
+	$(RTBENCH_GENERATOR_OBJS) \
+	$(RTBENCH_REALTIME_OBJS) \
+	$(RTBENCH_WORKLOAD_OBJS) \
+	$(RTBENCH_WORKLOAD_CXX_OBJS) \
+	$(RTBENCH_DONGTU_ARCHIVE_PLATFORM_OBJS)
 
-$(ARCHIVES): prjObjs.lst
+RTBENCH_VM3588_PRJ_OBJS := $(RTBENCH_PRJ_OBJS)
+
+$(ARCHIVES): prjObjs.lst $(RTBENCH_DONGTU_SHELL_OBJ)
 
 .PHONY: rtosbench_prjobjs prjObjs.lst
 rtosbench_prjobjs prjObjs.lst:
-	@printf '%s\n' $(RTBENCH_VM3588_PRJ_OBJS) > prjObjs.lst
+	@printf '%s\n' $(RTBENCH_PRJ_OBJS) > prjObjs.lst

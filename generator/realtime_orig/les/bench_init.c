@@ -261,6 +261,7 @@ void thread_initialize(void) {
 #if defined(DONGTU_PLATFORM)
 #undef LES_syscall_val
 #undef LES_syscall_flag
+    #if defined(_X86_)
 	__LES_interrupt_start_val = (volatile uint64_t *)&stDEHeaderPtr->allirq_val;
 	__LES_interrupt_end_val = (volatile uint64_t *)&stDEHeaderPtr->systimeirq_val;
 	__LES_interrupt_flag = (volatile uint32_t *)&stDEHeaderPtr->interrupt_flag;
@@ -268,6 +269,13 @@ void thread_initialize(void) {
 	__LES_syscall_flag = (volatile uint32_t *)&stDEHeaderPtr->LES_syscall_flag;
 #define LES_syscall_val (*__LES_syscall_val)
 #define LES_syscall_flag (*__LES_syscall_flag)
+    #elif defined (__aarch64__)
+
+    #else
+
+    #warning "未知架构"
+    /* val = ... */
+   #endif
 #endif
 }
 

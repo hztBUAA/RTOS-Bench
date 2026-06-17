@@ -1,9 +1,15 @@
 /*
- * Dongtu/Intewell shell binding for RTOS-Bench.
+ * Dongtu/Intewell shell command binding for RTOS-Bench.
  *
- * The command parser lives in generator/dongtu_entry.c. This file only binds
- * it to the platform shell so Dongtu projects can keep RTOS-Bench sources in
- * the upstream repository and avoid project-local copies.
+ * This file is intentionally linked directly into the final Intewell image,
+ * rather than archived into librtosbench_x86.a / librtosbench_vm3588.a.
+ *
+ * Reason:
+ *   SHELL_CMD_REGISTER creates a shell command registration object. If this
+ *   file is stored only inside a static library, the linker may not extract it
+ *   unless some other object has an unresolved reference to a symbol in this
+ *   object. Linking shell.o directly keeps the shell command registration in
+ *   the final image.
  */
 
 #include <stddef.h>
