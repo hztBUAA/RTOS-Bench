@@ -1,42 +1,263 @@
 CURRENT_TASK = {
-    "board": "LS2K1000LA",
-    "os": "SylixOS",
-    "job": "file",                  #任务类型：cpu/memory/file/standby(待机)
-    "is_debug": False,              #是否开启快速验证
-    "power_port": "COM3",           #电源串口
-    "dut_conn_type": "TELNET",      #通信方式
-    "dut_conn_params": {
-        "ip": "10.4.120.104",
-        "username": "root",
-        "password": "root"
+    "board": "Phytium-Pi", #LS2K1000LA MIC-7700 DH-1 Phytium-Pi Orange-Pi5
+    "os": "oneos",
+    "jobs": ["cpu", "memory", "file"],
+    # Stop the queue when one job fails after all retry attempts.
+    "stop_on_job_failure": True
+}
+
+POWER_SUPPLY_CONFIG = {
+    "port": "COM4",
+    "baudrate": 9600,
+    "timeout": 1.0,
+    "write_timeout": 1.0,
+    "open_retries": 3,
+    "retry_delay": 1.0,
+    "close_delay": 1.0
+}
+
+
+def _telnet(ip, login=False, username="", password=""):
+    return {
+        "ip": ip,
+        "port": 23,
+        "login": login,
+        "username": username,
+        "password": password,
+
+        # Timeout for one TCP connection/login attempt.
+        "timeout": 10,
+
+        # Wait after a TCP connection is established when login is disabled.
+        "connect_wait": 2.0,
+        "login_prompt": "login:",
+        "password_prompt": "password:",
+
+        # Maximum time to wait for ICMP ping after powering on the board.
+        "ping_timeout": 120,
+
+        # Interval between ping attempts.
+        "ping_interval": 3,
+
+        # Timeout for one ping command.
+        "ping_attempt_timeout": 1,
+
+        # Number of TELNET connection attempts after ping succeeds.
+        "connect_retries": 10,
+
+        # Delay between TELNET connection attempts.
+        "connect_retry_interval": 3
+    }
+
+
+
+def _com(port="COM6", baudrate=115200):
+    return {
+        "port": port,
+        "baudrate": baudrate,
+        "timeout": 0.1,
+        "boot_wait": 2.0
+    }
+
+
+def _dut_params(ip, com_port="COM6"):
+    return {
+        "TELNET": _telnet(ip),
+        "COM": _com(com_port)
+    }
+
+
+def _platform(ip, start_cmd, shutdown_cmd, dut_conn_type="TELNET", com_port="COM6"):
+    return {
+        "dut_conn_type": dut_conn_type,
+        "dut_conn_params": _dut_params(ip, com_port=com_port),
+        "start_cmd": start_cmd,
+        "shutdown_cmd": shutdown_cmd
+    }
+
+
+SYLIXOS_START_CMD = {
+    "standby": [],
+    "cpu": ["cd /apps/stress-ng/", "./rtos_bench test-stress --job cpu"],
+    "memory": ["cd /apps/stress-ng/", "./rtos_bench test-stress --job memory"],
+    "file": ["cd /apps/stress-ng/", "./rtos_bench test-stress --job file"],
+    "default": ["cd /apps/stress-ng/", "./rtos_bench test-stress"]
+}
+
+ONEOS_START_CMD = {
+    "standby": [],
+    "cpu": ["cd /user/", "rtbench test-stress --job cpu"],
+    "memory": ["cd /user/", "rtbench test-stress --job memory"],
+    "file": ["cd /user/", "rtbench test-stress --job file"],
+    "default": ["cd /user/", "rtbench test-stress"]
+}
+
+INTEWELL_START_CMD = {
+    "standby": [],
+    "cpu": ["rtbench test-stress --job cpu"],
+    "memory": ["rtbench test-stress --job memory"],
+    "file": ["rtbench test-stress --job file"],
+    "default": ["rtbench test-stress"]
+}
+
+REDE_START_CMD = {
+    "standby": [],
+    "cpu": ["cd /c", "rtbench test-stress --job cpu"],
+    "memory": ["cd /c", "rtbench test-stress --job memory"],
+    "file": ["cd /c", "rtbench test-stress --job file"],
+    "default": ["cd /c", "rtbench test-stress"]
+}
+
+SYLIXOS_SHUTDOWN_CMD = ["sync", "shutdown"]
+ONEOS_SHUTDOWN_CMD = []
+INTEWELL_SHUTDOWN_CMD = []
+REDE_SHUTDOWN_CMD = []
+
+PLATFORM_PROFILES = {
+    "LS2K1000LA": {
+        "power": {
+            "voltage": 12.0,
+            "current": 2.0,
+            "protect_voltage": 13.2,
+            "protect_current": 2.2
+        },
+        "platforms": {
+            "SylixOS": _platform(
+                "192.168.31.200",
+                SYLIXOS_START_CMD,
+                SYLIXOS_SHUTDOWN_CMD
+            ),
+            "rede": _platform(
+                "192.168.31.209",
+                REDE_START_CMD,
+                REDE_SHUTDOWN_CMD
+            ),
+            "oneos": _platform(
+                "192.168.31.213",
+                ONEOS_START_CMD,
+                ONEOS_SHUTDOWN_CMD
+            )
+        }
+    },
+
+    "Orange-Pi5": {
+        "power": {
+            "voltage": 5.0,
+            "current": 4.0,
+            "protect_voltage": 5.5,
+            "protect_current": 4.4
+        },
+        "platforms": {
+            "SylixOS": _platform(
+                "192.168.31.201",
+                SYLIXOS_START_CMD,
+                SYLIXOS_SHUTDOWN_CMD
+            ),
+            "intewell": _platform(
+                "192.168.31.207",
+                INTEWELL_START_CMD,
+                INTEWELL_SHUTDOWN_CMD
+            ),
+            "oneos": _platform(
+                "192.168.31.208",
+                ONEOS_START_CMD,
+                ONEOS_SHUTDOWN_CMD
+            ),
+            "rede": _platform(
+                "192.168.31.212",
+                REDE_START_CMD,
+                REDE_SHUTDOWN_CMD
+            )
+        }
+    },
+
+    "DH-1": {
+        "power": {
+            "voltage": 5.0,
+            "current": 2.0,
+            "protect_voltage": 5.5,
+            "protect_current": 2.2
+        },
+        "platforms": {
+            "SylixOS": _platform(
+                "192.168.31.202",
+                SYLIXOS_START_CMD,
+                SYLIXOS_SHUTDOWN_CMD
+            ),
+            "oneos": _platform(
+                "192.168.31.211",
+                ONEOS_START_CMD,
+                ONEOS_SHUTDOWN_CMD
+            )
+        }
+    },
+
+    "MIC-7700": {
+        "power": {
+            "voltage": 20.0,
+            "current": 7.0,
+            "protect_voltage": 22.4,
+            "protect_current": 7.7
+        },
+        "platforms": {
+            "SylixOS": _platform(
+                "192.168.31.203",
+                SYLIXOS_START_CMD,
+                SYLIXOS_SHUTDOWN_CMD
+            ),
+            "intewell": _platform(
+                "192.168.31.206",
+                INTEWELL_START_CMD,
+                INTEWELL_SHUTDOWN_CMD
+            )
+        }
+    },
+
+    "Phytium-Pi": {
+        "power": {
+            "voltage": 12.0,
+            "current": 3.0,
+            "protect_voltage": 13.2,
+            "protect_current": 3.3
+        },
+        "platforms": {
+            "SylixOS": _platform(
+                "192.168.31.204",
+                SYLIXOS_START_CMD,
+                SYLIXOS_SHUTDOWN_CMD
+            ),
+            "oneos": _platform(
+                "192.168.31.205",
+                ONEOS_START_CMD,
+                ONEOS_SHUTDOWN_CMD
+            ),
+            "rede": _platform(
+                "192.168.31.210",
+                REDE_START_CMD,
+                REDE_SHUTDOWN_CMD
+            )
+        }
     }
 }
 
-BOARD_PROFILES = {
-    "LS2K1000LA": {"voltage": 12.0, "current": 2.0, "protect_voltage": 13.2, "protect_current": 2.2},
-    "Orange-Pi5": {"voltage": 5.0, "current": 4.0, "protect_voltage": 5.5, "protect_current": 4.4},
-    "Phytium-Pi": {"voltage": 12.0, "current": 3.0, "protect_voltage": 13.2, "protect_current": 3.3},
-    "MIC-7700": {"voltage": 24.0, "current": 6.0, "protect_voltage": 26.4, "protect_current": 6.6},
-    "DH-1": {"voltage": 5.0, "current": 2.0, "protect_voltage": 5.5, "protect_current": 2.2}
-}
-
-OS_PROFILES = {
-    "SylixOS": {
-        "start_cmd": ["cd /apps/stress-ng/", "./rtos_stress"],
-        "shutdown_cmd": ["sync", "shutdown"]
+JOB_PROFILES = {
+    "standby": {
+        "mode": "duration",
+        "duration": 600,
+        "start_cmd": None
     },
-    "intewell": {
-        "start_cmd": ["rtbench"],
-        "shutdown_cmd": ["reboot"]
+    "cpu": {
+        "mode": "regex",
+        "start_cmd": None
     },
-    "oneos": {
-        "start_cmd": ["cd /user/", "ld xx.out", "rtbench"],
-        "shutdown_cmd": ["sync", "shutdown"]
+    "memory": {
+        "mode": "regex",
+        "start_cmd": None
     },
-    "rede": {
-        "start_cmd": ["cd /apps/stress-ng/", "./rtos_stress"],
-        "shutdown_cmd": ["sync", "shutdown"]
-    },
+    "file": {
+        "mode": "regex",
+        "start_cmd": None
+    }
 }
 
 STRESS_CONFIG = {
@@ -44,13 +265,10 @@ STRESS_CONFIG = {
     "end_regex": r"Job: stored_jobfile_(\w+)\.txt \[Built-in\]"
 }
 
-# Excel exporter configuration: path can be a directory or a full filename.
 EXCEL_EXPORTER = {
-    # If you want to use the bundled python exporter, set 'module' to 'excel_exporter'
-    # or set 'cmd' to a full commandline template. We will default to the local module.
     "use_module": True,
-    "module": "excel_exporter",    # module name in the same folder
-    "output_path": "record",      # directory or filename for Excel output
-    "merge_result_json": "data/rtt/result.json",  # if set, exporter will merge power summary into this JSON
-    "power_unit": "J"             # default power unit when merging
+    "module": "excel_exporter",
+    "output_path": "record",
+    "merge_result_json": "data/rtt/result.json",
+    "power_unit": "J"
 }
