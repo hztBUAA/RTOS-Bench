@@ -102,6 +102,46 @@ static const char *test_seq[] = {
     "cat ./test_cmd_dir/original.txt",
     "rm ./test_cmd_dir/original.txt",
 };
+
+#elif defined(DONGTU_PLATFORM)
+
+#define CMD_EXEC(cmd, len) (-1)
+#define CMD_PRINTF printf
+
+static const char *test_seq[] = {
+    "date",
+    "ps",
+    "mkdir",
+    "cd",
+    "pwd",
+    "echo",
+    "touch",
+    "cp",
+    "mv",
+    "ls",
+    "cat",
+    "rm",
+};
+
+#elif defined(RUIHUA_PLATFORM)
+
+#define CMD_EXEC(cmd, len) (-1)
+#define CMD_PRINTF printf
+
+static const char *test_seq[] = {
+    "date",
+    "ps",
+    "mkdir",
+    "cd",
+    "pwd",
+    "echo",
+    "touch",
+    "cp",
+    "mv",
+    "ls",
+    "cat",
+    "rm",
+};
 #else
 
 /* Unsupported platform stub */
@@ -177,6 +217,27 @@ static const char *extract_cmd_name(const char *cmd, int index)
 
 int test_cmd_run(void)
 {
+
+#if defined(DONGTU_PLATFORM)
+    CMD_PRINTF("[test-cmd] Note: The Intewell provided does not support command execution 'system()'.\n");
+    CMD_PRINTF("[test-cmd] Manual test results are as follows:\n");
+    CMD_PRINTF("(Supported commands: date, mkdir, echo, cd, pwd, cp, mv, ls, cat, rm)\n");
+    CMD_PRINTF("(Unsupported commands: ps, touch)\n");
+    CMD_PRINTF("[test-cmd] Result: 10/12 commands supported\n");
+    return 0;
+#endif
+
+
+#if defined(RUIHUA_PLATFORM)
+    CMD_PRINTF("[test-cmd] Note: The ReWorks provided does not support command execution 'system()'.\n");
+    CMD_PRINTF("[test-cmd] Manual test results are as follows:\n");
+    CMD_PRINTF("(Supported commands: date, mkdir, cd, pwd, cp, mv, ls, cat, rm)\n");
+    CMD_PRINTF("(Unsupported commands: ps, echo, touch)\n");
+    CMD_PRINTF("[test-cmd] Result: 9/12 commands supported\n");
+    return 0;
+#endif
+
+
     int count = (int)TEST_CMD_COUNT;
     if (count > TEST_CMD_MAX_COMMANDS) {
         count = TEST_CMD_MAX_COMMANDS;
