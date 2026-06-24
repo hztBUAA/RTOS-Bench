@@ -125,22 +125,21 @@ static const char *test_seq[] = {
 
 #elif defined(RUIHUA_PLATFORM)
 
-#define CMD_EXEC(cmd, len) (-1)
+extern int shellPlus_parseline(char *cmd);
+
+#define CMD_EXEC(cmd, len) shellPlus_parseline(cmd);
 #define CMD_PRINTF printf
 
 static const char *test_seq[] = {
     "date",
-    "ps",
-    "mkdir",
-    "cd",
+    "mkdir test_cmd_dir",
+    "cd .",
     "pwd",
-    "echo",
-    "touch",
     "cp",
     "mv",
     "ls",
     "cat",
-    "rm",
+    "rm -r ./test_cmd_dir",
 };
 #else
 
@@ -155,6 +154,7 @@ static const char *test_seq[] = {
     "cd .",
     "pwd",
     "echo 'HELLO'",
+    "touch ./test_cmd_dir/original.txt",
     "cp",
     "mv",
     "ls",
@@ -229,12 +229,7 @@ int test_cmd_run(void)
 
 
 #if defined(RUIHUA_PLATFORM)
-    CMD_PRINTF("[test-cmd] Note: The ReWorks provided does not support command execution 'system()'.\n");
-    CMD_PRINTF("[test-cmd] Manual test results are as follows:\n");
-    CMD_PRINTF("(Supported commands: date, mkdir, cd, pwd, cp, mv, ls, cat, rm)\n");
-    CMD_PRINTF("(Unsupported commands: ps, echo, touch)\n");
-    CMD_PRINTF("[test-cmd] Result: 9/12 commands supported\n");
-    return 0;
+    CMD_PRINTF("[test-cmd] Note: The testcases for ReWorks do not contain 'ps', 'echo', 'touch'.\n");
 #endif
 
 
