@@ -25,6 +25,7 @@ file(GLOB RTOS_BENCH_CORE
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/platform/oneos/signal.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/platform/oneos/module_compat.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule/sched_workloads.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule/sched_compute_wrappers.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule/sched_modbus_wrapper.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/generator/test_schedule/sched_mqtt_wrapper.c"
 )

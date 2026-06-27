@@ -30,9 +30,21 @@
 #define SCHED_THREAD_PRIORITY   15
 #else
 #include <pthread.h>
+#include <unistd.h>   /* usleep() for the watchdog polling loop */
 #define SCHED_PRINTF printf
+/* Per-task pthread stack.  Memory-constrained boards (e.g. OneOS Nezha D1H,
+ * RISC-V) cannot afford 4 MB x N tasks, so shrink there.  EKF is the known
+ * stack-sensitive workload; bump if 256 KB proves insufficient. */
+#if defined(ONEOS_PLATFORM)
+#define SCHED_POSIX_STACK_SIZE (256 * 1024)
+#else
 #define SCHED_POSIX_STACK_SIZE (4 * 1024 * 1024)
 #endif
+#endif
+
+/* Period upper bound and watchdog wall-clock budgets are defined centrally in
+ * test_schedule.h (TEST_SCHEDULE_MAX_PERIOD_NS / *_BUDGET_MS).  Defaults keep
+ * existing board behaviour; a board may override any of them with a single -D. */
 
 /**
  * Global flag: when nonzero, workloads should suppress console output.
@@ -72,8 +84,8 @@ static const struct sched_workload_wrapper *get_sched_wrapper_for_workload(
 	const struct rtosbench_workload *wl);
 static int sched_workload_init(const struct rtosbench_workload *wl,
 			       const struct sched_workload_wrapper *wrapper);
-static void sched_workload_exec(const struct rtosbench_workload *wl,
-				const struct sched_workload_wrapper *wrapper);
+static int sched_workload_exec(const struct rtosbench_workload *wl,
+			       const struct sched_workload_wrapper *wrapper);
 static void sched_workload_teardown(const struct rtosbench_workload *wl,
 				    const struct sched_workload_wrapper *wrapper);
 
@@ -138,16 +150,16 @@ static int sched_workload_init(const struct rtosbench_workload *wl,
 	return 0;
 }
 
-static void sched_workload_exec(const struct rtosbench_workload *wl,
-				const struct sched_workload_wrapper *wrapper)
+static int sched_workload_exec(const struct rtosbench_workload *wl,
+			       const struct sched_workload_wrapper *wrapper)
 {
 	if (wrapper && wrapper->quick_exec) {
-		wrapper->quick_exec();
-		return;
+		return wrapper->quick_exec();
 	}
 	if (wl && wl->exec) {
 		wl->exec(0, NULL);
 	}
+	return 0;
 }
 
 static void sched_workload_teardown(const struct rtosbench_workload *wl,
@@ -183,13 +195,21 @@ static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterati
 		return 0;
 	}
 
-	sched_workload_init(wl, wrapper);
+	if (sched_workload_init(wl, wrapper) != 0) {
+		SCHED_PRINTF("[test-schedule] Warning: %s schedule init returned error; continuing\n",
+			     wl && wl->name ? wl->name : "unknown");
+	}
 
 	/* Run iterations and record max */
 	for (int i = 0; i < iterations; i++) {
 		long double start = rtbench_get_timestamp();
-		sched_workload_exec(wl, wrapper);
+		int exec_rc = sched_workload_exec(wl, wrapper);
 		long double end = rtbench_get_timestamp();
+		if (exec_rc != 0) {
+			SCHED_PRINTF("[test-schedule] Warning: %s schedule wrapper returned %d during WCET; continuing\n",
+				     wl && wl->name ? wl->name : "unknown",
+				     exec_rc);
+		}
 
 		uint64_t duration_ns = (uint64_t)((end - start) * 1000000000.0L);
 		if (duration_ns > max_duration) {
@@ -225,7 +245,10 @@ static void task_thread_entry(void *param)
 	}
 
 	wrapper = get_sched_wrapper_for_workload(wl);
-	sched_workload_init(wl, wrapper);
+	if (sched_workload_init(wl, wrapper) != 0) {
+		SCHED_PRINTF("[test-schedule] Task %s: init warning, continuing\n",
+			     ctx->config->name);
+	}
 
 	/* Create period semaphore */
 	ctx->period_sem = rtbench_sem_create(0);
@@ -270,7 +293,7 @@ static void task_thread_entry(void *param)
 		long double activation = rtbench_get_timestamp();
 
 		/* Execute workload */
-		sched_workload_exec(wl, wrapper);
+		int exec_rc = sched_workload_exec(wl, wrapper);
 
 		/* Record completion time */
 		long double completion = rtbench_get_timestamp();
@@ -282,6 +305,12 @@ static void task_thread_entry(void *param)
 
 		if (response_ns > ctx->stats->max_response_ns) {
 			ctx->stats->max_response_ns = response_ns;
+		}
+
+		if (exec_rc != 0) {
+			SCHED_PRINTF("[test-schedule] Task %s: workload warning rc=%d, counted as miss\n",
+				     ctx->config->name, exec_rc);
+			ctx->stats->deadline_misses++;
 		}
 
 		/* Check deadline (deadline = period for implicit deadline tasks) */
@@ -345,14 +374,6 @@ static int create_task_thread(struct task_thread_ctx *ctx, const char *name)
 	return rt_thread_startup(ctx->thread);
 }
 
-static void wait_task_thread(struct task_thread_ctx *ctx)
-{
-	/* RT-Thread doesn't have pthread_join, poll completion flag */
-	while (!ctx->completed) {
-		rt_thread_mdelay(100);
-	}
-}
-
 #else /* Linux/POSIX */
 
 static void *pthread_entry_wrapper(void *param)
@@ -376,19 +397,80 @@ static int create_task_thread(struct task_thread_ctx *ctx, const char *name)
 	return ret;
 }
 
-static void wait_task_thread(struct task_thread_ctx *ctx)
+#endif
+
+/* ----------------------------------------------------------------------------
+ * Watchdog: bound the join wall-clock so test-schedule always reaches Phase 3
+ * and prints Final Score, even if a workload job blocks forever.  All four
+ * target boards (OneOS / Ruihua / Dongtu / SylixOS) use the POSIX path; the
+ * RT_THREAD path is QEMU-dev only and keeps its original polling semantics.
+ * ------------------------------------------------------------------------- */
+
+/* Sleep helper for the watchdog polling loop (100 ms granularity). */
+static void sched_watchdog_sleep_ms(unsigned ms)
 {
-	pthread_join(ctx->thread, NULL);
+#ifdef RT_THREAD_PLATFORM
+	rt_thread_mdelay((rt_int32_t)ms);
+#else
+	usleep((useconds_t)ms * 1000u);
+#endif
 }
 
+/* Poll until every task thread sets `completed`, or `deadline_ts` (wall-clock
+ * seconds from rtbench_get_timestamp) passes.  Returns 1 if all completed, 0 on
+ * timeout. */
+static int wait_all_tasks_deadline(struct task_thread_ctx *contexts, int n,
+				   long double deadline_ts)
+{
+	for (;;) {
+		int done = 1;
+		int i;
+		for (i = 0; i < n; i++) {
+			if (!contexts[i].completed) {
+				done = 0;
+				break;
+			}
+		}
+		if (done) {
+			return 1;
+		}
+		if (rtbench_get_timestamp() >= deadline_ts) {
+			return 0;
+		}
+		sched_watchdog_sleep_ms(100);
+	}
+}
+
+/* Reap finished threads; abandon (never hard-kill) any still running after a
+ * watchdog timeout.  Hard-kill (pthread_cancel / rt_thread_delete) is avoided:
+ * a thread stuck in sem_wait / mid-exec would skip its own cleanup and leave
+ * the kernel in an unknown state. */
+static void sched_reap_or_abandon(struct task_thread_ctx *contexts, int n)
+{
+#ifdef RT_THREAD_PLATFORM
+	/* Dynamic RT-Thread threads self-recycle once their entry returns; a
+	 * genuinely stuck one is left resident until the command ends. */
+	(void)contexts;
+	(void)n;
+#else
+	int i;
+	for (i = 0; i < n; i++) {
+		if (contexts[i].completed) {
+			pthread_join(contexts[i].thread, NULL);
+		} else {
+			pthread_detach(contexts[i].thread);
+		}
+	}
 #endif
+}
 
 /**
  * @brief Run one gradient of the schedulability test
  */
 static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 			struct schedule_task_stats *stats, int cycles,
-			struct schedule_gradient_result *result)
+			struct schedule_gradient_result *result,
+			long double test_deadline_ts)
 {
 	struct task_thread_ctx *contexts;
 	int i;
@@ -434,9 +516,65 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 		}
 	}
 
-	/* Wait for all threads to complete */
-	for (i = 0; i < num_tasks; i++) {
-		wait_task_thread(&contexts[i]);
+	/* Wait for all threads, bounded by the watchdog wall-clock deadline.
+	 * Per-gradient budget, further capped by the overall test deadline. */
+	long double grad_deadline = rtbench_get_timestamp() +
+		(long double)TEST_SCHEDULE_GRADIENT_BUDGET_MS / 1000.0L;
+	if (test_deadline_ts > 0.0L && test_deadline_ts < grad_deadline) {
+		grad_deadline = test_deadline_ts;
+	}
+
+	if (!wait_all_tasks_deadline(contexts, num_tasks, grad_deadline)) {
+		int leaked = 0;
+
+		SCHED_PRINTF("[test-schedule] WATCHDOG: gradient wall-clock timeout, "
+			     "forcing completion\n");
+
+		/* Stop period timers of stuck threads (they never reached their
+		 * own cleanup) and signal every thread to stop.  Timers of
+		 * already-completed threads were deleted by the thread itself, so
+		 * only touch the not-completed ones to avoid a double delete. */
+		for (i = 0; i < num_tasks; i++) {
+			contexts[i].running = 0;
+			if (!contexts[i].completed) {
+				if (contexts[i].period_timer) {
+					rtbench_timer_delete(contexts[i].period_timer);
+					contexts[i].period_timer = NULL;
+				}
+				leaked++;
+			}
+		}
+
+		/* Reap finished threads; detach (abandon) stuck ones. */
+		sched_reap_or_abandon(contexts, num_tasks);
+
+		/* Always restore output before returning. */
+		g_sched_suppress_output = 0;
+
+		/* Aggregate whatever the threads managed to record. */
+		result->total_jobs = 0;
+		result->total_misses = 0;
+		result->num_tasks = num_tasks;
+		for (i = 0; i < num_tasks; i++) {
+			result->total_jobs += stats[i].total_jobs;
+			result->total_misses += stats[i].deadline_misses;
+			result->task_stats[i] = stats[i];
+		}
+		if (result->total_jobs > 0) {
+			result->miss_rate = (double)result->total_misses /
+					    (double)result->total_jobs;
+		} else {
+			result->miss_rate = 0.0;
+		}
+
+		/* Deliberately do NOT free(contexts): a detached/stuck thread or a
+		 * late timer callback may still reference it, so freeing risks a
+		 * use-after-free.  Bounded one-shot leak. */
+		if (leaked > 0) {
+			SCHED_PRINTF("[test-schedule] WATCHDOG: abandoned %d stuck task(s); "
+				     "leaking contexts to avoid use-after-free\n", leaked);
+		}
+		return 0;
 	}
 
 	g_sched_suppress_output = 0;
@@ -530,6 +668,11 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 
 	int is_quick = (cycles <= TEST_SCHEDULE_QUICK_CYCLES);
 
+	/* Overall watchdog deadline: bounds the whole run (WCET measurement +
+	 * every gradient) so Phase 3 / Final Score is always reached. */
+	long double test_deadline_ts = rtbench_get_timestamp() +
+		(long double)TEST_SCHEDULE_TOTAL_BUDGET_MS / 1000.0L;
+
 	valid_idx = 0;
 	for (i = 0; i < total_workloads && valid_idx < num_workloads; i++) {
 		const struct rtosbench_workload *wl = rtosbench_get_workload(i);
@@ -558,6 +701,15 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 			? TEST_SCHEDULE_QUICK_WCET_ITERATIONS
 			: TEST_SCHEDULE_WCET_ITERATIONS;
 		uint64_t wcet = measure_wcet_ns(wl, wcet_iters);
+		if (wrapper && wrapper->max_wcet_ms > 0) {
+			uint64_t max_wcet =
+				(uint64_t)wrapper->max_wcet_ms * 1000000ULL;
+			if (wcet > max_wcet) {
+				SCHED_PRINTF("    cap scheduler WCET to %d ms for %s wrapper\n",
+					     wrapper->max_wcet_ms, wl->name);
+				wcet = max_wcet;
+			}
+		}
 		tasks[valid_idx].wcet_ns = wcet;
 		wcets_ns[valid_idx] = (double)wcet;
 
@@ -604,6 +756,15 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	     u_percent += util_step) {
 		double target_u = (double)u_percent / 100.0;
 
+		/* Overall watchdog: stop launching gradients once the total
+		 * budget is exhausted; remaining gradients are simply not run and
+		 * num_gradients reflects only what completed. */
+		if (rtbench_get_timestamp() >= test_deadline_ts) {
+			SCHED_PRINTF("[test-schedule] WATCHDOG: total budget exhausted, "
+				     "skipping remaining gradients\n");
+			break;
+		}
+
 		SCHED_PRINTF("\n>>> Utilization Gradient: %d%% <<<\n", u_percent);
 
 		/* Generate utilization distribution using UUniFast */
@@ -629,6 +790,12 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 				tasks[i].period_ns = 10000000000ULL; /* 10 seconds */
 			}
 
+			/* Clamp period to the board-adaptable upper bound.  Default
+			 * (UINT64_MAX) is a no-op; boards tighten via -D. */
+			if (tasks[i].period_ns > TEST_SCHEDULE_MAX_PERIOD_NS) {
+				tasks[i].period_ns = TEST_SCHEDULE_MAX_PERIOD_NS;
+			}
+
 			/* Implicit deadline: D = T */
 			tasks[i].deadline_ns = tasks[i].period_ns;
 
@@ -646,7 +813,8 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 		g_result.gradients[gradient_idx].actual_utilization = target_u;
 
 		if (run_gradient(num_workloads, tasks, stats, cycles,
-				 &g_result.gradients[gradient_idx]) != 0) {
+				 &g_result.gradients[gradient_idx],
+				 test_deadline_ts) != 0) {
 			SCHED_PRINTF("Failed to run gradient %d%%\n", u_percent);
 		} else {
 			SCHED_PRINTF("Gradient %d%% complete: MR = %.4f (%llu/%llu)\n",
@@ -678,7 +846,14 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 			     (unsigned long long)g_result.gradients[i].total_jobs);
 	}
 
-	g_result.average_miss_rate = sum_mr / (double)g_result.num_gradients;
+	if (g_result.num_gradients > 0) {
+		g_result.average_miss_rate = sum_mr / (double)g_result.num_gradients;
+	} else {
+		/* Watchdog skipped every gradient: no data, report worst case. */
+		SCHED_PRINTF("[test-schedule] WATCHDOG: no gradient completed; "
+			     "reporting miss rate 1.0\n");
+		g_result.average_miss_rate = 1.0;
+	}
 	g_result.final_score = 100.0 * (1.0 - g_result.average_miss_rate);
 
 	SCHED_PRINTF("\n------------------------------------------------------\n");

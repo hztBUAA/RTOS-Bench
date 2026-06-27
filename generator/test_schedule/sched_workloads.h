@@ -56,6 +56,35 @@ const struct sched_workload_wrapper *sched_get_wrapper_by_index(int idx);
  * Wrapper declarations (implemented in separate files)
  * ============================================================================ */
 
+/* Compute wrappers - call real benchmark cores synchronously */
+extern int sched_fast_init(void);
+extern int sched_fast_quick_exec(void);
+extern void sched_fast_teardown(void);
+
+extern int sched_epnp_init(void);
+extern int sched_epnp_quick_exec(void);
+extern void sched_epnp_teardown(void);
+
+extern int sched_ekf_init(void);
+extern int sched_ekf_quick_exec(void);
+extern void sched_ekf_teardown(void);
+
+extern int sched_icp_init(void);
+extern int sched_icp_quick_exec(void);
+extern void sched_icp_teardown(void);
+
+extern int sched_pid_init(void);
+extern int sched_pid_quick_exec(void);
+extern void sched_pid_teardown(void);
+
+extern int sched_cusum_init(void);
+extern int sched_cusum_quick_exec(void);
+extern void sched_cusum_teardown(void);
+
+extern int sched_ewma_init(void);
+extern int sched_ewma_quick_exec(void);
+extern void sched_ewma_teardown(void);
+
 /* MQTT quick wrapper - limits message count for fast execution */
 extern int sched_mqtt_init(void);
 extern int sched_mqtt_quick_exec(void);
