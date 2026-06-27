@@ -36,7 +36,9 @@ int sched_pid_quick_exec(void) { return pid_bench_run(); }
 void sched_pid_teardown(void) {}
 
 int sched_cusum_init(void) { return 0; }
-int sched_cusum_quick_exec(void) { return cusum_bench_run(); }
+/* cusum_bench_run() returns a CUSUM result count (not an error code); for
+ * schedulability we only care that the job completed, so normalize to 0. */
+int sched_cusum_quick_exec(void) { cusum_bench_run(); return 0; }
 void sched_cusum_teardown(void) {}
 
 int sched_ewma_init(void) { return 0; }

@@ -138,6 +138,67 @@ static const struct sched_workload_wrapper *get_sched_wrapper_for_workload(
 	return sched_get_wrapper(wl->name);
 }
 
+/*
+ * Board-adaptable workload allow / exclude lists for test-schedule.
+ *
+ * A workload that hard-faults the OS (page fault / OOM / driver wedge) cannot be
+ * caught by the in-process watchdog; the only robust fallback is to never run
+ * it.  These two compile-time, comma-separated lists let a board pin an explicit
+ * allowlist or exclude known-bad workloads, so acceptance always completes with
+ * a valid score over the remaining REAL workloads (not a spin/mock placeholder).
+ * Defaults: both empty => every registered workload runs (no change for existing
+ * boards).  Examples:
+ *   -DTEST_SCHEDULE_WORKLOAD_ALLOWLIST="fast,pid,cusum,ewma"   (only these run)
+ *   -DTEST_SCHEDULE_WORKLOAD_EXCLUDE="icp,ekf"                 (all but these)
+ */
+static int sched_csv_contains(const char *csv, const char *name)
+{
+	size_t nlen;
+	const char *p = csv;
+	if (!csv || !name) {
+		return 0;
+	}
+	nlen = strlen(name);
+	while (*p) {
+		const char *start;
+		size_t len;
+		while (*p == ',' || *p == ' ') {
+			p++;
+		}
+		start = p;
+		while (*p && *p != ',') {
+			p++;
+		}
+		len = (size_t)(p - start);
+		while (len > 0 && start[len - 1] == ' ') {
+			len--;
+		}
+		if (len == nlen && strncmp(start, name, nlen) == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int is_workload_allowed(const char *name)
+{
+	if (!name) {
+		return 0;
+	}
+#ifdef TEST_SCHEDULE_WORKLOAD_ALLOWLIST
+	if (TEST_SCHEDULE_WORKLOAD_ALLOWLIST[0] != '\0' &&
+	    !sched_csv_contains(TEST_SCHEDULE_WORKLOAD_ALLOWLIST, name)) {
+		return 0;
+	}
+#endif
+#ifdef TEST_SCHEDULE_WORKLOAD_EXCLUDE
+	if (sched_csv_contains(TEST_SCHEDULE_WORKLOAD_EXCLUDE, name)) {
+		return 0;
+	}
+#endif
+	return 1;
+}
+
 static int sched_workload_init(const struct rtosbench_workload *wl,
 			       const struct sched_workload_wrapper *wrapper)
 {
@@ -683,6 +744,15 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 
 		/* Skip builtin utility workloads (stub, busywait) */
 		if (is_builtin_workload(wl)) {
+			continue;
+		}
+
+		/* Board fallback: skip workloads excluded by allow/exclude list,
+		 * BEFORE any execution, so a known OS-crashing workload is never
+		 * run and acceptance still completes over the rest. */
+		if (!is_workload_allowed(wl->name)) {
+			SCHED_PRINTF("  [%s]: skipped by board workload allow/exclude list\n",
+				     wl->name);
 			continue;
 		}
 
