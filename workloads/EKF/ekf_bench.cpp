@@ -38,7 +38,7 @@ void print_quat(const Quatf& q, uint64_t time) {
     EKF_PRINTF("T: %.3fs | R: %.2f P: %.2f Y: %.2f\n", t, roll, pitch, yaw);
 }
 
-extern "C" int ekf_bench_run(void) {
+static int ekf_bench_run_limited(size_t max_imu_samples) {
     /* Output suppressed to avoid affecting performance measurements */
     // EKF_PRINTF("--- EKF Benchmark Test Start ---\n");
 
@@ -57,7 +57,12 @@ extern "C" int ekf_bench_run(void) {
     /* Start timing */
     uint64_t start_time = get_time_ns();
 
-    for (int i = 0; i < iris_gps_imu_count; i++) {
+    size_t sample_limit = (max_imu_samples == 0 ||
+                           max_imu_samples > (size_t)iris_gps_imu_count)
+        ? (size_t)iris_gps_imu_count
+        : max_imu_samples;
+
+    for (size_t i = 0; i < sample_limit; i++) {
         // 1. 填充 IMU
         imuSample imu_sample{};
         imu_sample.time_us = iris_gps_imu[i].time_us;
@@ -160,6 +165,14 @@ extern "C" int ekf_bench_run(void) {
                avg_ns / 1000.0);
 
     return 0;
+}
+
+extern "C" int ekf_bench_run(void) {
+    return ekf_bench_run_limited(0);
+}
+
+extern "C" int ekf_bench_run_quick(size_t max_imu_samples) {
+    return ekf_bench_run_limited(max_imu_samples);
 }
 
 static void* ekf_thread_entry(void *parameter) {
