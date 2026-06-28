@@ -283,6 +283,7 @@ rtbench_test
 rtbench_quick
 rtbench_test_all
 rtbench_test_all_quick
+rtbench_test_all_multicore
 rtbench_test_schedule
 rtbench_test_schedule_quick
 rtbench_test_schedule_cycles3

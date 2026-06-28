@@ -141,6 +141,12 @@ int rtbench_test_all(void)
 	return rtbench_command_main(2, argv);
 }
 
+int rtbench_test_all_multicore(void)
+{
+	char *argv[] = { "rtbench", "test-all", "--multicore" };
+	return rtbench_command_main(3, argv);
+}
+
 int rtbench_run_workloads(void) {
 	return run_all_workloads();
 }
