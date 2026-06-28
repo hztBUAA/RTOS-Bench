@@ -36,6 +36,7 @@ LOCAL_SRCS := \
 RTOS-Bench/generator/sylixos_entry.c \
 RTOS-Bench/generator/test_schedule.c \
 RTOS-Bench/generator/test_schedule/sched_workloads.c \
+RTOS-Bench/generator/test_schedule/sched_compute_wrappers.c \
 RTOS-Bench/generator/test_schedule/sched_mqtt_wrapper.c \
 RTOS-Bench/generator/test_schedule/sched_modbus_wrapper.c \
 RTOS-Bench/generator/test_realtime.c \

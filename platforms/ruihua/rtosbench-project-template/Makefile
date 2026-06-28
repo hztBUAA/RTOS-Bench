@@ -116,6 +116,7 @@ CORE_SRC := \
 	$(RTOSBENCH_SRC)/generator/uunifast.c \
 	$(RTOSBENCH_SRC)/generator/test_schedule.c \
 	$(RTOSBENCH_SRC)/generator/test_schedule/sched_workloads.c \
+	$(RTOSBENCH_SRC)/generator/test_schedule/sched_compute_wrappers.c \
 	$(RTOSBENCH_SRC)/generator/test_schedule/sched_mqtt_wrapper.c \
 	$(RTOSBENCH_SRC)/generator/test_schedule/sched_modbus_wrapper.c \
 	$(RTOSBENCH_SRC)/generator/rtbench_command.c \

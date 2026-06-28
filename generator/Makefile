@@ -117,6 +117,7 @@ RUIHUA_FRAMEWORK_SRC := $(RTBENCH_COMMAND_SRC) \
 	$(GENERATOR_DIR)/test_stress.c \
 	$(GENERATOR_DIR)/test_cmd.c \
 	$(GENERATOR_DIR)/test_schedule/sched_workloads.c \
+	$(GENERATOR_DIR)/test_schedule/sched_compute_wrappers.c \
 	$(GENERATOR_DIR)/test_schedule/sched_mqtt_wrapper.c \
 	$(GENERATOR_DIR)/test_schedule/sched_modbus_wrapper.c
 RUIHUA_REALTIME_SRC := $(wildcard $(GENERATOR_DIR)/realtime_orig/les/*.c) \

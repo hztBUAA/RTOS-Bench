@@ -38,6 +38,7 @@ RTBENCH_GENERATOR_SRCS := \
 	test_schedule/sched_modbus_wrapper.c \
 	test_schedule/sched_mqtt_wrapper.c \
 	test_schedule/sched_workloads.c \
+	test_schedule/sched_compute_wrappers.c \
 	stress_orig/common/core-helper.c \
 	stress_orig/common/stress-ng.c \
 	stress_orig/common/stress_stored_job.c \
