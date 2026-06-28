@@ -61,39 +61,6 @@ C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench
 
 1. 确认本地 RTOS-Bench 使用最新 `main`：
 
-<<<<<<< HEAD
-`rtosbench-project-template` 里几个文件的职责如下：
-
-- `.project`：瑞华 IDE/Eclipse 工程描述文件。它告诉 IDE 这个目录是 `rtosbench` 工程、使用瑞华/Eclipse builder，并调用 `gnu_make`。它不负责列源码，也不应该放本机路径。
-- `Makefile`：真正的编译入口。它维护 RTOS-Bench 瑞华构建所需的源码列表、宏定义、include 路径、架构参数和链接规则。
-- `makefile.conf`：瑞华 IDE/板级配置片段，保留 BSP、runtime lib、SDK 头文件等工程配置。通常不需要新同学修改。
-- `makefile.local.example`：本机配置示例。复制模板工程后，新同学应该把它复制成 `makefile.local`，然后在 `makefile.local` 里改自己的安装路径，源码路径和**构建架构**。
-- `.gitignore`：忽略本机配置和编译产物，例如 `makefile.local`、`gnuarm/`、`gnuaarch64/`。
-
-路径变量优先级是：命令行传入的变量最高，其次是 `makefile.local`，最后才是 `Makefile` 里的默认值。因此本机差异不要直接改 `Makefile` 或 `makefile.conf`，优先写到 `makefile.local`。
-
-## 推荐使用方式
-
-1. 克隆最新 RTOS-Bench 仓库。
-2. 打开ReDe IDE，文件->新建->可下载工程，选择对应的BSP
-2. 将 `platforms/ruihua/rtosbench-project-template`下的文件 复制到瑞华 workspace下相应的目录，例如：
-
-   `C:/rtos/6.1.1-ARM/workspace/rtosbench`
-
-3. 在复制后的工程目录里，将 `makefile.local.example` 复制为 `makefile.local`。
-4. 修改 `makefile.local` 里的本机路径：
-
-   ```makefile
-   REDE_HOME := C:/rtos/6.1.1-ARM
-   RTOSBENCH_SRC := D:/workspace/RTOS-Bench
-   ARCH:= arm
-   ```
-
-   `REDE_HOME` 是瑞华 IDE/SDK 安装根目录。如果新同学安装到了其他盘或其他版本目录，需要改成自己的真实路径。
-    `ARCH` 选择自己需要编译的架构，或者在项目属性->C/C++构建里配置
-5. 在瑞华 IDE 中打开 `rtosbench` 工程。
-6. 选择 `rtosbench [gnuarm]`，执行 Build Project。
-=======
    ```bat
    cd /d C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench
    git switch main
@@ -105,15 +72,10 @@ C:\Users\hzt\yihui-workspace\rtos-bench\RTOS-Bench
    ```text
    C:\rtos\6.1.1-ARM\workspace\feiteng4rtos
    ```
->>>>>>> origin/main
 
    如果同事新建工程，建议先复制这个工程，再改工程名和路径。不要直接从旧 `platforms/ruihua/rtosbench-project-template` 重新生成。
 
-<<<<<<< HEAD
-`gnu$(ARCH)/rtosbench.out`
-=======
 3. 检查 `makefile.conf` 里必须有 AArch64 CSP 配置。关键项如下：
->>>>>>> origin/main
 
    ```makefile
    -B"$(REDE_HOME)/user resource/aarch64_smp_csp_config/runtimelib/AARCH64_SMP/lib"
@@ -230,14 +192,7 @@ Size of reworks.elf:
 Successfully!
 ```
 
-<<<<<<< HEAD
-- `REDE_HOME`：瑞华 IDE/SDK 安装目录，默认 `C:/rtos/6.1.1-ARM`。
-- `RTOSBENCH_SRC`：RTOS-Bench 源码根目录。
-- `ARCH`：默认 `arm`，也可设为 `aarch64` 或者 `loongarch`
-- `FULL_WORKLOADS`：默认 `0`，只构建框架验收路径：`test-all/test-schedule/test-realtime/test-stress/test-cmd/export-result`。如需尝试完整业务 workload，可设为 `1`，但需要额外处理瑞华 IPNet 与部分 workload 头文件兼容问题。
-=======
 可计算镜像 hash：
->>>>>>> origin/main
 
 ```powershell
 Get-FileHash -Algorithm SHA256 "C:\rtos\6.1.1-ARM\workspace\feiteng4rtos\gnuaarch64\FTE2000_SMP-64\reworks.elf"
@@ -424,6 +379,47 @@ rtbench_test_schedule_quick
 - Ruihua 相关 RTOS-Bench 框架代码以本仓库 `main` 为准，不再维护单独分叉。
 - IDE 生成的 `gnuaarch64/FTE2000_SMP-64/*.mk` 不建议手工长期维护；优先把可复用逻辑放到 `gnuaarch64/user.mk` 和 `rtosbench_port/*.c`。
 - 每次变更后至少记录：构建命令、`reworks.elf` SHA256、板端命令、telnet 输出和是否返回 `reworks>`。
+
+## 附:独立可下载工程方式(rtosbench-project-template)
+
+除了上面"链进 `feiteng4rtos` 启动镜像"的方式,仓库还提供一套**独立可下载工程**模板
+`platforms/ruihua/rtosbench-project-template`,产出独立的 `gnu$(ARCH)/rtosbench.out`,
+适合在 ReDe IDE 里作为单独的"可下载工程"构建后用 `ld` 加载。**龙芯派推荐用这套**
+(详见 `锐华龙芯派-编译与校验指南.md`)。
+
+`rtosbench-project-template` 里几个文件的职责:
+
+- `.project`:瑞华 IDE/Eclipse 工程描述文件。告诉 IDE 这个目录是 `rtosbench` 工程、使用瑞华/Eclipse builder、调用 `gnu_make`。它不负责列源码,也不放本机路径。
+- `Makefile`:真正的编译入口。维护 RTOS-Bench 瑞华构建所需的源码列表、宏定义、include 路径、架构参数和链接规则。
+- `makefile.conf`:瑞华 IDE/板级配置片段,保留 BSP、runtime lib、SDK 头文件等工程配置。通常不需要新同学修改。
+- `makefile.local.example`:本机配置示例。复制模板工程后,把它复制成 `makefile.local`,在里面改自己的安装路径、源码路径和**构建架构**。
+- `.gitignore`:忽略本机配置和编译产物,例如 `makefile.local`、`gnuarm/`、`gnuaarch64/`、`gnuloongarch64/`。
+
+路径变量优先级:**命令行传入 > `makefile.local` > `Makefile` 默认值**。本机差异不要直接改
+`Makefile`/`makefile.conf`,优先写到 `makefile.local`。
+
+### 推荐使用方式
+
+1. 克隆最新 RTOS-Bench 仓库。
+2. 打开 ReDe IDE,`文件 -> 新建 -> 可下载工程`,选择对应的 BSP(龙芯派选 `loongarch2k1000la_64bits_smp_bsp_config`)。
+3. 将 `platforms/ruihua/rtosbench-project-template` 下的文件复制到瑞华 workspace 下相应目录,例如 `C:/rtos/6.1.1-ARM/workspace/rtosbench`。
+4. 在复制后的工程目录里,将 `makefile.local.example` 复制为 `makefile.local`,修改本机路径:
+
+   ```makefile
+   REDE_HOME := C:/rtos/6.1.1-ARM
+   RTOSBENCH_SRC := D:/workspace/RTOS-Bench
+   ARCH := arm          # 龙芯派改为 loongarch64
+   ```
+
+5. 在瑞华 IDE 中打开 `rtosbench` 工程。
+6. 选择对应构建配置(如 `rtosbench [gnuloongarch64]`),执行 Build Project。产物在 `gnu$(ARCH)/rtosbench.out`。
+
+工程变量说明:
+
+- `REDE_HOME`:瑞华 IDE/SDK 安装目录,默认 `C:/rtos/6.1.1-ARM`。
+- `RTOSBENCH_SRC`:RTOS-Bench 源码根目录。
+- `ARCH`:默认 `arm`,也可设为 `aarch64` 或 `loongarch64`,也可在项目属性 -> C/C++ 构建里配置。
+- `FULL_WORKLOADS`:此变量历史上用于 feiteng `user.mk` 路径裁剪业务 workload;在 `rtosbench-project-template/Makefile` 中业务 workload 默认参与构建,以构建实际行为为准。
 
 ## 后续增加架构方式
 
