@@ -4,6 +4,10 @@
 #include <errno.h>
 #include "safe_sleep.h"
 
+#if defined(RUIHUA_PLATFORM)
+void safe_usleep(uint64_t us) __attribute__((weak));
+#endif
+
 /* 安全睡眠 */
 void safe_usleep(uint64_t us) {
     struct timespec req, rem;

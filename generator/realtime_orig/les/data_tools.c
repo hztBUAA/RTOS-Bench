@@ -4,6 +4,10 @@
 #include "data_tools.h"
 #include "les.h"
 
+#if defined(RUIHUA_PLATFORM)
+uint64_t cycles_to_ns(uint64_t cycles) __attribute__((weak));
+#endif
+
 /* 转换为ns */
 uint64_t cycles_to_ns(uint64_t cycles) {
 	uint64_t freq = freqGet();

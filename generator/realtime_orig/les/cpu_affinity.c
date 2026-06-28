@@ -88,6 +88,9 @@ int bench_get_cpu(void) {
 #include <pthread.h>
 #include <cpuset.h>
 
+int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t *cpusetp) __attribute__((weak));
+int bench_get_cpu(void) __attribute__((weak));
+
 int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t *cpusetp) {
 	return pthread_affinity_set(thread, (cpuset_t)*cpusetp);
 }

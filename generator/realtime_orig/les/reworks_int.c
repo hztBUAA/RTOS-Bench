@@ -6,6 +6,8 @@
 #include <pthread.h>
 #include "les.h"
 
+void task_switch_hook(thread_t t1, thread_t t2) __attribute__((weak));
+
 void task_switch_hook(thread_t t1, thread_t t2)
 {
 	LES_stub();
