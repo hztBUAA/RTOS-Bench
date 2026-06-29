@@ -75,7 +75,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     __STDC_LIMIT_MACROS
     _USE_MATH_DEFINES
     EIGEN_DONT_VECTORIZE
-    EIGEN_NO_IO
     EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
     FIX_OPENGV_USE_STUB_LDOUBLE
 )
@@ -108,7 +107,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 if(ONEOS_NEZHA_CXX_LITE)
     # 仅哪吒(riscv64)：test-schedule 只跑 OS-safe 的 fast/pid/cusum/ewma，真实出分；
     # icp/ekf/mqtt/modbus 在 D1H 真实执行会内核硬崩(用户态看门狗抓不住)，排除在任务集外。
+    # EIGEN_NO_IO：哪吒用 std::cout 垫片，禁掉 Eigen 的 operator<<(避免拉真 <ostream>/TLS)；
+    # 飞腾用真 <iostream>，必须保留 Eigen IO，否则 EPNP 的 `std::cout << matrix` 无匹配 operator<<。
     target_compile_definitions(${PROJECT_NAME} PRIVATE
+        EIGEN_NO_IO
         TEST_SCHEDULE_WORKLOAD_ALLOWLIST="fast,pid,cusum,ewma"
     )
 endif()
