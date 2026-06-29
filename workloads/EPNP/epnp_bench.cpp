@@ -31,8 +31,11 @@ using namespace Eigen;
 using namespace opengv;
 
 #if defined(ONEOS_PLATFORM) || defined(RUIHUA_PLATFORM)
-#define THREAD_STACK_SIZE (64 * 1024)
-#else 
+/* ePnP runs opengv + Eigen SVD; 64KB overflows the stack on aarch64 (Eigen's
+ * double temporaries smash the saved return address -> dlmalloc heap corruption
+ * at dlmalloc.c + wild-pointer instruction abort). 1MB gives ample margin. */
+#define THREAD_STACK_SIZE (1024 * 1024)
+#else
 #define THREAD_STACK_SIZE (5 * 1024)
 #endif
 
