@@ -73,7 +73,7 @@ extern "C" int icp_test(void) {
     // 初始化线程属性
     pthread_attr_init(&attr);
 
-    pthread_attr_setstacksize(&attr, 1024 * 1024); /* ICP+Eigen: 64KB overflows on aarch64 (same dlmalloc-corruption as ePnP) */
+    pthread_attr_setstacksize(&attr, 64 * 1024); /* OneOS aarch64: 过大栈(1MB)分配异常->坏栈/deadbeef; 保持 64KB 基线 */
 
     struct sched_param param;
     pthread_attr_setschedpolicy(&attr, SCHED_FIFO);

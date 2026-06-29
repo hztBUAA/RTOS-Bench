@@ -190,7 +190,7 @@ extern "C" int ekf_test(void) {
     int ret;
 
     pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, 512 * 1024); /* EKF+Eigen: 32KB overflows on aarch64 (same dlmalloc-corruption as ePnP) */
+    pthread_attr_setstacksize(&attr, 32 * 1024); /* OneOS aarch64: 过大栈(512KB)分配异常->坏栈/deadbeef; 保持 32KB 基线 */
     pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
     param.sched_priority = 25;
     pthread_attr_setschedparam(&attr, &param);
