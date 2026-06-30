@@ -13,7 +13,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-#if defined(ONEOS_V2_MUSL_LIBC) || defined(ONEOS_V2_ARM64)
+#if defined(ONEOS_V2_MUSL_LIBC) || defined(ONEOS_V2_ARM64) || defined(ONEOS_V2_LOONGARCH64)
 /*
  * OneOS V2 style targets: pthread_attr_t doesn't expose inheritsched member.
  * Use a static variable to track the setting (per-process, not per-attr).
@@ -105,4 +105,4 @@ int pthread_attr_getinheritsched(const pthread_attr_t *attr, int *inheritsched)
 
     return 0;
 }
-#endif /* ONEOS_V2_MUSL_LIBC || ONEOS_V2_ARM64 */
+#endif /* ONEOS_V2_MUSL_LIBC || ONEOS_V2_ARM64 || ONEOS_V2_LOONGARCH64 */
