@@ -475,7 +475,7 @@ static void sched_watchdog_sleep_ms(unsigned ms)
 #ifdef RT_THREAD_PLATFORM
 	rt_thread_mdelay((rt_int32_t)ms);
 #else
-	usleep((useconds_t)ms * 1000u);
+	usleep(ms * 1000u);
 #endif
 }
 

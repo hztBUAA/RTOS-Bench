@@ -75,6 +75,7 @@ CFLAGS += -I"$(REDE_HOME)/user resource/h/symtbl"
 # RTOS-Bench headers.
 CFLAGS += -I"$(RTOSBENCH_SRC)/generator"
 CFLAGS += -I"$(RTOSBENCH_SRC)/workloads"
+CFLAGS += -I"$(RTOSBENCH_SRC)/generator/test_schedule"
 CFLAGS += -I"$(RTOSBENCH_SRC)/generator/realtime_orig/les"
 CFLAGS += -I"$(RTOSBENCH_SRC)/generator/realtime_orig/realtime"
 CFLAGS += -I"$(RTOSBENCH_SRC)/generator/realtime_orig/multicore"

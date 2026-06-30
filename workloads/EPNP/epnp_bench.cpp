@@ -30,7 +30,7 @@ using namespace std;
 using namespace Eigen;
 using namespace opengv;
 
-#if defined(ONEOS_PLATFORM) || defined(RUIHUA_PLATFORM)
+#if defined(ONEOS_PLATFORM) || defined(RUIHUA_PLATFORM) || defined(DONGTU_PLATFORM)
 /* OneOS aarch64: 过大的 per-thread 栈(≥512KB/1MB)在板上无法正确分配,线程拿到坏/未初始化
  * 的栈 -> deadbeef 野指针解引用 / dlmalloc 元数据损坏。实测需要保持较小; 64KB 为基线值。 */
 #define THREAD_STACK_SIZE (64 * 1024)
