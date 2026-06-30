@@ -3,7 +3,14 @@
  * support. Some libstdc++ throw helpers otherwise pull libsupc++ eh_globals.o,
  * which contains dynamic TLS relocations unsupported by the RISC-V module
  * loader. Keep those exceptional paths non-returning and TLS-free.
+ *
+ * On LoongArch64 (and other targets that link against a full Linux libstdc++),
+ * these symbols are already provided by libstdc++.a, so defining them here
+ * would cause multiple-definition link errors.  Skip the stubs on those
+ * targets; the real libstdc++ implementations are used instead.
  */
+
+#if !defined(__loongarch__) && !defined(__loongarch64) && !defined(__loongarch_lp64)
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -46,3 +53,5 @@ void __throw_ios_failure(char const *, int) { rtbench_oneos_abort(); }
 void __throw_system_error(int) { rtbench_oneos_abort(); }
 
 } // namespace std
+
+#endif /* !__loongarch__ */
