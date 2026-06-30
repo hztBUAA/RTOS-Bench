@@ -3,6 +3,21 @@
 本文件用于指导后续在本仓库内集成/扩展 rt-bench，重点面向新增 RTOS 平台和新的 workload 打包。
 开发过程中必须严格确保：确保代码和文档的强一致性和复利性!
 
+## ⚠️ 最新构建须知（置顶 changelog）
+test-schedule 已拆出独立的 sched wrapper 源文件，且**所有构建清单是显式列举（非 glob）**。
+**新增/新建任何平台或工程的构建文件（Makefile / CMakeLists / *.mk，含仓外工程）时，务必加入以下 5 个源**，
+否则 test-schedule 会编译/链接缺失（典型：`sched_*` 符号未定义 / test-schedule 链接失败）：
+```
+generator/test_schedule.c
+generator/test_schedule/sched_workloads.c
+generator/test_schedule/sched_compute_wrappers.c
+generator/test_schedule/sched_mqtt_wrapper.c
+generator/test_schedule/sched_modbus_wrapper.c
+```
+现有可参考的完整清单：`CMakeLists.txt`、`Makefile`、`generator/Makefile`、
+`platforms/dongtu/intewell.mk`、`platforms/ruihua/rtosbench-project-template/Makefile`、`platforms/sylixos/rtos-bench.mk`。
+注：OneOS 哪吒 WSL 工程、锐华飞腾 `user.mk` 等**仓外工程**各自维护源清单，新建时同样必须手动加入这 5 个文件。
+
 ## 核心约定（统一入口 + POSIX 合同）
 - 仅使用 workload registry（`generator/workload_registry.*`），强符号禁用 benchmark_* 覆盖；新增负载必须注册 `rtosbench_register_workload()`。
 - 默认 POSIX 契约（pthread/clock/socket/sem）；RTOS 若 POSIX 不完备则在 `generator/platform/<platform>/` 做最小垫片。
