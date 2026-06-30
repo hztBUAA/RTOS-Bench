@@ -9,12 +9,73 @@
 #include "rtbench_command.h"
 
 #include <ctype.h>
+#include <pthread.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include <string.h>
 
 #define RTBENCH_RUIHUA_MAX_ARGS 32
 
 extern int run_all_workloads(void);
+
+/*
+ * test-all 必须跑在独立的大栈线程上。ReWorks 的 shell/telnet 任务栈很小
+ * (SHELL_TASK_STACKSIZE 64KB),test-all 会把 9 个负载链(含 Eigen 的
+ * epnp/ekf/icp)跑在调用者栈上 → 栈溢出踩进内核调度,触发 Data Abort in EL1
+ * (ucore_waitq_flush/schedule)。这里覆盖弱默认 rtbench_platform_run_test_all,
+ * 改为在 4MB 栈的工作线程里执行,与 SylixOS/Dongtu 一致。
+ */
+#define RTBENCH_TEST_ALL_STACK_SIZE (4 * 1024 * 1024)
+
+struct ruihua_test_all_job {
+	rtbench_command_runner_fn runner;
+	void *ctx;
+	int result;
+	sem_t done;
+};
+
+static void *ruihua_test_all_thread(void *arg)
+{
+	struct ruihua_test_all_job *job = (struct ruihua_test_all_job *)arg;
+
+	job->result = job->runner ? job->runner(job->ctx) : -1;
+	sem_post(&job->done);
+	return NULL;
+}
+
+int rtbench_platform_run_test_all(rtbench_command_runner_fn runner, void *ctx)
+{
+	struct ruihua_test_all_job job;
+	pthread_t tid;
+	pthread_attr_t attr;
+	int ret;
+
+	if (runner == NULL) {
+		return -1;
+	}
+
+	job.runner = runner;
+	job.ctx = ctx;
+	job.result = -1;
+	if (sem_init(&job.done, 0, 0) != 0) {
+		return -1;
+	}
+
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, RTBENCH_TEST_ALL_STACK_SIZE);
+	ret = pthread_create(&tid, &attr, ruihua_test_all_thread, &job);
+	pthread_attr_destroy(&attr);
+	if (ret != 0) {
+		printf("[RTOS-Bench] Failed to create test-all worker thread\n");
+		sem_destroy(&job.done);
+		return -1;
+	}
+
+	sem_wait(&job.done);
+	pthread_join(tid, NULL);
+	sem_destroy(&job.done);
+	return job.result;
+}
 
 static int split_command_line(char *buf, char **argv, int max_args)
 {

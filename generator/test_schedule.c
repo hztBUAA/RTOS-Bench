@@ -33,9 +33,11 @@
 #include <unistd.h>   /* usleep() for the watchdog polling loop */
 #define SCHED_PRINTF printf
 /* Per-task pthread stack.  Memory-constrained boards (e.g. OneOS Nezha D1H,
- * RISC-V) cannot afford 4 MB x N tasks, so shrink there.  EKF is the known
+ * RISC-V) cannot afford 4 MB x N tasks, so shrink there.  Ruihua/ReWorks heap
+ * likewise refuses 4 MB per task (EXCEPTION HELP CODE 0x13005), which distorts
+ * the schedule gradient, so it uses the small stack too.  EKF is the known
  * stack-sensitive workload; bump if 256 KB proves insufficient. */
-#if defined(ONEOS_PLATFORM)
+#if defined(ONEOS_PLATFORM) || defined(RUIHUA_PLATFORM)
 #define SCHED_POSIX_STACK_SIZE (256 * 1024)
 #else
 #define SCHED_POSIX_STACK_SIZE (4 * 1024 * 1024)
