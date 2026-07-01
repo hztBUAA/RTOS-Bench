@@ -24,6 +24,12 @@ static void *realtime_verify_all_thread(void *parameter) {
 }
 
 void realtime_verify_all(void) {
+
+#if defined(DONGTU_PLATFORM) && defined(__aarch64__)
+    realtime_verify_all_thread(NULL);
+    return;
+#endif
+
     thread_initialize();
 
     pthread_t tid;

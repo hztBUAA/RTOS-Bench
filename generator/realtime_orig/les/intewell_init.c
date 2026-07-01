@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include "les.h"
 
+void intewell_stub(void) __attribute__((weak));
 
 void intewell_stub(void)
 {

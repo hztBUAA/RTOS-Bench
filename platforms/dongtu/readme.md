@@ -132,7 +132,7 @@ include $(RTOS_BENCH_ROOT)/platforms/dongtu/intewell.mk
 ARCH := _X86_
 ```
 
-- 香橙派 / vm_3588 工程使用：
+- 香橙派 / vm_3588 / 飞腾派 工程使用：
 
 ```makefile
 ARCH := __ARM64__
@@ -187,6 +187,12 @@ RTOS-Bench/platforms/userAppInit.c
 ```text
 src/userAppInit.c
 ```
+
+### 4.3 飞腾派 工程
+
+飞腾派的 app 工程需要：
+1. 如果 `src/` 中存在内容，删除其下的所有内容
+2. 将“飞腾派app入口模板”中的 `userAppInit.c` 和 `les_common.h` 复制到 `/src` 下
 
 ---
 
