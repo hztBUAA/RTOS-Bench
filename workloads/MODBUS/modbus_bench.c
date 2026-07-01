@@ -210,6 +210,15 @@ static void* server_thread_entry(void* parameter) {
         /* Output suppressed to avoid affecting performance measurements */
         // printf("[Server] Client disconnected (processed %d requests)\n", request_count);
         close(client_fd);
+
+        /*
+         * This benchmark starts one server and one client per modbus_test()
+         * invocation.  Once the client finishes, let the server thread exit
+         * instead of returning to accept(); some RTOS socket stacks do not wake
+         * accept() reliably after the caller sets g_server_stop, which can
+         * leave pthread_join(s_tid) blocked.
+         */
+        break;
     }
     
     close(server_fd);
