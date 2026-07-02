@@ -225,14 +225,14 @@ static void period_timer_callback(void *user_data)
 /**
  * @brief Measure WCET by running workload multiple times
  */
-static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterations)
+/* Core WCET measurement body: init, run `iterations`, record max, teardown.
+ * Factored out so the POSIX path can run it on a dedicated large-stack thread
+ * (see measure_wcet_ns) while the RT-Thread path keeps calling it inline. */
+static uint64_t measure_wcet_body(const struct rtosbench_workload *wl,
+				  const struct sched_workload_wrapper *wrapper,
+				  int iterations)
 {
 	uint64_t max_duration = 0;
-	const struct sched_workload_wrapper *wrapper = get_sched_wrapper_for_workload(wl);
-
-	if (!wl || (!wl->exec && (!wrapper || !wrapper->quick_exec))) {
-		return 0;
-	}
 
 	if (sched_workload_init(wl, wrapper) != 0) {
 		SCHED_PRINTF("[test-schedule] Warning: %s schedule init returned error; continuing\n",
@@ -259,6 +259,73 @@ static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterati
 	sched_workload_teardown(wl, wrapper);
 
 	return max_duration;
+}
+
+#ifndef RT_THREAD_PLATFORM
+struct wcet_worker_ctx {
+	const struct rtosbench_workload *wl;
+	const struct sched_workload_wrapper *wrapper;
+	int iterations;
+	uint64_t result;
+};
+
+static void *wcet_worker_thread(void *arg)
+{
+	struct wcet_worker_ctx *ctx = (struct wcet_worker_ctx *)arg;
+	ctx->result = measure_wcet_body(ctx->wl, ctx->wrapper, ctx->iterations);
+	return NULL;
+}
+#endif
+
+static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterations)
+{
+	const struct sched_workload_wrapper *wrapper = get_sched_wrapper_for_workload(wl);
+
+	if (!wl || (!wl->exec && (!wrapper || !wrapper->quick_exec))) {
+		return 0;
+	}
+
+#ifdef RT_THREAD_PLATFORM
+	/* QEMU-dev path: msh runs on its own thread stack; measure inline. */
+	return measure_wcet_body(wl, wrapper, iterations);
+#else
+	/* Run WCET measurement on a dedicated SCHED_POSIX_STACK_SIZE thread.
+	 * The compute wrappers (epnp/icp/ekf) execute deep Eigen call chains
+	 * directly on the calling thread via wrapper->quick_exec.  When
+	 * test-schedule is invoked directly it runs on the board shell task's
+	 * stack (e.g. Dongtu Intewell / ReWorks ~64 KB), which is far too small
+	 * for Eigen -> the stack overflows into the allocator/kernel and the
+	 * command wedges (the exact failure ruihua_entry.c documents).  Giving
+	 * Phase 1 the same large stack the gradient task threads already use
+	 * (create_task_thread) fixes it uniformly across POSIX boards.  Timing
+	 * lives inside the worker, so thread create/join never pollutes the WCET.
+	 */
+	{
+		struct wcet_worker_ctx ctx;
+		pthread_t tid;
+		pthread_attr_t attr;
+		int ret;
+
+		ctx.wl = wl;
+		ctx.wrapper = wrapper;
+		ctx.iterations = iterations;
+		ctx.result = 0;
+
+		pthread_attr_init(&attr);
+		pthread_attr_setstacksize(&attr, SCHED_POSIX_STACK_SIZE);
+		ret = pthread_create(&tid, &attr, wcet_worker_thread, &ctx);
+		pthread_attr_destroy(&attr);
+		if (ret != 0) {
+			/* Fall back to inline measurement rather than skipping the
+			 * workload; better a risky measurement than none. */
+			SCHED_PRINTF("[test-schedule] Warning: WCET worker thread create failed (%d) for %s; measuring inline\n",
+				     ret, wl && wl->name ? wl->name : "unknown");
+			return measure_wcet_body(wl, wrapper, iterations);
+		}
+		pthread_join(tid, NULL);
+		return ctx.result;
+	}
+#endif
 }
 
 /**
