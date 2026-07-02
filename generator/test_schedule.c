@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>   /* isfinite() for utilization sanitization */
 
 #ifdef RT_THREAD_PLATFORM
 #include <rtthread.h>
@@ -987,18 +988,46 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 		/* Sort generated utilizations descending */
 		qsort(generated_u, num_workloads, sizeof(double), compare_double_desc);
 
+		/* Diagnostic: UUniFast must produce per-task utilizations that sum
+		 * to target_u, each in [0, target_u].  If the on-board sum diverges
+		 * from target (e.g. sum >> target, Util% > 100%), the libm used by
+		 * uunifast (pow() with a fractional exponent) is misbehaving on this
+		 * toolchain -- the sanitization below keeps periods bounded, but this
+		 * line is what tells you the distribution itself is wrong. */
+		{
+			double dbg_sum = 0.0;
+			for (i = 0; i < num_workloads; i++) {
+				dbg_sum += generated_u[i];
+			}
+			SCHED_PRINTF("[test-schedule] uunifast sum=%.4f target=%.4f\n",
+				     dbg_sum, target_u);
+		}
+
 		/* Assign utilizations and calculate periods */
 		SCHED_PRINTF("%-12s | %-10s | %-8s | %-12s\n",
 			     "Name", "WCET(ms)", "Util(%)", "Period(ms)");
 		SCHED_PRINTF("------------------------------------------------------\n");
 
 		for (i = 0; i < num_workloads; i++) {
-			tasks[i].utilization = generated_u[i];
+			double u = generated_u[i];
 
-			if (generated_u[i] > 0.001) {
+			/* Sanitize the utilization before it drives the period.  A
+			 * broken libm (or any NaN/Inf/negative/out-of-range value)
+			 * must never turn into a bogus period that wedges the
+			 * gradient: a non-finite or non-positive u falls through to
+			 * the long-period branch, and u is capped at 1.0 (a single
+			 * task cannot exceed 100% utilization by definition). */
+			if (!isfinite(u) || u <= 0.0) {
+				u = 0.0;
+			} else if (u > 1.0) {
+				u = 1.0;
+			}
+			tasks[i].utilization = u;
+
+			if (u > 0.001) {
 				/* T = C / U */
 				tasks[i].period_ns = (uint64_t)((double)tasks[i].wcet_ns /
-								generated_u[i]);
+								u);
 			} else {
 				/* Very low utilization - use a very long period */
 				tasks[i].period_ns = 10000000000ULL; /* 10 seconds */
