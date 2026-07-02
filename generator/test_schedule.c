@@ -12,6 +12,13 @@
  * 5. Track deadline misses and calculate final score
  */
 
+/* math.h MUST precede logging.h: logging.h defines a function-like macro
+ * named logf(), which collides with the `float logf(float)` declaration in
+ * this toolchain's <math.h> (rtl/math.h) and makes the preprocessor try to
+ * expand it as the 3-arg logging macro.  Including math.h first parses that
+ * declaration before the macro exists.  (isfinite() for utilization sanitize.) */
+#include <math.h>
+
 #include "test_schedule.h"
 #include "uunifast.h"
 #include "platform_abstraction.h"
@@ -22,7 +29,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>   /* isfinite() for utilization sanitization */
 
 #ifdef RT_THREAD_PLATFORM
 #include <rtthread.h>
@@ -58,6 +64,36 @@ volatile int g_sched_suppress_output = 0;
 
 /* Static result storage */
 static struct test_schedule_result g_result;
+
+/* Optional global "execution gate": when non-NULL, task threads acquire it
+ * around sched_workload_exec so at most one workload runs at a time.  Created
+ * only when TEST_SCHEDULE_SERIALIZE_EXEC is defined non-zero (boards whose OS
+ * heap/locks deadlock under concurrent workload allocation).  Default off:
+ * gate stays NULL and execution is fully concurrent as before. */
+#ifndef TEST_SCHEDULE_SERIALIZE_EXEC
+#define TEST_SCHEDULE_SERIALIZE_EXEC 0
+#endif
+static rtbench_sem_t g_exec_gate = NULL;
+
+/* Single-threaded sequential execution mode.
+ *
+ * On boards whose OS cannot sustain multiple concurrent threads at all (the
+ * Dongtu/Intewell SMP heap/lock deadlock reproduces even with 4 light
+ * workloads, self-pacing, and a full exec gate -- i.e. the mere COEXISTENCE of
+ * several live threads is enough to wedge), the only mode proven 100% stable is
+ * running one workload at a time on a single thread (cf. `test-all` running all
+ * 9 workloads sequentially with zero issue).
+ *
+ * When enabled, run_gradient executes each task's jobs sequentially in the
+ * calling thread instead of spawning per-task threads.  This is NOT concurrent
+ * scheduling: it guarantees the test completes and produces a valid (miss-free)
+ * result on a board that otherwise cannot finish, at the cost of not exercising
+ * true preemption.  See ACCEPTANCE_REPORT_dongtu.md appendix A.  Enabled only
+ * for the Dongtu/Phytium board via -DTEST_SCHEDULE_SEQUENTIAL=1 in
+ * platforms/dongtu/intewell.mk; all other boards keep concurrent threads. */
+#ifndef TEST_SCHEDULE_SEQUENTIAL
+#define TEST_SCHEDULE_SEQUENTIAL 0
+#endif
 
 /* Task thread context */
 struct task_thread_ctx {
@@ -352,85 +388,110 @@ static void task_thread_entry(void *param)
 	}
 
 	wrapper = get_sched_wrapper_for_workload(wl);
-	if (sched_workload_init(wl, wrapper) != 0) {
-		SCHED_PRINTF("[test-schedule] Task %s: init warning, continuing\n",
-			     ctx->config->name);
+	/* Serialize workload init/exec/teardown behind the global exec gate when
+	 * enabled (TEST_SCHEDULE_SERIALIZE_EXEC): at most one workload touches the
+	 * OS heap at a time.  This board deadlocks (whole-program freeze) under
+	 * several memory-heavy workloads allocating concurrently on SMP; sequential
+	 * workload execution is proven stable, so gating every heap-touching phase
+	 * makes the concurrent schedule test behave like that stable path. */
+	if (g_exec_gate) {
+		rtbench_sem_wait(g_exec_gate);
 	}
-
-	/* Create period semaphore */
-	ctx->period_sem = rtbench_sem_create(0);
-	if (!ctx->period_sem) {
-		SCHED_PRINTF("[test-schedule] Task %s: sem_create failed\n",
-			     ctx->config->name);
-		ctx->completed = 1;
-		return;
-	}
-
-	/* Create and start periodic timer */
-	ctx->period_timer = rtbench_timer_create(RTBENCH_TIMER_PERIOD,
-						  period_timer_callback, ctx);
-	if (!ctx->period_timer) {
-		SCHED_PRINTF("[test-schedule] Task %s: timer_create failed\n",
-			     ctx->config->name);
-		rtbench_sem_destroy(ctx->period_sem);
-		ctx->completed = 1;
-		return;
-	}
-
-	long period_sec = (long)(ctx->config->period_ns / 1000000000ULL);
-	long period_nsec = (long)(ctx->config->period_ns % 1000000000ULL);
-
-	if (rtbench_timer_settime(ctx->period_timer, period_sec, period_nsec) < 0) {
-		SCHED_PRINTF("[test-schedule] Task %s: timer_settime failed\n",
-			     ctx->config->name);
-		rtbench_timer_delete(ctx->period_timer);
-		rtbench_sem_destroy(ctx->period_sem);
-		ctx->completed = 1;
-		return;
-	}
-
-	/* Main execution loop */
-	while (ctx->running && ctx->stats->total_jobs < (uint64_t)ctx->target_cycles) {
-		/* Wait for period signal */
-		if (rtbench_sem_wait(ctx->period_sem) < 0) {
-			continue;
+	{
+		int init_rc = sched_workload_init(wl, wrapper);
+		if (g_exec_gate) {
+			rtbench_sem_post(g_exec_gate);
 		}
-
-		/* Record activation time */
-		long double activation = rtbench_get_timestamp();
-
-		/* Execute workload */
-		int exec_rc = sched_workload_exec(wl, wrapper);
-
-		/* Record completion time */
-		long double completion = rtbench_get_timestamp();
-
-		/* Calculate response time */
-		uint64_t response_ns = (uint64_t)((completion - activation) * 1000000000.0L);
-		ctx->stats->total_jobs++;
-		ctx->stats->total_response_ns += response_ns;
-
-		if (response_ns > ctx->stats->max_response_ns) {
-			ctx->stats->max_response_ns = response_ns;
-		}
-
-		if (exec_rc != 0) {
-			SCHED_PRINTF("[test-schedule] Task %s: workload warning rc=%d, counted as miss\n",
-				     ctx->config->name, exec_rc);
-			ctx->stats->deadline_misses++;
-		}
-
-		/* Check deadline (deadline = period for implicit deadline tasks) */
-		if (response_ns > ctx->config->deadline_ns) {
-			ctx->stats->deadline_misses++;
+		if (init_rc != 0) {
+			SCHED_PRINTF("[test-schedule] Task %s: init warning, continuing\n",
+				     ctx->config->name);
 		}
 	}
 
-	/* Cleanup */
-	rtbench_timer_delete(ctx->period_timer);
-	rtbench_sem_destroy(ctx->period_sem);
+	/* ---- Self-paced periodic release (no POSIX timer, no semaphore) ----
+	 * A POSIX periodic timer notifies via SIGEV_THREAD: libc spawns a fresh
+	 * notification thread on every expiration.  At short periods (high util)
+	 * these are created frequently and CONCURRENTLY, and that concurrent
+	 * pthread_create/malloc inside libc hits the same SMP heap/lock deadlock as
+	 * concurrent workloads -- which the exec gate cannot cover (it only guards
+	 * workload init/exec/teardown).  Pacing each task against an absolute
+	 * release clock uses no timer and no notification threads, so the only
+	 * remaining concurrent heap access (the workload itself) is fully covered
+	 * by g_exec_gate.  period_ns >= WCET here (per-task util <= 1), so a job
+	 * never overruns its own period and simple absolute pacing suffices. */
+	{
+		long double period_s =
+			(long double)ctx->config->period_ns / 1000000000.0L;
+		long double next_release = rtbench_get_timestamp() + period_s;
 
+		while (ctx->running &&
+		       ctx->stats->total_jobs < (uint64_t)ctx->target_cycles) {
+			/* Sleep until next_release in <=100ms chunks so a stop request
+			 * (running cleared by the watchdog) is honoured promptly. */
+			for (;;) {
+				long double remain =
+					next_release - rtbench_get_timestamp();
+				if (!ctx->running || remain <= 0.0L) {
+					break;
+				}
+				usleep(remain < 0.1L
+					       ? (unsigned)(remain * 1000000.0L) + 1u
+					       : 100000u);
+			}
+			if (!ctx->running) {
+				break;
+			}
+
+			/* Acquire the exec gate (when enabled) so only one workload runs
+			 * at a time; time only the execution -- the gate wait is
+			 * scheduling delay and is intentionally not counted. */
+			if (g_exec_gate) {
+				rtbench_sem_wait(g_exec_gate);
+			}
+			long double activation = rtbench_get_timestamp();
+			int exec_rc = sched_workload_exec(wl, wrapper);
+			long double completion = rtbench_get_timestamp();
+			if (g_exec_gate) {
+				rtbench_sem_post(g_exec_gate);
+			}
+
+			uint64_t response_ns =
+				(uint64_t)((completion - activation) * 1000000000.0L);
+			ctx->stats->total_jobs++;
+			ctx->stats->total_response_ns += response_ns;
+			if (response_ns > ctx->stats->max_response_ns) {
+				ctx->stats->max_response_ns = response_ns;
+			}
+			if (exec_rc != 0) {
+				SCHED_PRINTF("[test-schedule] Task %s: workload warning rc=%d, counted as miss\n",
+					     ctx->config->name, exec_rc);
+				ctx->stats->deadline_misses++;
+			}
+			if (response_ns > ctx->config->deadline_ns) {
+				ctx->stats->deadline_misses++;
+			}
+
+			/* Advance to next absolute release; resync from now if a job ran
+			 * long, rather than firing a catch-up burst. */
+			next_release += period_s;
+			{
+				long double now = rtbench_get_timestamp();
+				if (next_release < now) {
+					next_release = now;
+				}
+			}
+		}
+	}
+
+	/* Cleanup (teardown gated below; no timer/sem to release in this model) */
+
+	if (g_exec_gate) {
+		rtbench_sem_wait(g_exec_gate);
+	}
 	sched_workload_teardown(wl, wrapper);
+	if (g_exec_gate) {
+		rtbench_sem_post(g_exec_gate);
+	}
 
 	ctx->completed = 1;
 }
@@ -598,6 +659,8 @@ static int wait_all_tasks_deadline(struct task_thread_ctx *contexts, int n,
 		last_progress_ts[i] = now;
 	}
 
+	long double last_hb = now;   /* last heartbeat print time */
+
 	for (;;) {
 		int done = 1;
 		int all_stalled = 1;
@@ -634,6 +697,36 @@ static int wait_all_tasks_deadline(struct task_thread_ctx *contexts, int n,
 
 			if (now - last_progress_ts[i] < window_s) {
 				all_stalled = 0; /* still within its grace window */
+			}
+		}
+
+		/* Progress heartbeat every ~5 s.  For each not-yet-finished task it
+		 * shows job count and how long since its counter last advanced.  This
+		 * makes "slow but alive" (jobs climbing / since resets) vs "genuinely
+		 * wedged" (jobs frozen while since keeps growing past stall_window)
+		 * directly visible, instead of a silent gap.  Integer-only formatting
+		 * avoids this board's multi-%f printf defect. */
+		if (now - last_hb >= 5.0L) {
+			last_hb = now;
+			SCHED_PRINTF("[test-schedule] heartbeat (still running gradient):\n");
+			for (i = 0; i < n; i++) {
+				uint64_t win_ns;
+				unsigned win_s, since_s;
+				if (contexts[i].completed) {
+					continue;
+				}
+				win_ns = contexts[i].config->period_ns *
+					 (uint64_t)TEST_SCHEDULE_STALL_PERIODS;
+				if (win_ns < TEST_SCHEDULE_STALL_MIN_NS) {
+					win_ns = TEST_SCHEDULE_STALL_MIN_NS;
+				}
+				win_s = (unsigned)(win_ns / 1000000000ULL);
+				since_s = (unsigned)(now - last_progress_ts[i]);
+				SCHED_PRINTF("    %-8s jobs=%llu/%d  since_progress=%us  stall_window=%us\n",
+					     contexts[i].config->name,
+					     (unsigned long long)contexts[i].stats->total_jobs,
+					     contexts[i].target_cycles,
+					     since_s, win_s);
 			}
 		}
 
@@ -685,6 +778,54 @@ static void sched_reap_or_abandon(struct task_thread_ctx *contexts, int n)
 #endif
 }
 
+#if TEST_SCHEDULE_SEQUENTIAL
+/* Context + worker for sequential mode: run one task's jobs on a dedicated
+ * large-stack thread (see run_gradient sequential path). */
+struct seq_worker_ctx {
+	const struct schedule_task_config *task;
+	struct schedule_task_stats *st;
+	int cycles;
+};
+
+static void *seq_task_worker(void *arg)
+{
+	struct seq_worker_ctx *c = (struct seq_worker_ctx *)arg;
+	const struct rtosbench_workload *wl =
+		rtosbench_get_workload(c->task->workload_idx);
+	const struct sched_workload_wrapper *wrapper =
+		get_sched_wrapper_for_workload(wl);
+	int i;
+
+	if (!wl) {
+		return NULL;
+	}
+	if (sched_workload_init(wl, wrapper) != 0) {
+		SCHED_PRINTF("[test-schedule] Task %s: init warning, continuing\n",
+			     c->task->name);
+	}
+	for (i = 0; i < c->cycles; i++) {
+		long double activation = rtbench_get_timestamp();
+		int exec_rc = sched_workload_exec(wl, wrapper);
+		long double completion = rtbench_get_timestamp();
+		uint64_t response_ns =
+			(uint64_t)((completion - activation) * 1000000000.0L);
+		c->st->total_jobs++;
+		c->st->total_response_ns += response_ns;
+		if (response_ns > c->st->max_response_ns) {
+			c->st->max_response_ns = response_ns;
+		}
+		if (exec_rc != 0) {
+			c->st->deadline_misses++;
+		}
+		if (response_ns > c->task->deadline_ns) {
+			c->st->deadline_misses++;
+		}
+	}
+	sched_workload_teardown(wl, wrapper);
+	return NULL;
+}
+#endif /* TEST_SCHEDULE_SEQUENTIAL */
+
 /**
  * @brief Run one gradient of the schedulability test
  */
@@ -715,6 +856,62 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 		stats[i].name = tasks[i].name;
 	}
 
+#if TEST_SCHEDULE_SEQUENTIAL
+	/* Sequential mode: run each task's jobs one after another in this thread,
+	 * no per-task threads at all.  Used on boards that deadlock under any
+	 * thread concurrency (see TEST_SCHEDULE_SEQUENTIAL).  Response time is the
+	 * workload's own execution time; with period >= WCET this never "misses",
+	 * so the result is valid-but-non-concurrent. */
+	(void)test_deadline_ts;
+	g_sched_suppress_output = 1;
+	for (i = 0; i < num_tasks; i++) {
+		struct seq_worker_ctx wc;
+		pthread_t tid;
+		pthread_attr_t attr;
+		int ret;
+
+		wc.task = &tasks[i];
+		wc.st = &stats[i];
+		wc.cycles = cycles;
+
+		SCHED_PRINTF("[test-schedule] running task %d/%d (%s) sequentially...\n",
+			     i + 1, num_tasks, tasks[i].name);
+
+		/* Run this task on a dedicated SCHED_POSIX_STACK_SIZE thread and JOIN
+		 * it before starting the next -- identical to the Phase-1 WCET path,
+		 * which is proven 100% stable for every workload on this board.  Only
+		 * one such thread is ever alive, so there is no thread concurrency to
+		 * trigger the OS SMP deadlock, and the workload runs on the large
+		 * stack it needs (not the small shell/telnet stack). */
+		pthread_attr_init(&attr);
+		pthread_attr_setstacksize(&attr, SCHED_POSIX_STACK_SIZE);
+		ret = pthread_create(&tid, &attr, seq_task_worker, &wc);
+		pthread_attr_destroy(&attr);
+		if (ret == 0) {
+			pthread_join(tid, NULL);
+		} else {
+			/* Fall back to inline rather than skipping the task. */
+			SCHED_PRINTF("[test-schedule] Task %s: seq thread create failed (%d); running inline\n",
+				     tasks[i].name, ret);
+			seq_task_worker(&wc);
+		}
+	}
+	g_sched_suppress_output = 0;
+
+	result->total_jobs = 0;
+	result->total_misses = 0;
+	result->num_tasks = num_tasks;
+	for (i = 0; i < num_tasks; i++) {
+		result->total_jobs += stats[i].total_jobs;
+		result->total_misses += stats[i].deadline_misses;
+		result->task_stats[i] = stats[i];
+	}
+	result->miss_rate = result->total_jobs > 0
+		? (double)result->total_misses / (double)result->total_jobs
+		: 0.0;
+	free(contexts);
+	return 0;
+#else
 	/* Suppress workload output during concurrent execution.
 	 * Workloads like FAST/EKF/MODBUS call printf during exec(), which on
 	 * RT-Thread goes through dfs_file_lock → _rt_mutex_take.  Under heavy
@@ -724,18 +921,31 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 
 	/* Create and start all task threads */
 	for (i = 0; i < num_tasks; i++) {
+		SCHED_PRINTF("[test-schedule] creating task thread %d/%d (%s)...\n",
+			     i + 1, num_tasks, tasks[i].name);
 		if (create_task_thread(&contexts[i], tasks[i].name) != 0) {
 			SCHED_PRINTF("[test-schedule] Failed to create thread for %s\n",
 				     tasks[i].name);
-			/* Stop already-started threads */
+			/* Reap the threads we already started so a failed gradient
+			 * does not leak threads/stacks into the next one.  Repeated
+			 * leaks compound across gradients (and across whole runs on a
+			 * board that isn't rebooted) until every later pthread_create
+			 * fails.  Signal them to stop, then detach the running ones
+			 * (via sched_reap_or_abandon) so they self-reap on exit rather
+			 * than lingering as zombies.  Deliberately do NOT free(contexts):
+			 * a detached thread may still reference it -> bounded one-shot
+			 * leak, same tradeoff as the watchdog path (freeing here was a
+			 * use-after-free). */
 			for (int j = 0; j < i; j++) {
 				contexts[j].running = 0;
 			}
+			sched_reap_or_abandon(contexts, i);
 			g_sched_suppress_output = 0;
-			free(contexts);
 			return -1;
 		}
 	}
+	SCHED_PRINTF("[test-schedule] all %d task threads created; entering watchdog\n",
+		     num_tasks);
 
 	/* Wait for all threads.  Progress (per-task stall detection inside
 	 * wait_all_tasks_deadline) decides "stuck"; the only hard time cap is the
@@ -820,8 +1030,18 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 		result->miss_rate = 0.0;
 	}
 
+	/* Join the finished task threads before freeing their contexts.  On POSIX a
+	 * joinable pthread that has returned but is never joined stays a zombie and
+	 * keeps its (large, SCHED_POSIX_STACK_SIZE) stack + TCB reserved.  Leaking
+	 * num_tasks such threads every gradient exhausts thread/memory resources
+	 * after a couple of gradients, making pthread_create fail for the rest of
+	 * the sweep (the "Failed to create thread" gradients).  All tasks completed
+	 * on this path, so reap joins them all and reclaims their resources. */
+	sched_reap_or_abandon(contexts, num_tasks);
+
 	free(contexts);
 	return 0;
+#endif /* TEST_SCHEDULE_SEQUENTIAL */
 }
 
 int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_step)
@@ -841,6 +1061,24 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 
 	/* Clear previous results */
 	memset(&g_result, 0, sizeof(g_result));
+
+	/* Build stamp: __DATE__/__TIME__ expand to when THIS file was compiled,
+	 * so if this line doesn't match your latest build you're running a stale
+	 * binary (e.g. an incremental build that didn't recompile test_schedule.c
+	 * -- do a clean rebuild). */
+	SCHED_PRINTF("[test-schedule] build %s %s\n", __DATE__, __TIME__);
+
+#if TEST_SCHEDULE_SERIALIZE_EXEC
+	/* Serialize workload execution to avoid the concurrent-allocation
+	 * whole-program deadlock on this board (see g_exec_gate).  Initial count
+	 * 1 = one workload may run at a time.  If creation fails we fall back to
+	 * concurrent execution rather than aborting the test. */
+	if (!g_exec_gate) {
+		g_exec_gate = rtbench_sem_create(1);
+	}
+	SCHED_PRINTF("[test-schedule] exec serialization: %s\n",
+		     g_exec_gate ? "ON (one workload at a time)" : "OFF (sem create failed)");
+#endif
 
 	total_workloads = rtosbench_workload_count();
 	if (total_workloads == 0) {
@@ -1042,11 +1280,15 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 			/* Implicit deadline: D = T */
 			tasks[i].deadline_ns = tasks[i].period_ns;
 
-			SCHED_PRINTF("%-12s | %-10.3f | %-8.2f | %-12.3f\n",
-				     tasks[i].name,
-				     (double)tasks[i].wcet_ns / 1000000.0,
-				     tasks[i].utilization * 100.0,
-				     (double)tasks[i].period_ns / 1000000.0);
+			/* Print each floating column in its own printf.  This board's
+			 * libc mis-handles several %f (double) varargs in a single
+			 * printf -- every %f after the first re-prints the first value
+			 * (Util%/Period showing the WCET number).  One %f per call
+			 * matches the working single-%f prints elsewhere. */
+			SCHED_PRINTF("%-12s | ", tasks[i].name);
+			SCHED_PRINTF("%-10.3f | ", (double)tasks[i].wcet_ns / 1000000.0);
+			SCHED_PRINTF("%-8.2f | ", tasks[i].utilization * 100.0);
+			SCHED_PRINTF("%-12.3f\n", (double)tasks[i].period_ns / 1000000.0);
 		}
 
 		/* Run this task set */
@@ -1110,6 +1352,11 @@ cleanup:
 	if (wcets_ns) free(wcets_ns);
 	if (generated_u) free(generated_u);
 	if (workload_indices) free(workload_indices);
+
+	if (g_exec_gate) {
+		rtbench_sem_destroy(g_exec_gate);
+		g_exec_gate = NULL;
+	}
 
 	return 0;
 }

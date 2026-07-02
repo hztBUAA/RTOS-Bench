@@ -1270,6 +1270,18 @@ int rtbench_command_main(int argc, char **argv)
 		}
 		return ret;
 	}
+	if (!strcmp(argv[1], "-s")) {
+		/* Alias for `-A` / `--all-workloads`, for CLI parity with the
+		 * per-platform entries (oneos/main `rtbench -s` -> run_all_workloads).
+		 * Runs every registered workload through the standard workload
+		 * benchmark path (run_workload_command).  NOTE: this is NOT the same
+		 * as `test-all`'s workload phase (collect_workload_results) -- different
+		 * code path and output. */
+		char *aav[2];
+		aav[0] = argv[0];
+		aav[1] = "-A";
+		return run_workload_command(2, aav);
+	}
 	if (argv[1][0] != '-') {
 		printf("[rtbench] Unknown command: %s\n", argv[1]);
 		rtbench_command_print_usage();

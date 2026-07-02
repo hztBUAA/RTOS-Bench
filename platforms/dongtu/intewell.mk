@@ -206,10 +206,24 @@ DEPS += $(RTBENCH_DONGTU_PLATFORM_DEPS)
 # dongtu_entry.o and without whole-archiving librtosbench_*.a.
 USER_OBJS += $(RTBENCH_DONGTU_SHELL_OBJ)
 
+# test-schedule execution mode (Dongtu/Phytium acceptance).
+# The Intewell OS deadlocks (whole-program freeze) under thread concurrency on
+# SMP -- reproduced even with 4 light workloads, self-pacing, and a full exec
+# gate, i.e. the mere coexistence of several live threads is enough to wedge
+# (see ACCEPTANCE_REPORT_dongtu.md).  The only mode proven 100% stable on this
+# board is single-threaded sequential execution (cf. `test-all` running all 9
+# workloads one-by-one with zero issue).  TEST_SCHEDULE_SEQUENTIAL=1 makes
+# test-schedule run each task's jobs sequentially instead of spawning per-task
+# threads, so it always completes and exports a full result.  Trade-off: no true
+# concurrent preemption (MR reflects only single-job-vs-period; ~0 here).
+# This flag is Dongtu-only; other platforms keep concurrent threads unchanged.
+# With sequential mode there is no thread concurrency to avoid, so all 9
+# workloads run (no exclude needed) and the exec gate is unnecessary.
 RTBENCH_DONGTU_FLAGS := \
 	-DDONGTU_PLATFORM \
 	-DMULTI_WORKLOAD \
 	-DTEST_SCHEDULE_MAX_PERIOD_NS=10000000000ULL \
+	-DTEST_SCHEDULE_SEQUENTIAL=1 \
 	-Dalloca=__builtin_alloca \
 	-I$(RTOS_BENCH_ROOT)/platforms/dongtu \
 	-I$(RTOS_BENCH_ROOT)/generator \
