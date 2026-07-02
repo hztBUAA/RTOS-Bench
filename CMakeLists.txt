@@ -53,7 +53,6 @@ if(RTOS_WORKLOADS)
     # 排除模块独立入口和旧聚合入口；OneOS 使用 workload registry 注册/调度 9 个负载。
     list(REMOVE_ITEM RTOS_BENCH_WORKLOADS
         "${CMAKE_CURRENT_SOURCE_DIR}/workloads/main.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/workloads/run_all_workloads.cpp"
     )
 else()
     set(RTOS_BENCH_WORKLOADS "")
