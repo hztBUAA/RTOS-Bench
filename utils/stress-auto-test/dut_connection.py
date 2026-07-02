@@ -69,12 +69,13 @@ class SerialConnection(BaseConnection):
         port,
         baudrate=115200,
         timeout=0.1,
-        boot_wait=0.0,
+        boot_wait=10.0,
         command_delay=0.5,
         line_ending="\n",
         **kwargs
     ):
         super().__init__()
+        self._rx_buffer = ""
         self.command_delay = float(command_delay)
         self.line_ending = str(line_ending)
         self.ser = serial.Serial(
@@ -107,42 +108,54 @@ class SerialConnection(BaseConnection):
 
             self.ser.write(command.encode("utf-8"))
             self.ser.flush()
-            time.sleep(self.command_delay)
+            self.read_for(self.command_delay)
+
+    def _poll_serial(self):
+        data = self._read_text()
+
+        if data:
+            self._rx_buffer += data
+            self._log_output(data)
+
+        return data
 
     def wait_for_regex(self, pattern, timeout=None):
         regex = re.compile(pattern)
-        buffer = ""
-        deadline = None if timeout is None else time.monotonic() + float(timeout)
+        deadline = (
+            None
+            if timeout is None
+            else time.monotonic() + float(timeout)
+        )
 
         while True:
+            match = regex.search(self._rx_buffer)
+
+            if match:
+                consumed = self._rx_buffer[:match.end()]
+                self._rx_buffer = self._rx_buffer[match.end():]
+                return consumed
+
             if deadline is not None and time.monotonic() >= deadline:
                 raise TimeoutError(
                     f"Timed out waiting for serial pattern: {pattern}"
                 )
 
-            data = self._read_text()
-            if data:
-                buffer += data
-                self._log_output(data)
-
-                if regex.search(buffer):
-                    return buffer
-            else:
+            if not self._poll_serial():
                 time.sleep(0.01)
 
     def read_for(self, duration):
         deadline = time.monotonic() + max(0.0, float(duration))
-        buffer = ""
+        chunks = []
 
         while time.monotonic() < deadline:
-            data = self._read_text()
+            data = self._poll_serial()
+
             if data:
-                buffer += data
-                self._log_output(data)
+                chunks.append(data)
             else:
                 time.sleep(0.01)
 
-        return buffer
+        return "".join(chunks)
 
     def disconnect(self):
         if self.ser and self.ser.is_open:

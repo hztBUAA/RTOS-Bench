@@ -1,6 +1,6 @@
 CURRENT_TASK = {
-    "board": "Phytium-Pi", #LS2K1000LA MIC-7700 DH-1 Phytium-Pi Orange-Pi5
-    "os": "oneos",
+    "board": "Orange-Pi5", #LS2K1000LA MIC-7700 DH-1 Phytium-Pi Orange-Pi5
+    "os": "rede",
     "jobs": ["cpu", "memory", "file"],
     # Stop the queue when one job fails after all retry attempts.
     "stop_on_job_failure": True
@@ -51,7 +51,7 @@ def _telnet(ip, login=False, username="", password=""):
 
 
 
-def _com(port="COM6", baudrate=115200):
+def _com(port="COM3", baudrate=1500000):
     return {
         "port": port,
         "baudrate": baudrate,
@@ -60,14 +60,14 @@ def _com(port="COM6", baudrate=115200):
     }
 
 
-def _dut_params(ip, com_port="COM6"):
+def _dut_params(ip, com_port="COM3"):
     return {
         "TELNET": _telnet(ip),
         "COM": _com(com_port)
     }
 
 
-def _platform(ip, start_cmd, shutdown_cmd, dut_conn_type="TELNET", com_port="COM6"):
+def _platform(ip, start_cmd, shutdown_cmd, dut_conn_type="COM", com_port="COM3"):
     return {
         "dut_conn_type": dut_conn_type,
         "dut_conn_params": _dut_params(ip, com_port=com_port),
@@ -86,10 +86,10 @@ SYLIXOS_START_CMD = {
 
 ONEOS_START_CMD = {
     "standby": [],
-    "cpu": ["cd /user/", "rtbench test-stress --job cpu"],
-    "memory": ["cd /user/", "rtbench test-stress --job memory"],
-    "file": ["cd /user/", "rtbench test-stress --job file"],
-    "default": ["cd /user/", "rtbench test-stress"]
+    "cpu": ["ld /user/orange_pi_out.out", "cd /user/", "rtbench test-stress --job cpu"],
+    "memory": ["ld /user/orange_pi_out.out", "cd /user/", "rtbench test-stress --job memory"],
+    "file": ["ld /user/orange_pi_out.out", "cd /user/", "rtbench test-stress --job file"],
+    "default": ["ld /user/orange_pi_out.out", "cd /user/", "rtbench test-stress"]
 }
 
 INTEWELL_START_CMD = {
@@ -100,12 +100,14 @@ INTEWELL_START_CMD = {
     "default": ["rtbench test-stress"]
 }
 
+REDE_PERE_CMD = ["mmc dev 0;mmc read 0x9400000 0x600000 0x8000;go 0x9400000", "mount(\"dosfs\",\"/dev/mmc0p2\",\"/c\")", "cd /c", "ld \"rtosbench-new.out\""]
+
 REDE_START_CMD = {
-    "standby": [],
-    "cpu": ["cd /c", "rtbench test-stress --job cpu"],
-    "memory": ["cd /c", "rtbench test-stress --job memory"],
-    "file": ["cd /c", "rtbench test-stress --job file"],
-    "default": ["cd /c", "rtbench test-stress"]
+    "standby": REDE_PERE_CMD,
+    "cpu": REDE_PERE_CMD + ["rtbench_test_stress_cpu"],
+    "memory": REDE_PERE_CMD + ["rtbench_test_stress_memory"],
+    "file": REDE_PERE_CMD + ["rtbench_test_stress_file"],
+    "default": REDE_PERE_CMD + ["rtbench_test_stress_all"]
 }
 
 SYLIXOS_SHUTDOWN_CMD = ["sync", "shutdown"]
@@ -123,17 +125,17 @@ PLATFORM_PROFILES = {
         },
         "platforms": {
             "SylixOS": _platform(
-                "192.168.31.200",
+                "192.168.137.200",
                 SYLIXOS_START_CMD,
                 SYLIXOS_SHUTDOWN_CMD
             ),
             "rede": _platform(
-                "192.168.31.209",
+                "192.168.137.218",
                 REDE_START_CMD,
                 REDE_SHUTDOWN_CMD
             ),
             "oneos": _platform(
-                "192.168.31.213",
+                "192.168.137.213",
                 ONEOS_START_CMD,
                 ONEOS_SHUTDOWN_CMD
             )
@@ -149,22 +151,22 @@ PLATFORM_PROFILES = {
         },
         "platforms": {
             "SylixOS": _platform(
-                "192.168.31.201",
+                "192.168.137.201",
                 SYLIXOS_START_CMD,
                 SYLIXOS_SHUTDOWN_CMD
             ),
             "intewell": _platform(
-                "192.168.31.207",
+                "192.168.137.216",
                 INTEWELL_START_CMD,
                 INTEWELL_SHUTDOWN_CMD
             ),
             "oneos": _platform(
-                "192.168.31.208",
+                "192.168.137.217",
                 ONEOS_START_CMD,
                 ONEOS_SHUTDOWN_CMD
             ),
             "rede": _platform(
-                "192.168.31.212",
+                "192.168.137.212",
                 REDE_START_CMD,
                 REDE_SHUTDOWN_CMD
             )
@@ -180,12 +182,12 @@ PLATFORM_PROFILES = {
         },
         "platforms": {
             "SylixOS": _platform(
-                "192.168.31.202",
+                "192.168.137.202",
                 SYLIXOS_START_CMD,
                 SYLIXOS_SHUTDOWN_CMD
             ),
             "oneos": _platform(
-                "192.168.31.211",
+                "192.168.137.211",
                 ONEOS_START_CMD,
                 ONEOS_SHUTDOWN_CMD
             )
@@ -201,12 +203,12 @@ PLATFORM_PROFILES = {
         },
         "platforms": {
             "SylixOS": _platform(
-                "192.168.31.203",
+                "192.168.137.203",
                 SYLIXOS_START_CMD,
                 SYLIXOS_SHUTDOWN_CMD
             ),
             "intewell": _platform(
-                "192.168.31.206",
+                "192.168.137.215",
                 INTEWELL_START_CMD,
                 INTEWELL_SHUTDOWN_CMD
             )
@@ -222,12 +224,12 @@ PLATFORM_PROFILES = {
         },
         "platforms": {
             "SylixOS": _platform(
-                "192.168.31.204",
+                "192.168.137.204",
                 SYLIXOS_START_CMD,
                 SYLIXOS_SHUTDOWN_CMD
             ),
             "oneos": _platform(
-                "192.168.31.205",
+                "192.168.31.211",
                 ONEOS_START_CMD,
                 ONEOS_SHUTDOWN_CMD
             ),
