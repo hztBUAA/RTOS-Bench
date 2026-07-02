@@ -80,8 +80,6 @@ static void task_thread_entry(void *param);
 static int compare_double_desc(const void *a, const void *b);
 static int compare_wcet_desc(const void *a, const void *b);
 static int is_builtin_workload(const struct rtosbench_workload *wl);
-static int is_quick_safe_workload(const struct rtosbench_workload *wl,
-				  const struct sched_workload_wrapper *wrapper);
 static const struct sched_workload_wrapper *get_sched_wrapper_for_workload(
 	const struct rtosbench_workload *wl);
 static int sched_workload_init(const struct rtosbench_workload *wl,
@@ -107,28 +105,6 @@ static int is_builtin_workload(const struct rtosbench_workload *wl)
 		return 1;
 	}
 	return 0;
-}
-
-static int is_quick_safe_workload(const struct rtosbench_workload *wl,
-				  const struct sched_workload_wrapper *wrapper)
-{
-	if (wrapper && wrapper->quick_exec) {
-		return 1;
-	}
-	if (!wl || !wl->name) {
-		return 0;
-	}
-
-	/*
-	 * Quick mode is a smoke test. Some full workloads can block before WCET
-	 * filtering gets a chance to run, so only measure cases known to return
-	 * quickly on RTOS boards unless a dedicated schedule wrapper exists.
-	 */
-	return strcmp(wl->name, "fast") == 0 ||
-	       strcmp(wl->name, "ekf") == 0 ||
-	       strcmp(wl->name, "pid") == 0 ||
-	       strcmp(wl->name, "cusum") == 0 ||
-	       strcmp(wl->name, "ewma") == 0;
 }
 
 static const struct sched_workload_wrapper *get_sched_wrapper_for_workload(
@@ -479,27 +455,141 @@ static void sched_watchdog_sleep_ms(unsigned ms)
 #endif
 }
 
-/* Poll until every task thread sets `completed`, or `deadline_ts` (wall-clock
- * seconds from rtbench_get_timestamp) passes.  Returns 1 if all completed, 0 on
- * timeout. */
+/* Per-task progress-stall watchdog.
+ *
+ * The previous implementation bounded the *wall-clock* of a gradient with a
+ * fixed budget (e.g. 60 s).  That conflates "slow" with "stuck": a real
+ * workload whose single job legitimately takes seconds (FAST ~10 s/img on
+ * LoongArch, MODBUS ~9 s) keeps making progress yet blew the budget and was
+ * force-abandoned -- which then exposed the timer double-free.  The correct
+ * "stuck" signal is not elapsed time but *no forward progress*: a task that
+ * never completes another job (deadlocked, spinning, or sem_wait that will
+ * never be posted).
+ *
+ * So we watch each task's own job counter.  A task is considered stuck only
+ * when it produces no new job for longer than a window derived from its OWN
+ * period -- stall_window[i] = period_ns[i] * K + margin.  The longest legal
+ * gap between two jobs is roughly one period (sem_wait for the next tick) plus
+ * one execution, so K periods of zero progress means it is genuinely wedged,
+ * not merely waiting.  Slow tasks (large period) get a proportionally larger
+ * window and are never misjudged; fast tasks (small period) are caught quickly.
+ *
+ * `deadline_ts` remains as an absolute outermost backstop so the command is
+ * guaranteed to terminate even in pathological cases the per-task logic does
+ * not cover; under normal acceptance it is never reached.
+ *
+ * Returns 1 if all tasks completed; 0 if the backstop fired or every
+ * not-completed task is individually stalled. */
+
+/* Zero-progress periods tolerated before a task is declared stuck. */
+#ifndef TEST_SCHEDULE_STALL_PERIODS
+#define TEST_SCHEDULE_STALL_PERIODS 3u
+#endif
+/* Lower bound on a stall window (ns), so tasks with tiny periods still get a
+ * sane grace span and we never thrash on sub-second windows. */
+#ifndef TEST_SCHEDULE_STALL_MIN_NS
+#define TEST_SCHEDULE_STALL_MIN_NS (5ULL * 1000000000ULL) /* 5 s */
+#endif
+
 static int wait_all_tasks_deadline(struct task_thread_ctx *contexts, int n,
 				   long double deadline_ts)
 {
+	long double now = rtbench_get_timestamp();
+	int i;
+
+	/* Per-task progress tracking, parallel to contexts[].  Heap-allocated to
+	 * avoid assuming a board-specific max task count on the stack. */
+	uint64_t *last_jobs = (uint64_t *)calloc((size_t)n, sizeof(uint64_t));
+	long double *last_progress_ts =
+		(long double *)calloc((size_t)n, sizeof(long double));
+
+	if (!last_jobs || !last_progress_ts) {
+		/* Allocation failure: fall back to the absolute backstop only. */
+		free(last_jobs);
+		free(last_progress_ts);
+		for (;;) {
+			int done = 1;
+			for (i = 0; i < n; i++) {
+				if (!contexts[i].completed) {
+					done = 0;
+					break;
+				}
+			}
+			if (done) {
+				return 1;
+			}
+			if (rtbench_get_timestamp() >= deadline_ts) {
+				return 0;
+			}
+			sched_watchdog_sleep_ms(100);
+		}
+	}
+
+	for (i = 0; i < n; i++) {
+		last_jobs[i] = contexts[i].stats->total_jobs;
+		last_progress_ts[i] = now;
+	}
+
 	for (;;) {
 		int done = 1;
-		int i;
+		int all_stalled = 1;
+
+		now = rtbench_get_timestamp();
+
 		for (i = 0; i < n; i++) {
-			if (!contexts[i].completed) {
-				done = 0;
-				break;
+			uint64_t jobs;
+			long double window_s;
+
+			if (contexts[i].completed) {
+				continue; /* finished: neither pending nor stalled */
+			}
+			done = 0;
+
+			/* Refresh the progress timestamp whenever this task has
+			 * completed at least one more job since we last looked. */
+			jobs = contexts[i].stats->total_jobs;
+			if (jobs != last_jobs[i]) {
+				last_jobs[i] = jobs;
+				last_progress_ts[i] = now;
+			}
+
+			/* Stall window derived from this task's own period. */
+			{
+				uint64_t win_ns =
+					contexts[i].config->period_ns *
+					(uint64_t)TEST_SCHEDULE_STALL_PERIODS;
+				if (win_ns < TEST_SCHEDULE_STALL_MIN_NS) {
+					win_ns = TEST_SCHEDULE_STALL_MIN_NS;
+				}
+				window_s = (long double)win_ns / 1000000000.0L;
+			}
+
+			if (now - last_progress_ts[i] < window_s) {
+				all_stalled = 0; /* still within its grace window */
 			}
 		}
+
 		if (done) {
+			free(last_jobs);
+			free(last_progress_ts);
 			return 1;
 		}
-		if (rtbench_get_timestamp() >= deadline_ts) {
+
+		/* Stuck only if EVERY not-completed task has exceeded its own
+		 * stall window with zero new jobs -- genuine wedge, not slowness. */
+		if (all_stalled) {
+			free(last_jobs);
+			free(last_progress_ts);
 			return 0;
 		}
+
+		/* Absolute outermost backstop: guarantees termination. */
+		if (rtbench_get_timestamp() >= deadline_ts) {
+			free(last_jobs);
+			free(last_progress_ts);
+			return 0;
+		}
+
 		sched_watchdog_sleep_ms(100);
 	}
 }
@@ -579,31 +669,34 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 		}
 	}
 
-	/* Wait for all threads, bounded by the watchdog wall-clock deadline.
-	 * Per-gradient budget, further capped by the overall test deadline. */
-	long double grad_deadline = rtbench_get_timestamp() +
-		(long double)TEST_SCHEDULE_GRADIENT_BUDGET_MS / 1000.0L;
-	if (test_deadline_ts > 0.0L && test_deadline_ts < grad_deadline) {
-		grad_deadline = test_deadline_ts;
-	}
+	/* Wait for all threads.  Progress (per-task stall detection inside
+	 * wait_all_tasks_deadline) decides "stuck"; the only hard time cap is the
+	 * overall test backstop, which bounds the whole run regardless of how many
+	 * gradients remain.  There is deliberately no fixed per-gradient wall-clock
+	 * budget any more: a gradient whose real workloads are slow but still
+	 * completing jobs must be allowed to finish, not cut at an arbitrary
+	 * deadline (that was the old false-positive that forced 7/17 completions). */
+	long double grad_deadline = test_deadline_ts;
 
 	if (!wait_all_tasks_deadline(contexts, num_tasks, grad_deadline)) {
 		int leaked = 0;
 
-		SCHED_PRINTF("[test-schedule] WATCHDOG: gradient wall-clock timeout, "
-			     "forcing completion\n");
+		SCHED_PRINTF("[test-schedule] WATCHDOG: tasks stalled (no job progress) "
+			     "or backstop reached, forcing completion\n");
 
-		/* Stop period timers of stuck threads (they never reached their
-		 * own cleanup) and signal every thread to stop.  Timers of
-		 * already-completed threads were deleted by the thread itself, so
-		 * only touch the not-completed ones to avoid a double delete. */
+		/* Signal every thread to stop; count the not-completed ones as
+		 * leaked.  Do NOT touch contexts[i].period_timer here: a thread
+		 * that is just finishing frees its own timer (task_thread_entry)
+		 * BEFORE it sets `completed`, leaving period_timer dangling.  If
+		 * the watchdog freed it too, a `completed == 0` read followed by
+		 * the thread's own free would double-free the timer struct
+		 * (ReWorks EXCEPTION 0x14001 "Invalid pointer to be freed").
+		 * Per-thread resources are owned solely by their thread; a
+		 * genuinely-stuck thread's timer is leaked, consistent with the
+		 * bounded context leak below. */
 		for (i = 0; i < num_tasks; i++) {
 			contexts[i].running = 0;
 			if (!contexts[i].completed) {
-				if (contexts[i].period_timer) {
-					rtbench_timer_delete(contexts[i].period_timer);
-					contexts[i].period_timer = NULL;
-				}
 				leaked++;
 			}
 		}
@@ -739,7 +832,6 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 	valid_idx = 0;
 	for (i = 0; i < total_workloads && valid_idx < num_workloads; i++) {
 		const struct rtosbench_workload *wl = rtosbench_get_workload(i);
-		const struct sched_workload_wrapper *wrapper;
 		if (!wl || !wl->name) {
 			continue;
 		}
@@ -758,13 +850,6 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 			continue;
 		}
 
-		wrapper = get_sched_wrapper_for_workload(wl);
-		if (is_quick && !is_quick_safe_workload(wl, wrapper)) {
-			SCHED_PRINTF("  [%s]: skip in quick mode before WCET measurement\n",
-				     wl->name);
-			continue;
-		}
-
 		tasks[valid_idx].name = wl->name;
 		tasks[valid_idx].workload_idx = i;
 		workload_indices[valid_idx] = i;
@@ -773,27 +858,17 @@ int test_schedule_run_custom(int cycles, int util_start, int util_end, int util_
 			? TEST_SCHEDULE_QUICK_WCET_ITERATIONS
 			: TEST_SCHEDULE_WCET_ITERATIONS;
 		uint64_t wcet = measure_wcet_ns(wl, wcet_iters);
-		if (wrapper && wrapper->max_wcet_ms > 0) {
-			uint64_t max_wcet =
-				(uint64_t)wrapper->max_wcet_ms * 1000000ULL;
-			if (wcet > max_wcet) {
-				SCHED_PRINTF("    cap scheduler WCET to %d ms for %s wrapper\n",
-					     wrapper->max_wcet_ms, wl->name);
-				wcet = max_wcet;
-			}
-		}
+		/* Use the real measured WCET -- no cap.  Capping WCET (formerly
+		 * wrapper->max_wcet_ms) distorts the period T = WCET / U so the
+		 * task's deadline no longer matches its true execution time,
+		 * producing meaningless miss rates.  The schedulability result
+		 * must be faithful to the measured workload, per the acceptance
+		 * report baseline. */
 		tasks[valid_idx].wcet_ns = wcet;
 		wcets_ns[valid_idx] = (double)wcet;
 
 		SCHED_PRINTF("  [%s]: WCET = %.3f ms (%d iters)\n",
 			     wl->name, (double)wcet / 1000000.0, wcet_iters);
-
-		if (is_quick && wcet >
-		    (uint64_t)TEST_SCHEDULE_QUICK_MAX_WCET_MS * 1000000ULL) {
-			SCHED_PRINTF("    skip in quick mode: WCET exceeds %d ms\n",
-				     TEST_SCHEDULE_QUICK_MAX_WCET_MS);
-			continue;
-		}
 
 		valid_idx++;
 	}

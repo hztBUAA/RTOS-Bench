@@ -24,22 +24,30 @@
 extern "C" {
 #endif
 
-/* Configuration constants */
+/* Configuration constants.
+ *
+ * Defaults reflect the acceptance-report baseline: 9 industrial workloads, real
+ * (uncapped) WCET measured over a few iterations, cycles=3, and the full 30%-
+ * 100% step-10 gradient sweep (8 gradients).  This is the lightweight profile
+ * suited to embedded boards -- it is the DEFAULT now, no explicit --quick
+ * needed -- while still exercising every workload and every gradient. */
 #define TEST_SCHEDULE_MAX_TASKS      16
 #define TEST_SCHEDULE_CYCLES         3
-#define TEST_SCHEDULE_WCET_ITERATIONS 50
+#define TEST_SCHEDULE_WCET_ITERATIONS 5
 #define TEST_SCHEDULE_UTIL_START     30
 #define TEST_SCHEDULE_UTIL_END       100
 #define TEST_SCHEDULE_UTIL_STEP      10
 #define TEST_SCHEDULE_NUM_GRADIENTS  8  /* (100-30)/10 + 1 */
 
-/* Quick/smoke test defaults */
+/* Legacy --quick smoke profile (single 60% gradient, 1 cycle).  The normal
+ * defaults above are already the lightweight embedded profile, so --quick is
+ * now only an even-faster single-gradient smoke check, not the way to make the
+ * test board-friendly. */
 #define TEST_SCHEDULE_QUICK_CYCLES         1
 #define TEST_SCHEDULE_QUICK_WCET_ITERATIONS 1
 #define TEST_SCHEDULE_QUICK_UTIL_START     60
 #define TEST_SCHEDULE_QUICK_UTIL_END       60
 #define TEST_SCHEDULE_QUICK_UTIL_STEP      60
-#define TEST_SCHEDULE_QUICK_MAX_WCET_MS    250
 
 /* Board-adaptable period upper bound.
  * UUniFast yields very long periods at low utilization, which make a gradient
@@ -51,17 +59,17 @@ extern "C" {
 #define TEST_SCHEDULE_MAX_PERIOD_NS  UINT64_MAX
 #endif
 
-/* Global watchdog wall-clock budgets (milliseconds).
- * Guarantee test-schedule always reaches Phase 3 / prints Final Score even if a
- * workload job blocks forever (pthread_join would otherwise hang indefinitely).
- * Per-gradient budget bounds one utilization gradient; total budget bounds the
- * whole run and is kept well under the 15-min telnet acceptance timeout.
- * Override per board with -DTEST_SCHEDULE_*_BUDGET_MS if needed. */
-#ifndef TEST_SCHEDULE_GRADIENT_BUDGET_MS
-#define TEST_SCHEDULE_GRADIENT_BUDGET_MS  (60u * 1000u)        /* 60 s per gradient */
-#endif
+/* Overall watchdog backstop (milliseconds).
+ * Per-task stall detection (no job progress for K of the task's own periods)
+ * is the primary "stuck" signal; see wait_all_tasks_deadline().  This total
+ * budget is only the outermost absolute backstop guaranteeing the whole run
+ * terminates and reaches Phase 3 / Final Score even in pathological cases the
+ * stall logic does not cover.  Kept under the telnet acceptance timeout.
+ * There is intentionally no fixed per-gradient wall-clock budget: slow-but-
+ * progressing gradients must finish rather than be cut at an arbitrary point.
+ * Override per board with -DTEST_SCHEDULE_TOTAL_BUDGET_MS if needed. */
 #ifndef TEST_SCHEDULE_TOTAL_BUDGET_MS
-#define TEST_SCHEDULE_TOTAL_BUDGET_MS     (8u * 60u * 1000u)   /* 8 min overall */
+#define TEST_SCHEDULE_TOTAL_BUDGET_MS     (15u * 60u * 1000u)  /* 15 min overall */
 #endif
 
 /* Board fallback — workload allow / exclude lists (comma-separated names).
