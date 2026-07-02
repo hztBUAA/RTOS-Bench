@@ -267,8 +267,7 @@ void thread_initialize(void) {
 	__LES_interrupt_flag = (volatile uint32_t *)&stDEHeaderPtr->interrupt_flag;
 	__LES_syscall_val = (volatile uint64_t *)&stDEHeaderPtr->LES_syscall_val;
 	__LES_syscall_flag = (volatile uint32_t *)&stDEHeaderPtr->LES_syscall_flag;
-#define LES_syscall_val (*__LES_syscall_val)
-#define LES_syscall_flag (*__LES_syscall_flag)
+
     #elif defined (__aarch64__)
 
     #else
@@ -276,6 +275,9 @@ void thread_initialize(void) {
     #warning "未知架构"
     /* val = ... */
    #endif
+
+#define LES_syscall_val (*__LES_syscall_val)
+#define LES_syscall_flag (*__LES_syscall_flag)
 #endif
 }
 
@@ -294,7 +296,7 @@ static void *realtime_benchmark_run_thread(void *parameter)
 
 
     realtime_init();
-    realtime_print();
+
     return NULL;
 }
 
@@ -307,7 +309,7 @@ static void *realtime_benchmark_run_multicore_thread(void *parameter)
     BIND_THREAD_TO_CPU(0);
 
     multicore_init();
-    multicore_print();
+
     return NULL;
 }
 
@@ -323,11 +325,9 @@ static void *realtime_benchmark_run_all_thread(void *parameter)
     int run_multicore = (int)(long)parameter;
 
     realtime_init();
-    realtime_print();
 
     if (run_multicore) {
         multicore_init();
-        multicore_print();
     }
 
     return NULL;
@@ -345,6 +345,8 @@ static void *realtime_benchmark_run_all_thread(void *parameter)
 int realtime_benchmark_run(void)
 {
     thread_initialize();
+
+    printf("the realtime benchmark is running, please wait...\n");
 
     pthread_t tid;
     pthread_attr_t attr;
@@ -365,6 +367,8 @@ int realtime_benchmark_run(void)
 
     pthread_join(tid, NULL);
 
+    realtime_print();
+
     pthread_attr_destroy(&attr);
 
     return 0;
@@ -377,6 +381,8 @@ int realtime_benchmark_run(void)
 int realtime_benchmark_run_multicore(void)
 {
     thread_initialize();
+
+    printf("the realtime benchmark is running, please wait...\n");
 
     pthread_t tid;
     pthread_attr_t attr;
@@ -397,6 +403,8 @@ int realtime_benchmark_run_multicore(void)
 
     pthread_join(tid, NULL);
 
+    multicore_print();
+
     pthread_attr_destroy(&attr);
 
     return 0;
@@ -410,6 +418,8 @@ int realtime_benchmark_run_multicore(void)
 int realtime_benchmark_run_all(int run_multicore)
 {
     thread_initialize();
+
+    printf("the realtime benchmark is running, please wait...\n");
 
     pthread_t tid;
     pthread_attr_t attr;
@@ -429,6 +439,11 @@ int realtime_benchmark_run_all(int run_multicore)
     }
 
     pthread_join(tid, NULL);
+
+    realtime_print();
+    if (run_multicore) {
+        multicore_print();
+    }
 
     pthread_attr_destroy(&attr);
 

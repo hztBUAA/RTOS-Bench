@@ -54,7 +54,7 @@ extern int ewma_bench_run(void);
 #define RTBENCH_DEFAULT_OUTPUT_PATH "/rtbench_result.json"
 
 /* Stack size for worker threads (32KB to handle deep call chains) */
-#define RTBENCH_TEST_ALL_STACK_SIZE (32 * 1024)
+#define RTBENCH_TEST_ALL_STACK_SIZE (1024 * 1024)
 
 /* Forward declarations for result collection */
 static void collect_realtime_result(int run_multicore);
