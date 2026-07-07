@@ -23,17 +23,23 @@
     /* OneOS: POSIX-lite profile; prefer POSIX APIs when available */
     #define RTBENCH_PLATFORM_ONEOS
 
-    /* Auto-detect OneOS V2.0 ARM64/LoongArch64 (uses musl libc with pre-defined types) */
+    /* Auto-detect OneOS V2.0 targets (uses musl libc with pre-defined types) */
     #if defined(__aarch64__) || defined(_M_ARM64)
         #define ONEOS_V2_ARM64 1
     #endif
     #if defined(__loongarch__) || defined(__loongarch64) || defined(__loongarch_lp64)
         #define ONEOS_V2_LOONGARCH64 1
     #endif
+    #if defined(__riscv) && (__riscv_xlen == 64)
+        #define ONEOS_V2_RISCV64 1
+    #endif
+    #if defined(ONEOS_V2_ARM64) || defined(ONEOS_V2_LOONGARCH64) || defined(ONEOS_V2_RISCV64)
+        #define ONEOS_V2_MUSL_LIBC 1
+    #endif
 
-    /* For musl libc (OneOS V2.0 ARM64/LoongArch64), these types are already
+    /* For musl libc (OneOS V2.0 targets), these types are already
      * defined in bits/alltypes.h. Only define for non-musl systems (V1.x ARM32). */
-    #if !defined(ONEOS_V2_ARM64) && !defined(ONEOS_V2_LOONGARCH64)
+    #if !defined(ONEOS_V2_MUSL_LIBC)
         #ifndef _CLOCK_T_DECLARED
         typedef unsigned long clock_t;
         #define _CLOCK_T_DECLARED

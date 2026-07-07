@@ -13,7 +13,7 @@
 
 int rtbench_set_priority(unsigned int priority)
 {
-#if defined(ONEOS_V2_MUSL_LIBC) || defined(ONEOS_V2_ARM64) || defined(ONEOS_V2_LOONGARCH64)
+#if defined(ONEOS_V2_MUSL_LIBC)
     /* V2 style targets: os_task_id is int type, use os_get_current_task(). */
     os_task_id current = os_get_current_task();
     if (current <= 0) {
