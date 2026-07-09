@@ -63,6 +63,14 @@ CFLAGS += -fno-plt
 CFLAGS += -Wa,-mla-local-with-abs
 CFLAGS += -Wa,-mla-global-with-abs
 CFLAGS += -DRTOSBENCH_USE_MANUAL_WORKLOAD_REGISTRATION
+# test-schedule: clamp the UUniFast-derived task period on the LoongArch board.
+# Real (uncapped) WCET of heavy workloads (FAST/ICP/MODBUS ~5-10 s here) makes
+# T = WCET / U reach hundreds of seconds at low utilization, so a low-U gradient
+# would run almost no jobs and stretch the whole sweep past the acceptance
+# window.  Capping only the PERIOD (not the WCET) keeps the schedulability model
+# faithful while ensuring every gradient still completes a few jobs promptly.
+# Scoped to loongarch64 only: the Phytium (aarch64) and ARM boards are untouched.
+CFLAGS += -DTEST_SCHEDULE_MAX_PERIOD_NS=10000000000ULL
 endif
 
 # Ruihua SDK headers.

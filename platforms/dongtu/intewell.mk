@@ -206,9 +206,16 @@ DEPS += $(RTBENCH_DONGTU_PLATFORM_DEPS)
 # dongtu_entry.o and without whole-archiving librtosbench_*.a.
 USER_OBJS += $(RTBENCH_DONGTU_SHELL_OBJ)
 
+# test-schedule execution mode —— 仅东土-飞腾派(Phytium)临时需要。
+# 飞腾派的 Intewell 在 SMP 线程并发下会整程序冻死(见 ACCEPTANCE_REPORT_dongtu.md),
+# 用 TEST_SCHEDULE_SEQUENTIAL=1 让 test-schedule 单线程顺序跑以避开。
+# 但这是【飞腾派专属】权宜:香橙派/vm_3588(RK3588)实测并发 test-schedule 可正常跑完(06-28 镜像=并发,Final Score 95.83)。
+# 因此该 flag 改为【按板显式开启】:默认关(香橙派/默认=正常并发);
+# 飞腾派工程在其 config_os.mk 里 include 本文件前设  RTBENCH_DONGTU_SEQUENTIAL := 1  即可。
 RTBENCH_DONGTU_FLAGS := \
 	-DDONGTU_PLATFORM \
 	-DMULTI_WORKLOAD \
+	-DTEST_SCHEDULE_MAX_PERIOD_NS=10000000000ULL \
 	-Dalloca=__builtin_alloca \
 	-I$(RTOS_BENCH_ROOT)/platforms/dongtu \
 	-I$(RTOS_BENCH_ROOT)/generator \
@@ -238,6 +245,11 @@ RTBENCH_DONGTU_FLAGS := \
 	-I$(RTOS_BENCH_ROOT)/workloads/MODBUS \
 	-I$(RTOS_BENCH_ROOT)/workloads/MQTT \
 	-I$(RTOS_BENCH_ROOT)/workloads/PID
+
+# 飞腾派专属:仅当工程显式设置 RTBENCH_DONGTU_SEQUENTIAL := 1 时才加 sequential。
+ifeq ($(RTBENCH_DONGTU_SEQUENTIAL),1)
+RTBENCH_DONGTU_FLAGS += -DTEST_SCHEDULE_SEQUENTIAL=1
+endif
 
 RTBENCH_DONGTU_CXX ?= $(subst -gcc,-g++,$(CC))
 
