@@ -37,6 +37,7 @@
 #define SCHED_THREAD_PRIORITY   15
 #else
 #include <pthread.h>
+#include <sched.h>    /* sched_get_priority_min / struct sched_param for orphan de-prioritization */
 #include <unistd.h>   /* usleep() for the watchdog polling loop */
 #define SCHED_PRINTF printf
 /* Per-task pthread stack.  Memory-constrained boards (e.g. OneOS Nezha D1H,
@@ -627,10 +628,16 @@ static int wait_all_tasks_deadline(struct task_thread_ctx *contexts, int n,
 	int i;
 
 	/* Per-task progress tracking, parallel to contexts[].  Heap-allocated to
-	 * avoid assuming a board-specific max task count on the stack. */
+	 * avoid assuming a board-specific max task count on the stack.  The progress
+	 * timestamps use `double` (8-byte, naturally aligned by any calloc) rather
+	 * than `long double`: a heap long double is 16-byte aligned on aarch64 but
+	 * some RTOS calloc only guarantees 8 bytes, and a misaligned long double
+	 * access faults on strict-alignment cores (Phytium/Intewell) -- which
+	 * surfaced as a silent watchdog "deadlock".  double precision is far more
+	 * than enough for a >=5 s stall window, so this both fixes the fault and
+	 * keeps the code portable to every platform with zero extra machinery. */
 	uint64_t *last_jobs = (uint64_t *)calloc((size_t)n, sizeof(uint64_t));
-	long double *last_progress_ts =
-		(long double *)calloc((size_t)n, sizeof(long double));
+	double *last_progress_ts = (double *)calloc((size_t)n, sizeof(double));
 
 	if (!last_jobs || !last_progress_ts) {
 		/* Allocation failure: fall back to the absolute backstop only. */
@@ -758,7 +765,12 @@ static int wait_all_tasks_deadline(struct task_thread_ctx *contexts, int n,
 /* Reap finished threads; abandon (never hard-kill) any still running after a
  * watchdog timeout.  Hard-kill (pthread_cancel / rt_thread_delete) is avoided:
  * a thread stuck in sem_wait / mid-exec would skip its own cleanup and leave
- * the kernel in an unknown state. */
+ * the kernel in an unknown state.  Instead an abandoned thread is dropped to the
+ * lowest scheduling priority before being detached, so it can no longer starve
+ * the OS network/shell tasks: on a few-core board (e.g. Ruihua Loongson, 2
+ * cores) a CPU-bound orphan left at the shell's own priority pegs every core and
+ * wedges telnet/ftp until reboot.  De-prioritized, it only runs on otherwise
+ * idle cores and drains on its own after the command returns. */
 static void sched_reap_or_abandon(struct task_thread_ctx *contexts, int n)
 {
 #ifdef RT_THREAD_PLATFORM
@@ -772,6 +784,17 @@ static void sched_reap_or_abandon(struct task_thread_ctx *contexts, int n)
 		if (contexts[i].completed) {
 			pthread_join(contexts[i].thread, NULL);
 		} else {
+			/* Push the orphan below the OS service tasks so it can never
+			 * starve them, then detach.  Best-effort: if the board rejects
+			 * the priority change we still fall back to the plain detach.
+			 * Guarded on SCHED_FIFO: some POSIX-lite RTOS libcs (OneOS,
+			 * Ruihua) don't define it, and there the plain detach is fine. */
+#ifdef SCHED_FIFO
+			struct sched_param sp;
+			sp.sched_priority = sched_get_priority_min(SCHED_FIFO);
+			(void)pthread_setschedparam(contexts[i].thread,
+						    SCHED_FIFO, &sp);
+#endif
 			pthread_detach(contexts[i].thread);
 		}
 	}
