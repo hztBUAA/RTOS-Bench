@@ -64,12 +64,18 @@ extern "C" {
  * is the primary "stuck" signal; see wait_all_tasks_deadline().  This total
  * budget is only the outermost absolute backstop guaranteeing the whole run
  * terminates and reaches Phase 3 / Final Score even in pathological cases the
- * stall logic does not cover.  Kept under the telnet acceptance timeout.
+ * stall logic does not cover.
  * There is intentionally no fixed per-gradient wall-clock budget: slow-but-
  * progressing gradients must finish rather than be cut at an arbitrary point.
- * Override per board with -DTEST_SCHEDULE_TOTAL_BUDGET_MS if needed. */
+ * The value is set ABOVE the empirical worst-case full-run time (a real full
+ * sweep of 8 gradients has been measured at 10-20 min on slow boards) so this
+ * backstop never truncates a legitimately-progressing run -- it only fires on a
+ * genuine wedge the stall logic misses.  The acceptance harness uses an IDLE
+ * timeout (the watchdog heartbeats every ~5 s), not a hard total, so a longer
+ * absolute ceiling here is safe.  Override per board with
+ * -DTEST_SCHEDULE_TOTAL_BUDGET_MS if a board needs a tighter/looser bound. */
 #ifndef TEST_SCHEDULE_TOTAL_BUDGET_MS
-#define TEST_SCHEDULE_TOTAL_BUDGET_MS     (15u * 60u * 1000u)  /* 15 min overall */
+#define TEST_SCHEDULE_TOTAL_BUDGET_MS     (30u * 60u * 1000u)  /* 30 min overall backstop */
 #endif
 
 /* Board fallback — workload allow / exclude lists (comma-separated names).
