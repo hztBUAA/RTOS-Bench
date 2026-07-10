@@ -1178,6 +1178,8 @@ static int run_test_stress_command(int argc, char **argv)
 	return test_stress_run_job(job_name);
 }
 
+extern int run_all_workloads();
+
 int rtbench_command_main(int argc, char **argv)
 {
 	if (argc < 1 || argv == NULL) {
@@ -1188,6 +1190,11 @@ int rtbench_command_main(int argc, char **argv)
 		rtbench_command_print_usage();
 		return 0;
 	}
+
+	if (argc == 2 && strcmp(argv[1], "-s") == 0) {
+		return run_all_workloads();
+	}
+	
 	if (!strcmp(argv[1], "test-all")) {
 		struct test_all_params params;
 		int parse_ret;
