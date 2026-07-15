@@ -85,6 +85,10 @@
     typedef unsigned long pid_t;
     #define _PID_T_DEFINED
     #endif
+    #ifndef _USECONDS_T_DECLARED
+    typedef unsigned long useconds_t;
+    #define _USECONDS_T_DECLARED
+    #endif
 #elif defined(RUIHUA_PLATFORM)
     /* Ruihua RTOS (RHRTOS/RHOS): POSIX extensions assumed when building rt-bench */
     #define RTBENCH_PLATFORM_RUIHUA
