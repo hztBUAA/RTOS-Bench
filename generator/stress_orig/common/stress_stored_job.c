@@ -133,7 +133,7 @@ const char JOB_DATA_MEMORY[] =
 
     /* --- Stage 5: 100% --- */
     "memcpy    --ops 10000    -c 5 --memcpy-size 2048\n"
-    "stream    --ops 1100     -c 5 --stream-elem 32768\n"
+    "stream    --ops 1100     -c 4 --stream-elem 32768\n"
     "vm        --ops 29000000 -c 3 --vm-bytes 8388608\n"
     "malloc    --ops 50000    -c 5 --malloc-bytes 8192 --malloc-max 64\n"
     "memthrash --ops 900      -c 5 --mem-size 524288\n"
@@ -151,7 +151,7 @@ const char JOB_DATA_FILE[] =
     "pipe      --ops 1000 -c 1 --pipe-data-size 512\n"
 
     /* --- Stage 2: 40% --- */
-    "hdd       --ops 240  -c 2 --hdd-bytes 32768\n"
+    "hdd       --ops 240  -c 1 --hdd-bytes 32768\n"
     "open      --ops 1200 -c 2 --open-max 4\n"
     "copy-file --ops 1200 -c 2 --copy-file-bytes 32768\n"
     "unlink    --ops 1200 -c 2\n"
@@ -161,7 +161,7 @@ const char JOB_DATA_FILE[] =
     "pipe      --ops 200  -c 2 --pipe-data-size 4096\n"
 
     /* --- Stage 3: 60% --- */
-    "hdd       --ops 160  -c 3 --hdd-bytes 65536\n"
+    "hdd       --ops 160  -c 1 --hdd-bytes 65536\n"
     "open      --ops 800  -c 3 --open-max 6\n"
     "copy-file --ops 800  -c 3 --copy-file-bytes 65536\n"
     "unlink    --ops 800  -c 3\n"
@@ -171,7 +171,7 @@ const char JOB_DATA_FILE[] =
     "pipe      --ops 300  -c 3 --pipe-data-size 32768\n"
 
     /* --- Stage 4: 80% --- */
-    "hdd       --ops 160  -c 3 --hdd-bytes 131072\n"
+    "hdd       --ops 160  -c 1 --hdd-bytes 131072\n"
     "open      --ops 600  -c 4 --open-max 8\n"
     "copy-file --ops 600  -c 4 --copy-file-bytes 131072\n"
     "unlink    --ops 600  -c 4\n"
@@ -181,7 +181,7 @@ const char JOB_DATA_FILE[] =
     "pipe      --ops 250  -c 4 --pipe-data-size 32768\n"
 
     /* --- Stage 5: 100% --- */
-    "hdd       --ops 160  -c 3 --hdd-bytes 131072\n"
+    "hdd       --ops 160  -c 1 --hdd-bytes 131072\n"
     "open      --ops 480  -c 5 --open-max 10\n"
     "copy-file --ops 480  -c 5 --copy-file-bytes 262144\n"
     "unlink    --ops 480  -c 5\n"

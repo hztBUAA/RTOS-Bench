@@ -1,12 +1,26 @@
 /* applications/stress-ng/stress-stream.c */
 #include "stress-ng.h"
 #include "stress_osal.h"
+#include <errno.h>
+#include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <stress-config.h>
 
+#ifndef SIZE_MAX
+#define SIZE_MAX                ((size_t)-1)
+#endif
+
 #define STREAM_STACK_SIZE       (64 * 1024)
+#define STREAM_WORKER_PRIORITY  (100)
+#define STREAM_RAMP_MIN_ELEMS   (1024)
+#define STREAM_RAMP_MAX_SHIFT   (4)
+#define STREAM_RAMP_OPS_STEP    (16)
+#define STREAM_RAMP_INSTANCE_OPS (4)
+#define STREAM_CHUNK_ELEMS      (4096)
+#define STREAM_YIELD_EVERY_OPS  (1)
 
 #define UNLIKELY(x)         __builtin_expect(!!(x), 0)
 #define LIKELY(x)           __builtin_expect(!!(x), 1)
@@ -23,13 +37,42 @@ static uint64_t s_stream_elem = DEFAULT_STREAM_ELEM;
 static int stress_stream_opt_elem(const char *opt_name, const char *opt_arg)
 {
     char *endptr;
-    unsigned long long val = strtoull(opt_arg, &endptr, 10);
+    unsigned long long val;
 
-    if (*endptr == 'k' || *endptr == 'K') val *= 1024;
-    else if (*endptr == 'm' || *endptr == 'M') val *= (1024 * 1024);
+    (void)opt_name;
 
-    if (val < MIN_STREAM_ELEM) val = MIN_STREAM_ELEM;
-    if (val > MAX_STREAM_ELEM) val = MAX_STREAM_ELEM;
+    if (!opt_arg || *opt_arg == '\0' || *opt_arg == '-') {
+        return -1;
+    }
+
+    errno = 0;
+    val = strtoull(opt_arg, &endptr, 10);
+    if (errno == ERANGE || endptr == opt_arg) {
+        return -1;
+    }
+
+    if (*endptr == 'k' || *endptr == 'K') {
+        if (val > ULLONG_MAX / 1024ULL) {
+            val = ULLONG_MAX;
+        } else {
+            val *= 1024ULL;
+        }
+        endptr++;
+    } else if (*endptr == 'm' || *endptr == 'M') {
+        if (val > ULLONG_MAX / (1024ULL * 1024ULL)) {
+            val = ULLONG_MAX;
+        } else {
+            val *= 1024ULL * 1024ULL;
+        }
+        endptr++;
+    }
+
+    if (*endptr != '\0') {
+        return -1;
+    }
+
+    if (val < (unsigned long long)MIN_STREAM_ELEM) val = MIN_STREAM_ELEM;
+    if (val > (unsigned long long)MAX_STREAM_ELEM) val = MAX_STREAM_ELEM;
 
     s_stream_elem = (uint64_t)val;
     stress_osal_print("rtos_stress: debug: stream-elem set to %llu elements\n", (unsigned long long)s_stream_elem);
@@ -40,6 +83,16 @@ const stress_opt_t stress_stream_opts[] = {
     { "stream-elem", stress_stream_opt_elem },
     { NULL, NULL }
 };
+
+static int stress_stream_size_mul(uint64_t n, size_t size, size_t *result)
+{
+    if (size != 0 && n > (uint64_t)(SIZE_MAX / size)) {
+        return -1;
+    }
+
+    *result = (size_t)n * size;
+    return 0;
+}
 
 static void stress_stream_copy(
     double *const RESTRICT c,
@@ -81,23 +134,77 @@ static void stress_stream_triad(
     for (i = 0; i < n; i++) a[i] = b[i] + q * c[i];
 }
 
-static uint32_t stress_mwc32(void) { return (uint32_t)stress_osal_rand(); }
+static inline uint64_t stress_stream_chunk_size(const uint64_t offset, const uint64_t n)
+{
+    uint64_t chunk = n - offset;
 
-static void stress_stream_init_data(
+    if (chunk > STREAM_CHUNK_ELEMS) {
+        chunk = STREAM_CHUNK_ELEMS;
+    }
+
+    return chunk;
+}
+
+static void stress_stream_run_once(
     double *const RESTRICT a,
     double *const RESTRICT b,
     double *const RESTRICT c,
+    const double q,
     const uint64_t n)
 {
-    const double divisor = 1.0 / 4294967296.0;
-    const double delta = (double)stress_mwc32() * divisor;
-    double v = (double)stress_mwc32() * divisor;
+    uint64_t offset, chunk;
+
+    for (offset = 0; offset < n; offset += chunk) {
+        chunk = stress_stream_chunk_size(offset, n);
+        stress_stream_copy(c + (size_t)offset, a + (size_t)offset, chunk);
+        if (n >= STREAM_CHUNK_ELEMS) {
+            stress_osal_thread_yield();
+        }
+    }
+
+    for (offset = 0; offset < n; offset += chunk) {
+        chunk = stress_stream_chunk_size(offset, n);
+        stress_stream_scale(b + (size_t)offset, c + (size_t)offset, q, chunk);
+        if (n >= STREAM_CHUNK_ELEMS) {
+            stress_osal_thread_yield();
+        }
+    }
+
+    for (offset = 0; offset < n; offset += chunk) {
+        chunk = stress_stream_chunk_size(offset, n);
+        stress_stream_add(c + (size_t)offset, a + (size_t)offset, b + (size_t)offset, chunk);
+        if (n >= STREAM_CHUNK_ELEMS) {
+            stress_osal_thread_yield();
+        }
+    }
+
+    for (offset = 0; offset < n; offset += chunk) {
+        chunk = stress_stream_chunk_size(offset, n);
+        stress_stream_triad(a + (size_t)offset, b + (size_t)offset, c + (size_t)offset, q, chunk);
+        if (n >= STREAM_CHUNK_ELEMS) {
+            stress_osal_thread_yield();
+        }
+    }
+}
+
+static uint32_t stress_mwc32(void) { return (uint32_t)stress_osal_rand(); }
+
+static void stress_stream_init_data_range(
+    double *const RESTRICT a,
+    double *const RESTRICT b,
+    double *const RESTRICT c,
+    const uint64_t start,
+    const uint64_t end,
+    const double base,
+    const double delta)
+{
+    double v = base + delta * (double)start;
     uint64_t i;
 
-    for (i = 0; i < n; i++) {
-        a[i] = v;
-        b[i] = v;
-        c[i] = v;
+    for (i = start; i < end; i++) {
+        a[(size_t)i] = v;
+        b[(size_t)i] = v;
+        c[(size_t)i] = v;
         v += delta;
     }
 }
@@ -116,23 +223,77 @@ static double stress_stream_checksum(
     return checksum;
 }
 
+static uint64_t stress_stream_ramp_elems(
+    const uint64_t target_n,
+    uint64_t ops,
+    const uint64_t offset_ops)
+{
+    uint64_t min_n = STREAM_RAMP_MIN_ELEMS;
+    uint64_t step;
+    uint64_t active_n;
+
+    if (min_n < (uint64_t)MIN_STREAM_ELEM) {
+        min_n = (uint64_t)MIN_STREAM_ELEM;
+    }
+
+    if (target_n <= min_n) {
+        return target_n;
+    }
+
+    if (ops <= offset_ops) {
+        ops = 0;
+    } else {
+        ops -= offset_ops;
+    }
+
+    step = ops / STREAM_RAMP_OPS_STEP;
+    if (step >= STREAM_RAMP_MAX_SHIFT) {
+        return target_n;
+    }
+
+    active_n = target_n >> (STREAM_RAMP_MAX_SHIFT - step);
+
+    if (active_n < min_n) {
+        active_n = min_n;
+    }
+
+    if (active_n > target_n) {
+        active_n = target_n;
+    }
+
+    return active_n;
+}
+
 static void stress_stream_worker(void *parameter)
 {
     stream_context_t *ctx = (stream_context_t *)parameter;
     stress_args_t *args = ctx->args;
-    
+
     double *a = NULL, *b = NULL, *c = NULL;
     uint64_t n = ctx->num_elems;
+    uint64_t active_n = 0;
+    uint64_t initialized_n = 0;
+    uint64_t last_reported_n = 0;
+    uint64_t ramp_offset;
     const double q = 3.0;
+    const double divisor = 1.0 / 4294967296.0;
+    const double init_delta = (double)stress_mwc32() * divisor;
+    const double init_base = (double)stress_mwc32() * divisor;
     double old_checksum = 0.0;
     double t_start, t_end, dt;
-    
+
     double total_rd_bytes = 0.0;
     double total_wr_bytes = 0.0;
     double total_fp_ops = 0.0;
 
-    while (n >= 128) {
-        size_t alloc_sz = n * sizeof(double);
+    while (n >= (uint64_t)MIN_STREAM_ELEM) {
+        size_t alloc_sz;
+
+        if (stress_stream_size_mul(n, sizeof(double), &alloc_sz) != 0) {
+            n /= 2;
+            continue;
+        }
+
         a = (double *)stress_osal_malloc(alloc_sz);
         if (a) b = (double *)stress_osal_malloc(alloc_sz);
         if (b) c = (double *)stress_osal_malloc(alloc_sz);
@@ -151,33 +312,57 @@ static void stress_stream_worker(void *parameter)
         goto worker_done;
     }
 
-    stress_osal_print("rtos_stress: info: [stream-%d] using %d elements (approx %d KB total)\n",
-               args->instance, (int)n, (int)(n * sizeof(double) * 3 / 1024));
+    stress_osal_print("rtos_stress: info: [stream-%d] target %llu elements (approx %llu KB total)\n",
+               args->instance,
+               (unsigned long long)n,
+               (unsigned long long)(((double)n * (double)sizeof(double) * 3.0) / 1024.0));
 
-    stress_stream_init_data(a, b, c, n);
-    old_checksum = stress_stream_checksum(a, b, c, n);
+    ramp_offset = ((uint64_t)((unsigned int)args->instance & 7U)) * STREAM_RAMP_INSTANCE_OPS;
+
+    active_n = stress_stream_ramp_elems(n, (uint64_t)args->bogo.current_ops, ramp_offset);
+    stress_stream_init_data_range(a, b, c, 0, active_n, init_base, init_delta);
+    initialized_n = active_n;
+    old_checksum = stress_stream_checksum(a, b, c, active_n);
+
     t_start = stress_osal_time_now();
 
     while (stress_continue(args))
     {
-        stress_stream_copy(c, a, n);
-        stress_stream_scale(b, c, q, n);
-        stress_stream_add(c, a, b, n);
-        stress_stream_triad(a, b, c, q, n);
+        double batch_ops;
+        double new_checksum;
 
-        double batch_ops = (double)n * 4.0;
-        total_rd_bytes += (double)n * sizeof(double) * 6.0;
-        total_wr_bytes += (double)n * sizeof(double) * 4.0;
+        active_n = stress_stream_ramp_elems(n, (uint64_t)args->bogo.current_ops, ramp_offset);
+
+        if (active_n > initialized_n) {
+            stress_stream_init_data_range(a, b, c, initialized_n, active_n, init_base, init_delta);
+            initialized_n = active_n;
+            old_checksum = stress_stream_checksum(a, b, c, active_n);
+        }
+
+        if (active_n != last_reported_n) {
+            stress_osal_print("rtos_stress: info: [stream-%d] ramp: %llu of %llu elements\n",
+                       args->instance,
+                       (unsigned long long)active_n,
+                       (unsigned long long)n);
+            last_reported_n = active_n;
+            stress_osal_thread_yield();
+        }
+
+        stress_stream_run_once(a, b, c, q, active_n);
+
+        batch_ops = (double)active_n * 4.0;
+        total_rd_bytes += (double)active_n * sizeof(double) * 6.0;
+        total_wr_bytes += (double)active_n * sizeof(double) * 4.0;
         total_fp_ops += batch_ops;
 
         if ((args->bogo.current_ops % 64) == 0) {
-            double new_checksum = stress_stream_checksum(a, b, c, n);
+            new_checksum = stress_stream_checksum(a, b, c, active_n);
             if (new_checksum == 0.0 && old_checksum != 0.0) { }
         }
 
         args->bogo.current_ops++;
 
-        if (args->bogo.current_ops % 10 == 0) {
+        if ((args->bogo.current_ops % STREAM_YIELD_EVERY_OPS) == 0) {
             stress_osal_thread_yield();
         }
     }
@@ -227,11 +412,11 @@ void stress_stream(stress_args_t *args)
         return;
     }
 
-    t_worker = stress_osal_thread_spawn("ng_stream", 
-                                        stress_stream_worker, 
-                                        ctx, 
+    t_worker = stress_osal_thread_spawn("ng_stream",
+                                        stress_stream_worker,
+                                        ctx,
                                         STREAM_STACK_SIZE,
-                                        20);
+                                        STREAM_WORKER_PRIORITY);
 
     if (!t_worker) {
         stress_osal_print("rtos_stress: error: [stream] Failed to spawn worker thread\n");
