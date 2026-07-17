@@ -1,0 +1,357 @@
+schema_version: "1.0"
+updated_at: "2026-07-17"
+description: >-
+  Static hardware profiles for the fixed RTOS-Bench board inventory. These
+  profiles are intended for portal display and result enrichment. Values under
+  instance_overrides must be confirmed on the actual DUT when the product has
+  multiple SKUs or replaceable components.
+
+usage:
+  join_key: board_id
+  result_precedence:
+    - "Use non-empty runtime values from rtbench_result.json when trustworthy."
+    - "Otherwise fall back to the static profile in this file."
+    - "Never infer physical connector counts from SoC capabilities."
+  scopes:
+    board: "Physical board/system information exposed to users."
+    soc: "Processor-integrated capabilities; not all are necessarily routed on the board."
+    instance: "Configuration of the concrete DUT, such as installed RAM or CPU model."
+
+boards:
+  ls2k1000la:
+    board_id: "ls2k1000la"
+    aliases:
+      - "LS2K1000LA"
+    display_name: "Loongson 2K1000LA Platform"
+    vendor: "Loongson Technology"
+    profile_scope: "soc_family"
+    identification_status: "board_variant_required"
+    portal_visible: true
+    soc:
+      vendor: "Loongson Technology"
+      model: "LS2K1000LA"
+      architecture: "LoongArch64"
+      core_microarchitecture: "LA264"
+      core_count: 2
+      max_frequency_mhz: 1000
+      power_range_w: [1, 5]
+      l1_instruction_cache_kb_per_core: 32
+      l1_data_cache_kb_per_core: 32
+      l2_cache_kb_shared: 1024
+      memory_controller: "64-bit DDR3-1066"
+      capabilities:
+        pcie_2_0_lanes: 2
+        sata_2_0_ports: 1
+        usb_2_0_ports: 4
+        display_outputs_dvo: 2
+        ethernet_mac: true
+        spi: true
+        uart: true
+        gpio: true
+        nand: true
+        sdio: true
+        i2c: true
+        i2s: true
+        hda: true
+    board_interfaces:
+      status: "unknown_until_board_variant_confirmed"
+      ethernet_ports: null
+      usb_ports: null
+      pcie_connectors: null
+      sata_connectors: null
+    instance_overrides:
+      board_variant: null
+      board_revision: null
+      memory_capacity_mb: null
+      storage: []
+    test_power_profile:
+      voltage_v: 12.0
+      current_limit_a: 2.0
+      source: "utils/stress-auto-test/config.py"
+    rtos_support:
+      SylixOS:
+        status: "configured_in_repository"
+      OneOS:
+        status: "configured_in_repository"
+      ReWorks:
+        status: "configured_in_repository"
+        repository_key: "rede"
+    sources:
+      - title: "Loongson LS2K1000LA product page"
+        url: "https://www.loongson.cn/EN/product/show?id=21"
+        scope: "soc"
+      - title: "RTOS-Bench stress platform profiles"
+        path: "utils/stress-auto-test/config.py"
+        scope: "rtos_support,test_power_profile"
+
+  orange_pi_5:
+    board_id: "orange_pi_5"
+    aliases:
+      - "Orange-Pi5"
+      - "Orange Pi 5"
+    display_name: "Orange Pi 5"
+    vendor: "Shenzhen Xunlong Software"
+    profile_scope: "physical_board"
+    identification_status: "confirmed_model_sku_required"
+    portal_visible: true
+    soc:
+      vendor: "Rockchip"
+      model: "RK3588S"
+      architecture: "AArch64"
+      core_count: 8
+      cpu_clusters:
+        - core_type: "Cortex-A76"
+          core_count: 4
+          max_frequency_mhz: 2400
+        - core_type: "Cortex-A55"
+          core_count: 4
+          max_frequency_mhz: 1800
+      gpu: "Arm Mali-G610 MP4"
+      npu_tops: 6
+    memory:
+      type: "LPDDR4/LPDDR4X"
+      available_capacity_mb: [4096, 8192, 16384, 32768]
+    storage:
+      spi_nor_mb: 16
+      microsd: true
+      m2_m_key_pcie_2_0: true
+    board_interfaces:
+      ethernet:
+        count: 1
+        speed_mbps: 1000
+      usb:
+        usb_3_0_type_a: 1
+        usb_2_0_type_a: 2
+        usb_type_c_usb_3_1: 1
+      display:
+        hdmi_2_1: 1
+        displayport_1_4_over_type_c: 1
+        mipi_dphy_tx: 2
+      camera:
+        mipi_inputs: 3
+      expansion_header_pins: 26
+      expansion_functions: ["UART", "PWM", "I2C", "SPI", "CAN", "GPIO"]
+      debug_uart: true
+      onboard_wifi: false
+      onboard_bluetooth: false
+    dimensions_mm:
+      length: 100
+      width: 62
+    instance_overrides:
+      board_revision: null
+      memory_capacity_mb: null
+      storage_devices: []
+    test_power_profile:
+      voltage_v: 5.0
+      current_limit_a: 4.0
+      source: "utils/stress-auto-test/config.py"
+    rtos_support:
+      SylixOS:
+        status: "configured_in_repository"
+      OneOS:
+        status: "configured_in_repository"
+      Intewell:
+        status: "configured_in_repository"
+        repository_key: "intewell"
+      ReWorks:
+        status: "configured_in_repository"
+        repository_key: "rede"
+    sources:
+      - title: "Orange Pi 5 official product page"
+        url: "https://www.orangepi.org/html/hardWare/computerAndMicrocontrollers/details/Orange-Pi-5.html"
+        scope: "board,soc,interfaces"
+      - title: "RTOS-Bench stress platform profiles"
+        path: "utils/stress-auto-test/config.py"
+        scope: "rtos_support,test_power_profile"
+
+  dh_1:
+    board_id: "dh_1"
+    aliases:
+      - "DH-1"
+    display_name: "DH-1"
+    vendor: null
+    profile_scope: "physical_board"
+    identification_status: "unidentified"
+    portal_visible: true
+    soc:
+      vendor: null
+      model: null
+      architecture: null
+      core_count: null
+      max_frequency_mhz: null
+    memory:
+      type: null
+      capacity_mb: null
+    board_interfaces:
+      status: "requires_board_photo_bsp_name_or_boot_log"
+    instance_overrides:
+      manufacturer: null
+      full_model_name: null
+      board_revision: null
+      memory_capacity_mb: null
+    test_power_profile:
+      voltage_v: 5.0
+      current_limit_a: 2.0
+      source: "utils/stress-auto-test/config.py"
+    rtos_support:
+      SylixOS:
+        status: "configured_in_repository"
+      OneOS:
+        status: "configured_in_repository"
+    sources:
+      - title: "RTOS-Bench stress platform profiles"
+        path: "utils/stress-auto-test/config.py"
+        scope: "rtos_support,test_power_profile"
+    verification_todo:
+      - "Confirm manufacturer and complete product name."
+      - "Record SoC marking or BSP name."
+      - "Capture full boot log to determine architecture, core count, RAM and interfaces."
+
+  mic_7700:
+    board_id: "mic_7700"
+    aliases:
+      - "MIC-7700"
+    display_name: "Advantech MIC-7700"
+    vendor: "Advantech"
+    profile_scope: "configurable_industrial_pc"
+    identification_status: "confirmed_system_instance_cpu_required"
+    portal_visible: true
+    cpu:
+      architecture: "x86_64"
+      socket: "LGA1151"
+      supported_family: "Intel 6th/7th Generation Core i desktop processors"
+      installed_model: null
+      installed_core_count: null
+      installed_base_frequency_mhz: null
+      installed_max_frequency_mhz: null
+    chipset_options: ["Intel Q170", "Intel H110"]
+    memory:
+      type: "DDR4"
+      installed_capacity_mb: null
+    storage:
+      sata_2_5_inch_bay: 1
+      cfast_slots: 1
+      msata_slots: 1
+      mini_pcie_slots_with_sim: 1
+    board_interfaces:
+      ethernet:
+        gigabit_ports: 2
+      usb:
+        usb_3_0_ports: 8
+      serial:
+        rs232_422_485_ports: 2
+        optional_rs232_ports: 4
+      display:
+        vga: 1
+        dvi: 1
+      optional_modules: ["additional LAN", "isolated COM", "32-bit GPIO"]
+    power_input:
+      min_voltage_v: 9
+      max_voltage_v: 36
+    instance_overrides:
+      cpu_model: null
+      cpu_core_count: null
+      cpu_frequency_mhz: null
+      memory_capacity_mb: null
+      chipset: null
+    test_power_profile:
+      voltage_v: 20.0
+      current_limit_a: 7.0
+      source: "utils/stress-auto-test/config.py"
+    rtos_support:
+      SylixOS:
+        status: "configured_in_repository"
+      Intewell:
+        status: "configured_in_repository"
+        repository_key: "intewell"
+    sources:
+      - title: "Advantech MIC-7700 official product page"
+        url: "https://www.advantech.com/en-us/products/1aa4d2cd-914a-4357-a3e5-219840c81420/mic-7700/mod_18669d38-a62a-44c5-bacf-5f3107daea46"
+        scope: "system,interfaces"
+      - title: "RTOS-Bench stress platform profiles"
+        path: "utils/stress-auto-test/config.py"
+        scope: "rtos_support,test_power_profile"
+
+  phytium_pi:
+    board_id: "phytium_pi"
+    aliases:
+      - "Phytium-Pi"
+      - "Phytium Pi"
+    display_name: "Phytium Pi"
+    vendor: "Phytium Technology"
+    profile_scope: "physical_board"
+    identification_status: "confirmed_model_revision_required"
+    portal_visible: true
+    soc:
+      vendor: "Phytium Technology"
+      model: "Phytium E2000Q"
+      architecture: "ARMv8/AArch64"
+      core_count: 4
+      cpu_clusters:
+        - core_type: "FTC664"
+          core_count: 2
+          max_frequency_mhz: 1800
+        - core_type: "FTC310"
+          core_count: 2
+          max_frequency_mhz: 1500
+    memory:
+      bus_width_bits: 64
+      type: "DDR4"
+      available_capacity_mb: [2048, 4096]
+    storage:
+      microsd_or_emmc: true
+      selection: "one_of"
+    board_interfaces:
+      ethernet:
+        gigabit_ports: 2
+      usb:
+        usb_3_0_host: 1
+        usb_2_0_host: 3
+      mini_pcie: 1
+      bluetooth: "BT 4.2/BLE 4.2"
+      wifi: "2.4GHz + 5GHz dual-band"
+      display:
+        hdmi_1080p: 1
+      audio:
+        headphone_3_5mm: 1
+      uart:
+        debug_ports: 1
+        mio_configurable_ports: 2
+      i2c:
+        native_ports: 2
+        mio_configurable_ports: 2
+      i2s_ports: 1
+      spi_ports: 2
+      canfd_ports: 1
+      gpio_max: 29
+      sim_slots: 1
+      sd_slots: 1
+    dimensions_mm:
+      length: 119
+      width: 93.1
+    instance_overrides:
+      board_revision: null
+      memory_capacity_mb: null
+      storage_type: null
+    test_power_profile:
+      voltage_v: 12.0
+      current_limit_a: 3.0
+      source: "utils/stress-auto-test/config.py"
+    rtos_support:
+      SylixOS:
+        status: "configured_in_repository"
+      OneOS:
+        status: "configured_in_repository"
+      ReWorks:
+        status: "configured_in_repository"
+        repository_key: "rede"
+    sources:
+      - title: "Phytium Pi official product page"
+        url: "https://www.phytium.com.cn/homepage/phytium_pie/"
+        scope: "board,soc,interfaces"
+      - title: "Phytium E2000 official product page"
+        url: "https://www.phytium.com.cn/homepage/production/12/"
+        scope: "soc"
+      - title: "RTOS-Bench stress platform profiles"
+        path: "utils/stress-auto-test/config.py"
+        scope: "rtos_support,test_power_profile"
