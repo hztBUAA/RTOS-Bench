@@ -347,29 +347,30 @@ int modbus_test(void) {
 
     g_server_stop = 0;
 
-    /* Output suppressed to avoid affecting performance measurements */
-    // printf("Creating Server thread...\n");
+    MDB_PRINTF("[POSIX Thread][MODBUS][Server] Creating benchmark thread...\n");
     ret = pthread_create(&s_tid, &attr, server_thread_entry, NULL);
     if (ret != 0) {
-        MDB_PRINTF("Error creating server thread: %d\n", ret);
+        MDB_PRINTF("[POSIX Thread][MODBUS][Server] Failed to create benchmark thread. Error: %d\n", ret);
         pthread_attr_destroy(&attr);
         return -1;
     }
     // pthread_detach(s_tid);
 
+    MDB_PRINTF("[POSIX Thread][MODBUS][Client] Creating benchmark thread...\n");
     ret = pthread_create(&c_tid, &attr, client_thread_entry, NULL);
     if (ret != 0) {
-        MDB_PRINTF("Error creating client thread: %d\n", ret);
+        MDB_PRINTF("[POSIX Thread][MODBUS][Client] Failed to create benchmark thread. Error: %d\n", ret);
         g_server_stop = 1;
         pthread_join(s_tid, NULL);
+        MDB_PRINTF("[POSIX Thread][MODBUS][Server] Benchmark thread finished.\n");
         pthread_attr_destroy(&attr);
         return -1;
     }
     pthread_join(c_tid, NULL);
+    MDB_PRINTF("[POSIX Thread][MODBUS][Client] Benchmark thread finished.\n");
     g_server_stop = 1;
     pthread_join(s_tid, NULL);
-    /* Output suppressed to avoid affecting performance measurements */
-    // printf("[MODBUS] Server thread joined. Test complete.\n");
+    MDB_PRINTF("[POSIX Thread][MODBUS][Server] Benchmark thread finished.\n");
 
     pthread_attr_destroy(&attr);
     return 0;

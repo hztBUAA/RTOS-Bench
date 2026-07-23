@@ -32,7 +32,6 @@ static double diff_timespec_us(const struct timespec *start, const struct timesp
 }
 
 int fast_bench_run_once(int loops) {
-    FAST_PRINTF("[POSIX] Starting FAST Benchmark ...\n");
     FAST_PRINTF("Total Images: %d\n", benchmark_suite_len);
 
     // 1. 准备内存
@@ -120,16 +119,17 @@ void fast_test(void) {
     pthread_attr_setschedparam(&attr, &param);
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
-    printf("Creating POSIX thread for FAST benchmark...\n");
+    printf("[POSIX Thread][FAST] Creating benchmark thread...\n");
 
     ret = pthread_create(&tid, &attr, fast_bench_pthread_entry, NULL);
     
     pthread_attr_destroy(&attr);
 
     if (ret != 0) {
-        printf("Failed to create pthread. Error: %d\n", ret);
+        printf("[POSIX Thread][FAST] Failed to create benchmark thread. Error: %d\n", ret);
     } else {
         pthread_join(tid, NULL); 
+        printf("[POSIX Thread][FAST] Benchmark thread finished.\n");
     }
 }
 // 导出到 MSH 控制台

@@ -46,8 +46,6 @@ static double diff_timespec_us(const struct timespec *start, const struct timesp
 }
 
 extern "C" int epnp_bench_run(size_t iterations) {
-    std::cout << "[POSIX] Starting ePnP Benchmark..." << std::endl;
-
     // 1. 初始化随机种子
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -113,7 +111,7 @@ extern "C" int epnp_bench_run(size_t iterations) {
     double avg_time_us = total_time_us / loops;
 
     /* Unified format timing output */
-    printf("[EPNP] samples=%lu total_time=%.3f ms avg_latency=%.3f us/iter\n",
+    printf("[ePnP] samples=%lu total_time=%.3f ms avg_latency=%.3f us/iter\n",
            (unsigned long)loops, total_time_us / 1000.0, avg_time_us);
 
     return 0;
@@ -147,6 +145,8 @@ extern "C" int epnp_test(void) {
     // 显式继承调度属性
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
+    printf("[POSIX Thread][ePnP] Creating benchmark thread...\n");
+
     // 创建线程
     ret = pthread_create(&tid, &attr, epnp_thread_entry, NULL);
 
@@ -154,11 +154,11 @@ extern "C" int epnp_test(void) {
     pthread_attr_destroy(&attr);
     
     if (ret == 0) {
-        printf("ePnP benchmark thread created successfully (POSIX).\n");
         pthread_join(tid, NULL);
+        printf("[POSIX Thread][ePnP] Benchmark thread finished.\n");
     }
     else {
-        printf("Failed to create epnp benchmark thread. Error: %d\n", ret);
+        printf("[POSIX Thread][ePnP] Failed to create benchmark thread. Error: %d\n", ret);
     }
     
     return 0;

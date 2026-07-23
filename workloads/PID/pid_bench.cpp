@@ -100,15 +100,16 @@ extern "C" int pid_test(void) {
     pthread_attr_setschedparam(&attr, &param);
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
-    printf("Creating POSIX thread for PID benchmark...\n");
+    printf("[POSIX Thread][PID] Creating benchmark thread...\n");
 
     ret = pthread_create(&tid, &attr, pid_thread_entry, NULL);
 
     pthread_attr_destroy(&attr);
     if (ret != 0) {
-        printf("Failed to create pthread. Error: %d\n", ret);
+        printf("[POSIX Thread][PID] Failed to create benchmark thread. Error: %d\n", ret);
     } else {
         pthread_join(tid, NULL); 
+        printf("[POSIX Thread][PID] Benchmark thread finished.\n");
     }
 
     return 0;

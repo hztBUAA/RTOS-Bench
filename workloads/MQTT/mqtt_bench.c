@@ -211,13 +211,14 @@ int mqtt_test(void) {
     pthread_attr_setschedparam(&attr, &param);
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
-    printf("Starting MQTT Benchmark...\n");
+    printf("[POSIX Thread][MQTT] Creating benchmark thread...\n");
     ret = pthread_create(&tid, &attr, mqtt_thread_entry, NULL);
     if (ret != 0) {
-        printf("Error creating MQTT thread: %d\n", ret);
+        printf("[POSIX Thread][MQTT] Failed to create benchmark thread. Error: %d\n", ret);
         return -1;
     }
     pthread_join(tid, NULL);
+    printf("[POSIX Thread][MQTT] Benchmark thread finished.\n");
     pthread_attr_destroy(&attr);
     return g_mqtt_failed ? -1 : 0;
 }

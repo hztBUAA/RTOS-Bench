@@ -196,12 +196,13 @@ extern "C" int ekf_test(void) {
     pthread_attr_setschedparam(&attr, &param);
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
+    printf("[POSIX Thread][EKF] Creating benchmark thread...\n");
     ret = pthread_create(&tid, &attr, ekf_thread_entry, NULL);
     if (ret == 0) {
-        printf("EKF simulation thread created successfully (pthread).\n");
         pthread_join(tid, NULL);
+        printf("[POSIX Thread][EKF] Benchmark thread finished.\n");
     } else {
-        printf("Failed to create EKF simulation thread! Error code: %d\n", ret);
+        printf("[POSIX Thread][EKF] Failed to create benchmark thread. Error: %d\n", ret);
     }
     pthread_attr_destroy(&attr);
     return 0;

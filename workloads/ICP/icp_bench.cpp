@@ -81,16 +81,17 @@ extern "C" int icp_test(void) {
     pthread_attr_setschedparam(&attr, &param);
     pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 
-    cout << "[POSIX] Creating ICP benchmark thread..." << endl;
+    cout << "[POSIX Thread][ICP] Creating benchmark thread..." << endl;
 
     ret = pthread_create(&tid, &attr, icp_thread_entry, NULL);
     
     pthread_attr_destroy(&attr);
 
     if (ret != 0) {
-        cout << "Failed to create pthread. Error code: " << ret << endl;
+        cout << "[POSIX Thread][ICP] Failed to create benchmark thread. Error: " << ret << endl;
     } else {
         pthread_join(tid, NULL);
+        cout << "[POSIX Thread][ICP] Benchmark thread finished." << endl;
     }
 
     return 0;

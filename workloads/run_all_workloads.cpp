@@ -16,41 +16,65 @@ extern "C" {
 extern "C" int run_all_workloads() {
     cout << "=== Benchmark Suite Start ===" << endl;
 
-    // 1. FAST Feature Detection
-    cout << "\n[1/9] Running FAST benchmark..." << endl;
-    fast_test();
+    // Category 1: Real-Time Control
+    cout << "\n============================================================" << endl;
+    cout << "[Category 1/4] Real-Time Control" << endl;
+    cout << "Benchmarks: PID, EKF" << endl;
+    cout << "============================================================" << endl;
 
-    // 2. EKF (Extended Kalman Filter)
-    cout << "\n[2/9] Running EKF benchmark..." << endl;
-    ekf_test();
-
-    // 3. ICP (Iterative Closest Point)
-    cout << "\n[3/9] Running ICP benchmark..." << endl;
-    icp_test();
-
-    // 4. PID Controller
-    cout << "\n[4/9] Running PID benchmark..." << endl;
+    cout << "\n--- [Benchmark 1/9] PID benchmark start ---\n" << endl;
     pid_test();
+    cout << "\n--- [Benchmark 1/9] PID benchmark finished ---" << endl;
 
-    // 5. CUSUM
-    cout << "\n[5/9] Running CUMSUM benchmark..." << endl;
-    cusum_bench_run();
+    cout << "\n--- [Benchmark 2/9] EKF benchmark start ---\n" << endl;
+    ekf_test();
+    cout << "\n--- [Benchmark 2/9] EKF benchmark finished ---" << endl;
 
-    // 6. EWMA
-    cout << "\n[6/9] Running EWMA benchmark..." << endl;
-    ewma_bench_run();
+    // Category 2: Perception Computing
+    cout << "\n============================================================" << endl;
+    cout << "[Category 2/4] Perception Computing" << endl;
+    cout << "Benchmarks: FAST, ICP, ePnP" << endl;
+    cout << "============================================================" << endl;
 
-    // 7. EPNP (Efficient Perspective-n-Point)
-    cout << "\n[7/9] Running EPNP benchmark..." << endl;
+    cout << "\n--- [Benchmark 3/9] FAST benchmark start ---\n" << endl;
+    fast_test();
+    cout << "\n--- [Benchmark 3/9] FAST benchmark finished ---" << endl;
+
+    cout << "\n--- [Benchmark 4/9] ICP benchmark start ---\n" << endl;
+    icp_test();
+    cout << "\n--- [Benchmark 4/9] ICP benchmark finished ---" << endl;
+
+    cout << "\n--- [Benchmark 5/9] ePnP benchmark start ---\n" << endl;
     epnp_test();
+    cout << "\n--- [Benchmark 5/9] ePnP benchmark finished ---" << endl;
 
-    // 8. MODBUS Protocol
-    cout << "\n[8/9] Running MODBUS benchmark..." << endl;
+    // Category 3: Communication Protocol
+    cout << "\n============================================================" << endl;
+    cout << "[Category 3/4] Communication Protocol" << endl;
+    cout << "Benchmarks: MODBUS, MQTT" << endl;
+    cout << "============================================================" << endl;
+
+    cout << "\n--- [Benchmark 6/9] MODBUS benchmark start ---\n" << endl;
     modbus_test();
+    cout << "\n--- [Benchmark 6/9] MODBUS benchmark finished ---" << endl;
 
-    // 9. MQTT Protocol
-    cout << "\n[9/9] Running MQTT benchmark..." << endl;
+    cout << "\n--- [Benchmark 7/9] MQTT benchmark start ---\n" << endl;
     mqtt_test();
+    cout << "\n--- [Benchmark 7/9] MQTT benchmark finished ---" << endl;
+
+    // Category 4: Operations Monitoring
+    cout << "\n============================================================" << endl;
+    cout << "[Category 4/4] Operations Monitoring" << endl;
+    cout << "Benchmarks: EWMA, CUMSUM" << endl;
+    cout << "============================================================" << endl;
+
+    cout << "\n--- [Benchmark 8/9] EWMA benchmark start ---\n" << endl;
+    ewma_bench_run();
+    cout << "\n--- [Benchmark 8/9] EWMA benchmark finished ---" << endl;
+
+    cout << "\n--- [Benchmark 9/9] CUMSUM benchmark start ---\n" << endl;
+    cusum_bench_run();
+    cout << "\n--- [Benchmark 9/9] CUMSUM benchmark finished ---" << endl;
 
     cout << "\n=== All Benchmarks Completed ===" << endl;
     return 0;
