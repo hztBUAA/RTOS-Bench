@@ -80,6 +80,10 @@ static unsigned memory_profiling_enabled = 0;
 /// Semaphore used to determine if a new job can be started.
 static rtbench_sem_t period_sem = NULL;
 
+/// Guards benchmark_teardown() against being run twice when cleanup is invoked
+/// both explicitly and via atexit() on RTOS platforms (prevents double free).
+static int benchmark_torn_down = 0;
+
 /// Timestamp in clock cycles of when the last job ended, it can be 0 if the job has not
 /// finished yet.
 static unsigned long long job_end_timestamp_clocks = 0;
@@ -144,6 +148,7 @@ static void stop_benchmark(int status, void *arg)
 		if (res == EOF) {
 			perror("Error during output file close");
 		}
+		filep = NULL;
 	}
 #if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
 	(defined(X86_64) && defined(CORE_I7))
@@ -175,6 +180,7 @@ static void stop_benchmark(int status, void *arg)
 		if (res < 0) {
 			perror("Error during deadline timer deletion");
 		}
+		deadline_timer = NULL;
 	}
 	if (period_timer != NULL) {
 		elogf(LOG_LEVEL_TRACE, "Deleting period timer\n");
@@ -182,15 +188,22 @@ static void stop_benchmark(int status, void *arg)
 		if (res < 0) {
 			perror("Error during period timer deletion");
 		}
+		period_timer = NULL;
 	}
 	if (period_sem != NULL) {
 		res = rtbench_sem_destroy(period_sem);
 		if (res < 0) {
 			perror("Error during period semaphore destruction");
 		}
+		period_sem = NULL;
 	}
 	elogf(LOG_LEVEL_TRACE, "Cleaning up job environment\n");
-	benchmark_teardown(benchmark_param_num, benchmark_params);
+	if (!benchmark_torn_down) {
+		benchmark_teardown(benchmark_param_num, benchmark_params);
+		benchmark_torn_down = 1;
+	}
+	benchmark_params = NULL;
+	benchmark_param_num = 0;
 #if (defined(AARCH64) && defined(CORTEX_A53)) ||                               \
 	(defined(X86_64) && defined(CORE_I7))
 	res = teardown_pmcs();
@@ -451,6 +464,7 @@ int periodic_benchmark(struct execution_options *exec_opts)
 {
 	/* Reset static state for re-entrant calls (RT-Thread single address space) */
 	tasks_launched = 0;
+	benchmark_torn_down = 0;
 	job_end_timestamp_clocks = 0;
 	last_deadline_timestamp_clocks = 0;
 	job_deadline_timestamp_clocks = 0;
