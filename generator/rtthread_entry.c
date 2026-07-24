@@ -932,6 +932,8 @@ static void collect_schedule_result(void)
 			}
 			tdst->jobs = tsrc->total_jobs;
 			tdst->misses = tsrc->deadline_misses;
+			tdst->utilization = tsrc->utilization;
+			tdst->period_ms = tsrc->period_ms;
 			if (tsrc->total_jobs > 0) {
 				tdst->max_response_ms = (double)tsrc->max_response_ns / 1000000.0;
 			}

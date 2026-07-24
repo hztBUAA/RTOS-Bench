@@ -877,6 +877,11 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 
 		memset(&stats[i], 0, sizeof(stats[i]));
 		stats[i].name = tasks[i].name;
+		/* Carry the generated per-task utilization/period into the stats so
+		 * they reach the JSON export (previously left 0 because the stats
+		 * struct had no such fields). These come from UUniFast task config. */
+		stats[i].utilization = tasks[i].utilization;
+		stats[i].period_ms = (double)tasks[i].period_ns / 1000000.0;
 	}
 
 #if TEST_SCHEDULE_SEQUENTIAL

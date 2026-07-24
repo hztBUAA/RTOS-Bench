@@ -105,6 +105,8 @@ struct schedule_task_config {
  */
 struct schedule_task_stats {
 	const char *name;           /**< Task name */
+	double utilization;         /**< Assigned utilization (0.0-1.0), from task config */
+	double period_ms;           /**< Period in ms (= period_ns/1e6), from task config */
 	uint64_t total_jobs;        /**< Total job activations */
 	uint64_t deadline_misses;   /**< Jobs that missed deadline */
 	uint64_t total_response_ns; /**< Sum of response times for avg calculation */
