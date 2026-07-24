@@ -119,6 +119,7 @@ RTBENCH_WORKLOAD_SRCS := \
 
 RTBENCH_WORKLOAD_CXX_SRCS := \
 	rtbench_workloads.cpp \
+	run_all_workloads.cpp \
 	EKF/EKF_core/airspeed_fusion.cpp \
 	EKF/EKF_core/control.cpp \
 	EKF/EKF_core/covariance.cpp \
