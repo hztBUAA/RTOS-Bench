@@ -264,7 +264,7 @@ void print_statistics(FILE *file, unsigned long long period_start_clocks,
  * given filename. After the file has been opened/created the timestamp (in ISO
  * 8601) of the current tun will be written.
  * */
-FILE *open_log_file(char *filename)
+FILE *rtbench_open_log_file(char *filename)
 {
 	FILE *bmark_output = fopen(filename, "a");
 	if (bmark_output != NULL) {
@@ -281,7 +281,7 @@ FILE *open_log_file(char *filename)
 /** @details
  *  Flushes and closes the log file.
  * */
-int close_log_file(FILE *file)
+int rtbench_close_log_file(FILE *file)
 {
 	int res = 0;
 	res = fflush(file);

@@ -130,13 +130,17 @@ void print_statistics(FILE *file, unsigned long long period_start_clocks,
 /** @brief Open a log file.
  * @param[in] filename The pathname (and extension) of the log file to open.
  * @returns A `FILE*` pointer or `NULL` in case or error, setting `errno`.
+ * @note Namespaced with the `rtbench_` prefix to avoid a global-symbol
+ * collision with ReWorks (锐华飞腾派) whose base image already exports an
+ * `open_log_file`; the unprefixed name makes `ld` reject our dynamic module.
  */
-FILE *open_log_file(char *filename);
+FILE *rtbench_open_log_file(char *filename);
 
 /** @brief Closes a log file.
  * @param[in] file The file pointer of the log file to close.
  * @returns A `0` or `EOF` in case or error, setting `errno`.
+ * @note Namespaced with the `rtbench_` prefix, see rtbench_open_log_file().
  */
-int close_log_file(FILE *file);
+int rtbench_close_log_file(FILE *file);
 
 #endif
