@@ -113,7 +113,7 @@ extern enum log_level benchmark_verbosity;
  * @param[in] clock_count_start The first value for the clock cycles counter when the job started.
  * @param[in] clock_count_end The last value for the clock cycles counter when the job ended.
 */
-void print_statistics(FILE *file, unsigned long long period_start_clocks,
+void rtbench_print_statistics(FILE *file, unsigned long long period_start_clocks,
 		      unsigned long long period_end_clocks,
 		      unsigned long long job_end_clocks,
 		      unsigned long long deadline_clocks,

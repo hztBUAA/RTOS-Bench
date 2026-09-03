@@ -286,7 +286,7 @@ static void handle_deadline(void)
  *
  * Both `rtbench_get_rdtsc()` and `rtbench_get_timestamp()` are used, to be safe in case only one of these methods is working.
  *
- * Reporting is done using `print_statistics()`.
+ * Reporting is done using `rtbench_print_statistics()`.
  */
 static void handle_period(void)
 {
@@ -330,7 +330,7 @@ static void handle_period(void)
 		if (job_end_timestamp_clocks > 0 || job_end_timestamp > 0) {
 #if RTBENCH_PERF_SUPPORT
 			if (memory_profiling_enabled) {
-				print_statistics(
+				rtbench_print_statistics(
 					filep, job_period_start_timestamp_clocks,
 					job_period_end_timestamp_clocks,
 					job_end_timestamp_clocks,
@@ -354,7 +354,7 @@ static void handle_period(void)
 			} else
 #endif
 			{
-				print_statistics(
+				rtbench_print_statistics(
 					filep, job_period_start_timestamp_clocks,
 					job_period_end_timestamp_clocks,
 					job_end_timestamp_clocks,
@@ -372,7 +372,7 @@ static void handle_period(void)
 			if (last_deadline_timestamp_clocks !=
 				    job_deadline_timestamp_clocks ||
 			    last_deadline_timestamp != job_deadline_timestamp) {
-				print_statistics(filep, 0, 0, 0,
+				rtbench_print_statistics(filep, 0, 0, 0,
 						 last_deadline_timestamp_clocks,
 						 0.0, 0.0, 0.0,
 						 last_deadline_timestamp,

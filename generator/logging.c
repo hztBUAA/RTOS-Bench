@@ -60,7 +60,7 @@ enum log_level benchmark_verbosity = LOG_LEVEL_INFO;
  * This report is made by printing a line where all the elements but the deadline or the period start are set to 0.\n
  * Example for a deadline skip: `0,0,0,2154695482719,0,0.000000000,0.000000000,0.000000000,821.040738944,0.000000000,0,0,0` 
  */
-void print_timing(FILE *file, unsigned long long period_start_clocks,
+static void print_timing(FILE *file, unsigned long long period_start_clocks,
 		  unsigned long long period_end_clocks,
 		  unsigned long long job_end_clocks,
 		  unsigned long long deadline_clocks, long double period_start,
@@ -151,7 +151,7 @@ void print_timing(FILE *file, unsigned long long period_start_clocks,
 	}
 }
 
-void print_performance_counters(
+static void print_performance_counters(
 	FILE *file, long unsigned l1_ref_start, long unsigned l1_miss_start,
 	long unsigned l2_ref_start, long unsigned l2_miss_start,
 	long unsigned inst_retired_start, long unsigned clock_count_start,
@@ -199,7 +199,7 @@ void print_performance_counters(
 	}
 }
 
-void print_extra_data(FILE *file, float extra_measurement)
+static void print_extra_data(FILE *file, float extra_measurement)
 {
 	switch (benchmark_verbosity) {
 	case LOG_LEVEL_TRACE:
@@ -216,7 +216,7 @@ void print_extra_data(FILE *file, float extra_measurement)
 	}
 }
 
-void print_statistics(FILE *file, unsigned long long period_start_clocks,
+void rtbench_print_statistics(FILE *file, unsigned long long period_start_clocks,
 		      unsigned long long period_end_clocks,
 		      unsigned long long job_end_clocks,
 		      unsigned long long deadline_clocks,
