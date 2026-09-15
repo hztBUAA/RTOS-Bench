@@ -8,7 +8,7 @@ CURRENT_TASK = {
 
 POWER_SUPPLY_CONFIG = {
     "port": "COM4",
-    "baudrate": 9600,
+    "baudrate": 115200,
     "timeout": 1.0,
     "write_timeout": 1.0,
     "open_retries": 3,
@@ -78,10 +78,10 @@ def _platform(ip, start_cmd, shutdown_cmd, dut_conn_type="COM", com_port="COM3")
 
 SYLIXOS_START_CMD = {
     "standby": [],
-    "cpu": ["cd /apps/stress-ng/", "./rtos_bench test-stress --job cpu"],
-    "memory": ["cd /apps/stress-ng/", "./rtos_bench test-stress --job memory"],
-    "file": ["cd /apps/stress-ng/", "./rtos_bench test-stress --job file"],
-    "default": ["cd /apps/stress-ng/", "./rtos_bench test-stress"]
+    "cpu": ["cd /apps", "./rtos_bench test-stress --job cpu"],
+    "memory": ["cd /apps", "./rtos_bench test-stress --job memory"],
+    "file": ["cd /apps", "./rtos_bench test-stress --job file"],
+    "default": ["cd /apps", "./rtos_bench test-stress"]
 }
 
 ONEOS_START_CMD = {

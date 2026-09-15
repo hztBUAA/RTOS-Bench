@@ -31,7 +31,8 @@ CONFIG = {
     "workload_partial_mode":  True,
     "power_partial_mode":     True,
     "storage_path":           "./data/results_db.sqlite",
-    "baseline_os":            "RT-Thread",
+    "baseline_os":            "SylixOS",
+    "baseline_board":         "LS2K1000LA",
 }
 
 WORKLOAD_CATEGORY_MAP = {
@@ -221,13 +222,14 @@ def upsert_score(conn, board_model, os_name, arch,
           now_iso()))
 
 
-def get_baseline_value(conn, board_model, arch,
-                       category, sub_category, item_key) -> Optional[float]:
+def get_baseline_value(conn, category, sub_category, item_key) -> Optional[float]:
+    """绝对基准原始值：SylixOS + LS2K1000LA（对所有板卡统一）。"""
     row = conn.execute("""
     SELECT raw_value FROM raw_records
-    WHERE board_model=? AND arch=? AND os_name=?
+    WHERE board_model=? AND os_name=?
       AND category=? AND sub_category=? AND item_key=?
-    """, (board_model, arch, CONFIG["baseline_os"],
+    ORDER BY rowid LIMIT 1
+    """, (CONFIG["baseline_board"], CONFIG["baseline_os"],
           category, sub_category, item_key)).fetchone()
     return row["raw_value"] if row else None
 
@@ -317,19 +319,40 @@ def normalize_items_for_board(board_model: str, arch: str,
 # ─────────────────────────────────────────────
 # 4. JSON 解析（只存 R_value，不算 item_score）
 # ─────────────────────────────────────────────
-def parse_json_results(filepath: str, conn: sqlite3.Connection) -> dict:
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception as e:
-        logger.error(f"JSON 解析失败 [{filepath}]: {e}")
-        return {}
+def validate_json_data(data: dict) -> Optional[str]:
+    """完整格式校验：返回错误描述；None 表示通过。"""
+    if not isinstance(data, dict):
+        return "根节点不是对象"
+    env = data.get("env")
+    if not isinstance(env, dict):
+        return "缺少 env 对象"
+    for k in ("os_name", "board", "cpu_type"):
+        if not env.get(k):
+            return f"env.{k} 缺失或为空"
+    modules = data.get("modules")
+    if not isinstance(modules, dict):
+        return "缺少 modules 对象"
+    if not any(m in modules for m in
+               ("test-realtime", "test-schedule", "typical-workload", "test-stress")):
+        return "modules 缺少已知测试模块"
+    stress = modules.get("test-stress")
+    if isinstance(stress, dict) and stress.get("power") is not None:
+        power = stress["power"]
+        if not isinstance(power, list):
+            return "test-stress.power 不是数组"
+        for i, e in enumerate(power):
+            if not isinstance(e, dict):
+                return f"test-stress.power[{i}] 不是对象"
+            if str(e.get("name", "")).strip().lower() not in POWER_TASK_MAP:
+                return f"test-stress.power[{i}].name 非法: {e.get('name')!r}"
+    return None
 
+
+def _parse_json_data(data: dict, conn: sqlite3.Connection, source: str) -> dict:
     env         = data.get("env", {})
     board_model = env.get("board", "unknown")
     os_name     = env.get("os_name", "unknown")
     arch        = env.get("cpu_type", "unknown")
-    source      = os.path.basename(filepath)
     ts          = now_iso()
 
     logger.info(f"解析 JSON: board={board_model}, os={os_name}, arch={arch}")
@@ -338,9 +361,25 @@ def parse_json_results(filepath: str, conn: sqlite3.Connection) -> dict:
     _parse_realtime_module(conn, modules, board_model, os_name, arch, source, ts)
     _parse_schedule_module(conn, modules, board_model, os_name, arch, source, ts)
     _parse_workload_module(conn, modules, board_model, os_name, arch, source, ts)
-    conn.commit()
+    _parse_power_from_json(conn, modules, board_model, os_name, arch, source, ts)
 
     return {"board_model": board_model, "os_name": os_name, "arch": arch}
+
+
+def parse_json_results(filepath: str, conn: sqlite3.Connection) -> dict:
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        logger.error(f"JSON 解析失败 [{filepath}]: {e}")
+        return {}
+
+    err = validate_json_data(data)
+    if err:
+        logger.error(f"格式校验失败 [{filepath}]: {err}")
+        return {}
+
+    return _parse_json_data(data, conn, os.path.basename(filepath))
 
 
 def _make_rec_base(board_model, os_name, arch, category,
@@ -366,10 +405,17 @@ def _fill_R_only(rec: dict, conn: sqlite3.Connection) -> dict:
         rec["status"] = "null_value"
         return rec
 
+    if (rec["board_model"] == CONFIG["baseline_board"]
+            and rec["os_name"] == CONFIG["baseline_os"]):
+        rec["baseline_value"]  = rec["raw_value"]
+        rec["baseline_source"] = "self"
+        rec["R_value"]         = 1.0
+        rec["status"]          = "ok"
+        return rec
+
     if rec["baseline_value"] is None:
         bv = get_baseline_value(
             conn,
-            rec["board_model"], rec["arch"],
             rec["category"], rec["sub_category"], rec["item_key"]
         )
         if bv is not None:
@@ -507,6 +553,53 @@ def _parse_workload_module(conn, modules, board_model, os_name, arch, source, ts
         upsert_record(conn, rec)
 
 
+def _parse_power_from_json(conn, modules, board_model, os_name, arch, source, ts):
+    """从 JSON 的 modules.test-stress.power 读取功耗（JSON 为唯一功耗来源）。"""
+    stress = modules.get("test-stress")
+    if not isinstance(stress, dict):
+        return
+    power_list = stress.get("power")
+    if not isinstance(power_list, list):
+        return
+
+    for entry in power_list:
+        if not isinstance(entry, dict):
+            continue
+        name = str(entry.get("name", "")).strip().lower()
+        power_field = POWER_TASK_MAP.get(name)
+        if power_field is None:
+            continue
+
+        placeholder = bool(entry.get("placeholder", False))
+        total_j     = safe_float(entry.get("power_data"))
+
+        rec = _make_rec_base(board_model, os_name, arch,
+                             "power", power_field, "power_data", source, ts)
+        rec["raw_value"]   = total_j
+        rec["raw_unit"]    = "J"
+        rec["metric_type"] = "power"
+
+        if placeholder or total_j is None or total_j <= 0:
+            rec["status"] = "null_value"
+        elif (board_model == CONFIG["baseline_board"]
+              and os_name == CONFIG["baseline_os"]):
+            rec["baseline_value"]  = total_j
+            rec["baseline_source"] = "self"
+            rec["R_value"]         = 1.0
+            rec["status"]          = "ok"
+        else:
+            bv = get_baseline_value(conn, "power", power_field, "power_data")
+            if bv is not None and bv > 0:
+                rec["baseline_value"]  = bv
+                rec["baseline_source"] = "db"
+                rec["R_value"]         = bv / total_j
+                rec["status"]          = "ok"
+            else:
+                rec["status"] = "baseline_missing"
+
+        upsert_record(conn, rec)
+
+
 # ─────────────────────────────────────────────
 # 5. Excel 解析（功耗，沿用归一化逻辑不变）
 # ─────────────────────────────────────────────
@@ -559,25 +652,25 @@ def parse_power_excel(filepath: str, conn: sqlite3.Connection) -> list:
             if power_field is None:
                 continue
 
-            avg_power = safe_float(row.get(col_map.get("avg_power_w", ""), None))
-            if avg_power is None:
-                total_j  = safe_float(row.get(col_map.get("total_j", ""), None))
-                duration = safe_float(row.get(col_map.get("duration_s", ""), None))
-                if total_j and duration and duration > 0:
-                    avg_power = total_j / duration
+            total_j = safe_float(row.get(col_map.get("total_j", ""), None))
+            if total_j is None:
+                avg_power = safe_float(row.get(col_map.get("avg_power_w", ""), None))
+                duration  = safe_float(row.get(col_map.get("duration_s", ""), None))
+                if avg_power and duration and duration > 0:
+                    total_j = avg_power * duration
 
             rec = _make_rec_base(board_model, os_name, arch,
                                  "power", power_field,
-                                 "avg_power_w", source, ts)
-            rec["raw_value"]   = avg_power
-            rec["raw_unit"]    = "W"
+                                 "power_data", source, ts)
+            rec["raw_value"]   = total_j
+            rec["raw_unit"]    = "J"
             rec["metric_type"] = "power"
 
             if rec["raw_value"] is None:
                 rec["status"] = "null_value"
             else:
-                bv = get_baseline_value(conn, board_model, arch,
-                                        "power", power_field, "avg_power_w")
+                bv = get_baseline_value(conn,
+                                        "power", power_field, "power_data")
                 if bv is not None and bv > 0 and rec["raw_value"] > 0:
                     rec["baseline_value"]  = bv
                     rec["baseline_source"] = "db"
@@ -639,7 +732,7 @@ def normalize_power_for_board(board_model: str, arch: str,
             r = conn.execute("""
             SELECT R_value FROM raw_records
             WHERE board_model=? AND os_name=? AND arch=?
-              AND category='power' AND sub_category=? AND item_key='avg_power_w'
+              AND category='power' AND sub_category=? AND item_key='power_data'
               AND R_value IS NOT NULL
             """, (board_model, os_name, arch, pf)).fetchone()
             if r:
@@ -765,7 +858,7 @@ def recalc_scores_for_target(board_model: str, os_name: str, arch: str,
         row = conn.execute("""
         SELECT R_value FROM raw_records
         WHERE board_model=? AND os_name=? AND arch=?
-          AND category='power' AND sub_category=? AND item_key='avg_power_w'
+          AND category='power' AND sub_category=? AND item_key='power_data'
         """, (board_model, os_name, arch, pf)).fetchone()
         if row and row["R_value"] is not None:
             power_r_vals[pf] = row["R_value"]
@@ -974,28 +1067,63 @@ def _collect_boards(conn) -> list:
 def ingest_json_files(pattern: str, conn: sqlite3.Connection):
     """
     批量导入 JSON 文件：
-    1. 解析所有 JSON → 写入 raw_records（只存 R_value）
-    2. 对受影响板卡做 min-max 归一化
-    3. 对受影响系统重算汇总分数
+    1. 完整格式校验（先校验，后写库）
+    2. 基准板卡（SylixOS + LS2K1000LA）优先入库
+    3. 单事务写入所有 raw_records
+    4. min-max 归一化 + 功耗归一化 + 重算汇总分数
     """
-    files    = glob.glob(pattern, recursive=True)
+    files = sorted(glob.glob(pattern, recursive=True))
     if not files:
         logger.warning(f"没有找到 JSON 文件: {pattern}")
-    affected = set()
-    for fp in sorted(files):
-        result = parse_json_results(fp, conn)
-        if result:
-            affected.add((result["board_model"],
-                          result["os_name"],
-                          result["arch"]))
+        return
 
-    # 归一化受影响的板卡
+    # 1) 加载 + 完整格式校验
+    valid = []   # (filepath, data, info)
+    for fp in files:
+        try:
+            with open(fp, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            logger.error(f"JSON 解析失败，跳过 [{fp}]: {e}")
+            continue
+        err = validate_json_data(data)
+        if err:
+            logger.error(f"格式校验失败，跳过 [{fp}]: {err}")
+            continue
+        env = data.get("env", {})
+        info = {"board_model": env.get("board", "unknown"),
+                "os_name":     env.get("os_name", "unknown"),
+                "arch":        env.get("cpu_type", "unknown")}
+        valid.append((fp, data, info))
+
+    if not valid:
+        logger.error("没有通过格式校验的 JSON 文件，中止写库")
+        return
+
+    # 2) 基准板卡优先，保证基线原始值先入库
+    valid.sort(key=lambda t: (
+        t[2]["board_model"] != CONFIG["baseline_board"]
+        or t[2]["os_name"] != CONFIG["baseline_os"],
+        t[0],
+    ))
+
+    # 3) 单事务写入
+    affected = set()
+    try:
+        for fp, data, info in valid:
+            _parse_json_data(data, conn, os.path.basename(fp))
+            affected.add((info["board_model"], info["os_name"], info["arch"]))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"写库失败，已回滚: {e}")
+        raise
+
+    # 4) 归一化 + 算分
     affected_boards = {(bm, arch) for bm, _, arch in affected}
     for bm, arch in affected_boards:
-        newly = normalize_items_for_board(bm, arch, conn)
-        affected.update(newly)
+        normalize_items_for_board(bm, arch, conn)
 
-    # 功耗归一化
     for bm, arch in affected_boards:
         power_scores = normalize_power_for_board(bm, arch, conn)
         os_set = {os_ for b, os_, a in affected if b == bm and a == arch}
@@ -1044,6 +1172,7 @@ def score_single_json(json_path: str, db_path: Optional[str] = None) -> dict:
         info = parse_json_results(json_path, conn)
         if not info:
             return {"error": f"无法解析 JSON: {json_path}"}
+        conn.commit()
 
         bm, os_name, arch = info["board_model"], info["os_name"], info["arch"]
 
