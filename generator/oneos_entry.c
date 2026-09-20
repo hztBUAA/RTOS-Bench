@@ -554,6 +554,7 @@ static int cmd_rtbench(int argc, char **argv)
     if (argc >= 2 && strcmp(argv[1], "test-realtime") == 0) {
         int run_multicore = 0;
         int run_verify = 0;
+        unsigned int sections = 0;
 
         for (int i = 2; i < argc; i++) {
             if (strcmp(argv[i], "--verify") == 0 ||
@@ -564,6 +565,14 @@ static int cmd_rtbench(int argc, char **argv)
                 run_multicore = 1;
             } else if (strcmp(argv[i], "-q") == 0) {
                 benchmark_verbosity = LOG_LEVEL_INFO;
+            } else if (strcmp(argv[i], "--delay") == 0) {
+                sections |= RTBENCH_REALTIME_SECTION_DELAY;
+            } else if (strcmp(argv[i], "--cost") == 0) {
+                sections |= RTBENCH_REALTIME_SECTION_COST;
+            } else if (strcmp(argv[i], "--multi-access") == 0) {
+                sections |= RTBENCH_REALTIME_SECTION_MULTI_ACCESS;
+            } else if (strcmp(argv[i], "--multi-service") == 0) {
+                sections |= RTBENCH_REALTIME_SECTION_MULTI_SERVICE;
             }
         }
 
@@ -574,6 +583,14 @@ static int cmd_rtbench(int argc, char **argv)
 
         if (run_verify) {
             test_realtime_verify();
+        }
+
+        /*
+         * -m keeps the legacy behaviour (full single core incl. test3 plus
+         * multicore) and takes precedence over the section options above.
+         */
+        if (run_multicore == 0 && sections != 0) {
+            return test_realtime_run_ex(sections);
         }
 
         return test_realtime_run(run_multicore);

@@ -12,6 +12,7 @@ extern void rtosbench_register_rtos_workloads(void);
 extern int test_schedule_run_custom(int cycles, int util_start,
 				    int util_end, int util_step);
 extern int test_realtime_run(int run_multicore);
+extern int test_realtime_run_ex(unsigned int sections);
 extern int test_stress_run_job(const char *job_name);
 extern int test_cmd_run(void);
 
@@ -25,6 +26,7 @@ static void * const g_dongtu_required_modules[] RTBENCH_USED = {
 	(void *)rtosbench_register_rtos_workloads,
 	(void *)test_schedule_run_custom,
 	(void *)test_realtime_run,
+	(void *)test_realtime_run_ex,
 	(void *)test_stress_run_job,
 	(void *)test_cmd_run,
 };

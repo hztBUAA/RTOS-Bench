@@ -33,6 +33,10 @@ OPTIONS:
   -v, --verify       对测试所需系统功能进行验证
   -m, --multicore    运行多核测试（需要 SMP 支持）
   -q                 安静模式，减少输出
+  --delay            只运行系统内核延迟测试（test1 上下文切换、test2 中断）
+  --cost             只运行系统服务开销测试（test4 - test10 的 8 操作 x 4 场景表格）
+  --multi-access     只运行多核存取性能测试（rd/wr/cp/frd/fwr/fcp/memset/memcpy x 并发度 1/2/4/8）
+  --multi-service    只运行多核系统服务与通信测试（任务间通信、创建与删除、同核/异核通信）
 ```
 
 ### 示例
@@ -49,7 +53,38 @@ msh /> rtbench test-realtime -v
 
 # 安静模式
 msh /> rtbench test-realtime -q
+
+# 只测系统内核延迟（上下文切换 + 中断）
+msh /> rtbench test-realtime --delay
+
+# 只测系统服务开销（信号量/消息队列/互斥锁/内存块 的 8 x 4 表格）
+msh /> rtbench test-realtime --cost
+
+# 只测多核存取性能
+msh /> rtbench test-realtime --multi-access
+
+# 只测多核系统服务与通信
+msh /> rtbench test-realtime --multi-service
 ```
+
+### 分节测试
+
+`test-realtime` 支持按测试内容拆分执行，多个分节选项可以组合（跑并集）：
+
+| 选项 | 覆盖内容 | 输出 |
+|------|----------|------|
+| `--delay` | test1 上下文切换延迟、test2 中断软件延迟 | 上下文切换 AVG；中断 MIN/MAX/AVG（单位 us） |
+| `--cost` | test4 - test10，即信号量/消息队列/互斥锁/内存块 的 8 操作 x 4 场景表格 | 系统服务开销表格（单位 us） |
+| `--multi-access` | `test_mem_bw`，8 种模式 x 并发度 1/2/4/8 | 多核存取性能表（单位 GB/s） |
+| `--multi-service` | `test_ipc_bw`（并发度 1/2/4/8、同核/异核）、`test_task_lat`（并发度 1/2/4/8） | 多核系统服务表与同核/异核通信比较 |
+
+注意事项：
+
+- `--delay` 与 `--cost` 均不包含 test3（系统调用延迟）。
+- 不带任何分节选项时保持原有行为：完整单核测试（含 test3）并在 `-m` 时追加多核测试。
+- `-m/--multicore` 优先级最高：一旦检测到 `-m`，执行完整单核 + 多核测试，并忽略分节选项。
+- 分节执行只打印控制台结果；`rtbench test-all` 的采集与 JSON 导出行为不变。
+- 锐华（ReWorks）shell 中可直接调用对应的零参包装：`rtbench_test_realtime_delay`、`rtbench_test_realtime_cost`、`rtbench_test_realtime_multi_access`、`rtbench_test_realtime_multi_service`。
 
 ## 输出格式
 

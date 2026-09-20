@@ -42,6 +42,7 @@ extern void rtosbench_register_rtos_workloads(void) RTBENCH_WEAK;
 extern int test_schedule_run_custom(int cycles, int util_start,
 				    int util_end, int util_step) RTBENCH_WEAK;
 extern int test_realtime_run(int run_multicore) RTBENCH_WEAK;
+extern int test_realtime_run_ex(unsigned int sections) RTBENCH_WEAK;
 extern void test_realtime_verify(void) RTBENCH_WEAK;
 extern int test_stress_run_job(const char *job_name) RTBENCH_WEAK;
 extern int test_stress_run_single(const char *stressor_name, int duration_sec,
@@ -1220,14 +1221,30 @@ int rtbench_command_main(int argc, char **argv)
 	}
 	if (!strcmp(argv[1], "test-realtime")) {
 		int run_multicore = 0, run_verify = 0;
+		unsigned int sections = 0;
 		for (int i = 2; i < argc; i++) {
 			if (is_help_arg(argv[i])) return 0;
 			if (!strcmp(argv[i], "--verify") || !strcmp(argv[i], "-v")) run_verify = 1;
 			else if (!strcmp(argv[i], "--multicore") || !strcmp(argv[i], "-m")) run_multicore = 1;
 			else if (!strcmp(argv[i], "-q")) benchmark_verbosity = LOG_LEVEL_INFO;
+			else if (!strcmp(argv[i], "--delay")) sections |= RTBENCH_REALTIME_SECTION_DELAY;
+			else if (!strcmp(argv[i], "--cost")) sections |= RTBENCH_REALTIME_SECTION_COST;
+			else if (!strcmp(argv[i], "--multi-access")) sections |= RTBENCH_REALTIME_SECTION_MULTI_ACCESS;
+			else if (!strcmp(argv[i], "--multi-service")) sections |= RTBENCH_REALTIME_SECTION_MULTI_SERVICE;
 			else return -1;
 		}
 		if (run_verify && test_realtime_verify != NULL) test_realtime_verify();
+		/*
+		 * -m keeps the legacy behaviour (full single core incl. test3 plus
+		 * multicore) and takes precedence over the section options above.
+		 */
+		if (run_multicore == 0 && sections != 0) {
+			if (test_realtime_run_ex == NULL) {
+				printf("[test-realtime] section runner is not linked\n");
+				return -1;
+			}
+			return test_realtime_run_ex(sections);
+		}
 		if (test_realtime_run == NULL) {
 			printf("[test-realtime] module is not linked\n");
 			return -1;

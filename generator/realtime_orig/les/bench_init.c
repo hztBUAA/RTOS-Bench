@@ -8,6 +8,8 @@
 
 #include "bench_verify.h"
 
+#include "test_realtime.h"
+
 #if defined(DONGTU_PLATFORM)
 #include <inttypes.h>
 #include <stdio.h>
@@ -448,6 +450,257 @@ int realtime_benchmark_run_all(int run_multicore)
     pthread_attr_destroy(&attr);
 
     return 0;
+}
+
+/* =========================================================================
+ * Sectioned runners for the split test-realtime commands
+ *   --delay         : test1 + test2
+ *   --cost          : test4 - test10 (8 x 4 service cost matrix, test3 excluded)
+ *   --multi-access  : multicore memory access bandwidth
+ *   --multi-service : multicore ipc / create-delete / intra-inter core
+ * realtime_init()/multicore_init() and their print helpers above are unchanged.
+ * ========================================================================= */
+
+static void realtime_delay_init(void) {
+	LES_start_timer();
+
+	/* 上下文切换延迟 */
+	test1(&realtime_context_switch);		printf("Finish test 1.\n");
+
+	/* 中断延迟 */
+	test2(&realtime_interrupt[0], &realtime_interrupt[1], &realtime_interrupt[2]);		printf("Finish test 2.\n");
+}
+
+static void realtime_cost_init(void) {
+	LES_start_timer();
+
+	test4_1(&realtime_service_cost[0][0], &realtime_service_cost[1][0]);		printf("Finish test 4_1, 4_1.\n");
+
+	test4_2(&realtime_service_cost[0][1], &realtime_service_cost[1][3]);		printf("Finish test 4_2, 5_4.\n");
+
+	test5_3(&realtime_service_cost[1][2]);		printf("Finish test 5_3.\n");
+
+	test6_1(&realtime_service_cost[2][0], &realtime_service_cost[3][0]);		printf("Finish test 6_1, 7_1.\n");
+
+	test6_3(&realtime_service_cost[2][2]);		printf("Finish test 6_3.\n");
+
+	test6_4(&realtime_service_cost[2][3], &realtime_service_cost[3][1]);
+	printf("Finish test 6_4, 7_2.\n");
+
+	/* Test 6_0: check mqueue blocking behavior (informational only) */
+	message_queue_filled_behavior = test6_0();
+	if (message_queue_filled_behavior == 0) {
+		printf("mqueue supports blocking on full queue.\n");
+		test6_2(&realtime_service_cost[2][1], &realtime_service_cost[3][3]);
+		printf("Finish test 6_2, 7_4.\n");
+		test7_3(&realtime_service_cost[3][2]);
+		printf("Finish test 7_3.\n");
+	} else {
+		printf("mqueue does NOT block on full queue.\n"
+		       "Skip test 6_2, 7_3, 7_4.\n");
+	}
+
+	test8_1(&realtime_service_cost[4][0], &realtime_service_cost[5][0]);
+	printf("Finish test 8_1, 9_1.\n");
+
+	test8_2(&realtime_service_cost[4][1], &realtime_service_cost[5][3]);
+	printf("Finish test 8_2, 9_4.\n");
+
+	test9_3(&realtime_service_cost[5][2]);
+	printf("Finish test 9_3.\n");
+
+	test10_1(&realtime_service_cost[6][0], &realtime_service_cost[7][0]);
+	printf("Finish test 10_1, 11_1.\n");
+}
+
+static void multicore_access_init(void) {
+	LES_start_timer();
+
+	for (int i = 0; i < 8; i++) {
+		for (int j = 0; j < 4; j++) {
+			test_mem_bw(&multicore_memory_bandwidth[i][j], i, (1<<j));
+			printf("end mem_bw task %s %d\n", row_names_multicore[i], (1<<j));
+		}
+	}
+}
+
+static void multicore_service_init(void) {
+	LES_start_timer();
+
+	for (int i = 0; i < 4; i++) {
+		test_ipc_bw(&multicore_ipc_bandwidth[i], 2, (1<<i));
+		printf("end ipc_bw task inter core %d\n", (1<<i));
+	}
+	test_ipc_bw(&multicore_intra_inter_bandwidth[0], 0, 1);		printf("end ipc_bw task on same core\n");
+	test_ipc_bw(&multicore_intra_inter_bandwidth[1], 1, 1);		printf("end ipc_bw task on different core\n");
+
+	test_task_lat(&multicore_init_dlt_latency[0], 1);
+	test_task_lat(&multicore_init_dlt_latency[1], 2);
+	test_task_lat(&multicore_init_dlt_latency[2], 4);
+	test_task_lat(&multicore_init_dlt_latency[3], 8);
+}
+
+/* 分节打印：上下文切换 + 中断 */
+static void realtime_delay_print(void) {
+	printf("系统延迟（单位：us）:\n");
+
+	printf("上下文切换延迟    AVG: ");
+	div1000_print(realtime_context_switch, buf);
+	printf("%s\n", buf);
+
+	printf("中断软件延迟    MIN: ");
+	div1000_print(realtime_interrupt[0], buf);
+	printf("%s", buf);
+	printf("  MAX: ");
+	div1000_print(realtime_interrupt[1], buf);
+	printf("%s", buf);
+	printf("  AVG: ");
+	div1000_print(realtime_interrupt[2], buf);
+	printf("%s\n", buf);
+
+	printf("\n");
+}
+
+/* 分节打印：系统服务开销 8 x 4 表格 */
+static void realtime_cost_print(void) {
+	printf("系统服务开销（单位：us）:\n");
+	printf("%-12s | %-14s | %-14s | %-14s | %-14s\n", "指标", "立即执行", "挂起睡眠", "低优就绪", "高优恢复");
+	printf("----------------------------------------------------------------------\n");
+
+	for (int i = 0; i < 8; i++) {
+		printf("%-12s", row_names_realtime[i]);
+
+		for (int j = 0; j < 4; j++) {
+			printf(" | ");
+			if ((i == 2 && j == 1) || (i == 3 && j == 2) || (i == 3 && j == 3)) {
+				if (message_queue_filled_behavior != 0) {
+					printf("%-10s", "-");
+					continue;
+				}
+			}
+			if (has_check[i][j]) {
+				div1000_print(realtime_service_cost[i][j], buf);
+				printf("%-10s", buf);
+			} else {
+				printf("%-10s", " ");
+			}
+		}
+		printf("\n");
+	}
+
+	printf("\n");
+}
+
+/* 分节打印：多核存取性能 */
+static void multicore_access_print(void) {
+	printf("多核存取性能:\n");
+	printf("%-13s | %-10s | %-10s | %-10s | %-10s\n", "并发度", "1", "2", "4", "8");
+	printf("----------------------------------------------------------------------\n");
+	for (int i = 0; i < 8; i++) {
+		printf("%-10s", row_names_multicore[i]);
+
+		for (int j = 0; j < 4; j++) {
+			printf(" | ");
+			div1000_print(multicore_memory_bandwidth[i][j], buf);
+			printf("%-10s", buf);
+		}
+		printf("\n");
+	}
+
+	printf("（上述单位均为GB/s）\n");
+}
+
+/* 分节打印：多核系统服务与通信 */
+static void multicore_service_print(void) {
+	printf("多核系统服务:\n");
+	printf("%-13s | %-10s | %-10s | %-10s | %-10s\n", "并发度", "1", "2", "4", "8");
+
+	printf("任务间通信");
+	for (int j = 0; j < 4; j++) {
+		printf(" | ");
+		div1000_print(multicore_ipc_bandwidth[j], buf);
+		printf("%-10s", buf);
+	}
+	printf("\n");
+
+	printf("创建与删除");
+	for (int j = 0; j < 4; j++) {
+		printf(" | ");
+		div1000_print(multicore_init_dlt_latency[j], buf);
+		printf("%-10s", buf);
+	}
+	printf("（创建与删除单位为us）\n");
+
+	printf("任务在同核与异核上通信比较: \n");
+	printf("同核通信: ");
+	div1000_print(multicore_intra_inter_bandwidth[0], buf);
+	printf("%s\n", buf);
+	printf("异核通信: ");
+	div1000_print(multicore_intra_inter_bandwidth[1], buf);
+	printf("%s\n", buf);
+	printf("（任务间通信与同核/异核通信单位为GB/s）\n");
+}
+
+static void *realtime_benchmark_run_sections_thread(void *parameter)
+{
+	BIND_THREAD_TO_CPU(0);
+
+	unsigned int sections = (unsigned int)(unsigned long)parameter;
+
+	if (sections & RTBENCH_REALTIME_SECTION_DELAY) {
+		realtime_delay_init();
+	}
+	if (sections & RTBENCH_REALTIME_SECTION_COST) {
+		realtime_cost_init();
+	}
+	if (sections & RTBENCH_REALTIME_SECTION_MULTI_ACCESS) {
+		multicore_access_init();
+	}
+	if (sections & RTBENCH_REALTIME_SECTION_MULTI_SERVICE) {
+		multicore_service_init();
+	}
+
+	return NULL;
+}
+
+/**
+ * @brief Run the requested realtime sections on the high priority worker thread
+ * @param sections bitwise OR of RTBENCH_REALTIME_SECTION_* values
+ * @return 0 on success, negative on error
+ */
+int realtime_benchmark_run_sections(unsigned int sections)
+{
+	thread_initialize();
+
+	printf("the realtime benchmark is running, please wait...\n");
+
+	pthread_t tid;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+
+	pthread_attr_setstacksize(&attr, 32768);
+	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+	struct sched_param param;
+	param.sched_priority = BENCHMARK_HIGH_PRIO;
+	pthread_attr_setschedparam(&attr, &param);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+	// 创建线程
+	if (pthread_create(&tid, &attr, realtime_benchmark_run_sections_thread, (void *)(unsigned long)sections) != 0) {
+		perror("Failed to create main thread");
+		return -1;
+	}
+
+	pthread_join(tid, NULL);
+
+	if (sections & RTBENCH_REALTIME_SECTION_DELAY) realtime_delay_print();
+	if (sections & RTBENCH_REALTIME_SECTION_COST) realtime_cost_print();
+	if (sections & RTBENCH_REALTIME_SECTION_MULTI_ACCESS) multicore_access_print();
+	if (sections & RTBENCH_REALTIME_SECTION_MULTI_SERVICE) multicore_service_print();
+
+	pthread_attr_destroy(&attr);
+
+	return 0;
 }
 
 /* =========================================================================
