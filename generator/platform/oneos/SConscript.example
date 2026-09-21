@@ -102,7 +102,7 @@ cxx_src += [
 # NOT included (require sockets or C++11):
 # - MODBUS (sockets)
 # - MQTT (sockets)
-# - EKF/EPNP/ICP (C++11 / Eigen library)
+# - ICP (C++11)
 # ============================================================================
 
 src_all = src + cxx_src
