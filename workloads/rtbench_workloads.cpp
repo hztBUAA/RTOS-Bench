@@ -15,10 +15,6 @@ int modbus_test(void);
 // int mqtt_bench_run(void);
 int mqtt_test(void);
 // C++ workloads exposed as C for simplicity
-// int epnp_bench_run(size_t iterations);
-int epnp_test(void);
-// int ekf_bench_run(void);
-int ekf_test(void);
 // int icp_bench_run(void);
 int icp_test(void);
 // int pid_bench_run(void);
@@ -58,68 +54,6 @@ const struct rtosbench_workload rtosbench_fast_workload = {
 	.init = fast_init,
 	.exec = fast_exec,
 	.teardown = fast_teardown,
-};
-
-/* EPNP */
-static int epnp_init(int parameters_num, void **parameters)
-{
-	(void)parameters_num;
-	(void)parameters;
-	return 0;
-}
-
-static void epnp_exec(int parameters_num, void **parameters)
-{
-	(void)parameters_num;
-	(void)parameters;
-	// epnp_bench_run(1);
-	epnp_test();
-}
-
-static void epnp_teardown(int parameters_num, void **parameters)
-{
-	(void)parameters_num;
-	(void)parameters;
-}
-
-const struct rtosbench_workload rtosbench_epnp_workload = {
-	.name = "epnp",
-	.description = "Perspective-n-Point solver benchmark",
-	.category = "vision",
-	.init = epnp_init,
-	.exec = epnp_exec,
-	.teardown = epnp_teardown,
-};
-
-/* EKF */
-static int ekf_init(int parameters_num, void **parameters)
-{
-	(void)parameters_num;
-	(void)parameters;
-	return 0;
-}
-
-static void ekf_exec(int parameters_num, void **parameters)
-{
-	(void)parameters_num;
-	(void)parameters;
-	// ekf_bench_run();
-	ekf_test();
-}
-
-static void ekf_teardown(int parameters_num, void **parameters)
-{
-	(void)parameters_num;
-	(void)parameters;
-}
-
-const struct rtosbench_workload rtosbench_ekf_workload = {
-	.name = "ekf",
-	.description = "Extended Kalman Filter flight dataset replay",
-	.category = "estimation",
-	.init = ekf_init,
-	.exec = ekf_exec,
-	.teardown = ekf_teardown,
 };
 
 /* ICP */
@@ -314,8 +248,6 @@ static void register_all_workloads(void)
 	rtosbench_register_workload(&rtosbench_stub_workload);
 	rtosbench_register_workload(&rtosbench_busywait_workload);
 	rtosbench_register_workload(&rtosbench_fast_workload);
-	rtosbench_register_workload(&rtosbench_epnp_workload);
-	rtosbench_register_workload(&rtosbench_ekf_workload);
 	rtosbench_register_workload(&rtosbench_icp_workload);
 	rtosbench_register_workload(&rtosbench_modbus_workload);
 	rtosbench_register_workload(&rtosbench_mqtt_workload);

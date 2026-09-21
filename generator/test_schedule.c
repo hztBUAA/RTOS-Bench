@@ -43,7 +43,7 @@
 /* Per-task pthread stack.  Memory-constrained boards (e.g. OneOS Nezha D1H,
  * RISC-V) cannot afford 4 MB x N tasks, so shrink there.  Ruihua/ReWorks heap
  * likewise refuses 4 MB per task (EXCEPTION HELP CODE 0x13005), which distorts
- * the schedule gradient, so it uses the small stack too.  EKF is the known
+ * the schedule gradient, so it uses the small stack too.  ICP is the known
  * stack-sensitive workload; bump if 256 KB proves insufficient. */
 #if defined(ONEOS_PLATFORM) || defined(RUIHUA_PLATFORM)
 #define SCHED_POSIX_STACK_SIZE (256 * 1024)
@@ -165,7 +165,7 @@ static const struct sched_workload_wrapper *get_sched_wrapper_for_workload(
  * Defaults: both empty => every registered workload runs (no change for existing
  * boards).  Examples:
  *   -DTEST_SCHEDULE_WORKLOAD_ALLOWLIST="fast,pid,cusum,ewma"   (only these run)
- *   -DTEST_SCHEDULE_WORKLOAD_EXCLUDE="icp,ekf"                 (all but these)
+ *   -DTEST_SCHEDULE_WORKLOAD_EXCLUDE="icp,mqtt"                (all but these)
  */
 static int sched_csv_contains(const char *csv, const char *name)
 {
@@ -328,11 +328,11 @@ static uint64_t measure_wcet_ns(const struct rtosbench_workload *wl, int iterati
 	return measure_wcet_body(wl, wrapper, iterations);
 #else
 	/* Run WCET measurement on a dedicated SCHED_POSIX_STACK_SIZE thread.
-	 * The compute wrappers (epnp/icp/ekf) execute deep Eigen call chains
+	 * The compute wrappers (icp/fast) execute deep call chains
 	 * directly on the calling thread via wrapper->quick_exec.  When
 	 * test-schedule is invoked directly it runs on the board shell task's
 	 * stack (e.g. Dongtu Intewell / ReWorks ~64 KB), which is far too small
-	 * for Eigen -> the stack overflows into the allocator/kernel and the
+	 * for those chains -> the stack overflows into the allocator/kernel and the
 	 * command wedges (the exact failure ruihua_entry.c documents).  Giving
 	 * Phase 1 the same large stack the gradient task threads already use
 	 * (create_task_thread) fixes it uniformly across POSIX boards.  Timing
@@ -941,7 +941,7 @@ static int run_gradient(int num_tasks, struct schedule_task_config *tasks,
 	return 0;
 #else
 	/* Suppress workload output during concurrent execution.
-	 * Workloads like FAST/EKF/MODBUS call printf during exec(), which on
+	 * Workloads like FAST/ICP/MODBUS call printf during exec(), which on
 	 * RT-Thread goes through dfs_file_lock → _rt_mutex_take.  Under heavy
 	 * concurrent load this can trigger "scheduler is not available" assertion
 	 * when threads contend on the console mutex. */

@@ -23,22 +23,6 @@ static const struct sched_workload_wrapper g_sched_wrappers[] = {
 		.needs_state_reset = 0,
 	},
 	{
-		.name = "epnp",
-		.init = sched_epnp_init,
-		.quick_exec = sched_epnp_quick_exec,
-		.teardown = sched_epnp_teardown,
-		.max_wcet_ms = 250,
-		.needs_state_reset = 0,
-	},
-	{
-		.name = "ekf",
-		.init = sched_ekf_init,
-		.quick_exec = sched_ekf_quick_exec,
-		.teardown = sched_ekf_teardown,
-		.max_wcet_ms = 250,
-		.needs_state_reset = 1,
-	},
-	{
 		.name = "icp",
 		.init = sched_icp_init,
 		.quick_exec = sched_icp_quick_exec,

@@ -84,7 +84,7 @@ extern "C" {
  * list at build time so acceptance always completes with a valid score over the
  * remaining REAL workloads.  Both unset (default) => every workload runs.
  *   -DTEST_SCHEDULE_WORKLOAD_ALLOWLIST="fast,pid,cusum,ewma"   (only these run)
- *   -DTEST_SCHEDULE_WORKLOAD_EXCLUDE="icp,ekf"                 (all but these)
+ *   -DTEST_SCHEDULE_WORKLOAD_EXCLUDE="icp,mqtt"                (all but these)
  * Implemented in test_schedule.c:is_workload_allowed(), applied in Phase 1
  * before any workload is executed. */
 

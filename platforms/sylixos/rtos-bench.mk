@@ -139,36 +139,6 @@ RTOS-Bench/workloads/rtbench_workloads.cpp \
 RTOS-Bench/workloads/PID/PID_v1.cpp \
 RTOS-Bench/workloads/PID/pid_bench.cpp \
 RTOS-Bench/workloads/PID/pid_wrapper.cpp \
-RTOS-Bench/workloads/EKF/ekf_bench.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/ekf.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/ekf_helper.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/estimator_interface.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/EKFGSF_yaw.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/airspeed_fusion.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/control.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/covariance.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/drag_fusion.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/gps_checks.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/gps_yaw_fusion.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/imu_down_sampler.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/mag_control.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/mag_fusion.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/optflow_fusion.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/sensor_range_finder.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/sideslip_fusion.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/terrain_estimator.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/utils.cpp \
-RTOS-Bench/workloads/EKF/EKF_core/vel_pos_fusion.cpp \
-RTOS-Bench/workloads/EKF/geo/geo.cpp \
-RTOS-Bench/workloads/EKF/geo_lookup/geo_mag_declination.cpp \
-RTOS-Bench/workloads/EPNP/cayley.cpp \
-RTOS-Bench/workloads/EPNP/CentralAbsoluteAdapter.cpp \
-RTOS-Bench/workloads/EPNP/Epnp.cpp \
-RTOS-Bench/workloads/EPNP/epnp_bench.cpp \
-RTOS-Bench/workloads/EPNP/experiment_helpers.cpp \
-RTOS-Bench/workloads/EPNP/methods.cpp \
-RTOS-Bench/workloads/EPNP/random_generators.cpp \
-RTOS-Bench/workloads/EPNP/time_measurement.cpp \
 RTOS-Bench/workloads/ICP/icp.cpp \
 RTOS-Bench/workloads/ICP/icp_bench.cpp \
 RTOS-Bench/workloads/ICP/icpPointToPlane.cpp \
@@ -187,15 +157,6 @@ LOCAL_INC_PATH :=  \
 -I"./RTOS-Bench/workloads/FAST" \
 -I"./RTOS-Bench/workloads/FAST/include_imgs" \
 -I"./RTOS-Bench/workloads/PID" \
--I"./RTOS-Bench/workloads/EKF" \
--I"./RTOS-Bench/workloads/EKF/EKF_core" \
--I"./RTOS-Bench/workloads/EKF/include" \
--I"./RTOS-Bench/workloads/EKF/include/matrix" \
--I"./RTOS-Bench/workloads/EKF/geo" \
--I"./RTOS-Bench/workloads/EKF/geo_lookup" \
--I"./RTOS-Bench/workloads/EPNP" \
--I"./RTOS-Bench/workloads/EPNP/opengv" \
--I"./RTOS-Bench/workloads/EPNP/Eigen" \
 -I"./RTOS-Bench/workloads/ICP" \
 -I"./RTOS-Bench/workloads/MODBUS" \
 -I"./RTOS-Bench/workloads/MQTT" \
@@ -210,19 +171,16 @@ LOCAL_INC_PATH :=  \
 LOCAL_DSYMBOL :=  \
 -DSYLIXOS_PLATFORM \
 -D_GNU_SOURCE \
--DECL_STANDALONE \
 -D__STDC_FORMAT_MACROS \
 -D__STDC_LIMIT_MACROS \
--D_USE_MATH_DEFINES \
--DEIGEN_DONT_VECTORIZE \
--DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT \
+-D_USE_MATH_DEFINES
 
 
 #*********************************************************************************************************
 # Compiler flags
 #*********************************************************************************************************
 LOCAL_CFLAGS := 
-LOCAL_CXXFLAGS := -std=c++14 -Wno-error -Wno-literal-suffix -include ./RTOS-Bench/workloads/EPNP/fix_opengv.h
+LOCAL_CXXFLAGS := -std=c++14 -Wno-error -Wno-literal-suffix
 LOCAL_LINKFLAGS := 
 
 #*********************************************************************************************************

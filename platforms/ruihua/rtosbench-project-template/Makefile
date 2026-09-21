@@ -97,21 +97,11 @@ CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/PID"
 CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/CUSUM"
 CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/EWMA"
 CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/FAST"
-CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/EKF"
-CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/EPNP"
 CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/ICP"
 CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/MODBUS"
 CFLAGS += -I"$(RTOSBENCH_SRC)/workloads/MQTT"
 
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti -DRUIHUA_PLATFORM
-CXXFLAGS += -I"$(RTOSBENCH_SRC)/workloads/EKF/include" \
-			-I"$(RTOSBENCH_SRC)/workloads/EKF/include/matrix" \
-			-I"$(RTOSBENCH_SRC)/workloads/EKF/geo_lookup" \
-			-I"$(RTOSBENCH_SRC)/workloads/EKF/geo"
-CXXFLAGS += -DEIGEN_DONT_VECTORIZE \
-            -DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT \
-            -DEIGEN_MAX_ALIGN_BYTES=8 \
-            -DEIGEN_HAS_C99_MATH=0
 
 LDFLAGS := -r $(CONFIG_LINK_DYNAMIC_FLAGS)
 
@@ -179,38 +169,6 @@ WORKLOAD_CPP_SRC += \
 	$(RTOSBENCH_SRC)/workloads/PID/pid_bench.cpp \
 	$(RTOSBENCH_SRC)/workloads/PID/PID_v1.cpp \
 	$(RTOSBENCH_SRC)/workloads/PID/pid_wrapper.cpp
-WORKLOAD_CPP_SRC += \
-	$(RTOSBENCH_SRC)/workloads/EKF/ekf_bench.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/EKFGSF_yaw.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/airspeed_fusion.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/control.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/covariance.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/drag_fusion.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/ekf.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/ekf_helper.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/estimator_interface.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/gps_checks.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/gps_yaw_fusion.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/imu_down_sampler.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/mag_control.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/mag_fusion.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/optflow_fusion.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/sensor_range_finder.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/sideslip_fusion.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/terrain_estimator.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/utils.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/EKF_core/vel_pos_fusion.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/geo/geo.cpp \
-	$(RTOSBENCH_SRC)/workloads/EKF/geo_lookup/geo_mag_declination.cpp
-WORKLOAD_CPP_SRC += \
-	$(RTOSBENCH_SRC)/workloads/EPNP/cayley.cpp \
-	$(RTOSBENCH_SRC)/workloads/EPNP/CentralAbsoluteAdapter.cpp \
-	$(RTOSBENCH_SRC)/workloads/EPNP/Epnp.cpp \
-	$(RTOSBENCH_SRC)/workloads/EPNP/epnp_bench.cpp \
-	$(RTOSBENCH_SRC)/workloads/EPNP/experiment_helpers.cpp \
-	$(RTOSBENCH_SRC)/workloads/EPNP/methods.cpp \
-	$(RTOSBENCH_SRC)/workloads/EPNP/random_generators.cpp \
-	$(RTOSBENCH_SRC)/workloads/EPNP/time_measurement.cpp
 WORKLOAD_CPP_SRC += \
 	$(RTOSBENCH_SRC)/workloads/ICP/icp.cpp \
 	$(RTOSBENCH_SRC)/workloads/ICP/icp_bench.cpp \

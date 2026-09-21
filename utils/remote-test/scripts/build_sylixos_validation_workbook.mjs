@@ -22,8 +22,6 @@ const quickWrapped = new Set(["mqtt", "modbus"]);
 const workloadLabels = new Map([
   ["CUSUM", "cusum"],
   ["FAST", "fast"],
-  ["EPNP", "epnp"],
-  ["EKF", "ekf"],
   ["ICP", "icp"],
   ["PID", "pid"],
   ["EWMA", "ewma"],
@@ -108,7 +106,7 @@ async function parseScheduleLog(board, batch) {
       continue;
     }
 
-    match = line.match(/\[(CUSUM|FAST|EPNP|EKF|ICP|PID|EWMA|SCHED-MODBUS|SCHED-MQTT)\]\s+samples=\d+\s+total_time=([0-9.]+)\s+ms/i);
+    match = line.match(/\[(CUSUM|FAST|ICP|PID|EWMA|SCHED-MODBUS|SCHED-MQTT)\]\s+samples=\d+\s+total_time=([0-9.]+)\s+ms/i);
     if (match) {
       const workload = workloadLabels.get(match[1].toUpperCase());
       if (workload) pushSample(phase === "runtime" ? runtimeSamples : phase1Samples, workload, Number(match[2]));

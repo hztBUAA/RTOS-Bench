@@ -37,10 +37,8 @@ CONFIG = {
 
 WORKLOAD_CATEGORY_MAP = {
     "pid":    "realtime_control",
-    "ekf":    "realtime_control",
     "icp":    "perception",
     "fast":   "perception",
-    "epnp":   "perception",
     "modbus": "communication",
     "mqtt":   "communication",
     "cusum":  "monitoring",

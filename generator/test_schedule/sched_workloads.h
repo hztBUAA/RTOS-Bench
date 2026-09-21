@@ -61,14 +61,6 @@ extern int sched_fast_init(void);
 extern int sched_fast_quick_exec(void);
 extern void sched_fast_teardown(void);
 
-extern int sched_epnp_init(void);
-extern int sched_epnp_quick_exec(void);
-extern void sched_epnp_teardown(void);
-
-extern int sched_ekf_init(void);
-extern int sched_ekf_quick_exec(void);
-extern void sched_ekf_teardown(void);
-
 extern int sched_icp_init(void);
 extern int sched_icp_quick_exec(void);
 extern void sched_icp_teardown(void);

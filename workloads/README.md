@@ -3,8 +3,6 @@
 本目录包含已经打包进 rt-bench 的典型负载，统一通过 `workload_registry` 注册，可在 Linux/SylixOS/RT-Thread 上使用：
 
 - `fast`：FAST 角点检测（C）
-- `epnp`：Perspective-n-Point 求解（C++/Eigen）
-- `ekf`：飞行数据集 EKF 重放（C++）
 - `icp`：点云 ICP 对齐（C++）
 - `modbus`：本地 Modbus TCP 回环（C）（当前在 RT-Thread 未启用，需 POSIX socket/pthread 支持）
 - `mqtt`：GeoLife 轨迹 MQTT 发布（C）（当前在 RT-Thread 未启用，需 POSIX socket/pthread 支持）
@@ -26,17 +24,13 @@ rtbench -p 1 -t 1 -b <workload>
 
 - `-p`：周期（秒，浮点），建议 0.5~1s。
 - `-t`：迭代次数，测试用 1 先确认可运行，再增大。
-- `-b`：负载名称：`fast|epnp|ekf|icp|modbus|mqtt|pid|cusum|ewma`。
+- `-b`：负载名称：`fast|icp|modbus|mqtt|pid|cusum|ewma`。
 - 可按需添加 `-c` 绑定核心，`-f` 设置优先级（RT-Thread SCHED_FIFO）。
 
 ## 各负载备注与推荐参数
 
 - `fast`：内部默认循环 1000 次；需要 `workloads/FAST/include_imgs` 中的内置数据，其他参数无需设置。
   - 推荐：`-p 1 -t 1 -b fast`
-- `epnp`：默认迭代 1000 次，固定 100 点；需要 Eigen；运行时间较长。
-  - 推荐：`-p 1 -t 1 -b epnp`
-- `ekf`：重放 `iris_gps.h` 数据集，无额外参数，执行时长取决于数据量。
-  - 推荐：`-p 1 -t 1 -b ekf`
 - `icp`：点云对齐一次性运行；依赖内置 suzanne 模型。
   - 推荐：`-p 1 -t 1 -b icp`
 - `modbus`：本地服务+客户端回环，使用 127.0.0.1:5020；需要网络栈（未在 RT-Thread/SylixOS 打包）。
@@ -58,6 +52,6 @@ rtbench -p 1 -t 1 -b <workload>
 
 ## 测试建议（待执行）
 
-- Linux 快速冒烟：`make -C generator PLATFORM=linux` 后，分别运行 `-b fast/epnp/ekf/icp/modbus/pid/cusum/ewma`，MQTT 需联网。
+- Linux 快速冒烟：`make -C generator PLATFORM=linux` 后，分别运行 `-b fast/icp/modbus/pid/cusum/ewma`，MQTT 需联网。
 - RT-Thread：`run-rtthread.sh -b` 编译后，msh 中 `rtbench -p 1 -t 1 -b fast` 等逐一验证。
 - 记录性能：每个负载至少跑一次，保留 `timing.csv`，并注明参数、平台、核心配置。

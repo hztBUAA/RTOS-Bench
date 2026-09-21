@@ -120,36 +120,6 @@ RTBENCH_WORKLOAD_SRCS := \
 RTBENCH_WORKLOAD_CXX_SRCS := \
 	rtbench_workloads.cpp \
 	run_all_workloads.cpp \
-	EKF/EKF_core/airspeed_fusion.cpp \
-	EKF/EKF_core/control.cpp \
-	EKF/EKF_core/covariance.cpp \
-	EKF/EKF_core/drag_fusion.cpp \
-	EKF/EKF_core/ekf.cpp \
-	EKF/EKF_core/EKFGSF_yaw.cpp \
-	EKF/EKF_core/ekf_helper.cpp \
-	EKF/EKF_core/estimator_interface.cpp \
-	EKF/EKF_core/gps_checks.cpp \
-	EKF/EKF_core/gps_yaw_fusion.cpp \
-	EKF/EKF_core/imu_down_sampler.cpp \
-	EKF/EKF_core/mag_control.cpp \
-	EKF/EKF_core/mag_fusion.cpp \
-	EKF/EKF_core/optflow_fusion.cpp \
-	EKF/EKF_core/sensor_range_finder.cpp \
-	EKF/EKF_core/sideslip_fusion.cpp \
-	EKF/EKF_core/terrain_estimator.cpp \
-	EKF/EKF_core/utils.cpp \
-	EKF/EKF_core/vel_pos_fusion.cpp \
-	EKF/geo/geo.cpp \
-	EKF/geo_lookup/geo_mag_declination.cpp \
-	EKF/ekf_bench.cpp \
-	EPNP/cayley.cpp \
-	EPNP/CentralAbsoluteAdapter.cpp \
-	EPNP/Epnp.cpp \
-	EPNP/epnp_bench.cpp \
-	EPNP/experiment_helpers.cpp \
-	EPNP/methods.cpp \
-	EPNP/random_generators.cpp \
-	EPNP/time_measurement.cpp \
 	ICP/icp.cpp \
 	ICP/icpPointToPlane.cpp \
 	ICP/icpPointToPoint.cpp \
@@ -234,14 +204,6 @@ RTBENCH_DONGTU_FLAGS := \
 	-I$(RTOS_BENCH_ROOT)/workloads/CUSUM \
 	-I$(RTOS_BENCH_ROOT)/workloads/EWMA \
 	-I$(RTOS_BENCH_ROOT)/workloads/FAST \
-	-I$(RTOS_BENCH_ROOT)/workloads/EKF \
-	-I$(RTOS_BENCH_ROOT)/workloads/EKF/include \
-	-I$(RTOS_BENCH_ROOT)/workloads/EKF/include/matrix \
-	-I$(RTOS_BENCH_ROOT)/workloads/EKF/geo_lookup \
-	-I$(RTOS_BENCH_ROOT)/workloads/EKF/geo \
-	-I$(RTOS_BENCH_ROOT)/workloads/EPNP \
-	-I$(RTOS_BENCH_ROOT)/workloads/EPNP/opengv \
-	-I$(RTOS_BENCH_ROOT)/workloads/EPNP/Eigen \
 	-I$(RTOS_BENCH_ROOT)/workloads/ICP \
 	-I$(RTOS_BENCH_ROOT)/workloads/MODBUS \
 	-I$(RTOS_BENCH_ROOT)/workloads/MQTT \
@@ -267,22 +229,15 @@ RTBENCH_DONGTU_CXX_FLAGS := \
 	-D_SYS_REENT_H_ \
 	-D_NOTHROW= \
 	-D_GLIBCXX_HAVE_MBSTATE_T=1 \
-	-DECL_STANDALONE \
 	-D__STDC_FORMAT_MACROS \
 	-D__STDC_LIMIT_MACROS \
 	-D_GLIBCXX_USE_C99 \
 	-D_GLIBCXX_USE_C99_MATH \
 	-D_USE_MATH_DEFINES \
-	-DEIGEN_DONT_VECTORIZE \
-	-DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT \
 	-std=c++14 \
 	-Wno-error \
 	-Wno-literal-suffix \
 	-Wno-cpp
-
-RTBENCH_DONGTU_EPNP_CXX_FLAGS := \
-	$(RTBENCH_DONGTU_CXX_FLAGS) \
-	-include $(RTOS_BENCH_ROOT)/workloads/EPNP/fix_opengv.h
 
 $(RTBENCH_EXT_OBJ_DIR)/generator/%.o: RTBENCH_EXTRA_FLAGS := $(RTBENCH_DONGTU_FLAGS)
 $(RTBENCH_EXT_OBJ_DIR)/generator/%.o: $(RTOS_BENCH_ROOT)/generator/%.c
@@ -306,7 +261,6 @@ $(RTBENCH_EXT_OBJ_DIR)/workloads/%.o: $(RTOS_BENCH_ROOT)/workloads/%.c
 	$(CC) $(COMPILE_SYMBOL) $(COMPILE_INCLUDE) $(RTBENCH_EXTRA_FLAGS) $(USER_OPTION) -D${ARCH} $(COMPILE_OPTIMIZATION) $(COMPILE_DEBUG) $(COMPILE_WARNING) $(COMPILE_OTHER) -MM -MG -P -w -MT $@ $< > $(@:%.o=%.d)
 
 $(RTBENCH_EXT_OBJ_DIR)/workloads/%.o: RTBENCH_EXTRA_CXX_FLAGS := $(RTBENCH_DONGTU_CXX_FLAGS)
-$(RTBENCH_EXT_OBJ_DIR)/workloads/EPNP/%.o: RTBENCH_EXTRA_CXX_FLAGS := $(RTBENCH_DONGTU_EPNP_CXX_FLAGS)
 $(RTBENCH_EXT_OBJ_DIR)/workloads/%.o: $(RTOS_BENCH_ROOT)/workloads/%.cpp
 	@mkdir -p $(dir $@)
 	@echo 'Building RTOS-Bench C++ workload: $<'
