@@ -50,7 +50,7 @@ if(RTOS_WORKLOADS)
         "${CMAKE_CURRENT_SOURCE_DIR}/workloads/*.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/workloads/*.cpp"
     )
-    # 排除模块独立入口和旧聚合入口；OneOS 使用 workload registry 注册/调度 9 个负载。
+    # 排除模块独立入口和旧聚合入口；OneOS 使用 workload registry 注册/调度 7 个负载。
     list(REMOVE_ITEM RTOS_BENCH_WORKLOADS
         "${CMAKE_CURRENT_SOURCE_DIR}/workloads/main.cpp"
     )
@@ -69,13 +69,9 @@ target_sources(${PROJECT_NAME} PRIVATE
 # 添加算法和环境宏
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     _GNU_SOURCE
-    ECL_STANDALONE
     __STDC_FORMAT_MACROS
     __STDC_LIMIT_MACROS
     _USE_MATH_DEFINES
-    EIGEN_DONT_VECTORIZE
-    EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
-    FIX_OPENGV_USE_STUB_LDOUBLE
 )
 
 
@@ -86,11 +82,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 )
 if(ONEOS_NEZHA_CXX_LITE)
     # 仅哪吒(riscv64)：test-schedule 只跑 OS-safe 的 fast/pid/cusum/ewma，真实出分；
-    # icp/ekf/mqtt/modbus 在 D1H 真实执行会内核硬崩(用户态看门狗抓不住)，排除在任务集外。
-    # EIGEN_NO_IO：哪吒用 std::cout 垫片，禁掉 Eigen 的 operator<<(避免拉真 <ostream>/TLS)；
-    # 飞腾用真 <iostream>，必须保留 Eigen IO，否则 EPNP 的 `std::cout << matrix` 无匹配 operator<<。
+    # icp/mqtt/modbus 在 D1H 真实执行会内核硬崩(用户态看门狗抓不住)，排除在任务集外。
     target_compile_definitions(${PROJECT_NAME} PRIVATE
-        EIGEN_NO_IO
         TEST_SCHEDULE_WORKLOAD_ALLOWLIST="fast,pid,cusum,ewma"
     )
 endif()
@@ -105,15 +98,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/workloads/FAST"
     "${CMAKE_CURRENT_SOURCE_DIR}/workloads/FAST/include_imgs"
     "${CMAKE_CURRENT_SOURCE_DIR}/workloads/PID"
-    "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EKF"
-    "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EKF/EKF_core"
-    "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EKF/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EKF/include/matrix"
-    "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EKF/geo"
-    "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EKF/geo_lookup"
-    "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EPNP"
-    "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EPNP/opengv"
-    "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EPNP/Eigen"
     "${CMAKE_CURRENT_SOURCE_DIR}/workloads/ICP"
     "${CMAKE_CURRENT_SOURCE_DIR}/workloads/MODBUS"
     "${CMAKE_CURRENT_SOURCE_DIR}/workloads/MQTT"
@@ -133,5 +117,3 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
     $<$<COMPILE_LANGUAGE:CXX>:-fno-threadsafe-statics>
 )
-
-#$<$<COMPILE_LANGUAGE:CXX>:-include "${CMAKE_CURRENT_SOURCE_DIR}/workloads/EPNP/fix_opengv.h">

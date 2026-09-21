@@ -26,7 +26,7 @@ generator/test_schedule/sched_modbus_wrapper.c
 - 入口 CLI：
   - Linux/SylixOS：`rtbench -p <period_sec> -t <tasks> -b <workload> [-q] [-d <deadline>]`
   - RT-Thread：`rtosbench`/`rtbench` msh，同参数；默认 TRACE，可用 `-q` 降噪（RT-Thread 目前未实现 -d，需要扩展）。
-- 内置工作负载：busywait, stub, fast, epnp, ekf, icp, pid, modbus, mqtt。网络类在无网络时自动离线仿真/pack-only，并打印 offline 提示。
+- 内置工作负载：busywait, stub, fast, icp, pid, modbus, mqtt, cusum, ewma。网络类在无网络时自动离线仿真/pack-only，并打印 offline 提示。
 
 ## 脚本与命令
 - RT-Thread (QEMU virt aarch64, BSP: `qemu-virt64-aarch64`)：`./run-rtthread.sh`
@@ -68,15 +68,13 @@ generator/test_schedule/sched_modbus_wrapper.c
 
 ## RT-Thread 集成要点
 - BSP 已开启 POSIX/pthread/SAL/LWIP/virtio 配置（见 `extern/rt-thread/bsp/qemu-virt64-aarch64/.config`）；如需网络真实可用，需在 QEMU 侧配置网卡并确保 DHCP/静态地址匹配，否则 modbus/mqtt 会走离线模式。
-- C++ workload（epnp/ekf/icp/pid）已用 `extern "C"` 暴露；链接脚本已包含 .ctors。
+- C++ workload（icp/pid）已用 `extern "C"` 暴露；链接脚本已包含 .ctors。
 - 定时器实现使用软定时器（非自建线程），避免早期调度崩溃；日志默认 TRACE，可用 `-q`。
 
 ## 已验证命令示例（无网络环境）
 - 计算类：
   - `rtbench -b busywait -p 0.5 -t 1 -q`
   - `rtbench -b fast -p 1 -t 1 -q`
-  - `rtbench -b epnp -p 1 -t 1 -q`
-  - `rtbench -b ekf -p 2 -t 1 -q`
   - `rtbench -b icp -p 5 -t 1 -q`
   - `rtbench -b pid -p 0.5 -t 1 -q`
 - 网络类（离线降级）：
@@ -169,7 +167,7 @@ generator/test_schedule/sched_modbus_wrapper.c
 
 ### 编译验证结果
 - **成功编译**：stub, busywait, CUSUM, EWMA, FAST(含benchmark), PID(含benchmark)
-- **无法编译**：MODBUS/MQTT(需socket)、EKF/EPNP/ICP(需C++11/Eigen)
+- **无法编译**：MODBUS/MQTT(需socket)、ICP(需C++11)
 
 ### OneOS POSIX 支持情况
 OneOS 提供了较完整的 POSIX 支持，但有以下缺口：

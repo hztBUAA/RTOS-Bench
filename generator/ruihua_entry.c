@@ -20,8 +20,8 @@ extern int run_all_workloads(void);
 
 /*
  * test-all 必须跑在独立的大栈线程上。ReWorks 的 shell/telnet 任务栈很小
- * (SHELL_TASK_STACKSIZE 64KB),test-all 会把 9 个负载链(含 Eigen 的
- * epnp/ekf/icp)跑在调用者栈上 → 栈溢出踩进内核调度,触发 Data Abort in EL1
+ * (SHELL_TASK_STACKSIZE 64KB),test-all 会把 7 个负载链(含 C++ 的
+ * icp/pid)跑在调用者栈上 → 栈溢出踩进内核调度,触发 Data Abort in EL1
  * (ucore_waitq_flush/schedule)。这里覆盖弱默认 rtbench_platform_run_test_all,
  * 改为在 4MB 栈的工作线程里执行,与 SylixOS/Dongtu 一致。
  */
