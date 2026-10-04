@@ -28,17 +28,24 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #else
-/* 如果完全没有文件系统支持，提供空实现 */
+/* 如果完全没有文件系统支持，仅提供编译期占位实现 */
+/*
+ * 注意（裸机 + newlib 场景）：
+ *   - rename() 已由 <stdio.h> 声明（stress_osal.h 间接引入），此处不可再
+ *     用 static 定义，否则触发 "static declaration follows non-static"；
+ *     保留为外部引用即可（独立编译只产出静态库，不解析符号）。
+ *   - pipe() 在未启用 POSIX/DFS 时无任何声明，需自带占位实现以通过编译。
+ */
 static inline int mkdir(const char *p, int m) { (void)p; (void)m; return -1; }
 static inline int rmdir(const char *p) { (void)p; return -1; }
 static inline int open(const char *p, int f, int m) { (void)p; (void)f; (void)m; return -1; }
 static inline int close(int fd) { (void)fd; return -1; }
 static inline int write(int fd, const void *b, size_t c) { (void)fd; (void)b; (void)c; return -1; }
 static inline int read(int fd, void *b, size_t c) { (void)fd; (void)b; (void)c; return -1; }
-static inline int rename(const char *o, const char *n) { (void)o; (void)n; return -1; }
 static inline int unlink(const char *p) { (void)p; return -1; }
 static inline int fsync(int fd) { (void)fd; return -1; }
 static inline int ftruncate(int fd, off_t length) { (void)fd; (void)length; return -1; }
+static inline int pipe(int fd[2]) { (void)fd; return -1; }
 #endif
 #endif
 
