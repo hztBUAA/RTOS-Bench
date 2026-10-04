@@ -37,7 +37,7 @@ CONFIG = {
 
 WORKLOAD_CATEGORY_MAP = {
     "pid":    "realtime_control",
-    "ekf":    "perception",
+    "ekf":    "realtime_control",
     "icp":    "perception",
     "fast":   "perception",
     "epnp":   "perception",

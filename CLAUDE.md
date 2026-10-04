@@ -16,7 +16,11 @@ RTOS-Bench 是一套跨平台工业 RTOS 基准测试框架，基于《工业操
 ./run-rtthread.sh -r       # 仅运行
 
 # msh 内运行测试
-rtbench test-realtime                # 实时性能测试
+rtbench test-realtime                # 实时性能测试（完整单核，含系统调用延迟）
+rtbench test-realtime --delay        # 分节：内核延迟（test1 上下文切换 + test2 中断）
+rtbench test-realtime --cost         # 分节：系统服务开销 8 操作 x 4 场景（test4-test10，不含 test3）
+rtbench test-realtime --multi-access # 分节：多核存取性能
+rtbench test-realtime --multi-service# 分节：多核系统服务与通信
 rtbench test-schedule --cycles 100   # 可调度性测试
 rtbench test-stress -s cpu -t 5      # 压力测试
 rtbench test-cmd                     # Shell 命令支持测试

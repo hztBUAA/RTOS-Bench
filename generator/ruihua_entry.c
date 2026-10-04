@@ -257,6 +257,30 @@ int rtbench_test_realtime_verify(void)
 	return rtbench_command_main(3, argv);
 }
 
+int rtbench_test_realtime_delay(void)
+{
+	char *argv[] = { "rtbench", "test-realtime", "--delay" };
+	return rtbench_command_main(3, argv);
+}
+
+int rtbench_test_realtime_cost(void)
+{
+	char *argv[] = { "rtbench", "test-realtime", "--cost" };
+	return rtbench_command_main(3, argv);
+}
+
+int rtbench_test_realtime_multi_access(void)
+{
+	char *argv[] = { "rtbench", "test-realtime", "--multi-access" };
+	return rtbench_command_main(3, argv);
+}
+
+int rtbench_test_realtime_multi_service(void)
+{
+	char *argv[] = { "rtbench", "test-realtime", "--multi-service" };
+	return rtbench_command_main(3, argv);
+}
+
 int rtbench_test_stress_all(void)
 {
 	char *argv[] = { "rtbench", "test-stress", "--job", "all"};

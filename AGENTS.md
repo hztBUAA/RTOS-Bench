@@ -89,6 +89,9 @@ generator/test_schedule/sched_modbus_wrapper.c
 - **实时性能测试**：
   - `rtbench test-realtime` => 测量上下文切换、信号量、互斥锁、内存分配延迟
   - `rtbench test-realtime --multicore` => 包含多核测试（需 SMP 支持）
+  - `rtbench test-realtime --delay | --cost | --multi-access | --multi-service` => 分节测试（内核延迟 / 服务开销 / 多核存取 / 多核系统服务与通信），可组合；分节均不含 test3
+  - 锐华 ReWorks shell 对应零参包装：`rtbench_test_realtime_delay` / `rtbench_test_realtime_cost` / `rtbench_test_realtime_multi_access` / `rtbench_test_realtime_multi_service`
+  - `-m` 优先级最高：检测到 `-m` 即执行完整单核（含 test3）+ 多核测试，忽略分节选项
   - 详见 [docs/REALTIME.md](docs/REALTIME.md)
 - **压力测试**：
   - `rtbench test-stress -s cpu -t 5` => CPU 压力测试

@@ -42,7 +42,7 @@ void test3(uint64_t *address1, uint64_t *address2, uint64_t *address3) {
 		LES_syscall_disable();
 		t1 = LES_get_syscall_val();
 		
-		if (t1 == 0) {
+		if (t1 == 0 || t1 <= t0) {
 			fail_flag = 1;
 			LES_syscall_enable();
 			t0 = timeGet();
