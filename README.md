@@ -142,6 +142,7 @@ RTOS-Bench/
 | **OneOS** | ⚠️ 部分支持 | `oneos_entry.c` | SCons |
 | **东土 (Dongtu)** | ⚠️ 待验证 | `dongtu_entry.c` | 厂商 IDE |
 | **锐华 (Ruihua/ReWorks)** | ✅ 本地 gnuarm 编译通过 | `ruihua_entry.c` + `rtbench_command.c` | 厂商 IDE |
+| **openEuler AArch64** | ✅ 飞腾派/香橙派交叉编译入口 | `linux_entry.c` + Linux Platform | WSL + Makefile |
 
 详见 [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md) 中的跨平台编译章节。
 
@@ -190,9 +191,10 @@ rtbench [子命令] [选项]
 
 ### 新增平台
 
-1. 在 `generator/platform/<new>/` 实现平台抽象层
-2. 创建 `generator/<new>_entry.c` 入口文件
-3. 集成到对应构建系统
+1. 确认目标 RTOS 是否能复用已有 Platform；openEuler 复用 `generator/platform/linux/`
+2. 对需要独立命令入口的平台创建 `generator/<new>_entry.c`
+3. 在 `platforms/<new>/` 固化工具链、源文件清单、板卡 profile 和部署方式
+4. 集成到对应构建系统
 
 详见 [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md)。
 

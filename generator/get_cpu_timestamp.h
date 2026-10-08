@@ -23,7 +23,7 @@ long double get_timestamp();
 
 // Timing utils which depend on architecture
 
-#ifdef GCC
+#if defined(GCC) || defined(__GNUC__)
 
 #ifdef __aarch64__
 
@@ -48,7 +48,7 @@ long double get_timestamp();
 
 #endif /* _arm_ */
 
-#endif /* GCC */
+#endif /* GCC || __GNUC__ */
 
 #ifdef METRO
 

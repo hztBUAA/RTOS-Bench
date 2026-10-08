@@ -110,4 +110,12 @@ int bench_get_cpu(void) {
     return cpuIDGet();
 }
 
+#elif defined(LINUX_PLATFORM) || defined(__linux__)
+
+#include <sched.h>
+
+int bench_get_cpu(void) {
+    return sched_getcpu();
+}
+
 #endif
