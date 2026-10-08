@@ -9,7 +9,7 @@ if [[ ! -x "$toolchain_bin/aarch64-buildroot-linux-gnu-gcc" ]]; then
 	cat >&2 <<EOF
 error: openEuler AArch64 compiler was not found:
   $toolchain_bin/aarch64-buildroot-linux-gnu-gcc
-Extract C:\\Users\\hzt\\Downloads\\openeuler.zip inside WSL, or set
+Extract <path-to-openeuler.zip> inside Linux/WSL, or set
 OPENEULER_AARCH64_SDK to the extracted toolchain directory.
 EOF
 	exit 1

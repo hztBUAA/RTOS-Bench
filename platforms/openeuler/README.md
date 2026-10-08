@@ -16,8 +16,12 @@ executable.
 
 ## Build prerequisites
 
-The build runs on Windows through WSL2. Extract
-`C:\Users\hzt\Downloads\openeuler.zip` inside WSL, or set
+The compiler package is Linux-hosted. On a Linux development machine, extract
+the package locally and run the Bash wrapper directly. On a Windows
+development machine, use WSL2; the PowerShell wrapper only forwards the build
+request into WSL and does not run the Linux compiler as a Windows executable.
+
+Extract `<path-to-openeuler.zip>` inside the Linux/WSL filesystem, or set
 `OPENEULER_AARCH64_SDK` to the extracted directory. The default expected path
 is:
 
@@ -32,7 +36,7 @@ firmware.
 
 ## Build commands
 
-From the repository root in PowerShell:
+On Windows, from the repository root in PowerShell:
 
 ```powershell
 .\platforms\openeuler\build-aarch64.ps1 BOARD=feiteng clean
@@ -42,7 +46,7 @@ From the repository root in PowerShell:
 .\platforms\openeuler\build-aarch64.ps1 BOARD=orangepi
 ```
 
-The equivalent WSL commands are:
+The equivalent Linux or WSL commands are:
 
 ```bash
 ./platforms/openeuler/build-aarch64.sh BOARD=feiteng clean
