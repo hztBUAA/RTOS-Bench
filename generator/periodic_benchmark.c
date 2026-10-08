@@ -213,13 +213,10 @@ static void stop_benchmark(int status, void *arg)
 #endif
 }
 
-#if defined(RT_THREAD_PLATFORM) || defined(SYLIXOS_PLATFORM) || defined(ONEOS_PLATFORM) || \
-	defined(DONGTU_PLATFORM) || defined(RUIHUA_PLATFORM)
 static void stop_benchmark_wrapper(void)
 {
 	stop_benchmark(EXIT_SUCCESS, &memory_profiling_enabled);
 }
-#endif
 
 /**
  * @brief Quit handler, causes the program to terminate in a clean way.

@@ -1,7 +1,7 @@
 # RTOS-Bench 架构概览
 
 > 文档创建时间: 2026-02-23
-> 最后更新: 2026-02-23
+> 最后更新: 2026-10-08
 
 本文档描述 RTOS-Bench 框架的整体架构、各组件定位及跨平台编译策略。
 
@@ -81,6 +81,7 @@ RTOS-Bench/
 │   ├── sylixos_entry.c          # SylixOS 入口
 │   ├── dongtu_entry.c           # 东土 (Intewell) 入口
 │   ├── ruihua_entry.c           # 锐华 (ReWorks) 入口
+│   ├── linux_entry.c             # Linux/openEuler 共享命令入口
 │   ├── posixlite_entry.c        # 通用 POSIX 入口（无专用入口的平台使用）
 │   │
 │   ├── test_realtime.c/.h       # 实时性测试 wrapper
@@ -117,6 +118,7 @@ RTOS-Bench/
 │   └── rtbench_workloads.cpp    # 统一注册
 │
 ├── run-rtthread.sh              # RT-Thread 一键脚本
+├── platforms/openeuler/          # openEuler AArch64 构建、板卡 profile 与部署说明
 └── extern/                      # 外部依赖
     ├── rt-thread/               # RT-Thread 源码
     └── toolchains/              # 工具链
@@ -136,6 +138,7 @@ RTOS-Bench/
 | **OneOS** | `oneos_entry.c` | SCons (OneOS Cube) | ✅ 部分验证 |
 | **东土 (Dongtu)** | `dongtu_entry.c` | 厂商 IDE | ⚠️ 待验证 |
 | **锐华 (Ruihua)** | `ruihua_entry.c` | 厂商 IDE | ⚠️ VxWorks 兼容 |
+| **openEuler AArch64** | `linux_entry.c` | WSL + Makefile | ✅ 飞腾派/香橙派交叉编译 |
 
 ### 4.2 跨平台编译的三个层次
 

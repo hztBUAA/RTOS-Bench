@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <errno.h>
+#include <stddef.h>
 #include "les.h"
 #include "cpu_affinity.h"
 

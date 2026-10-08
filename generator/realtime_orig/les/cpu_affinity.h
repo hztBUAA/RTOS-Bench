@@ -69,6 +69,15 @@ int pthread_setaffinity_np(pthread_t thread, size_t cpusetsize, const cpu_set_t 
 #include <sched.h>
 #include <pthread.h>
 
+#elif defined(LINUX_PLATFORM) || defined(__linux__)
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include <sched.h>
+#include <pthread.h>
+
 #endif
 
 #endif /* __CPU_AFFINITY.H__ */
