@@ -543,3 +543,18 @@ platforms/dongtu/香橙派/
 x86 和香橙派 / vm_3588 的差异应该通过 `config_os.mk` 中的 `ARCH` 配置区分，而不是维护两套重复源码。
 :::
 
+---
+
+## 9. 龙芯（LoongArch64）命令行构建
+
+当东土龙芯板运行的是 **Linux（musl 用户态）** 时，不再走 IDE，而是用命令行交叉工具链把 RTOS-Bench 编成**普通 LoongArch64 ELF**，SCP 上传后直接运行。这与上面的 IDE 分区镜像路线（`intewell.mk`）是两条不同的路。
+
+详见 [`loongarch64-linux/`](loongarch64-linux/)：
+
+- 构建入口：[`loongarch64-linux/Makefile`](loongarch64-linux/Makefile)
+- 一键脚本：[`loongarch64-linux/build-loongarch64.sh`](loongarch64-linux/build-loongarch64.sh)
+- 说明：[`loongarch64-linux/README.md`](loongarch64-linux/README.md)
+- 板端验收：[`loongarch64-linux/VALIDATION.md`](loongarch64-linux/VALIDATION.md)
+
+工具链：`loongarch64-unknown-linux-musl`（GCC 14.2.0），宿主 x86_64-Linux。
+
