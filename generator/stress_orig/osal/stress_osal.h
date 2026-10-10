@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>  /* for SEEK_SET, SEEK_CUR, SEEK_END */
+#include <sys/stat.h>  /* for struct stat (used in stat/fstat prototypes) */
 
 /* =========================================================================
  * 1. 基础类型定义 (Types)

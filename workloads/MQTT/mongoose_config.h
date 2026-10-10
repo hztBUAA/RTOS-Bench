@@ -5,13 +5,15 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#ifdef DONGTU_PLATFORM
+/* Dongtu Intewell builds link lwip. Dongtu Linux/musl builds (LoongArch) do
+ * not have lwip headers, so they set RTBENCH_DONGTU_LINUX and use POSIX. */
+#if defined(DONGTU_PLATFORM) && !defined(RTBENCH_DONGTU_LINUX)
 #include <lwip/tcp.h>
 #else
 #include <netinet/tcp.h>
 #endif
 
-#ifdef DONGTU_PLATFORM
+#if defined(DONGTU_PLATFORM) && !defined(RTBENCH_DONGTU_LINUX)
 #include <lwip/inet.h>
 #else
 #include <arpa/inet.h>
@@ -23,7 +25,7 @@
 // 启用必要的特性
 #define MG_ENABLE_SOCKET 1
 
-#if defined(ONEOS_PLATFORM) || defined(DONGTU_PLATFORM) || defined(RUIHUA_PLATFORM)
+#if defined(ONEOS_PLATFORM) || (defined(DONGTU_PLATFORM) && !defined(RTBENCH_DONGTU_LINUX)) || defined(RUIHUA_PLATFORM)
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdlib.h>

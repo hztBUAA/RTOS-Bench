@@ -65,6 +65,14 @@
 #elif defined(DONGTU_PLATFORM)
     /* Dongtu Intewell/DTOS family: treat as POSIX-compatible where provided */
     #define RTBENCH_PLATFORM_DONGTU
+    /* LoongArch cross toolchain (loongarch64-unknown-linux-musl) uses musl libc,
+     * which already defines clock_t/clockid_t/timer_t/suseconds_t/pid_t/
+     * useconds_t in bits/alltypes.h. Skip our typedefs there to avoid conflicts
+     * (mirrors the OneOS V2 musl handling above). */
+    #if defined(__loongarch__) || defined(__loongarch64) || defined(__loongarch_lp64)
+        #define RTBENCH_DONGTU_MUSL_LIBC 1
+    #endif
+    #ifndef RTBENCH_DONGTU_MUSL_LIBC
     #ifndef _CLOCK_T_DECLARED
     typedef unsigned long clock_t;
     #define _CLOCK_T_DECLARED
@@ -89,6 +97,7 @@
     typedef unsigned long useconds_t;
     #define _USECONDS_T_DECLARED
     #endif
+    #endif /* !RTBENCH_DONGTU_MUSL_LIBC */
 #elif defined(RUIHUA_PLATFORM)
     /* Ruihua RTOS (RHRTOS/RHOS): POSIX extensions assumed when building rt-bench */
     #define RTBENCH_PLATFORM_RUIHUA

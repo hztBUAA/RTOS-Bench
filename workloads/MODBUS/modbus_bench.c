@@ -36,11 +36,11 @@ extern int g_sched_suppress_output;
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#ifndef DONGTU_PLATFORM
+#if !defined(DONGTU_PLATFORM) || defined(RTBENCH_DONGTU_LINUX)
 #include <netinet/tcp.h>
 #endif
 
-#ifdef DONGTU_PLATFORM
+#if defined(DONGTU_PLATFORM) && !defined(RTBENCH_DONGTU_LINUX)
 #include <lwip/inet.h>
 #else
 #include <arpa/inet.h>
