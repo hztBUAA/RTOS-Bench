@@ -105,10 +105,17 @@ int bench_get_cpu(void) {
 
 #include <pthread.h>
 
+#if defined(RTBENCH_DONGTU_LINUX)
+#include <sched.h>
+int bench_get_cpu(void) {
+    return sched_getcpu();
+}
+#else
 int bench_get_cpu(void) {
     // API
     return cpuIDGet();
 }
+#endif
 
 #elif defined(LINUX_PLATFORM) || defined(__linux__)
 
