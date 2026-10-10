@@ -1,6 +1,6 @@
 # 东土龙芯（LoongArch64 / Linux musl）板端验收记录
 
-更新时间：2026-10-10 16:48 （每次新增实测结果时更新这一行）
+更新时间：2026-10-10 17:46 （每次新增实测结果时更新这一行）
 
 ## 环境
 
@@ -18,11 +18,39 @@
 | `./rtbench test-schedule --cycles 3` | ✅ | 跑完（Final Score 见导出 JSON） |
 | `./rtbench test-stress --job all` | ✅ | `135 stressor runs`，总耗时约 5s |
 | `./rtbench test-cmd` | ⚠️ 10/12 | 支持 `date,mkdir,echo,cd,pwd,cp,mv,ls,cat,rm`；不支持 `ps,touch` |
-| `./rtbench test-all --no-realtime --no-workload` | ✅ | 跑完并导出 JSON |
+| `./rtbench test-all --no-realtime --no-workload` | ✅ | 跑完并导出 JSON（本次验收采用） |
 | `./rtbench test-realtime` | ❌ 段错误 | 在 `Finish test 1.` 之后崩（加 `-m` 同样崩） |
 | `./rtbench test-realtime --delay / --cost / --multi-access / --multi-service` | ⏳ 待测 | 用于定位 realtime 崩点 |
-| `./rtbench test-all`（全量） | ⚠️ workload 段过长 | 每负载 10 轮 + 真实网络，墙钟时间不可控；用 `--no-workload` 规避 |
+| `./rtbench test-all`（带 workload 段） | ❌ 不可用 | 每负载 10 轮，实测两次都在 MQTT 段长时间刷屏；用 `--no-workload` 规避 |
 | `./rtbench -A` | ❌ 只跑 stub | 已知 bug：`-A` 未接到 `run_all_workloads()`；用 `-s` 代替 |
+
+## 问题清单（需转交对应同学）
+
+### 问题 1 ｜ `test-realtime` 段错误 —— 转交 realtime 负责人
+
+- 复现：`./rtbench test-realtime`。加 `-m` 同样段错误。
+- 现象：输出到 `Finish test 1.` 之后 `Segmentation fault`。test 1（上下文切换）本身通过。
+- 待办：用分节开关定位崩点。
+  - `--delay` = test1 + test2（中断延迟）
+  - `--cost` = test4 ~ test10
+  - `--multi-access` / `--multi-service`
+- 证据：控制台截图（见下或另附）。
+
+### 问题 2 ｜ `test-all` 的 workload 段每负载 ×10，过长到不可用 —— 转交 workload 负责人
+
+- 复现：`./rtbench test-all --no-realtime`（含 workload 段）。两次复现，均停在 MQTT 段长时间刷屏。
+- 根因：`collect_workload_results()` 对每个负载调用 `exec()` **10 次**（`--quick` 为 5 次）。而 `exec` 就等于该负载的 `xxx_test()`，即**等于 `-s` 的内容跑 10 遍**。
+- 量级：MQTT 单轮约 6.7s、MODBUS 单轮约 8s（均为真实 TCP），再叠加 EKF/EPNP/ICP 重计算 → 整段十几到几十分钟。
+- 定性：**不是死锁**。每一轮都完整结束（`Benchmark Fininished` → `thread finished`），只是被放大 10 倍。
+- 影响：`test-all` 在这块板上带 workload 段不可用。
+- 规避：`--no-workload`，workload 用 `./rtbench -s` 单独跑。
+- 建议：把默认轮数 **10 → 1**（与 `-s` 对齐），或在 `test-all` 中默认跳过网络类负载。
+
+### 问题 3 ｜ `-A` 未生效 —— 转交 CLI / command 负责人
+
+- 现象：`./rtbench -A` 只运行第 0 个负载（`stub`）。
+- 根因：`rtbench_command_main` 中 `-A` 只设置 `run_all_workloads = 1`，但 `run_workload_command()` 未读取该标志。只有 `./rtbench -s`（恰好两个参数）才真正调用 `run_all_workloads()`。
+- 建议：把 `-A` 接到 `run_all_workloads()`，使其与 `-s` 等价。
 
 ## 实测记录
 
@@ -42,13 +70,6 @@
   人工清单：支持 `date, mkdir, echo, cd, pwd, cp, mv, ls, cat, rm`；不支持 `ps, touch` →
   `Result: 10/12 commands supported`。
 - `test-schedule`：跑完（Final Score 从 JSON 中读取，待补）。
-
-## 已知问题
-
-1. **`test-realtime` 段错误**：在 test 1（上下文切换）之后崩。待用分节开关定位到具体子测试。
-2. **`test-all` 的 workload 段过长**：每负载 10 轮 + 真实网络。规避：`--no-workload` 后单独 `./rtbench -s`。
-3. **`-A` 未生效**：只运行第 0 个负载（stub）。`-s` 正常（等价于「全部典型负载各一次」）。
-4. **`test-cmd` 走人工清单**：该 Intewell 未提供 `system()`，命令支持测试按人工结果计（10/12）。
 
 ## 待补
 
