@@ -5,7 +5,17 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <stdio.h>  /* for SEEK_SET, SEEK_CUR, SEEK_END */
+#include <stdio.h>      /* for SEEK_SET, SEEK_CUR, SEEK_END */
+#include <sys/types.h>  /* for off_t */
+
+/*
+ * 前置声明 struct stat。
+ * 不能在此 #include <sys/stat.h>：裸机 OSAL（如 os_rtt.c 在未启用
+ * RT_USING_POSIX/DFS 时）需要自行提供 mkdir/stat 等静态桩，若此处引入
+ * <sys/stat.h> 会与这些桩声明冲突。文件作用域的前置声明既能让 stat/fstat
+ * 形参使用同一类型标签（避免原型作用域类型不匹配），又不引入函数声明。
+ */
+struct stat;
 #include <sys/stat.h>  /* for struct stat (used in stat/fstat prototypes) */
 
 /* =========================================================================
