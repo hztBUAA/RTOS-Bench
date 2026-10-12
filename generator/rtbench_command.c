@@ -1197,6 +1197,12 @@ int rtbench_command_main(int argc, char **argv)
 	if (argc == 2 && strcmp(argv[1], "-s") == 0) {
 		return run_all_workloads();
 	}
+	if (!strcmp(argv[1], "-A") || !strcmp(argv[1], "--all-workloads")) {
+		/* Run every registered workload (same as -s).  Previously -A was
+		 * parsed into opts.run_all_workloads but never acted on, so it fell
+		 * through to run_workload_command() and only ran the first workload. */
+		return run_all_workloads();
+	}
 	
 	if (!strcmp(argv[1], "test-all")) {
 		struct test_all_params params;
@@ -1299,14 +1305,10 @@ int rtbench_command_main(int argc, char **argv)
 	if (!strcmp(argv[1], "-s")) {
 		/* Alias for `-A` / `--all-workloads`, for CLI parity with the
 		 * per-platform entries (oneos/main `rtbench -s` -> run_all_workloads).
-		 * Runs every registered workload through the standard workload
-		 * benchmark path (run_workload_command).  NOTE: this is NOT the same
-		 * as `test-all`'s workload phase (collect_workload_results) -- different
+		 * Runs every registered workload.  NOTE: this is NOT the same as
+		 * `test-all`'s workload phase (collect_workload_results) -- different
 		 * code path and output. */
-		char *aav[2];
-		aav[0] = argv[0];
-		aav[1] = "-A";
-		return run_workload_command(2, aav);
+		return run_all_workloads();
 	}
 	if (argv[1][0] != '-') {
 		printf("[rtbench] Unknown command: %s\n", argv[1]);
