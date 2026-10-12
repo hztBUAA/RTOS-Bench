@@ -12,7 +12,7 @@
 #   ./build-loongarch64.sh                      # convenience wrapper
 # ============================================================================
 
-PROJECT_ROOT  := $(abspath $(CURDIR)/../..)
+PROJECT_ROOT  := $(abspath $(CURDIR)/../../..)
 GENERATOR_DIR := $(PROJECT_ROOT)/generator
 WORKLOADS_DIR := $(PROJECT_ROOT)/workloads
 DONGTU_DIR    := $(PROJECT_ROOT)/platforms/dongtu
