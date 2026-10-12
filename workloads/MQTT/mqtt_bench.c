@@ -65,6 +65,13 @@ static void fn(struct mg_connection* c, int ev, void* ev_data) {
         g_stop_flag = 1;
         if (c != NULL) c->is_closing = 1;
     }
+    else if (ev == MG_EV_CLOSE) {
+        if (!g_stop_flag) {
+            printf("[MQTT] Connection closed before completion\n");
+            g_mqtt_failed = 1;
+        }
+        g_stop_flag = 1;
+    }
     else if (ev == MG_EV_OPEN) {
         printf("[MQTT] Socket Created\n");
         g_tcp_connected = 0;
