@@ -1,13 +1,26 @@
 # 东土龙芯（LoongArch64 / Linux musl）板端验收记录
 
-更新时间：2026-10-10 17:46 （每次新增实测结果时更新这一行）
+更新时间：2026-10-12 16:18 （每次新增实测结果时更新这一行）
 
 ## 环境
 
 - 板卡/系统：东土 Intewell 3.1.2，`Arch: loongarch64`（`root@localhost` shell），IP `192.168.137.114`。
 - 产物：`build/rtbench-dongtu-loongarch64`，静态 ELF64 LoongArch（`Type: EXEC`、`NEEDED=0`）。
-- 参考 sha256（main 上 `ce842f2` 源码构建）：`44f4e1ef90452b9a44b3e2024b6c4c9b8016d8e58a77319fa4665b34c3ea8a01`，大小 `52232664` 字节。
 - 交叉工具链：`loongarch64-unknown-linux-musl`，GCC 14.2.0。
+
+## 最新结论（2026-10-12）
+
+用 **`fix/mqtt1012`** 分支构建的产物，`./rtbench test-all --no-realtime` **完整跑通**（总时长 675s）。
+
+- **`test-schedule`：100.00 / 100**。8 个利用率梯度（30% ~ 100%），miss_rate 全为 0.0（每档 27 jobs = 9 负载 × 3 cycles）。
+- **`typical-workload`：passed**。11 个负载各 10 轮**全部 success**，其中 MQTT 10 轮跑完（75.4s）、MODBUS 90.4s。
+  - ⇒ **「test-all 跑到 workload 段卡住」的问题已由 `fix/mqtt1012` 解决。**
+- `test-stress`：passed（378s）。
+- `test-realtime`：skipped（本次用 `--no-realtime`）。
+- `test-cmd`：本次 JSON 记 skipped（单独 `test-cmd` 上一轮跑到 10/12）。
+
+产物 sha256：`990818dadd296acc2b8d1b2d7e8d98a7a294e99f5468e8322bb4d4963bd41639`，大小 `52231720` 字节
+（源 `fix/mqtt1012 @ 6032acc`；用 `platforms/dongtu/loongarch64-linux/Makefile` 构建，本次同时修正了它的 `PROJECT_ROOT`）。
 
 ## 结果矩阵
 
@@ -15,38 +28,31 @@
 |---|---|---|
 | `./rtbench -L` | ✅ | 列出 workload |
 | `./rtbench -s` | ✅ | 9 个典型负载各一次，全部完成 |
-| `./rtbench test-schedule --cycles 3` | ✅ | 跑完（Final Score 见导出 JSON） |
-| `./rtbench test-stress --job all` | ✅ | `135 stressor runs`，总耗时约 5s |
+| `./rtbench test-schedule --cycles 3` | ✅ | Final Score **100.00 / 100** |
+| `./rtbench test-stress --job all` | ✅ | `135 stressor runs` |
 | `./rtbench test-cmd` | ⚠️ 10/12 | 支持 `date,mkdir,echo,cd,pwd,cp,mv,ls,cat,rm`；不支持 `ps,touch` |
-| `./rtbench test-all --no-realtime --no-workload` | ✅ | 跑完并导出 JSON（本次验收采用） |
+| `./rtbench test-all --no-realtime`（`fix/mqtt1012`） | ✅ | 完整跑完，675s，导出 JSON |
 | `./rtbench test-realtime` | ❌ 段错误 | 在 `Finish test 1.` 之后崩（加 `-m` 同样崩） |
 | `./rtbench test-realtime --delay / --cost / --multi-access / --multi-service` | ⏳ 待测 | 用于定位 realtime 崩点 |
-| `./rtbench test-all`（带 workload 段） | ❌ 不可用 | 每负载 10 轮，实测两次都在 MQTT 段长时间刷屏；用 `--no-workload` 规避 |
 | `./rtbench -A` | ❌ 只跑 stub | 已知 bug：`-A` 未接到 `run_all_workloads()`；用 `-s` 代替 |
 
-## 问题清单（需转交对应同学）
+## 问题清单
 
-### 问题 1 ｜ `test-realtime` 段错误 —— 转交 realtime 负责人
+### 问题 1 ｜ `test-realtime` 段错误 —— 转交 realtime 负责人（未解决）
 
 - 复现：`./rtbench test-realtime`。加 `-m` 同样段错误。
 - 现象：输出到 `Finish test 1.` 之后 `Segmentation fault`。test 1（上下文切换）本身通过。
-- 待办：用分节开关定位崩点。
-  - `--delay` = test1 + test2（中断延迟）
-  - `--cost` = test4 ~ test10
-  - `--multi-access` / `--multi-service`
-- 证据：控制台截图（见下或另附）。
+- 待办：用分节开关定位崩点：`--delay`（test1+test2）/ `--cost`（test4~10）/ `--multi-access` / `--multi-service`。
 
-### 问题 2 ｜ `test-all` 的 workload 段每负载 ×10，过长到不可用 —— 转交 workload 负责人
+### 问题 2 ｜ `test-all` 的 workload 段卡住 —— 已由 `fix/mqtt1012` 解决 ✅
 
-- 复现：`./rtbench test-all --no-realtime`（含 workload 段）。两次复现，均停在 MQTT 段长时间刷屏。
-- 根因：`collect_workload_results()` 对每个负载调用 `exec()` **10 次**（`--quick` 为 5 次）。而 `exec` 就等于该负载的 `xxx_test()`，即**等于 `-s` 的内容跑 10 遍**。
-- 量级：MQTT 单轮约 6.7s、MODBUS 单轮约 8s（均为真实 TCP），再叠加 EKF/EPNP/ICP 重计算 → 整段十几到几十分钟。
-- 定性：**不是死锁**。每一轮都完整结束（`Benchmark Fininished` → `thread finished`），只是被放大 10 倍。
-- 影响：`test-all` 在这块板上带 workload 段不可用。
-- 规避：`--no-workload`，workload 用 `./rtbench -s` 单独跑。
-- 建议：把默认轮数 **10 → 1**（与 `-s` 对齐），或在 `test-all` 中默认跳过网络类负载。
+- 原现象：`./rtbench test-all --no-realtime` 在 MQTT 段长时间不动（最多等半小时）。
+- 根因：MQTT 连接关闭时 benchmark 线程不退出（`MG_EV_CLOSE` 未置停止标志），`pthread_join` 挂住。
+- 修复：`workloads/MQTT/mqtt_bench.c` 在 `MG_EV_CLOSE` 时置 `g_stop_flag = 1`，线程退出。
+- 验证：用修复后的产物，`test-all --no-realtime` 完整跑完（MQTT 10 轮正常结束）。分支：`fix/mqtt1012`。
+- 备注：`collect_workload_results()` 对每个负载跑 **10 轮**（`--quick` 5 轮），是设计倍数，不是 bug；修好退出条件后整段时长可接受（本轮 workload 段含 MQTT/MODBUS）。
 
-### 问题 3 ｜ `-A` 未生效 —— 转交 CLI / command 负责人
+### 问题 3 ｜ `-A` 未生效 —— 转交 CLI / command 负责人（未解决）
 
 - 现象：`./rtbench -A` 只运行第 0 个负载（`stub`）。
 - 根因：`rtbench_command_main` 中 `-A` 只设置 `run_all_workloads = 1`，但 `run_workload_command()` 未读取该标志。只有 `./rtbench -s`（恰好两个参数）才真正调用 `run_all_workloads()`。
@@ -54,25 +60,25 @@
 
 ## 实测记录
 
-### `test-all --no-realtime --no-workload`
+### `test-all --no-realtime`（`fix/mqtt1012`，2026-10-12）
 
 命令：
 
 ```sh
-./rtbench test-all --no-realtime --no-workload -o /root/rtbench_result.json
+./rtbench test-all --no-realtime -o /root/rtbench_mqtt1012_result.json
 ```
 
-结果：完成，控制台打印 `[RTOS-Bench] Results saved to: /root/rtbench_result.json`。
-板端另存副本：`/root/rtbench_result_2026_1010_1645_no_realtime_no_workload.json`。
+- 总时长 `total_duration_sec = 675`（约 11 分钟），控制台打印 `Results saved to: ...`。
+- `test-schedule`：8 档（30,40,50,60,70,80,90,100%），miss_rate 全 0.0。
+- `typical-workload`：`stub, busywait, fast, epnp, ekf, icp, modbus, mqtt, pid, cusum, ewma`
+  各 `rounds=10`、`success=true`；MQTT `exec_time_ms=75409`、MODBUS `exec_time_ms=90394`。
 
-- `test-stress`：`Job 'all' completed: 135 stressor runs`，`Total Run Time: 0m 5s`。
-- `test-cmd`：`Note: The Intewell provided does not support command execution 'system()'.`
-  人工清单：支持 `date, mkdir, echo, cd, pwd, cp, mv, ls, cat, rm`；不支持 `ps, touch` →
-  `Result: 10/12 commands supported`。
-- `test-schedule`：跑完（Final Score 从 JSON 中读取，待补）。
+### `test-all --no-realtime --no-workload`（2026-10-10）
+
+命令：`./rtbench test-all --no-realtime --no-workload -o /root/rtbench_result.json`
+结果：完成，落盘 `/root/rtbench_result.json`；`test-stress` 135 stressor runs；`test-cmd` 10/12。
 
 ## 待补
 
-- `test-realtime` 分节定位结果。
-- 导出 JSON 的 `test-schedule` Final Score（把 `rtbench_result_*.json` 附上）。
+- `test-realtime` 分节定位结果（崩在哪一节）。
 - 各命令的截图 / 原始日志。
