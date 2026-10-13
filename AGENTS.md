@@ -25,7 +25,7 @@ generator/test_schedule/sched_modbus_wrapper.c
 - 工作目录：`workloads/` 集中存放所有负载；`workloads/rtbench_workloads.cpp` 统一注册和 `register_all_workloads()`。
 - 入口 CLI：
   - Linux/SylixOS：`rtbench -p <period_sec> -t <tasks> -b <workload> [-q] [-d <deadline>]`
-  - RT-Thread：`rtosbench`/`rtbench` msh，同参数；默认 TRACE，可用 `-q` 降噪（RT-Thread 目前未实现 -d，需要扩展）。
+  - RT-Thread：`rtos_bench` msh，同参数；默认 TRACE，可用 `-q` 降噪（RT-Thread 目前未实现 -d，需要扩展）。
 - 内置工作负载：busywait, stub, fast, epnp, ekf, icp, pid, modbus, mqtt。网络类在无网络时自动离线仿真/pack-only，并打印 offline 提示。
 
 ## 脚本与命令
@@ -224,3 +224,9 @@ grep -A10 "switch.*clockid" <rtos>/osal/posix/source/
 3. **影子头文件影响全局**：使用 LOCAL_CPPPATH 或 LOCAL_CCFLAGS 限制作用域
 
 以上约定若有更新，请同步修改本文件。
+
+## RT-Thread 命令更新
+
+BSP 模板现在注册 `rtos_bench`；上文通用示例在 RT-Thread 上使用该命令名。
+`rtos_bench -s` 直接同步调用现有九项 workload suite，构建必须包含
+`workloads/run_all_workloads.cpp`。`test-stress -s cpu` 的子命令参数语义保持不变。

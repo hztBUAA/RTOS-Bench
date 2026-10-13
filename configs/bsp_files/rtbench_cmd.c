@@ -1,6 +1,6 @@
 /*
  * RTOS-Bench entry point for RT-Thread
- * Registers the rtbench command with msh
+ * Registers the rtos_bench command with msh
  */
 
 #ifdef RT_THREAD_PLATFORM
@@ -17,6 +17,6 @@ static int cmd_rtbench(int argc, char **argv)
 }
 
 /* Register command with msh */
-MSH_CMD_EXPORT_ALIAS(cmd_rtbench, rtbench, RTOS-Bench workload runner);
+MSH_CMD_EXPORT_ALIAS(cmd_rtbench, rtos_bench, RTOS-Bench workload runner);
 
 #endif

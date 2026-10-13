@@ -146,6 +146,8 @@ int stress_osal_rename(const char *oldpath, const char *newpath);
 int stress_osal_unlink(const char *path);
 int stress_osal_fsync(int fd);
 int stress_osal_ftruncate(int fd, off_t  length);
+/* Shared file-scope tag for the POSIX stat wrappers. */
+struct stat;
 int stress_osal_stat(const char *path, struct stat *buf);
 int stress_osal_fstat(int fd, struct stat *buf);
 int stress_osal_pipe(int fd[2]);

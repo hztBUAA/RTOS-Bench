@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>   /* usleep() is also used by RT-Thread task pacing. */
 
 #ifdef RT_THREAD_PLATFORM
 #include <rtthread.h>
@@ -38,7 +39,6 @@
 #else
 #include <pthread.h>
 #include <sched.h>    /* sched_get_priority_min / struct sched_param for orphan de-prioritization */
-#include <unistd.h>   /* usleep() for the watchdog polling loop */
 #define SCHED_PRINTF printf
 /* Per-task pthread stack.  Memory-constrained boards (e.g. OneOS Nezha D1H,
  * RISC-V) cannot afford 4 MB x N tasks, so shrink there.  Ruihua/ReWorks heap
