@@ -435,9 +435,26 @@ static void task_thread_entry(void *param)
 				if (!ctx->running || remain <= 0.0L) {
 					break;
 				}
+#ifdef RT_THREAD_PLATFORM
+				/* RT-Thread libc routes the sub-tick remainder of
+				 * usleep()/nanosleep() through rt_hw_us_delay().  Some
+				 * BSPs (e.g. Phytium) ship only the weak stub, which
+				 * prints a warning and returns WITHOUT delaying -- so a
+				 * sub-millisecond usleep both floods the console and
+				 * busy-spins this loop.  Pace in whole ticks via
+				 * rt_thread_mdelay instead (min 1 tick), which never
+				 * touches rt_hw_us_delay and yields the CPU properly. */
+				{
+					unsigned ms = remain < 0.1L
+						? (unsigned)(remain * 1000.0L) + 1u
+						: 100u;
+					rt_thread_mdelay((rt_int32_t)ms);
+				}
+#else
 				usleep(remain < 0.1L
 					       ? (unsigned)(remain * 1000000.0L) + 1u
 					       : 100000u);
+#endif
 			}
 			if (!ctx->running) {
 				break;
