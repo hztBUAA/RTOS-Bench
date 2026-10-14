@@ -231,3 +231,9 @@ The BSP must enable C++, pthread and the required POSIX interfaces and
 provide adequate shell stack space (the Phytium Pi build uses 16 KiB).
 Hardware-counter microsecond delay support and disabling BSP demo threads
 are board-side changes; the framework tick-based timestamp is unchanged.
+
+RT-Thread ePnP worker threads use a 64 KiB stack; other workload stacks are unchanged.
+The RTT MQTT socket capability declaration is enabled (the current code already
+uses sockets independently of this legacy macro). For the local MODBUS test,
+enable `CONFIG_RT_LWIP_NETIF_LOOPBACK=y` in the BSP configuration and regenerate
+`rtconfig.h`; its client connects to `127.0.0.1:5020`.

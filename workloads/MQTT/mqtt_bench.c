@@ -2,7 +2,7 @@
 #include <rtthread.h>
 #include <finsh.h>
 #define MQTT_HAVE_PTHREAD 1
-#define MQTT_HAVE_SOCKETS 0
+#define MQTT_HAVE_SOCKETS 1
 #else
 #define MSH_CMD_EXPORT(cmd, desc)
 #define MQTT_HAVE_PTHREAD 1
