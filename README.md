@@ -212,3 +212,28 @@ MIT License - 见 [LICENSE](LICENSE)
 
 - Nicolella et al., "RT-Bench: An Extensible Benchmark Framework for the Analysis and Management of Real-Time Applications," RTNS 2022
 - 工业操作系统通用基准检测指标体系指导书 v1.5
+
+## RT-Thread msh entry
+
+The BSP command template `configs/bsp_files/rtbench_cmd.c` registers
+`rtos_bench`. Copy it into the BSP applications directory when integrating.
+
+```text
+rtos_bench -s
+rtos_bench -L
+rtos_bench test-stress -s cpu -t 5
+```
+
+Bare `-s` directly runs the existing nine-workload suite synchronously in
+the calling shell thread; it is distinct from `test-all` and the stress
+subcommand selector. `workloads/SConscript` includes its C++ runner.
+The BSP must enable C++, pthread and the required POSIX interfaces and
+provide adequate shell stack space (the Phytium Pi build uses 16 KiB).
+Hardware-counter microsecond delay support and disabling BSP demo threads
+are board-side changes; the framework tick-based timestamp is unchanged.
+
+RT-Thread ePnP worker threads use a 64 KiB stack; other workload stacks are unchanged.
+The RTT MQTT socket capability declaration is enabled (the current code already
+uses sockets independently of this legacy macro). For the local MODBUS test,
+enable `CONFIG_RT_LWIP_NETIF_LOOPBACK=y` in the BSP configuration and regenerate
+`rtconfig.h`; its client connects to `127.0.0.1:5020`.

@@ -1,17 +1,7 @@
-#ifndef _CLOCK_T_DECLARED
-typedef unsigned long clock_t;
-#define _CLOCK_T_DECLARED
-#endif
-#ifndef _SUSECONDS_T_DECLARED
-typedef long suseconds_t;
-#define _SUSECONDS_T_DECLARED
-#endif
-#ifndef _CLOCKID_T_DECLARED
-typedef int clockid_t;
-#define _CLOCKID_T_DECLARED
-#endif
-
 #ifdef RT_THREAD_PLATFORM
+
+/* Initialize RT-Thread/POSIX types before headers enabling GNU extensions. */
+#include "platform_abstraction.h"
 
 #include "periodic_benchmark.h"
 #include "logging.h"
@@ -36,9 +26,9 @@ typedef int clockid_t;
     _RTBENCH_XSTR(RT_VERSION_PATCH)
 
 /* Minimal RT-Thread entry point to avoid argp/perf dependencies.
- * Usage: rtosbench [-p <period_sec>] [-t <tasks>] [-f <prio>] [-c <cpu>] [-b <workload>]
- *        rtosbench test-schedule [--cycles <n>] [--util-start <pct>] [--util-end <pct>]
- *        rtosbench test-all [-o <output_path>] [--no-realtime] [--no-schedule] [--no-stress] [--no-cmd]
+ * Usage: rtos_bench [-p <period_sec>] [-t <tasks>] [-f <prio>] [-c <cpu>] [-b <workload>]
+ *        rtos_bench test-schedule [--cycles <n>] [--util-start <pct>] [--util-end <pct>]
+ *        rtos_bench test-all [-o <output_path>] [--no-realtime] [--no-schedule] [--no-stress] [--no-cmd]
  * Defaults: period 1s, run until SIGINT, skip priority/affinity changes.
  */
 
@@ -51,6 +41,7 @@ typedef int clockid_t;
 
 /* Register packaged workloads (must be linked in) */
 void rtosbench_register_rtos_workloads(void);
+extern int run_all_workloads(void);
 
 /* Forward declarations for result collection */
 static void collect_realtime_result(int run_multicore);
@@ -65,15 +56,16 @@ static void print_usage(void)
 	rt_kprintf("RTOS-Bench - Cross-platform Industrial RTOS Benchmark Framework\n");
 	rt_kprintf("\n");
 	rt_kprintf("USAGE:\n");
-	rt_kprintf("  rtbench [OPTIONS]                    Run workload benchmark\n");
-	rt_kprintf("  rtbench test-all [OPTIONS]           Run comprehensive test suite\n");
-	rt_kprintf("  rtbench test-realtime [OPTIONS]      Run realtime performance test\n");
-	rt_kprintf("  rtbench test-schedule [OPTIONS]      Run schedulability test\n");
-	rt_kprintf("  rtbench test-stress [OPTIONS]        Run stress test\n");
-	rt_kprintf("  rtbench test-cmd                     Run shell command support test\n");
-	rt_kprintf("  rtbench export-result [OPTIONS]      Export results to JSON\n");
-	rt_kprintf("  rtbench -L | --list                  List available workloads\n");
-	rt_kprintf("  rtbench -h | --help                  Show this help message\n");
+	rt_kprintf("  rtos_bench -s                       Run all nine workload suites directly\n");
+	rt_kprintf("  rtos_bench [OPTIONS]                    Run workload benchmark\n");
+	rt_kprintf("  rtos_bench test-all [OPTIONS]           Run comprehensive test suite\n");
+	rt_kprintf("  rtos_bench test-realtime [OPTIONS]      Run realtime performance test\n");
+	rt_kprintf("  rtos_bench test-schedule [OPTIONS]      Run schedulability test\n");
+	rt_kprintf("  rtos_bench test-stress [OPTIONS]        Run stress test\n");
+	rt_kprintf("  rtos_bench test-cmd                     Run shell command support test\n");
+	rt_kprintf("  rtos_bench export-result [OPTIONS]      Export results to JSON\n");
+	rt_kprintf("  rtos_bench -L | --list                  List available workloads\n");
+	rt_kprintf("  rtos_bench -h | --help                  Show this help message\n");
 	rt_kprintf("\n");
 	rt_kprintf("WORKLOAD BENCHMARK OPTIONS:\n");
 	rt_kprintf("  -b <name>        Workload name (use -L to list)\n");
@@ -126,12 +118,12 @@ static void print_usage(void)
 	rt_kprintf("  -o, --output <path>   Output JSON path (default: /rtbench_result.json)\n");
 	rt_kprintf("\n");
 	rt_kprintf("EXAMPLES:\n");
-	rt_kprintf("  rtbench -L                                  # List workloads\n");
-	rt_kprintf("  rtbench -b busywait -p 0.5 -t 10 -q         # Run busywait 10 times\n");
-	rt_kprintf("  rtbench -b pid -p 1.0 -t 0 -d 5 -q          # Run pid for 5 seconds\n");
-	rt_kprintf("  rtbench test-all --quick                    # Quick comprehensive test\n");
-	rt_kprintf("  rtbench test-schedule --cycles 50           # Custom schedule test\n");
-	rt_kprintf("  rtbench test-stress -s cpu -t 30            # CPU stress for 30s\n");
+	rt_kprintf("  rtos_bench -L                                  # List workloads\n");
+	rt_kprintf("  rtos_bench -b busywait -p 0.5 -t 10 -q         # Run busywait 10 times\n");
+	rt_kprintf("  rtos_bench -b pid -p 1.0 -t 0 -d 5 -q          # Run pid for 5 seconds\n");
+	rt_kprintf("  rtos_bench test-all --quick                    # Quick comprehensive test\n");
+	rt_kprintf("  rtos_bench test-schedule --cycles 50           # Custom schedule test\n");
+	rt_kprintf("  rtos_bench test-stress -s cpu -t 30            # CPU stress for 30s\n");
 	rt_kprintf("\n");
 }
 
@@ -370,6 +362,11 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 	if (argc < 2) {
 		print_usage();
 		return 0;
+	}
+
+	/* Match the direct suite entry used by other platforms. */
+	if (argc == 2 && strcmp(argv[1], "-s") == 0) {
+		return run_all_workloads();
 	}
 
 	/* Check for test-all subcommand - comprehensive test suite */
@@ -726,7 +723,13 @@ int rtosbench_rtthread_entry(int argc, char **argv)
 		char *cats[RTOSBENCH_MAX_WORKLOADS];
 		int cat_count = 0;
 		if (opts.category_filter) {
-			cats_buf = strdup(opts.category_filter);
+			size_t cats_size = strlen(opts.category_filter) + 1;
+			cats_buf = malloc(cats_size);
+			if (cats_buf == NULL) {
+				rt_kprintf("Cannot allocate category filter buffer\n");
+				return -1;
+			}
+			memcpy(cats_buf, opts.category_filter, cats_size);
 			char *tok = strtok(cats_buf, ",");
 			while (tok && cat_count < RTOSBENCH_MAX_WORKLOADS) {
 				cats[cat_count++] = tok;
