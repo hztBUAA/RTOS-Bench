@@ -128,7 +128,17 @@ stress_tid_t stress_osal_thread_spawn(const char *name,
     if (stack_size == 0) stack_size = 16 * 1024;
     if (stack_size < 4096) stack_size = 4096;
 
-    /* RT-Thread 的优先级范围根据配置不同，这里直接透传 */
+    /*
+     * [安全修正] 优先级钳制
+     * RT-Thread 合法范围为 [0, RT_THREAD_PRIORITY_MAX-1]，越界会触发内核断言
+     * (rt_sched_thread_init_priv)。此处将越界值钳到最低的可用优先级
+     * RT_THREAD_PRIORITY_MAX - 2：末位 (MAX-1) 被 idle 线程占用，若钳到该值，
+     * worker 会与 idle 同优先级轮转，CPU 被 idle 抢占导致吞吐指标失真。
+     */
+    if (priority >= (RT_THREAD_PRIORITY_MAX - 1)) {
+        priority = RT_THREAD_PRIORITY_MAX - 2;
+    }
+
     tid = rt_thread_create(name,
                            (void (*)(void *))entry,
                            parameter,
