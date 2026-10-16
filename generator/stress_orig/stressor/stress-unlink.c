@@ -162,7 +162,7 @@ void stress_unlink(stress_args_t *args)
             fds[i] = stress_osal_open(filenames[i], flags, 0666);
 
             if (fds[i] < 0) {
-                if (errno == EMFILE || errno == ENFILE) {
+                if (stress_is_fd_exhausted(errno)) {
                     fd_limit_total++;
                     fd_limit_this = 1;
                     actual_limit  = (i >= 2) ? i : 2;
