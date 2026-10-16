@@ -26,3 +26,6 @@ extern/
 docs/deliver
 *.docx
 *.pyc
+
+# 飞腾派 BSP 差异归档（属外部 BSP 内容，改由压缩包交付，不入库）
+configs/bsp_files/

@@ -222,7 +222,7 @@ void stress_open(stress_args_t *args)
             fds[i] = s_open_methods[method_idx](args->instance, i);
 
             if (fds[i] < 0) {
-                if (errno == EMFILE || errno == ENFILE) {
+                if (stress_is_fd_exhausted(errno)) {
                     /* fd 耗尽：正常压力行为，直接 break 去关闭 */
                     break;
                 }
