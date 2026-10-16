@@ -17,6 +17,7 @@
  */
 struct stat;
 #include <sys/stat.h>  /* for struct stat (used in stat/fstat prototypes) */
+#include <errno.h>      /* EMFILE/ENFILE/ENOMEM：fd 耗尽判定 */
 
 /* =========================================================================
  * 1. 基础类型定义 (Types)
@@ -130,6 +131,17 @@ double stress_osal_time_now(void);
  * ========================================================================= */
 
 void stress_osal_qsort(void *base, size_t nmemb, size_t size, int (*compar)(const void *, const void *));
+
+/* =========================================================================
+ * fd 耗尽判定（跨平台）
+ * RT-Thread 的 open()/openat()/mkdir() 在 fd 表耗尽时报 ENOMEM
+ * （components/dfs/dfs_v1/src/dfs_posix.c:54/651/717），而非 POSIX 惯用的
+ * EMFILE/ENFILE。三者都视为 fd 上限，让 stressor 正确退避。
+ * ========================================================================= */
+static inline int stress_is_fd_exhausted(int err)
+{
+    return err == EMFILE || err == ENFILE || err == ENOMEM;
+}
 
 /* =========================================================================
  * 8. 文件系统接口 (File System)
