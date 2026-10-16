@@ -247,54 +247,132 @@ void stress_osal_qsort(void *base, size_t nmemb, size_t size, int (*compar)(cons
  * RT-Thread 通过 DFS 组件支持标准 POSIX 接口
  * ========================================================================= */
 
+/* RT-Thread DFS 的 errno 是负值，失败返回前归一化为 POSIX 正值再交还上层。 */
+static inline void stress_rtt_errno_normalize(void)
+{
+    errno = stress_errno_posix(errno);
+}
+
 int stress_osal_mkdir(const char *path, int mode)
 {
-    return mkdir(path, (mode_t)mode);
+    int ret = mkdir(path, (mode_t)mode);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
 }
 
 int stress_osal_rmdir(const char *path)
 {
-    return rmdir(path);
+    int ret = rmdir(path);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
 }
 
 int stress_osal_open(const char *path, int flags, int mode)
 {
-    return open(path, flags, mode);
+    int ret = open(path, flags, mode);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
 }
 
 int stress_osal_close(int fd)
 {
-    return close(fd);
+    int ret = close(fd);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
 }
 
 int stress_osal_write(int fd, const void *buf, size_t count)
 {
-    return write(fd, buf, count);
+    int ret = write(fd, buf, count);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
 }
 
 int stress_osal_rename(const char *oldpath, const char *newpath)
 {
-    return rename(oldpath, newpath);
+    int ret = rename(oldpath, newpath);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
 }
 
 int stress_osal_unlink(const char *path)
 {
-    return unlink(path);
+    int ret = unlink(path);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
 }
 
 int stress_osal_fsync(int fd)
 {
-    return fsync(fd);
+    int ret = fsync(fd);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
 }
-int stress_osal_read(int fd, void *buf, size_t count) {return read(fd, buf, count);}
-int stress_osal_ftruncate(int fd, off_t  length) {return ftruncate(fd, length);}
+int stress_osal_read(int fd, void *buf, size_t count)
+{
+    int ret = read(fd, buf, count);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
+}
+int stress_osal_ftruncate(int fd, off_t  length)
+{
+    int ret = ftruncate(fd, length);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
+}
 int stress_osal_stat(const char *path, struct stat *buf)
 {
 #if defined(RT_USING_POSIX) || defined(RT_USING_DFS)
+    int ret;
+
     if (!path || !buf) {
         return -1;
     }
-    return stat(path, buf);
+    ret = stat(path, buf);
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+    return ret;
 #else
     (void)path;
     (void)buf;
@@ -305,10 +383,16 @@ int stress_osal_stat(const char *path, struct stat *buf)
 int stress_osal_fstat(int fd, struct stat *buf)
 {
 #if defined(RT_USING_POSIX) || defined(RT_USING_DFS)
+    int ret;
+
     if (fd < 0 || !buf) {
         return -1;
     }
-    return fstat(fd, buf);
+    ret = fstat(fd, buf);
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+    return ret;
 #else
     (void)fd;
     (void)buf;

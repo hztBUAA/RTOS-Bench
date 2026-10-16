@@ -144,6 +144,20 @@ static inline int stress_is_fd_exhausted(int err)
 }
 
 /* =========================================================================
+ * errno 归一化为 POSIX 正值（跨平台）
+ * RT-Thread DFS 写的是负值 errno（rt_set_errno(-ENOMEM)，见
+ * components/dfs/dfs_v1/src/dfs_posix.c:54 与 src/klibc/kerrno.c:135/156，
+ * _rt_errno() 原样返回 tid->error 不取反）。POSIX 要求 errno 为正值，
+ * 故平台层（os_rtt.c）在每个 FS 包装失败返回前用本函数归一化，
+ * 让 stressor 既有的 errno 判断恢复 POSIX 语义。
+ * Linux 等平台 errno 本就是正值，本函数为恒等变换。
+ * ========================================================================= */
+static inline int stress_errno_posix(int err)
+{
+    return err < 0 ? -err : err;
+}
+
+/* =========================================================================
  * 8. 文件系统接口 (File System)
  * 封装标准 POSIX 接口，以便适配不同的文件系统后端
  * ========================================================================= */

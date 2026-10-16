@@ -17,6 +17,14 @@ int main(void)
     assert(stress_is_fd_exhausted(EEXIST) == 0);
     assert(stress_is_fd_exhausted(0) == 0);
 
+    /* errno 归一化：负值（RT-Thread）与正值（POSIX）都要得到正值 */
+    assert(stress_errno_posix(-ENOMEM) == ENOMEM);
+    assert(stress_errno_posix(-ENOSPC) == ENOSPC);
+    assert(stress_errno_posix(-ENOENT) == ENOENT);
+    assert(stress_errno_posix(ENOMEM) == ENOMEM);
+    assert(stress_errno_posix(ENOSPC) == ENOSPC);
+    assert(stress_errno_posix(0) == 0);
+
     printf("test_fd_exhausted: OK\n");
     return 0;
 }
