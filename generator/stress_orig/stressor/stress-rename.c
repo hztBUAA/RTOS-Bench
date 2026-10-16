@@ -84,9 +84,15 @@ void stress_rename(stress_args_t *args)
 
     /* ---- 创建工作目录 ---- */
     if (stress_osal_mkdir(dir_path, 0777) < 0 && errno != EEXIST) {
-        stress_osal_print("rtos_stress: fail: [rename-%d] mkdir '%s'"
-                          " failed (errno=%d)\n",
-                          args->instance, dir_path, errno);
+        if (errno == ENOSPC || errno == ENOSYS || errno == EPERM) {
+            stress_osal_print("rtos_stress: info: [rename-%d] FS does not"
+                              " support mkdir (errno=%d), skipping\n",
+                              args->instance, errno);
+        } else {
+            stress_osal_print("rtos_stress: fail: [rename-%d] mkdir '%s'"
+                              " failed (errno=%d)\n",
+                              args->instance, dir_path, errno);
+        }
         return;
     }
 
