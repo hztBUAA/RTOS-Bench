@@ -5,7 +5,8 @@
  *
  * 本文件由 RTOS-Bench 修改：原版硬编码 FS_SD_DEVICE_INDEX=0 / FS_SD_DEVICE_NAME="sd00"，
  * 在 RT-Thread 5.x 命名（<disk>p<partno>）与 SDIF0/1 归属不确定的情况下会挂载失败。
- * 现改为：遍历候选块设备名，挂载第一个能成功的 FAT 分区到 `/`。
+ * 现改为：先促使 SDIF 控制器探测已插入的卡，再遍历候选块设备名，把第一个能成功的
+ * FAT 分区挂到 `/`。
  */
 #include <rtthread.h>
 #include <dfs_fs.h>
@@ -15,6 +16,8 @@
 #include <rtdbg.h>
 
 #define FS_SD_MOUNT_POINT    "/"
+
+extern void sdif_change(rt_uint32_t id);
 
 /*
  * 候选设备名，按顺序尝试：
@@ -30,6 +33,36 @@ static const char *const sd_candidates[] =
 };
 
 static char fs_mounted_dev[RT_NAME_MAX] = { 0 };
+
+static rt_bool_t _any_candidate_present(void)
+{
+    rt_size_t i;
+
+    for (i = 0; i < sizeof(sd_candidates) / sizeof(sd_candidates[0]); i++)
+    {
+        if (rt_device_find(sd_candidates[i]) != RT_NULL)
+        {
+            return RT_TRUE;
+        }
+    }
+
+    return RT_FALSE;
+}
+
+/*
+ * 促使 mmcsd 探测当前已插入的卡。
+ * 仅靠 SDIF 的 CD 中断并不能保证"上电即已插卡"时产生一次探测，故这里显式触发；
+ * 厂商 e2000q 版 mnt_sdcard.c 也是这么做的（sdif_change + mmcsd_wait_cd_changed）。
+ */
+static void _sdcard_force_probe(void)
+{
+#ifdef USING_SDIF0
+    sdif_change(0);
+#endif
+#ifdef USING_SDIF1
+    sdif_change(1);
+#endif
+}
 
 static int _sdcard_try_mount(void)
 {
@@ -66,13 +99,21 @@ static void sd_auto_mount(void *parameter)
     {
         if (fs_mounted_dev[0] == '\0')
         {
+            /* 还没有任何块设备：主动促使 SDIF 探测一次（上电即插卡场景） */
+            if (!_any_candidate_present())
+            {
+                _sdcard_force_probe();
+            }
+
             _sdcard_try_mount();
         }
         else if (rt_device_find(fs_mounted_dev) == RT_NULL)
         {
-            rt_thread_mdelay(200);
-            dfs_unmount(FS_SD_MOUNT_POINT);
-            LOG_I("Unmount %s", FS_SD_MOUNT_POINT);
+            /*
+             * 卡被拔除：驱动层已通过 rt_mmcsd_blk_remove 自动卸载该分区
+             * （blk_dev.c:263-271），这里不再自行 dfs_unmount（避免与在用 fd 竞态），
+             * 仅清空记录以便重新插卡后再次尝试挂载。
+             */
             fs_mounted_dev[0] = '\0';
         }
 
