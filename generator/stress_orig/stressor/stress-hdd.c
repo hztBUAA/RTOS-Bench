@@ -96,6 +96,7 @@ void stress_hdd(stress_args_t *args)
     uint64_t total_written = 0;
     uint64_t total_read    = 0;
     int      rc            = EXIT_SUCCESS;
+    int      fsync_warned  = 0;
 
     if (hdd_bytes < HDD_WRITE_SIZE) {
         hdd_bytes = HDD_WRITE_SIZE;
@@ -183,8 +184,18 @@ do_fsync:
         if (stress_osal_fsync(fd) != 0) {
             int saved_errno = errno;
 
-            stress_osal_print("rtos_stress: warn: [hdd-%d] fsync failed errno=%d\n",
-                              args->instance, saved_errno);
+            /*
+             * 文件系统可能未实现 flush（如 NFS/ramfs 返回 -ENOSYS）。
+             * fsync 失败不影响随后的写读校验，故每个实例只提示一次，
+             * 避免在压力循环中反复刷屏。
+             */
+            if (!fsync_warned) {
+                fsync_warned = 1;
+                stress_osal_print("rtos_stress: warn: [hdd-%d] fsync failed"
+                                  " errno=%d (further fsync warnings"
+                                  " suppressed)\n",
+                                  args->instance, saved_errno);
+            }
         }
 
         if (!stress_continue(args)) {
