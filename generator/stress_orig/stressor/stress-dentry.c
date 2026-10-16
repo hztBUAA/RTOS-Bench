@@ -134,7 +134,12 @@ void stress_dentry(stress_args_t *args)
     stress_osal_snprintf(dir_path, sizeof(dir_path), DIR_TEMPLATE, (int)args->instance);
 
     if (stress_osal_mkdir(dir_path, 0777) < 0 && errno != EEXIST) {
-        stress_osal_print("rtos_stress: error: [dentry] failed to create dir %s (errno=%d)\n", dir_path, errno);
+        if (errno == ENOSPC || errno == ENOSYS || errno == EPERM) {
+            stress_osal_print("rtos_stress: info: [dentry] FS does not support mkdir"
+                              " (errno=%d), skipping this stressor\n", errno);
+        } else {
+            stress_osal_print("rtos_stress: error: [dentry] failed to create dir %s (errno=%d)\n", dir_path, errno);
+        }
         stress_osal_free(indices);
         return;
     }

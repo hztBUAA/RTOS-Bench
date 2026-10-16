@@ -178,9 +178,15 @@ void stress_fstat(stress_args_t *args)
                          DIR_TEMPLATE, (int)args->instance);
 
     if (stress_osal_mkdir(dir_path, 0777) < 0 && errno != EEXIST) {
-        stress_osal_print("rtos_stress: error: [fstat-%d] mkdir '%s'"
-                          " failed (errno=%d)\n",
-                          args->instance, dir_path, errno);
+        if (errno == ENOSPC || errno == ENOSYS || errno == EPERM) {
+            stress_osal_print("rtos_stress: info: [fstat-%d] FS does not"
+                              " support mkdir (errno=%d), skipping\n",
+                              args->instance, errno);
+        } else {
+            stress_osal_print("rtos_stress: error: [fstat-%d] mkdir '%s'"
+                              " failed (errno=%d)\n",
+                              args->instance, dir_path, errno);
+        }
         return;
     }
 
