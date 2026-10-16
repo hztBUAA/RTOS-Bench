@@ -399,8 +399,15 @@ int stress_osal_fstat(int fd, struct stat *buf)
     return -1;
 #endif
 }
-int stress_osal_pipe(int fd[2]){
-    return pipe(fd);
+int stress_osal_pipe(int fd[2])
+{
+    int ret = pipe(fd);
+
+    if (ret < 0) {
+        stress_rtt_errno_normalize();
+    }
+
+    return ret;
 }
 /* =========================================================================
  * 9. 字符串与字符操作
