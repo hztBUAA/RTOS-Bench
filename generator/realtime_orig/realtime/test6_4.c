@@ -19,6 +19,7 @@
 
 static mqd_t mq;
 static volatile uint64_t send_total_cycles, receive_total_cycles;
+static volatile uint32_t send_valid, receive_valid;
 
 static const char* msg = "Hi";
 
@@ -35,6 +36,7 @@ static void *send_thread(void *parameter) {
 
 	uint64_t t0, t1 = 0, t2 = 0, t3;
 	uint64_t tmp_cycles = 0;
+	uint32_t valid = 0;
 
 	// 消息接收的高优先级挂起睡眠
 	for (int i = 0; i < TEST_ITERATION; i++) {
@@ -45,16 +47,16 @@ static void *send_thread(void *parameter) {
 		t3 = timeGet();
 		LES_disable();
 		
-		int offset = LES_getOffset();
-		if (offset >= 2) {
-			LES_getTimeVal(0, &t1);
-			LES_getTimeVal(offset - 1, &t2);
+		t1 = 0;
+		t2 = 0;
+		if (LES_getTimeSlice(t0, t3, &t1, &t2) == GETTIMEVAL_EOK) {
+			tmp_cycles += t3 - t2 + t1 - t0;
+			valid++;
 		}
-		
-		tmp_cycles += t3 - t2 + t1 - t0;
     }
     
     send_total_cycles = tmp_cycles;
+    send_valid = valid;
     return NULL;
 }
 
@@ -80,6 +82,7 @@ static void *receive_thread(void *parameter) {
     
     uint64_t t0, t1 = 0, t2 = 0, t3;
 	uint64_t tmp_cycles = 0;
+	uint32_t valid = 0;
 	
 	mq_receive(mq, buffer, 8, NULL);
 	// 消息发送的高优先级恢复
@@ -91,13 +94,12 @@ static void *receive_thread(void *parameter) {
 		t3 = timeGet();
 		LES_disable();
 		
-		int offset = LES_getOffset();
-		if (offset >= 2) {
-			LES_getTimeVal(0, &t1);
-			LES_getTimeVal(offset - 1, &t2);
+		t1 = 0;
+		t2 = 0;
+		if (LES_getTimeSlice(t0, t3, &t1, &t2) == GETTIMEVAL_EOK) {
+			tmp_cycles += t3 - t2 + t1 - t0;
+			valid++;
 		}
-		
-		tmp_cycles += t3 - t2 + t1 - t0;
     }
     
     mq_receive(mq, buffer, 8, NULL);
@@ -109,6 +111,7 @@ static void *receive_thread(void *parameter) {
     pthread_join(tid1, NULL);
     
     receive_total_cycles = tmp_cycles;
+    receive_valid = valid;
     
     return NULL;
 }
@@ -159,8 +162,12 @@ static void message_test_high_preempt(uint64_t *a, uint64_t *b) {
     mq_close(mq);
     mq_unlink(mq_name);
     
-    *a = cycles_to_ns(send_total_cycles / TEST_ITERATION);
-    *b = cycles_to_ns(receive_total_cycles / TEST_ITERATION);
+    if (send_valid != TEST_ITERATION || receive_valid != TEST_ITERATION) {
+        printf("[test6_4] skipped non-monotonic samples: send=%u receive=%u\n",
+               TEST_ITERATION - send_valid, TEST_ITERATION - receive_valid);
+    }
+    *a = send_valid ? cycles_to_ns(send_total_cycles / send_valid) : 0;
+    *b = receive_valid ? cycles_to_ns(receive_total_cycles / receive_valid) : 0;
 
     return;
 }

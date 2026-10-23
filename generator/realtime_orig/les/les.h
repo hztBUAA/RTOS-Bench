@@ -251,6 +251,12 @@ void LES_enable(void);
 void LES_disable(void);
 uint32_t LES_getOffset(void);
 int LES_getTimeVal(uint32_t loc, uint64_t *out_val);
+/*
+ * 读取本次测量窗口 [t0, t3] 内的 LES 记录，返回窗口内首/末时间戳。
+ * 只接受 t0 <= ts <= t3 的记录（至少两条），返回后保证 t0 <= *t1 <= *t2 <= t3，
+ * 避免调用方用 t3 - t2 + t1 - t0 计算时发生无符号回绕。
+ */
+int LES_getTimeSlice(uint64_t t0, uint64_t t3, uint64_t *t1, uint64_t *t2);
 
 /* 系统调用插桩控制API */
 void LES_syscall_enable(void);

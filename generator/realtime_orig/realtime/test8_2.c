@@ -20,6 +20,7 @@ static sem_t to_unlocker;
 #define TEST_ITERATION 1000
 
 static volatile uint64_t unlock_total_cycles, lock_total_cycles;
+static volatile uint32_t unlock_valid, lock_valid;
 
 
 static void *unlock_thread(void *parameter) {
@@ -45,6 +46,7 @@ static void *unlock_thread(void *parameter) {
 
 	uint64_t t0, t1 = 0, t2 = 0, t3;
 	uint64_t tmp_cycles = 0;
+	uint32_t valid = 0;
 
 	// lock高优先级挂起睡眠
 	for (int i = 0; i < TEST_ITERATION; i++) {
@@ -57,13 +59,12 @@ static void *unlock_thread(void *parameter) {
 		
 		sem_wait(&to_unlocker);
 		
-		int offset = LES_getOffset();
-		if (offset >= 2) {
-			LES_getTimeVal(0, &t1);
-			LES_getTimeVal(offset - 1, &t2);
+		t1 = 0;
+		t2 = 0;
+		if (LES_getTimeSlice(t0, t3, &t1, &t2) == GETTIMEVAL_EOK) {
+			tmp_cycles += t3 - t2 + t1 - t0;
+			valid++;
 		}
-		
-		tmp_cycles += t3 - t2 + t1 - t0;
 		
 		pthread_mutex_lock(&lock);
 		sem_post(&to_locker);
@@ -72,6 +73,7 @@ static void *unlock_thread(void *parameter) {
     pthread_mutex_unlock(&lock);
     
     unlock_total_cycles = tmp_cycles;
+    unlock_valid = valid;
     return NULL;
 }
 
@@ -97,6 +99,7 @@ static void *lock_thread(void *parameter) {
     
     uint64_t t0, t1 = 0, t2 = 0, t3;
 	uint64_t tmp_cycles = 0;
+	uint32_t valid = 0;
 	
 	// start
 	sem_wait(&to_locker);
@@ -112,13 +115,12 @@ static void *lock_thread(void *parameter) {
 		
 		pthread_mutex_unlock(&lock);
 		
-		int offset = LES_getOffset();
-		if (offset >= 2) {
-			LES_getTimeVal(0, &t1);
-			LES_getTimeVal(offset - 1, &t2);
+		t1 = 0;
+		t2 = 0;
+		if (LES_getTimeSlice(t0, t3, &t1, &t2) == GETTIMEVAL_EOK) {
+			tmp_cycles += t3 - t2 + t1 - t0;
+			valid++;
 		}
-		
-		tmp_cycles += t3 - t2 + t1 - t0;
 		
 		sem_post(&to_unlocker);
 		sem_wait(&to_locker);
@@ -140,6 +142,7 @@ static void *lock_thread(void *parameter) {
     pthread_join(tid1, NULL);
     
     lock_total_cycles = tmp_cycles;
+    lock_valid = valid;
     
     return NULL;
 }
@@ -176,8 +179,12 @@ static void mutex_test_high_susp(uint64_t *a, uint64_t *b) {
 	sem_destroy(&to_locker);
 	sem_destroy(&to_unlocker);
     
-    *a = cycles_to_ns(lock_total_cycles / TEST_ITERATION);
-    *b = cycles_to_ns(unlock_total_cycles / TEST_ITERATION);
+    if (lock_valid != TEST_ITERATION || unlock_valid != TEST_ITERATION) {
+        printf("[test8_2] skipped non-monotonic samples: lock=%u unlock=%u\n",
+               TEST_ITERATION - lock_valid, TEST_ITERATION - unlock_valid);
+    }
+    *a = lock_valid ? cycles_to_ns(lock_total_cycles / lock_valid) : 0;
+    *b = unlock_valid ? cycles_to_ns(unlock_total_cycles / unlock_valid) : 0;
 
     return;
 }

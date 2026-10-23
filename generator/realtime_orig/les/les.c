@@ -422,5 +422,59 @@ void LES_interrupt_stub_disable(void) {
 
 #endif /* LES_KERNEL_DEBUGFS */
 
+/*
+ * 读取本次测量窗口 [t0, t3] 内的 LES 记录。
+ *
+ * 内核插桩缓冲记录的是窗口内该 CPU 上的所有调度事件，其中可能混有
+ * 其它任务的事件，或者出现在 t0 之前 / t3 之后的记录。这里只取
+ * 落在 [t0, t3] 内的记录，并返回其中最早与最晚的时间戳，从而保证
+ * t0 <= *t1 <= *t2 <= t3，调用方的无符号减法不会回绕。
+ *
+ * 至少需要两条记录（挂起与恢复）才视为有效样本。
+ * 返回 GETTIMEVAL_EOK 表示成功，GETTIMEVAL_ERROR 表示窗口内记录不足或参数非法。
+ */
+int LES_getTimeSlice(uint64_t t0, uint64_t t3, uint64_t *t1, uint64_t *t2)
+{
+	uint32_t offset;
+	uint32_t i;
+	uint32_t count = 0;
+	uint64_t ts;
+	int have = 0;
+
+	if (t1 == NULL || t2 == NULL || t3 < t0) {
+		return GETTIMEVAL_ERROR;
+	}
+
+	offset = LES_getOffset();
+	for (i = 0; i < offset; i++) {
+		if (LES_getTimeVal(i, &ts) != GETTIMEVAL_EOK) {
+			continue;
+		}
+		/* 忽略本次测量窗口之外的记录 */
+		if (ts < t0 || ts > t3) {
+			continue;
+		}
+		if (!have) {
+			*t1 = ts;
+			*t2 = ts;
+			have = 1;
+			count = 1;
+			continue;
+		}
+		/* 防御性处理：忽略乱序记录，保证返回的首/末时间戳递增 */
+		if (ts < *t1) {
+			continue;
+		}
+		*t2 = ts;
+		count++;
+	}
+
+	if (count < 2) {
+		return GETTIMEVAL_ERROR;
+	}
+
+	return GETTIMEVAL_EOK;
+}
+
 
 
