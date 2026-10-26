@@ -24,12 +24,23 @@ import openpyxl
 
 GENERIC = {"分类", "基", "性能", "功", "耗", "评", "典型", "负载", "实时"}
 BOARD_FAMILIES = ["工控机", "香橙派", "哪吒", "龙芯", "飞腾"]
-WORKLOADS = ["pid", "fast", "icp", "modbus", "mqtt", "ewma", "cusum"]
-CATEGORIES = {
-    "realtime_control": ["pid"],
-    "perception": ["fast", "icp"],
-    "communication": ["modbus", "mqtt"],
-    "monitoring": ["ewma", "cusum"],
+WORKLOAD_SETS = {
+    7: ["pid", "fast", "icp", "modbus", "mqtt", "ewma", "cusum"],
+    9: ["pid", "ekf", "fast", "icp", "epnp", "modbus", "mqtt", "ewma", "cusum"],
+}
+CATEGORY_SETS = {
+    7: {
+        "realtime_control": ["pid"],
+        "perception": ["fast", "icp"],
+        "communication": ["modbus", "mqtt"],
+        "monitoring": ["ewma", "cusum"],
+    },
+    9: {
+        "realtime_control": ["pid", "ekf"],
+        "perception": ["fast", "icp", "epnp"],
+        "communication": ["modbus", "mqtt"],
+        "monitoring": ["ewma", "cusum"],
+    },
 }
 F_SCORE = 60.0
 
@@ -95,7 +106,9 @@ def parse_blocks(path):
     return records
 
 
-def compute(records):
+def compute(records, workload_count=7):
+    workloads = WORKLOAD_SETS[workload_count]
+    categories = CATEGORY_SETS[workload_count]
     baseline = {}
     for rec in records:
         for key, value in rec["baseline"].items():
@@ -105,13 +118,13 @@ def compute(records):
         rec["R"] = {
             w: (baseline[w] / rec["measured"][w]
                 if w in rec["measured"] and rec["measured"][w] else None)
-            for w in WORKLOADS
+            for w in workloads
         }
 
     item_score = {}
     for family in {rec["family"] for rec in records}:
         group = [rec for rec in records if rec["family"] == family]
-        for workload in WORKLOADS:
+        for workload in workloads:
             values = [rec["R"][workload] for rec in group if rec["R"][workload] is not None]
             if len(values) < 2 or max(values) == min(values):
                 continue
@@ -125,7 +138,7 @@ def compute(records):
     for rec in records:
         cats = {
             cat: _mean([item_score.get((id(rec), w)) for w in members])
-            for cat, members in CATEGORIES.items()
+            for cat, members in categories.items()
         }
         t_score = _mean(list(cats.values()))
         rt_score = _mean([rec["base_rt"], rec["sched"]])
@@ -138,10 +151,10 @@ def compute(records):
     return rows
 
 
-def write_xlsx(rows, path):
+def write_xlsx(rows, path, workload_count=7):
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "七负载总分"
+    ws.title = f"{workload_count}负载总分"
     headers = ["厂商", "板卡", "板卡族", "基础实时", "调度", "RT得分",
                "实时控制", "感知", "通信", "运维", "T得分", "P得分", "F得分", "总分"]
     for col, header in enumerate(headers, 1):
@@ -164,12 +177,13 @@ def main():
     parser = argparse.ArgumentParser(description="七负载版本总分计算")
     parser.add_argument("excel")
     parser.add_argument("-o", "--output", default=None)
+    parser.add_argument("--workloads", type=int, choices=[7, 9], default=7)
     args = parser.parse_args()
 
     records = parse_blocks(args.excel)
     if not records:
         sys.exit("未找到调度性能数据块，请检查 Excel 格式")
-    rows = compute(records)
+    rows = compute(records, args.workloads)
 
     print(f"{'厂商':<8}{'板卡':<24}{'RT':>8}{'T':>8}{'P':>8}{'总分':>8}")
     for rec in rows:
@@ -177,7 +191,7 @@ def main():
         print(f"{rec['vendor']:<8}{rec['name'][:22]:<24}{rec['RT']:>8.2f}{rec['T']:>8.2f}{rec['P']:>8.2f}{total:>8}")
 
     if args.output:
-        write_xlsx(rows, args.output)
+        write_xlsx(rows, args.output, args.workloads)
         print(f"\n已写出: {args.output}")
 
 
