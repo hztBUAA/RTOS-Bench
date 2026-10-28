@@ -6,6 +6,10 @@ T_Score / RT_Score 子项得分公式：
   Score = (R - Rmin) / (Rmax - Rmin) * 100
   其中 Rmin / Rmax 来自同板卡所有 OS 对同一子项的 R 值集合
 
+多核带宽指标使用 R = measured / baseline；多核任务延迟使用
+R = baseline / measured。多核值缺失时不参与 min-max；多核大指标没有有效
+子项时从 Base_RT 中剔除，并重新归一化剩余权重。
+
 依赖: pandas, openpyxl
 安装: pip install pandas openpyxl
 """
@@ -60,6 +64,35 @@ BASE_RT_WEIGHTS = {
     "scheduling_latency":     0.40,
     "multicore_overhead":     0.40,
 }
+
+MULTICORE_CONCURRENCIES = ("c1", "c2", "c4", "c8")
+MULTICORE_MEMORY_TYPES = (
+    "rd", "wr", "cp", "frd", "fwr", "fcp", "memset", "memcpy",
+)
+
+
+def _build_multicore_metric_definitions() -> dict:
+    """返回多核指标定义：item_key -> (unit, metric_type)。"""
+    definitions = {}
+    for memory_type in MULTICORE_MEMORY_TYPES:
+        for concurrency in MULTICORE_CONCURRENCIES:
+            key = f"multi_core_memory_bandwidth_{memory_type}_{concurrency}"
+            definitions[key] = ("GB/s", "bandwidth")
+
+    for concurrency in MULTICORE_CONCURRENCIES:
+        key = f"multi_core_ipc_bandwidth_{concurrency}"
+        definitions[key] = ("GB/s", "bandwidth")
+
+    for concurrency in MULTICORE_CONCURRENCIES:
+        key = f"multi_core_task_latency_{concurrency}"
+        definitions[key] = ("us", "latency")
+
+    definitions["multi_core_core_comm_intra_core"] = ("GB/s", "bandwidth")
+    definitions["multi_core_core_comm_inter_core"] = ("GB/s", "bandwidth")
+    return definitions
+
+
+MULTICORE_METRIC_DEFINITIONS = _build_multicore_metric_definitions()
 
 POWER_TASK_MAP = {
     "standby": "static_power",
@@ -136,6 +169,24 @@ def safe_float(val) -> Optional[float]:
         return f if f == f else None
     except (TypeError, ValueError):
         return None
+
+
+def is_single_core_board(board_model: str, arch: str, source: str = "") -> bool:
+    """判断是否为当前唯一的单核评测板卡：RISC-V 哪吒。
+
+    不能使用 cpu_core_num <= 1 判断，因为部分多核 x86 结果会缺省或误报为 0/1。
+    部分历史哪吒结果没有 cpu_type，甚至将板名写成通用 OneOS-Board；因此板名或
+    结果文件名中的哪吒标识优先于错误/缺失的架构元数据。
+    """
+    board_value = str(board_model or "").casefold()
+    source_value = str(source or "").casefold()
+    is_nezha = (
+        "nezha" in board_value
+        or "哪吒" in board_value
+        or "nezha" in source_value
+        or "哪吒" in source_value
+    )
+    return is_nezha
 
 
 def calc_R(measured: float, baseline: float, metric_type: str) -> Optional[float]:
@@ -262,6 +313,7 @@ def normalize_items_for_board(board_model: str, arch: str,
       AND category IN ({})
       AND metric_type != 'miss_rate'
       AND R_value IS NOT NULL
+      AND status NOT IN ('null_value','error','missing_default_rmin')
     """.format(",".join("?" * len(categories))),
     (board_model, arch, *categories)).fetchall()
 
@@ -276,7 +328,7 @@ def normalize_items_for_board(board_model: str, arch: str,
         WHERE board_model=? AND arch=?
           AND category=? AND sub_category=? AND item_key=?
           AND R_value IS NOT NULL
-          AND status NOT IN ('null_value','error')
+          AND status NOT IN ('null_value','error','missing_default_rmin')
         """, (board_model, arch, cat, sub, key)).fetchall()
 
         if not rows:
@@ -291,7 +343,7 @@ def normalize_items_for_board(board_model: str, arch: str,
             R       = row["R_value"]
 
             if R_max == R_min:
-                # 所有系统表现相同，无法区分，标记 pending
+                # 所有有效系统表现相同，无法区分，标记 pending。
                 score        = None
                 norm_pending = 1
             else:
@@ -431,6 +483,64 @@ def _fill_R_only(rec: dict, conn: sqlite3.Connection) -> dict:
     return rec
 
 
+def _collect_multicore_values(multi_core: dict) -> dict:
+    """把 JSON 多核结构展开为 v2_schema 定义的 42 个 item_key。"""
+    values = {}
+
+    memory_bandwidth = multi_core.get("memory_bandwidth", [])
+    if isinstance(memory_bandwidth, list):
+        for entry in memory_bandwidth:
+            if not isinstance(entry, dict):
+                continue
+            memory_type = str(entry.get("type", "")).strip().lower()
+            if memory_type not in MULTICORE_MEMORY_TYPES:
+                continue
+            for concurrency in MULTICORE_CONCURRENCIES:
+                key = f"multi_core_memory_bandwidth_{memory_type}_{concurrency}"
+                values[key] = safe_float(entry.get(concurrency))
+
+    for field, prefix in (
+        ("ipc_bandwidth", "multi_core_ipc_bandwidth"),
+        ("task_latency", "multi_core_task_latency"),
+    ):
+        metric = multi_core.get(field, {})
+        if not isinstance(metric, dict):
+            continue
+        for concurrency in MULTICORE_CONCURRENCIES:
+            values[f"{prefix}_{concurrency}"] = safe_float(metric.get(concurrency))
+
+    core_comm = multi_core.get("core_comm", {})
+    if isinstance(core_comm, dict):
+        for direction in ("intra_core", "inter_core"):
+            key = f"multi_core_core_comm_{direction}"
+            values[key] = safe_float(core_comm.get(direction))
+
+    return values
+
+
+def _parse_multicore_metrics(conn, multi_core, board_model, os_name, arch,
+                             source, ts):
+    """解析多核带宽/延迟；缺失值不生成记录，单核哪吒忽略多核数据。"""
+    if is_single_core_board(board_model, arch, source):
+        return
+
+    observed = _collect_multicore_values(multi_core or {})
+    for item_key, (unit, metric_type) in MULTICORE_METRIC_DEFINITIONS.items():
+        rec = _make_rec_base(board_model, os_name, arch,
+                             "realtime", "multicore_overhead",
+                             item_key, source, ts)
+        rec["raw_unit"]    = unit
+        rec["metric_type"] = metric_type
+        value = observed.get(item_key)
+
+        if value is None or value <= 0:
+            continue
+
+        rec["raw_value"] = value
+        rec = _fill_R_only(rec, conn)
+        upsert_record(conn, rec)
+
+
 def _parse_realtime_module(conn, modules, board_model, os_name, arch, source, ts):
     mod = modules.get("test-realtime", {})
     if not mod:
@@ -477,15 +587,20 @@ def _parse_realtime_module(conn, modules, board_model, os_name, arch, source, ts
             rec = _fill_R_only(rec, conn)
             upsert_record(conn, rec)
 
-    # syscall 归入 scheduling_latency
+    # syscall 仅保留为诊断指标，不进入 Base_RT。
     syscall = sc.get("syscall", {})
     if syscall:
-        rec = _make_rec_base(board_model, os_name, arch,
-                             "realtime", "scheduling_latency",
-                             "syscall_avg_us", source, ts)
-        rec["raw_value"] = safe_float(syscall.get("avg_us"))
-        rec = _fill_R_only(rec, conn)
-        upsert_record(conn, rec)
+        for field_name in ("min_us", "max_us", "avg_us"):
+            rec = _make_rec_base(board_model, os_name, arch,
+                                 "realtime", "syscall_latency",
+                                 field_name, source, ts)
+            rec["raw_value"] = safe_float(syscall.get(field_name))
+            rec = _fill_R_only(rec, conn)
+            upsert_record(conn, rec)
+
+    _parse_multicore_metrics(
+        conn, mod.get("multi_core", {}), board_model, os_name, arch, source, ts
+    )
 
 
 def _parse_schedule_module(conn, modules, board_model, os_name, arch, source, ts):
@@ -774,21 +889,35 @@ def recalc_scores_for_target(board_model: str, os_name: str, arch: str,
         FROM raw_records
         WHERE board_model=? AND os_name=? AND arch=?
           AND category=? AND sub_category=?
-          AND status NOT IN ('null_value','error')
+          AND status NOT IN ('null_value','error','missing_default_rmin')
         """, (board_model, os_name, arch, category, sub_category)).fetchall()
 
     # ── 实时性能 ──────────────────────────────
     rt_sub = {}
     for key in BASE_RT_WEIGHTS:
         rows   = q("realtime", key)
-        scores = [r["item_score"] for r in rows if r["item_score"] is not None]
-        rt_sub[key] = sum(scores) / len(scores) if scores else None
+        scores = [
+            r["item_score"] for r in rows
+            if r["item_score"] is not None
+            # 兼容旧数据库：历史版本曾将 syscall 放在 scheduling_latency 下。
+            and not (key == "scheduling_latency"
+                     and r["item_key"] == "syscall_avg_us")
+        ]
+        if scores:
+            rt_sub[key] = sum(scores) / len(scores)
+        else:
+            rt_sub[key] = None
 
     base_rt_score = _weighted_avg(rt_sub, BASE_RT_WEIGHTS)
+    base_rt_partial = any(
+        value is None
+        for key, value in rt_sub.items()
+        if key != "multicore_overhead"
+    )
     upsert_score(conn, board_model, os_name, arch,
                  "realtime", "base_realtime",
                  base_rt_score,
-                 is_partial=any(v is None for v in rt_sub.values()),
+                 is_partial=base_rt_partial,
                  extra=rt_sub)
 
     sched_row = conn.execute("""
@@ -811,7 +940,7 @@ def recalc_scores_for_target(board_model: str, os_name: str, arch: str,
     })
     upsert_score(conn, board_model, os_name, arch,
                  "total", "rt_score", rt_score,
-                 is_partial=(base_rt_score is None or sched_score is None))
+                 is_partial=(base_rt_partial or sched_score is None))
 
     # ── 典型负载 ──────────────────────────────
     cat_scores  = {}
@@ -958,6 +1087,23 @@ def export_results(board_model: str, os_name: str, arch: str,
             "status": r["status"],
         } for r in rows}
 
+    def get_syscall_diagnostics():
+        items = get_raw_items("realtime", "syscall_latency")
+        # 兼容旧数据库：旧版 syscall 记录位于 scheduling_latency。
+        legacy_items = get_raw_items("realtime", "scheduling_latency")
+        if "syscall_avg_us" in legacy_items:
+            items["legacy_syscall_avg_us"] = legacy_items["syscall_avg_us"]
+        return {
+            "included_in_base_rt": False,
+            "items": items,
+        }
+
+    def get_base_rt_items(sub_category):
+        items = get_raw_items("realtime", sub_category)
+        if sub_category == "scheduling_latency":
+            items.pop("syscall_avg_us", None)
+        return items
+
     f_info      = get_score("total", "f_score")
     base_rt     = get_score("realtime", "base_realtime")
     sched       = get_score("realtime", "schedulability")
@@ -1003,7 +1149,7 @@ def export_results(board_model: str, os_name: str, arch: str,
                         "score":     base_rt["score"],
                         "sub_scores": base_rt["extra"],
                         "items": {
-                            k: get_raw_items("realtime", k)
+                            k: get_base_rt_items(k)
                             for k in BASE_RT_WEIGHTS
                         },
                     },
@@ -1011,7 +1157,10 @@ def export_results(board_model: str, os_name: str, arch: str,
                         "score":      sched["score"],
                         "average_mr": sched["extra"].get("average_mr"),
                         "items":      get_raw_items("realtime", "schedulability"),
-                    }
+                    },
+                    "diagnostics": {
+                        "syscall_latency": get_syscall_diagnostics(),
+                    },
                 }
             },
             "workload": {

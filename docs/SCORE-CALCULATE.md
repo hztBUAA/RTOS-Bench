@@ -43,7 +43,7 @@ $$
 功耗类：     R = baseline_power / measured_power
 ```
 
-> 基准系统统一为 **RT-Thread**，在同一板卡上的测量值。
+> 当前脚本使用固定的 **SylixOS + LS2K1000LA** 测量值作为绝对基准。
 
 ### 3.2 min-max 归一化（T_Score / RT_Score 子项）
 
@@ -55,6 +55,9 @@ $$
 - 结果裁剪至 $[0, 100]$
 - 若 $R_{\min} = R_{\max}$（所有系统表现相同），则 `item_score = null`，`norm_pending = true`
 - **每新增一个系统，同板卡所有系统的子项得分都会被重新归一化**
+- 多核测试值缺失时不生成该子项记录，也不参与 min-max；其他有效多核子项仍按其实际 R 值正常计算
+- 若完全没有有效的多核子项，`multicore_overhead = null`，从 `Base_RT` 中剔除，  并对 `0.10/0.10/0.40` 三个剩余权重重新归一化
+- **单核板卡**：目前仅 RISC-V 哪吒板卡忽略输入中的 `multi_core` 数据，同样按剩余权重计算 `Base_RT`
 
 ### 3.3 调度性能（不走 min-max）
 
@@ -82,8 +85,8 @@ $$
 |--------|------|------|--------------|
 | `context_switch_latency` | 10% | 上下文切换平均延迟 | `single_core.context_switch.avg_us` |
 | `interrupt_latency` | 10% | 中断平均延迟 | `single_core.interrupt.avg_us` |
-| `scheduling_latency` | 40% | 服务调用各场景延迟 + syscall | `single_core.service_cost[*]` + `single_core.syscall` |
-| `multicore_overhead` | 40% | 多核并发开销 | 当前 JSON 无数据，待补充 |
+| `scheduling_latency` | 40% | 服务调用各场景延迟 | `single_core.service_cost[*]` |
+| `multicore_overhead` | 40% | 多核并发开销 | `single_core` 同级的 `multi_core` 对象 |
 
 每个大指标得分 = 其**所有子项 item_score 的算术平均**。
 
@@ -97,6 +100,36 @@ $$
 | `{op}_suspend_us` | 挂起等待场景延迟 |
 | `{op}_low_prio_us` | 低优先级抢占场景延迟 |
 | `{op}_high_prio_us` | 高优先级抢占场景延迟 |
+
+**syscall 指标（不参与 Base_RT）：**
+
+`single_core.syscall.{min_us,max_us,avg_us}` 仍会解析、保存和导出，用于数据质量
+诊断，但不参与 `scheduling_latency` 的算术平均、Base_RT 或 RT_Score 计算。
+记录使用 `category=realtime`、`sub_category=syscall_latency`。
+
+**`multicore_overhead` 子项展开：**
+
+多核对象包含以下 42 个子项，均归入 `multicore_overhead` 大指标：
+
+| JSON 字段 | 子项数量 | 单位 | 指标类型 | 展开 key |
+|---|---:|---|---|---|
+| `multi_core.memory_bandwidth[*].{c1,c2,c4,c8}` | 32 | GB/s | bandwidth | `multi_core_memory_bandwidth_{type}_{cN}` |
+| `multi_core.ipc_bandwidth.{c1,c2,c4,c8}` | 4 | GB/s | bandwidth | `multi_core_ipc_bandwidth_{cN}` |
+| `multi_core.task_latency.{c1,c2,c4,c8}` | 4 | us | latency | `multi_core_task_latency_{cN}` |
+| `multi_core.core_comm.{intra_core,inter_core}` | 2 | GB/s | bandwidth | `multi_core_core_comm_{direction}` |
+
+其中内存带宽 `type` 为 `rd/wr/cp/frd/fwr/fcp/memset/memcpy`，并发度为
+`1/2/4/8`。带宽类按 `R = measured / baseline`，任务延迟按
+`R = baseline / measured`。
+
+**单核板卡：**
+
+- 当前唯一单核板卡为 RISC-V 架构的哪吒板卡，由
+  `is_single_core_board(board_model, arch, source)` 判定。判断不依赖
+  `env.cpu_core_num`，因为部分多核 x86 数据会报告 0 或 1。历史哪吒结果若缺少
+  `cpu_type` 或错误使用 `OneOS-Board / ARM` 等通用环境字段，以板名或结果
+  文件名“哪吒/Nezha”识别；其他板卡即使 `cpu_core_num=1` 仍按多核板处理。
+- 单核板卡不生成多核子项；即使输入 JSON 含 `multi_core`，也不参与评分。
 
 ### 4.2 调度性能 Sched_Score
 
@@ -206,6 +239,37 @@ $$
             "high_prio_us": 0.0
           }
         ]
+      },
+      "multi_core": {
+        "memory_bandwidth": [
+          {
+            "type": "rd",
+            "unit": "GB/s",
+            "c1": 0.0,
+            "c2": 0.0,
+            "c4": 0.0,
+            "c8": 0.0
+          }
+        ],
+        "ipc_bandwidth": {
+          "c1": 0.0,
+          "c2": 0.0,
+          "c4": 0.0,
+          "c8": 0.0,
+          "unit": "GB/s"
+        },
+        "task_latency": {
+          "c1": 0.0,
+          "c2": 0.0,
+          "c4": 0.0,
+          "c8": 0.0,
+          "unit": "us"
+        },
+        "core_comm": {
+          "intra_core": 0.0,
+          "inter_core": 0.0,
+          "unit": "GB/s"
+        }
       }
     },
     "test-schedule": {
@@ -266,8 +330,12 @@ $$
 | `env.cpu_type` | → `arch` |
 | `modules.test-realtime.single_core.context_switch.avg_us` | 上下文切换延迟 |
 | `modules.test-realtime.single_core.interrupt.avg_us` | 中断延迟（= 0 时跳过）|
-| `modules.test-realtime.single_core.syscall.avg_us` | syscall 延迟（归入 scheduling_latency）|
+| `modules.test-realtime.single_core.syscall.*` | syscall 诊断数据，保存但不参与 Base_RT |
 | `modules.test-realtime.single_core.service_cost[*]` | 各调度场景延迟子项 |
+| `modules.test-realtime.multi_core.memory_bandwidth[*]` | 32 个内存带宽子项（bandwidth）|
+| `modules.test-realtime.multi_core.ipc_bandwidth` | 4 个 IPC 带宽子项（bandwidth）|
+| `modules.test-realtime.multi_core.task_latency` | 4 个任务延迟子项（latency）|
+| `modules.test-realtime.multi_core.core_comm` | 2 个核间通信带宽子项（bandwidth）|
 | `modules.test-schedule.summary.average_miss_rate` | 平均 MR → Sched_Score |
 | `modules.test-schedule.gradients[*]` | 各梯度 MR 详情（只存储，不参与汇总） |
 | `modules.typical-workload.workloads[*].avg_time_ms` | 各典型任务平均延迟 |
@@ -336,6 +404,18 @@ $$
               "norm_pending": false, "status": "ok"
             }
           }
+        },
+        "diagnostics": {
+          "syscall_latency": {
+            "included_in_base_rt": false,
+            "items": {
+              "avg_us": {
+                "raw": 0.016, "unit": "us",
+                "R": 1.0, "score": 50.0,
+                "norm_pending": false, "status": "ok"
+              }
+            }
+          }
         }
       }
     },
@@ -393,12 +473,12 @@ $$
 | `os_name` | TEXT | 操作系统（主键之一）|
 | `arch` | TEXT | 架构（主键之一）|
 | `category` | TEXT | `realtime` / `workload` / `power` / `function` |
-| `sub_category` | TEXT | 如 `scheduling_latency` / `perception` / `cpu_power` |
+| `sub_category` | TEXT | 如 `scheduling_latency` / `syscall_latency` / `perception` / `cpu_power` |
 | `item_key` | TEXT | 最细粒度 key，如 `sem_take_immediate_us` |
 | `raw_value` | REAL | 原始测量值 |
 | `raw_unit` | TEXT | 单位，如 `us` / `ms` / `W` |
 | `metric_type` | TEXT | `latency` / `bandwidth` / `power` / `miss_rate` |
-| `baseline_value` | REAL | 基准系统（RT-Thread）的原始值 |
+| `baseline_value` | REAL | 绝对基准系统（SylixOS + LS2K1000LA）的原始值 |
 | `baseline_source` | TEXT | `db`（从数据库查找）/ `json`（JSON 自带）|
 | `R_value` | REAL | 计算得到的基准比 |
 | `item_score` | REAL | 归一化后子项得分（0-100），`norm_pending=1` 时为 null |
@@ -455,9 +535,11 @@ python rtos_scorer.py list
 
 | 事项 | 说明 |
 |------|------|
-| **基准系统必须先导入** | RT-Thread 的 JSON 必须先于其他系统导入，否则所有子项标记 `baseline_missing` |
+| **基准系统必须先导入** | `SylixOS + LS2K1000LA` 的 JSON 必须先于其他系统导入，否则所有子项标记 `baseline_missing` |
 | **min-max 跨系统触发** | 每次新系统入库后，同板卡**所有系统**的 item_score 都会被重算 |
 | **Sched_Score 不归一化** | 调度性能直接用 `100*(1-MR)`，不参与 min-max |
 | **功耗需多系统才能归一化** | 单个系统时 P_Score 为 null，标记 `normalization_pending=true` |
 | **partial 模式** | 大类缺失时按已有类重新归一化权重，标记 `is_partial=true` |
 | **总分 partial** | 某维度为 null 时，按已有维度重新归一化权重估算总分 |
+| **多核缺失** | 缺失子项不进入 min-max；无有效多核项时从 Base_RT 剔除并重归一化剩余权重 |
+| **syscall 仅诊断** | syscall 单独存于 `syscall_latency`，明确不参与 Base_RT/RT_Score |
