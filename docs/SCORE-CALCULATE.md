@@ -543,3 +543,19 @@ python rtos_scorer.py list
 | **总分 partial** | 某维度为 null 时，按已有维度重新归一化权重估算总分 |
 | **多核缺失** | 缺失子项不进入 min-max；无有效多核项时从 Base_RT 剔除并重归一化剩余权重 |
 | **syscall 仅诊断** | syscall 单独存于 `syscall_latency`，明确不参与 Base_RT/RT_Score |
+
+---
+
+## 13. 60 分保底（2026-10 起）
+
+为减少过多的 0 分，对所有经过 min-max 的分项做映射：
+
+```
+新分 = 60 + 0.4 × 原 min-max 分
+```
+
+- 作用对象：Base_RT、T 的四个类别、P。
+- 不作用：F（占位 60）、Sched_Score（=100×(1−MR)，不参与 min-max）。
+- 结果落在 60–100。F=60 时总分上限仍为 92。
+
+实现与完整流程见 [REPORTING.md](REPORTING.md)。
