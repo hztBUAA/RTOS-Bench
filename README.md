@@ -127,6 +127,7 @@ RTOS-Bench/
 | [docs/REALTIME.md](docs/REALTIME.md) | 实时性能测试原理与使用 | 测试执行者 |
 | [docs/STRESS.md](docs/STRESS.md) | 压力测试原理与使用 | 测试执行者 |
 | [docs/CMD.md](docs/CMD.md) | Shell 命令支持测试使用指南 | 测试执行者 |
+| [docs/REPORTING.md](docs/REPORTING.md) | 评分口径、60 分保底、SSOT JSON、自然语言报告生成 | 评分与报告维护者 |
 | [docs/TEST_REPORT.md](docs/TEST_REPORT.md) | 已验证的测试报告 | 参考 |
 | [AGENTS.md](AGENTS.md) | AI 开发资产（详细约定） | AI 辅助开发 |
 
