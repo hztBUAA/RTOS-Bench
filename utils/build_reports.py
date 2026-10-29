@@ -186,6 +186,7 @@ def main():
     parser.add_argument("excel")
     parser.add_argument("--workloads", type=int, choices=[7, 9], default=9)
     parser.add_argument("-o", "--out-dir", default="reports")
+    parser.add_argument("--scores-json", default=None)
     args = parser.parse_args()
 
     records = scoring.parse_blocks(args.excel)
@@ -199,6 +200,9 @@ def main():
             "total": r["total"], "categories": r["categories"],
         }
 
+    override = {}
+    if args.scores_json:
+        override = json.load(open(args.scores_json, encoding="utf-8"))
     boards = excel2json.parse_excel(args.excel, args.workloads)
     ssot_dir = os.path.join(args.out_dir, "ssot")
     text_dir = os.path.join(args.out_dir, "narrative")
@@ -208,7 +212,7 @@ def main():
 
     for board in boards:
         data = excel2json.to_result_json(board, args.excel, args.workloads)
-        score = scores.get(board["board"])
+        score = override.get(board["board"]) or scores.get(board["board"])
         if score is None:
             continue
         data["scores"] = {**data.get("scores", {}), **score}
