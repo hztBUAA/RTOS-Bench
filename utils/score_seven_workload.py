@@ -43,6 +43,13 @@ CATEGORY_SETS = {
     },
 }
 F_SCORE = 60.0
+FLOOR_BASE = 60.0
+FLOOR_RATIO = 0.4
+
+
+def _floor(score):
+    """仅用于 min-max 分项：保底 60，压缩到 60-100。"""
+    return None if score is None else FLOOR_BASE + FLOOR_RATIO * score
 
 
 def _board_name(ws, start_row):
@@ -140,13 +147,16 @@ def compute(records, workload_count=7):
             cat: _mean([item_score.get((id(rec), w)) for w in members])
             for cat, members in categories.items()
         }
-        t_score = _mean(list(cats.values()))
-        rt_score = _mean([rec["base_rt"], rec["sched"]])
-        p_score = _mean([float(v) for v in rec["power"] if v is not None])
+        # 只对 min-max 分项做保底变换。调度分=100*(1-MR)，不参与。
+        cats_f = {k: _floor(v) for k, v in cats.items()}
+        t_score = _mean(list(cats_f.values()))
+        base_rt_f = _floor(rec["base_rt"])
+        rt_score = _mean([base_rt_f, rec["sched"]]) if base_rt_f is not None and rec["sched"] is not None else None
+        p_score = _floor(_mean([float(v) for v in rec["power"] if v is not None]))
         total = None
         if None not in (rt_score, t_score, p_score):
             total = 0.2 * F_SCORE + 0.3 * rt_score + 0.4 * t_score + 0.1 * p_score
-        rows.append({**rec, "categories": cats, "T": t_score, "RT": rt_score,
+        rows.append({**rec, "categories": cats_f, "T": t_score, "RT": rt_score,
                      "P": p_score, "F": F_SCORE, "total": total})
     return rows
 
