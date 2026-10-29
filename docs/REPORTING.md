@@ -117,3 +117,15 @@ python3 utils/patch_result_meta.py result.json \
 - 欧拉两块板缺功耗，RTT 缺功耗，暂不出总分。
 - 板卡名与 OS 版本需要与北理工、翼辉最终对齐。
 - SSOT JSON 由 Excel 逆生成，不含逐任务统计与 stress/cmd 明细。
+
+## 6. 示例输出
+
+以翼辉工控机为例（9 负载，60 保底）：
+
+- [docs/examples/翼辉工控机_result.json](examples/翼辉工控机_result.json)：SSOT JSON
+- [docs/examples/翼辉工控机_测试结果描述.md](examples/翼辉工控机_测试结果描述.md)：markdown
+- [docs/examples/翼辉工控机_测试结果描述.docx](examples/翼辉工控机_测试结果描述.docx)：Word
+
+Word 结构：一级标题（测试结果描述 / 测试评分描述）、二级标题（四个分项）、三级标题（可调度性能），条目用 1) 2) 3) 4) 编号。
+
+示例中的分数为 60 保底后的结果，输入 JSON 由结果展示表逆生成。
