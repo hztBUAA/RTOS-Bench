@@ -156,7 +156,7 @@ def compute(records, workload_count=7):
         total = None
         if None not in (rt_score, t_score, p_score):
             total = 0.2 * F_SCORE + 0.3 * rt_score + 0.4 * t_score + 0.1 * p_score
-        rows.append({**rec, "categories": cats_f, "T": t_score, "RT": rt_score,
+        rows.append({**rec, "categories": cats_f, "base_rt_f": base_rt_f, "T": t_score, "RT": rt_score,
                      "P": p_score, "F": F_SCORE, "total": total})
     return rows
 
@@ -171,7 +171,7 @@ def write_xlsx(rows, path, workload_count=7):
         ws.cell(1, col, header)
     for r, rec in enumerate(rows, 2):
         cats = rec["categories"]
-        values = [rec["vendor"], rec["name"], rec["family"], rec["base_rt"], rec["sched"], rec["RT"],
+        values = [rec["vendor"], rec["name"], rec["family"], rec.get("base_rt_f"), rec["sched"], rec["RT"],
                   cats["realtime_control"], cats["perception"], cats["communication"], cats["monitoring"],
                   rec["T"], rec["P"], rec["F"], rec["total"]]
         for c, value in enumerate(values, 1):
