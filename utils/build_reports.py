@@ -16,6 +16,7 @@ from docx import Document
 from docx.shared import Pt
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+META_PATH = os.path.join(HERE, "board_meta.json")
 
 
 def _load(name, path):
@@ -73,6 +74,11 @@ def build_narrative(data, score):
     lines = [f"一、测试结果描述（{board}）", ""]
     lines.append(
         f"本次针对{board}开展的工业实时操作系统基准测试，主要涵盖基础能力、典型负载性能、实时性能和功耗四个方面。")
+    os_version = env.get("os_version") or ""
+    bsp_version = env.get("bsp_version") or ""
+    if os_version or bsp_version:
+        detail = " ".join(x for x in [os_version, bsp_version] if x)
+        lines.append(f"被测系统为 {env.get('os_name')} {detail}。")
 
     lines.append("")
     lines.append("（1）基础能力测试。 基础能力主要考察操作系统的内存访问、文件系统读写、网络通信及POSIX接口兼容性，"
@@ -200,6 +206,7 @@ def main():
             "total": r["total"], "categories": r["categories"],
         }
 
+    meta = json.load(open(META_PATH, encoding="utf-8")) if os.path.exists(META_PATH) else {}
     override = {}
     if args.scores_json:
         override = json.load(open(args.scores_json, encoding="utf-8"))
@@ -212,6 +219,11 @@ def main():
 
     for board in boards:
         data = excel2json.to_result_json(board, args.excel, args.workloads)
+        entry = meta.get(data["env"]["os_name"], {})
+        data["env"]["os_version"] = entry.get("os_version") or ""
+        families = entry.get("bsp_version") or {}
+        family = next((k for k in families if k in data["env"]["board"]), None)
+        data["env"]["bsp_version"] = families.get(family, "") if family else ""
         score = override.get(board["board"]) or scores.get(board["board"])
         if score is None:
             continue

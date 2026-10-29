@@ -1,0 +1,30 @@
+{
+  "ReWorks": {
+    "os_version": "V6.1.1",
+    "bsp_version": {
+      "飞腾": "PATCH20260414181405-HYCX-6.1.1-ARM-BASE-V1.9",
+      "香橙派": "PATCH20260414181405-HYCX-6.1.1-ARM-BASE-V1.9",
+      "龙芯": "PATCH20260330191159-HYCX-6.1.1-LOONGARCH-BASE-V1.9"
+    }
+  },
+  "SylixOS": {
+    "os_version": "",
+    "bsp_version": {}
+  },
+  "Intewell": {
+    "os_version": "",
+    "bsp_version": {}
+  },
+  "OneOS": {
+    "os_version": "",
+    "bsp_version": {}
+  },
+  "RT-Thread": {
+    "os_version": "",
+    "bsp_version": {}
+  },
+  "openEuler": {
+    "os_version": "",
+    "bsp_version": {}
+  }
+}

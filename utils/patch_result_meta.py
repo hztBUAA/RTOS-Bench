@@ -17,6 +17,7 @@ FIELDS = [
     ("os_name", "--os-name", str),
     ("os_version", "--os-version", str),
     ("board", "--board", str),
+    ("bsp_version", "--bsp-version", str),
     ("cpu_type", "--cpu-type", str),
     ("cpu_core_num", "--cpu-core-num", int),
     ("cpu_freq_mhz", "--cpu-freq-mhz", int),
