@@ -49,3 +49,24 @@ python3 utils/score_caculate.py --db results.db import-json "reports/7load/score
 python3 utils/score_caculate.py --db results.db export --board Phytium-Pi --os RT-Thread --arch aarch64
 python3 utils/score_seven_workload.py <结果展示表.xlsx> --workloads 7 -o 7load_score.xlsx
 ```
+
+## 更新流程（给同学与 AI）
+
+1. **放原始数据**：新板卡的 `result.json` 放到 `reports/raw/<板卡>/`；历史数据的结果展示表放到 `reports/excel/`。
+2. **生成 SSOT**：`python3 utils/build_reports.py <excel> --workloads 7|9 -o reports/<ver>`
+3. **转算分 JSON**：`python3 utils/ssot_to_score_json.py reports/<ver>/ssot -o reports/<ver>/score_json`
+4. **算分**：`python3 utils/score_caculate.py --db results.db import-json "reports/<ver>/score_json/*.json"`，再 `export`。
+5. **保底与汇总**：`python3 utils/score_seven_workload.py <excel> --workloads 7|9 -o <out>.xlsx`
+6. **更新本目录**：替换 `7load_scores.csv` / `9load_scores.csv` 与 `ssot/` 下的 JSON。
+7. **提交 PR**：写明数据来源、板卡名、OS/BSP 版本、改动原因。
+
+### 约定
+
+- 板卡名用 `MIC-7700`、`Orange-Pi5`、`DH-1`、`LS2K1000LA`、`Phytium-Pi`。
+- 只对 min-max 分项做 `60 + 0.4×原分`，调度分与 F 不参与。
+- 7 负载与 9 负载分开计算，不能共用调度分。
+- 数据缺失写 `null`，不要填 0。
+
+### 给 AI 的提示
+
+本目录自包含：CSV 是最终结果，`ssot/` 是输入。让 AI 基于 `ssot/` 重算时，先读 `docs/REPORTING.md` 的口径，再执行上面的命令。任何改动都通过 PR 留痕。
