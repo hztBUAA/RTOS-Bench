@@ -1,0 +1,329 @@
+{
+  "meta": {
+    "framework_version": "1.0.0",
+    "test_timestamp": null,
+    "source": "excel_reverse",
+    "source_file": "20260930-1151结果展示表-裁剪后.xlsx",
+    "workload_count": 7
+  },
+  "env": {
+    "os_name": "SylixOS",
+    "os_version": "",
+    "board": "翼辉工控机",
+    "cpu_type": null,
+    "cpu_freq_mhz": null,
+    "cpu_core_num": null,
+    "bsp_version": ""
+  },
+  "modules": {
+    "test-realtime": {
+      "status": "from_excel",
+      "single_core": {
+        "context_switch": {
+          "avg_us": 0.343
+        },
+        "interrupt": {
+          "avg_us": 0.063
+        },
+        "syscall": {
+          "avg_us": null
+        },
+        "service_cost": [
+          {
+            "operation": "sem_take",
+            "immediate_us": 0.103,
+            "suspend_us": 0.393,
+            "low_prio_us": null,
+            "high_prio_us": null
+          },
+          {
+            "operation": "sem_release",
+            "immediate_us": 0.136,
+            "suspend_us": null,
+            "low_prio_us": 0.126,
+            "high_prio_us": 0.376
+          },
+          {
+            "operation": "mq_send",
+            "immediate_us": 0.458,
+            "suspend_us": 0.79,
+            "low_prio_us": 0.48,
+            "high_prio_us": 0.662
+          },
+          {
+            "operation": "mq_recv",
+            "immediate_us": 0.451,
+            "suspend_us": 1.249,
+            "low_prio_us": 0.48,
+            "high_prio_us": 1.179
+          },
+          {
+            "operation": "mutex_take",
+            "immediate_us": 0.125,
+            "suspend_us": 0.4,
+            "low_prio_us": null,
+            "high_prio_us": null
+          },
+          {
+            "operation": "mutex_release",
+            "immediate_us": 0.132,
+            "suspend_us": null,
+            "low_prio_us": 0.161,
+            "high_prio_us": 0.41
+          },
+          {
+            "operation": "mempool_alloc",
+            "immediate_us": 0.268,
+            "suspend_us": null,
+            "low_prio_us": null,
+            "high_prio_us": null
+          },
+          {
+            "operation": "mempool_free",
+            "immediate_us": 0.254,
+            "suspend_us": null,
+            "low_prio_us": null,
+            "high_prio_us": null
+          }
+        ]
+      },
+      "multicore": {
+        "access": {
+          "rd": [
+            5.647,
+            6.907,
+            6.923,
+            6.933
+          ],
+          "wr": [
+            3.998,
+            4.434,
+            4.433,
+            4.428
+          ],
+          "cp": [
+            5.296,
+            5.995,
+            5.984,
+            5.974
+          ],
+          "frd": [
+            10.15,
+            11.768,
+            11.773,
+            11.766
+          ],
+          "fwr": [
+            10.231,
+            11.436,
+            11.437,
+            11.436
+          ],
+          "fcp": [
+            15.444,
+            15.885,
+            15.885,
+            15.885
+          ],
+          "memset": [
+            18.981,
+            18.412,
+            18.426,
+            18.419
+          ],
+          "memcpy": [
+            37.737,
+            30.879,
+            33.105,
+            34.505
+          ]
+        },
+        "service": {
+          "任务间通信": [
+            3.367,
+            3.549,
+            3.487,
+            3.583
+          ],
+          "创建与删除": [
+            35.971,
+            33.062,
+            38.168,
+            36.895
+          ]
+        },
+        "cross_core": {
+          "同核通信": 3.468,
+          "异核通信": 2.834
+        }
+      }
+    },
+    "test-schedule": {
+      "status": "from_excel",
+      "config": {
+        "cycles": 3,
+        "util_start": 30,
+        "util_end": 100,
+        "util_step": 10
+      },
+      "gradients": [
+        {
+          "utilization_percent": 30,
+          "total_jobs": 21,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 40,
+          "total_jobs": 21,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 50,
+          "total_jobs": 21,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 60,
+          "total_jobs": 21,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 70,
+          "total_jobs": 21,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 80,
+          "total_jobs": 21,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 90,
+          "total_jobs": 21,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 100,
+          "total_jobs": 21,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        }
+      ],
+      "summary": {
+        "average_miss_rate": 0.0,
+        "final_score": 100.0
+      }
+    },
+    "typical-workload": {
+      "status": "from_excel",
+      "workloads": [
+        {
+          "name": "pid",
+          "category": "realtime_control",
+          "exec_time_ms": 23.779,
+          "avg_time_ms": null
+        },
+        {
+          "name": "ekf",
+          "category": "realtime_control",
+          "exec_time_ms": 256.327,
+          "avg_time_ms": null
+        },
+        {
+          "name": "fast",
+          "category": "perception",
+          "exec_time_ms": 9.297,
+          "avg_time_ms": null
+        },
+        {
+          "name": "icp",
+          "category": "perception",
+          "exec_time_ms": 350.108,
+          "avg_time_ms": null
+        },
+        {
+          "name": "epnp",
+          "category": "perception",
+          "exec_time_ms": 5.5,
+          "avg_time_ms": null
+        },
+        {
+          "name": "modbus",
+          "category": "communication",
+          "exec_time_ms": 9001.017,
+          "avg_time_ms": null
+        },
+        {
+          "name": "mqtt",
+          "category": "communication",
+          "exec_time_ms": 3002.99,
+          "avg_time_ms": null
+        },
+        {
+          "name": "ewma",
+          "category": "monitoring",
+          "exec_time_ms": 134.565,
+          "avg_time_ms": null
+        },
+        {
+          "name": "cusum",
+          "category": "monitoring",
+          "exec_time_ms": 16.62,
+          "avg_time_ms": null
+        }
+      ]
+    },
+    "test-stress": {
+      "status": "not_in_source"
+    },
+    "test-cmd": {
+      "status": "not_in_source"
+    }
+  },
+  "power": {
+    "items": [
+      {
+        "item": "static",
+        "energy_j": 15176.102,
+        "score": 100
+      },
+      {
+        "item": "cpu",
+        "energy_j": 7059.196,
+        "score": 100
+      },
+      {
+        "item": "memory",
+        "energy_j": 8639.869,
+        "score": 100
+      },
+      {
+        "item": "file",
+        "energy_j": 3925.092,
+        "score": 100
+      }
+    ]
+  },
+  "scores": {
+    "base_rt": 97.6,
+    "sched": 100.0,
+    "RT": 98.8,
+    "T": 100,
+    "P": 100.0,
+    "F": 60,
+    "total": 91.64,
+    "categories": {
+      "realtime_control": 100,
+      "perception": 100,
+      "communication": 100,
+      "monitoring": 100
+    }
+  }
+}
