@@ -125,6 +125,7 @@ python3 utils/patch_result_meta.py result.json \
 - [docs/examples/翼辉工控机_result.json](examples/翼辉工控机_result.json)：SSOT JSON
 - [docs/examples/翼辉工控机_测试结果描述.md](examples/翼辉工控机_测试结果描述.md)：markdown
 - [docs/examples/翼辉工控机_测试结果描述.docx](examples/翼辉工控机_测试结果描述.docx)：Word
+- [docs/examples/final/](examples/final/)：7/9 负载最终得分 CSV 与 SSOT JSON
 
 Word 结构：一级标题（测试结果描述 / 测试评分描述）、二级标题（四个分项）、三级标题（可调度性能），条目用 1) 2) 3) 4) 编号。
 
