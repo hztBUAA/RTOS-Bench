@@ -466,9 +466,9 @@ static void task_thread_entry(void *param)
 			if (exec_rc != 0) {
 				SCHED_PRINTF("[test-schedule] Task %s: workload warning rc=%d, counted as miss\n",
 					     ctx->config->name, exec_rc);
-				ctx->stats->deadline_misses++;
 			}
-			if (response_ns > ctx->config->deadline_ns) {
+			/* One miss per job: exec error or response past deadline. */
+			if (exec_rc != 0 || response_ns > ctx->config->deadline_ns) {
 				ctx->stats->deadline_misses++;
 			}
 
@@ -837,10 +837,8 @@ static void *seq_task_worker(void *arg)
 		if (response_ns > c->st->max_response_ns) {
 			c->st->max_response_ns = response_ns;
 		}
-		if (exec_rc != 0) {
-			c->st->deadline_misses++;
-		}
-		if (response_ns > c->task->deadline_ns) {
+		/* One miss per job: exec error or response past deadline. */
+		if (exec_rc != 0 || response_ns > c->task->deadline_ns) {
 			c->st->deadline_misses++;
 		}
 	}
