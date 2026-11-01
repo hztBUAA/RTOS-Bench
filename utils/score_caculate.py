@@ -1,13 +1,16 @@
 """
 rtos_scorer.py
-工业 RTOS 评测结果汇总与评分程序（min-max 归一化版本）
+工业 RTOS 评测结果汇总与评分程序（饱和曲线版本）
 
 T_Score / RT_Score 子项得分公式：
-  Score = (R - Rmin) / (Rmax - Rmin) * 100
-  其中 Rmin / Rmax 来自同板卡所有 OS 对同一子项的 R 值集合
+  Score = 100 * R / (a + R)
+  其中 a = CONFIG["saturation_a"]（默认 0.25），R 越大得分越高。
+  每个子项独立计分，不受同板卡其他 OS 的测量值影响。
+
+功耗 P_Score = 4 项功耗子项饱和得分的算术平均。
 
 多核带宽指标使用 R = measured / baseline；多核任务延迟使用
-R = baseline / measured。多核值缺失时不参与 min-max；多核大指标没有有效
+R = baseline / measured。多核值缺失时不生成该子项；多核大指标没有有效
 子项时从 Base_RT 中剔除，并重新归一化剩余权重。
 
 依赖: pandas, openpyxl
@@ -37,6 +40,8 @@ CONFIG = {
     "storage_path":           "./data/results_db.sqlite",
     "baseline_os":            "SylixOS",
     "baseline_board":         "LS2K1000LA",
+    # 饱和曲线 S = 100*R/(a+R) 中的 a，必须大于 0
+    "saturation_a":           0.25,
 }
 
 WORKLOAD_CATEGORY_MAP = {
@@ -117,7 +122,7 @@ def init_db(db_path: str) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    # 原始子项表（存储 R_value，item_score 由归一化后写入）
+    # 原始子项表（存储 R_value，item_score 由饱和曲线算分后写入）
     cur.execute("""
     CREATE TABLE IF NOT EXISTS raw_records (
         board_model      TEXT NOT NULL,
@@ -132,8 +137,8 @@ def init_db(db_path: str) -> sqlite3.Connection:
         baseline_value   REAL,
         baseline_source  TEXT,
         R_value          REAL,
-        item_score       REAL,           -- 归一化后写入
-        norm_pending     INTEGER DEFAULT 1,  -- 1=待归一化
+        item_score       REAL,           -- 饱和曲线算分后写入
+        norm_pending     INTEGER DEFAULT 1,  -- 1=待算分
         status           TEXT,
         source_file      TEXT,
         last_updated     TEXT,
@@ -204,19 +209,22 @@ def calc_R(measured: float, baseline: float, metric_type: str) -> Optional[float
         return measured / baseline
 
 
-def minmax_score(R: Optional[float],
-                 R_min: float, R_max: float) -> Optional[float]:
+def saturation_score(R: Optional[float],
+                     a: Optional[float] = None) -> Optional[float]:
     """
-    Score = (R - Rmin) / (Rmax - Rmin) * 100
-    R_min == R_max 时无法归一化，返回 None。
+    Score = 100 * R / (a + R)
+
+    饱和曲线：R -> 0 时得分 -> 0，R -> +inf 时得分 -> 100。
+    同一 R 始终得到同一分数，不依赖同板卡其他 OS 的测量值。
     """
     if R is None:
         return None
-    if R_max == R_min:
-        return None
-    score = (R - R_min) / (R_max - R_min) * 100.0
-    # 裁剪到 [0, 100]
-    return max(0.0, min(100.0, score))
+    if R <= 0:
+        return 0.0
+    a = CONFIG["saturation_a"] if a is None else a
+    if a <= 0:
+        raise ValueError(f"saturation_a 必须大于 0，当前为 {a!r}")
+    return 100.0 * R / (a + R)
 
 
 def now_iso() -> str:
@@ -286,28 +294,27 @@ def get_baseline_value(conn, category, sub_category, item_key) -> Optional[float
 
 
 # ─────────────────────────────────────────────
-# 3. min-max 归一化（核心新增逻辑）
+# 3. 子项得分（绝对饱和曲线，不依赖数据集）
 # ─────────────────────────────────────────────
 def normalize_items_for_board(board_model: str, arch: str,
                                conn: sqlite3.Connection,
                                categories: tuple = ("realtime", "workload")):
     """
-    对指定板卡+架构，在所有 OS 的同一子项 R_value 中做 min-max 归一化，
-    将归一化后的 item_score 写回 raw_records。
+    对指定板卡+架构的所有子项按饱和曲线计算 item_score，写回 raw_records。
+    每个子项只依赖自身的 R_value，与同板卡其他 OS 无关。
 
     同时返回受影响的 (board_model, os_name, arch) 三元组集合，
     供后续重算汇总分数使用。
 
     注意：
     - schedulability 子项（metric_type='miss_rate'）直接用 Sched_Score=100*(1-MR)，
-      不走 min-max，这里跳过。
-    - power 子项另有归一化逻辑，不在此处理。
+      不走饱和曲线，这里跳过。
+    - power 子项另有权重口径，不在此处理。
     """
     affected_os = set()
 
-    # 获取该板卡下所有需要归一化的 (category, sub_category, item_key) 组合
-    groups = conn.execute("""
-    SELECT DISTINCT category, sub_category, item_key
+    rows = conn.execute("""
+    SELECT os_name, category, sub_category, item_key, R_value
     FROM raw_records
     WHERE board_model=? AND arch=?
       AND category IN ({})
@@ -317,53 +324,24 @@ def normalize_items_for_board(board_model: str, arch: str,
     """.format(",".join("?" * len(categories))),
     (board_model, arch, *categories)).fetchall()
 
-    for grp in groups:
-        cat  = grp["category"]
-        sub  = grp["sub_category"]
-        key  = grp["item_key"]
-
-        # 收集该板卡所有 OS 在这个子项上的 R_value
-        rows = conn.execute("""
-        SELECT os_name, R_value FROM raw_records
-        WHERE board_model=? AND arch=?
+    for row in rows:
+        score = saturation_score(row["R_value"])
+        conn.execute("""
+        UPDATE raw_records
+        SET item_score=?, norm_pending=0, last_updated=?
+        WHERE board_model=? AND os_name=? AND arch=?
           AND category=? AND sub_category=? AND item_key=?
           AND R_value IS NOT NULL
           AND status NOT IN ('null_value','error','missing_default_rmin')
-        """, (board_model, arch, cat, sub, key)).fetchall()
-
-        if not rows:
-            continue
-
-        r_vals = [r["R_value"] for r in rows]
-        R_min  = min(r_vals)
-        R_max  = max(r_vals)
-
-        for row in rows:
-            os_name = row["os_name"]
-            R       = row["R_value"]
-
-            if R_max == R_min:
-                # 所有有效系统表现相同，无法区分，标记 pending。
-                score        = None
-                norm_pending = 1
-            else:
-                score        = minmax_score(R, R_min, R_max)
-                norm_pending = 0
-
-            conn.execute("""
-            UPDATE raw_records
-            SET item_score=?, norm_pending=?, last_updated=?
-            WHERE board_model=? AND os_name=? AND arch=?
-              AND category=? AND sub_category=? AND item_key=?
-            """, (score, norm_pending, now_iso(),
-                  board_model, os_name, arch, cat, sub, key))
-
-            affected_os.add((board_model, os_name, arch))
+        """, (score, now_iso(),
+              board_model, row["os_name"], arch,
+              row["category"], row["sub_category"], row["item_key"]))
+        affected_os.add((board_model, row["os_name"], arch))
 
     conn.commit()
     logger.info(
-        f"归一化完成 [{board_model}|{arch}]: "
-        f"{len(groups)} 个子项组，影响 {len(affected_os)} 个系统"
+        f"算分完成 [{board_model}|{arch}]: "
+        f"{len(rows)} 个子项，影响 {len(affected_os)} 个系统"
     )
     return affected_os
 
@@ -451,7 +429,7 @@ def _make_rec_base(board_model, os_name, arch, category,
 def _fill_R_only(rec: dict, conn: sqlite3.Connection) -> dict:
     """
     只计算并存储 R_value，不计算 item_score。
-    item_score 由 normalize_items_for_board() 统一归一化后写入。
+    item_score 由 normalize_items_for_board() 统一算分后写入。
     """
     if rec["raw_value"] is None:
         rec["status"] = "null_value"
@@ -606,7 +584,7 @@ def _parse_realtime_module(conn, modules, board_model, os_name, arch, source, ts
 def _parse_schedule_module(conn, modules, board_model, os_name, arch, source, ts):
     """
     schedulability 直接用 Sched_Score = 100*(1-avg_mr)，
-    不走 min-max，在这里直接写入 item_score，norm_pending=0。
+    不走饱和曲线，在这里直接写入 item_score，norm_pending=0。
     """
     mod = modules.get("test-schedule", {})
     if not mod:
@@ -622,7 +600,7 @@ def _parse_schedule_module(conn, modules, board_model, os_name, arch, source, ts
     rec["raw_value"]   = avg_mr
     rec["raw_unit"]    = "ratio"
     rec["metric_type"] = "miss_rate"
-    rec["norm_pending"] = 0   # 不需要 min-max
+    rec["norm_pending"] = 0   # 不需要饱和曲线
     if avg_mr is not None:
         rec["item_score"] = 100.0 * (1.0 - avg_mr)
         rec["status"] = "ok"
@@ -716,7 +694,7 @@ def _parse_power_from_json(conn, modules, board_model, os_name, arch, source, ts
 
 
 # ─────────────────────────────────────────────
-# 5. Excel 解析（功耗，沿用归一化逻辑不变）
+# 5. Excel 解析（功耗）
 # ─────────────────────────────────────────────
 def parse_power_excel(filepath: str, conn: sqlite3.Connection) -> list:
     affected = []
@@ -822,14 +800,14 @@ def _fuzzy_col_map(columns, desired: dict) -> dict:
 
 
 # ─────────────────────────────────────────────
-# 6. 功耗 P_Score 归一化（跨系统 min-max）
+# 6. 功耗 P_Score（4 项分别饱和后平均）
 # ─────────────────────────────────────────────
 def normalize_power_for_board(board_model: str, arch: str,
                                conn: sqlite3.Connection):
     """
-    Power_Ratio = 平均4项功耗比；
-    P_Score = (Power_Ratio - Rmin) / (Rmax - Rmin) * 100
-    跨同板卡所有 OS 的 Power_Ratio 归一化。
+    每项功耗子项单独按饱和曲线计分并写回 item_score；
+    P_Score = 4 项功耗子项得分的算术平均。
+    R 仍为 基准功耗 / 实测功耗。
     """
     power_fields = ["static_power", "cpu_power", "memory_power", "file_power"]
 
@@ -839,37 +817,44 @@ def normalize_power_for_board(board_model: str, arch: str,
     WHERE board_model=? AND arch=? AND category='power'
     """, (board_model, arch)).fetchall()
 
-    ratios = {}   # os_name -> power_ratio
+    p_scores = {}
     for row in all_os:
         os_name = row["os_name"]
         field_ratios = []
+        item_scores  = []
         for pf in power_fields:
             r = conn.execute("""
             SELECT R_value FROM raw_records
             WHERE board_model=? AND os_name=? AND arch=?
               AND category='power' AND sub_category=? AND item_key='power_data'
               AND R_value IS NOT NULL
+              AND status NOT IN ('null_value','error')
             """, (board_model, os_name, arch, pf)).fetchone()
-            if r:
-                field_ratios.append(r["R_value"])
-        if field_ratios:
-            ratios[os_name] = sum(field_ratios) / len(field_ratios)
+            if not r:
+                continue
 
-    if not ratios:
-        return {}
+            score = saturation_score(r["R_value"])
+            conn.execute("""
+            UPDATE raw_records
+            SET item_score=?, norm_pending=0, last_updated=?
+            WHERE board_model=? AND os_name=? AND arch=?
+              AND category='power' AND sub_category=? AND item_key='power_data'
+            """, (score, now_iso(), board_model, os_name, arch, pf))
 
-    R_min = min(ratios.values())
-    R_max = max(ratios.values())
+            field_ratios.append(r["R_value"])
+            item_scores.append(score)
 
-    p_scores = {}
-    for os_name, ratio in ratios.items():
-        if R_max == R_min:
-            p_scores[os_name] = {"score": None, "pending": True, "ratio": ratio}
-        else:
-            score = (ratio - R_min) / (R_max - R_min) * 100.0
-            score = max(0.0, min(100.0, score))
-            p_scores[os_name] = {"score": score, "pending": False, "ratio": ratio}
+        if item_scores:
+            p_scores[os_name] = {
+                "score":   sum(item_scores) / len(item_scores),
+                "pending": False,
+                "ratio":   sum(field_ratios) / len(field_ratios),
+            }
 
+    conn.commit()
+    logger.info(
+        f"功耗算分完成 [{board_model}|{arch}]: {len(p_scores)} 个系统"
+    )
     return p_scores
 
 
@@ -881,7 +866,7 @@ def recalc_scores_for_target(board_model: str, os_name: str, arch: str,
                               power_scores: dict = None):
     """
     重算某个 (board_model, os_name, arch) 的所有层级得分。
-    power_scores: {os_name: {score, pending, ratio}} 由外部传入（已跨系统归一化）
+    power_scores: {os_name: {score, pending, ratio}} 由外部传入（已按饱和曲线算分）
     """
     def q(category, sub_category):
         return conn.execute("""
@@ -1204,7 +1189,7 @@ def export_results(board_model: str, os_name: str, arch: str,
 
 
 # ─────────────────────────────────────────────
-# 9. 批量入口（归一化顺序）
+# 9. 批量入口（算分顺序）
 # ─────────────────────────────────────────────
 def _collect_boards(conn) -> list:
     """获取数据库中所有 (board_model, arch) 组合。"""
@@ -1213,13 +1198,42 @@ def _collect_boards(conn) -> list:
     """).fetchall()
 
 
+def recompute_all_scores(conn: sqlite3.Connection) -> int:
+    """
+    对数据库内所有 (board_model, arch) 重算：
+    子项 item_score -> 功耗 P_Score -> 各级汇总得分与总分。
+
+    适用于算法口径变更后刷新历史数据。返回重算的系统数量。
+    """
+    boards = _collect_boards(conn)
+    os_count = 0
+
+    for grp in boards:
+        bm, arch = grp["board_model"], grp["arch"]
+        normalize_items_for_board(bm, arch, conn)
+        power_scores = normalize_power_for_board(bm, arch, conn)
+
+        os_rows = conn.execute("""
+        SELECT DISTINCT os_name FROM raw_records
+        WHERE board_model=? AND arch=?
+        """, (bm, arch)).fetchall()
+        for r in os_rows:
+            recalc_scores_for_target(bm, r["os_name"], arch, conn, power_scores)
+            os_count += 1
+
+    logger.info(
+        f"全库重算完成: {len(boards)} 个板卡/架构，{os_count} 个系统"
+    )
+    return os_count
+
+
 def ingest_json_files(pattern: str, conn: sqlite3.Connection):
     """
     批量导入 JSON 文件：
     1. 完整格式校验（先校验，后写库）
     2. 基准板卡（SylixOS + LS2K1000LA）优先入库
     3. 单事务写入所有 raw_records
-    4. min-max 归一化 + 功耗归一化 + 重算汇总分数
+    4. 饱和曲线算分 + 功耗算分 + 重算汇总分数
     """
     files = sorted(glob.glob(pattern, recursive=True))
     if not files:
@@ -1268,7 +1282,7 @@ def ingest_json_files(pattern: str, conn: sqlite3.Connection):
         logger.error(f"写库失败，已回滚: {e}")
         raise
 
-    # 4) 归一化 + 算分
+    # 4) 饱和曲线算分 + 汇总
     affected_boards = {(bm, arch) for bm, _, arch in affected}
     for bm, arch in affected_boards:
         normalize_items_for_board(bm, arch, conn)
@@ -1304,7 +1318,7 @@ def ingest_excel_files(pattern: str, conn: sqlite3.Connection):
 def score_single_json(json_path: str, db_path: Optional[str] = None) -> dict:
     """
     一步完成单个 JSON 结果文件的评分流程：
-    import -> normalize -> recalc -> export
+    import -> 饱和曲线算分 -> recalc -> export
 
     Args:
         json_path: rtbench_result.json 文件路径
@@ -1340,7 +1354,7 @@ def score_single_json(json_path: str, db_path: Optional[str] = None) -> dict:
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="工业 RTOS 评测评分工具（min-max版）")
+    parser = argparse.ArgumentParser(description="工业 RTOS 评测评分工具（饱和曲线版）")
     parser.add_argument("--db", default=None,
                         help="SQLite 数据库路径（覆盖默认路径）")
     sub    = parser.add_subparsers(dest="cmd")
@@ -1358,6 +1372,7 @@ def main():
     p_exp.add_argument("--output", default=None)
 
     sub.add_parser("list")
+    sub.add_parser("recompute", help="按当前算法重算全库所有子项与汇总得分")
 
     args = parser.parse_args()
     db_path = args.db or CONFIG["storage_path"]
@@ -1388,6 +1403,10 @@ def main():
         """).fetchall()
         for r in rows:
             print(f"  {r['board_model']} | {r['os_name']} | {r['arch']}")
+
+    elif args.cmd == "recompute":
+        recompute_all_scores(conn)
+
     else:
         parser.print_help()
 

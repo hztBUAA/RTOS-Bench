@@ -6,7 +6,7 @@
 子项原始值(raw_value)
     ↓ calc_R()
 子项基准比 R_value
-    ↓ normalize_items_for_board()  【跨系统 min-max】
+    ↓ normalize_items_for_board()  【绝对饱和曲线】
 子项得分 item_score
     ↓ 算术平均
 大指标得分（如 scheduling_latency_score）
@@ -45,21 +45,22 @@ $$
 
 > 当前脚本使用固定的 **SylixOS + LS2K1000LA** 测量值作为绝对基准。
 
-### 3.2 min-max 归一化（T_Score / RT_Score 子项）
+### 3.2 绝对饱和曲线（T_Score / RT_Score 子项）
 
 $$
-\text{Score} = $R - R_{\min}$ / ($R_{\max} - R_{\min}$) \times 100
+\text{Score} = \frac{100 \times R}{a + R}, \quad a = 0.25
 $$
 
-- $R_{\min}$、$R_{\max}$ 取**同一板卡、同一子项**下所有已测系统的 R 值极值
-- 结果裁剪至 $[0, 100]$
-- 若 $R_{\min} = R_{\max}$（所有系统表现相同），则 `item_score = null`，`norm_pending = true`
-- **每新增一个系统，同板卡所有系统的子项得分都会被重新归一化**
-- 多核测试值缺失时不生成该子项记录，也不参与 min-max；其他有效多核子项仍按其实际 R 值正常计算
-- 若完全没有有效的多核子项，`multicore_overhead = null`，从 `Base_RT` 中剔除，  并对 `0.10/0.10/0.40` 三个剩余权重重新归一化
+- 每个子项只依赖自身的 R，**不依赖同板卡其他 OS 的测量值**
+- 得分范围 $[0, 100)$：$R \to 0$ 时趋于 0，$R \to +\infty$ 时趋于 100
+- 参考分数：$R=1$ → 80，$R=3$ → 92.31，$R=9$ → 97.30
+- **新增系统不会改变其他系统的子项得分**
+- $a$ 由 `CONFIG["saturation_a"]` 配置，必须大于 0
+- 多核测试值缺失时不生成该子项记录，也不参与算分；其他有效多核子项仍按其实际 R 值正常计算
+- 若完全没有有效的多核子项，`multicore_overhead = null`，从 `Base_RT` 中剔除，并对 `0.10/0.10/0.40` 三个剩余权重重新归一化
 - **单核板卡**：目前仅 RISC-V 哪吒板卡忽略输入中的 `multi_core` 数据，同样按剩余权重计算 `Base_RT`
 
-### 3.3 调度性能（不走 min-max）
+### 3.3 调度性能（不走饱和曲线）
 
 $$
 \text{Sched\_Score} = 100 \times (1 - \overline{MR})
@@ -143,7 +144,7 @@ $$
 T = 0.25 \times C_{\text{ctrl}} + 0.25 \times C_{\text{perc}} + 0.25 \times C_{\text{comm}} + 0.25 \times C_{\text{mon}}
 $$
 
-每类得分 = 该类所有任务 item_score 的算术平均（min-max 归一化后）。
+每类得分 = 该类所有任务 item_score 的算术平均（饱和曲线算分后）。
 
 **任务分类映射：**
 
@@ -166,12 +167,15 @@ $$
 ## 6. 功耗 P_Score
 
 $$
-\text{PowerRatio} = \frac{1}{4}\left(\frac{P_{\text{base,static}}}{P_{\text{meas,static}}} + \frac{P_{\text{base,cpu}}}{P_{\text{meas,cpu}}} + \frac{P_{\text{base,mem}}}{P_{\text{meas,mem}}} + \frac{P_{\text{base,file}}}{P_{\text{meas,file}}}\right)
+R_i = \frac{P_{\text{base},i}}{P_{\text{meas},i}}, \quad
+S_i = \frac{100 \times R_i}{a + R_i}, \quad a = 0.25
 $$
 
 $$
-P = \frac{\text{PowerRatio} - \text{Ratio}_{\min}}{\text{Ratio}_{\max} - \text{Ratio}_{\min}} \times 100
+P = \frac{1}{4}\sum_{i \in \{\text{static,cpu,mem,file}\}} S_i
 $$
+
+> `PowerRatio = mean(R_i)` 仍会写入导出结果的 `power_ratio` 字段，仅用于展示。
 
 **Excel 任务映射：**
 
@@ -381,14 +385,14 @@ $$
             "context_switch_latency": {
               "avg_us": {
                 "raw": 3.816, "unit": "us",
-                "R": 1.0, "score": 50.0,
+                "R": 1.0, "score": 80.0,
                 "norm_pending": false, "status": "ok"
               }
             },
             "scheduling_latency": {
               "sem_take_immediate_us": {
                 "raw": 1.120, "unit": "us",
-                "R": 1.0, "score": 50.0,
+                "R": 1.0, "score": 80.0,
                 "norm_pending": false, "status": "ok"
               }
             }
@@ -411,7 +415,7 @@ $$
             "items": {
               "avg_us": {
                 "raw": 0.016, "unit": "us",
-                "R": 1.0, "score": 50.0,
+                "R": 1.0, "score": 80.0,
                 "norm_pending": false, "status": "ok"
               }
             }
@@ -429,7 +433,7 @@ $$
           "items": {
             "pid": {
               "raw": 322.0, "unit": "ms",
-              "R": 1.0, "score": 50.0,
+              "R": 1.0, "score": 80.0,
               "norm_pending": false, "status": "ok"
             }
           }
@@ -481,8 +485,8 @@ $$
 | `baseline_value` | REAL | 绝对基准系统（SylixOS + LS2K1000LA）的原始值 |
 | `baseline_source` | TEXT | `db`（从数据库查找）/ `json`（JSON 自带）|
 | `R_value` | REAL | 计算得到的基准比 |
-| `item_score` | REAL | 归一化后子项得分（0-100），`norm_pending=1` 时为 null |
-| `norm_pending` | INT | `1`=待归一化，`0`=已归一化 |
+| `item_score` | REAL | 饱和曲线算分后的子项得分（0-100），`norm_pending=1` 时为 null |
+| `norm_pending` | INT | `1`=待算分，`0`=已算分（字段名沿用旧称） |
 | `status` | TEXT | `ok` / `null_value` / `baseline_missing` / `error` |
 | `source_file` | TEXT | 来源文件名 |
 | `last_updated` | TEXT | ISO8601 时间戳 |
@@ -536,19 +540,21 @@ python rtos_scorer.py list
 | 事项 | 说明 |
 |------|------|
 | **基准系统必须先导入** | `SylixOS + LS2K1000LA` 的 JSON 必须先于其他系统导入，否则所有子项标记 `baseline_missing` |
-| **min-max 跨系统触发** | 每次新系统入库后，同板卡**所有系统**的 item_score 都会被重算 |
-| **Sched_Score 不归一化** | 调度性能直接用 `100*(1-MR)`，不参与 min-max |
-| **功耗需多系统才能归一化** | 单个系统时 P_Score 为 null，标记 `normalization_pending=true` |
+| **子项独立算分** | 每个子项只依赖自身 R，新增系统不会改变其他系统的 item_score |
+| **Sched_Score 不归一化** | 调度性能直接用 `100*(1-MR)`，不参与饱和曲线 |
+| **功耗可单系统算分** | 每个功耗子项独立饱和算分后取平均；缺失项按已有项平均，并标记 `is_partial=true` |
 | **partial 模式** | 大类缺失时按已有类重新归一化权重，标记 `is_partial=true` |
 | **总分 partial** | 某维度为 null 时，按已有维度重新归一化权重估算总分 |
-| **多核缺失** | 缺失子项不进入 min-max；无有效多核项时从 Base_RT 剔除并重归一化剩余权重 |
+| **多核缺失** | 缺失子项不参与算分；无有效多核项时从 Base_RT 剔除并重归一化剩余权重 |
 | **syscall 仅诊断** | syscall 单独存于 `syscall_latency`，明确不参与 Base_RT/RT_Score |
 
 ---
 
 ## 13. 60 分保底（2026-10 起）
 
-为减少过多的 0 分，对所有经过 min-max 的分项做映射：
+> 本节描述 `score_seven_workload.py` 报表管线的保底策略，与 `score_caculate.py` 的饱和曲线无关。
+
+为减少过多的 0 分，对该管线中经过 min-max 的分项做映射：
 
 ```
 新分 = 60 + 0.4 × 原 min-max 分
