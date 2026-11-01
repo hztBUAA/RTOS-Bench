@@ -108,7 +108,7 @@ struct schedule_task_stats {
 	double utilization;         /**< Assigned utilization (0.0-1.0), from task config */
 	double period_ms;           /**< Period in ms (= period_ns/1e6), from task config */
 	uint64_t total_jobs;        /**< Total job activations */
-	uint64_t deadline_misses;   /**< Jobs that missed deadline */
+	uint64_t deadline_misses;   /**< Missed jobs (exec error or overrun, once each) */
 	uint64_t total_response_ns; /**< Sum of response times for avg calculation */
 	uint64_t max_response_ns;   /**< Maximum observed response time */
 };
@@ -119,9 +119,9 @@ struct schedule_task_stats {
 struct schedule_gradient_result {
 	int utilization_percent;    /**< Target utilization (30, 40, ..., 100) */
 	double actual_utilization;  /**< Measured actual utilization */
-	double miss_rate;           /**< (total_misses / total_jobs) */
+	double miss_rate;           /**< Missed jobs / executed jobs */
 	uint64_t total_jobs;        /**< Total jobs executed */
-	uint64_t total_misses;      /**< Total deadline misses */
+	uint64_t total_misses;      /**< Missed jobs (at most one per job) */
 	struct schedule_task_stats task_stats[TEST_SCHEDULE_MAX_TASKS];
 	int num_tasks;              /**< Number of tasks in this gradient */
 };
