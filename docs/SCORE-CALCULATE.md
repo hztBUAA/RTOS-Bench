@@ -89,7 +89,8 @@ $$
 | `scheduling_latency` | 40% | 服务调用各场景延迟 | `single_core.service_cost[*]` |
 | `multicore_overhead` | 40% | 多核并发开销 | `single_core` 同级的 `multi_core` 对象 |
 
-每个大指标得分 = 其**所有子项 item_score 的算术平均**。
+上下文切换延迟、中断延迟和系统服务调用延迟三个大指标的得分分别等于其
+**所有有效子项 item_score 的算术平均**；多核性能按下述三个子类分层汇总。
 
 **`scheduling_latency` 子项展开：**
 
@@ -122,6 +123,10 @@ $$
 其中内存带宽 `type` 为 `rd/wr/cp/frd/fwr/fcp/memset/memcpy`，并发度为
 `1/2/4/8`。带宽类按 `R = measured / baseline`，任务延迟按
 `R = baseline / measured`。
+
+多核性能得分不直接对全部子项等权平均，而是先按内存访问、系统服务、
+核间通信三个子类分别求有效子项均值，再对有效子类等权平均。这样可避免
+子项数量较多的内存访问测试主导多核得分，使三类多核能力得到均衡评价。
 
 **单核板卡：**
 

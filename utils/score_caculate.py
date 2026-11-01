@@ -13,6 +13,9 @@ T_Score / RT_Score 子项得分公式：
 R = baseline / measured。多核值缺失时不生成该子项；多核大指标没有有效
 子项时从 Base_RT 中剔除，并重新归一化剩余权重。
 
+多核得分按内存访问、系统服务、核间通信三个子类分别取有效指标项的
+算术平均，再对有效子类等权平均。
+
 依赖: pandas, openpyxl
 安装: pip install pandas openpyxl
 """
@@ -74,6 +77,19 @@ MULTICORE_CONCURRENCIES = ("c1", "c2", "c4", "c8")
 MULTICORE_MEMORY_TYPES = (
     "rd", "wr", "cp", "frd", "fwr", "fcp", "memset", "memcpy",
 )
+
+MULTICORE_SCORE_GROUPS = {
+    "memory_access": (
+        "multi_core_memory_bandwidth_",
+    ),
+    "system_service": (
+        "multi_core_ipc_bandwidth_",
+        "multi_core_task_latency_",
+    ),
+    "core_comm": (
+        "multi_core_core_comm_",
+    ),
+}
 
 
 def _build_multicore_metric_definitions() -> dict:
@@ -225,6 +241,37 @@ def saturation_score(R: Optional[float],
     if a <= 0:
         raise ValueError(f"saturation_a 必须大于 0，当前为 {a!r}")
     return 100.0 * R / (a + R)
+
+
+def _mean(values) -> Optional[float]:
+    valid = [value for value in values if value is not None]
+    return sum(valid) / len(valid) if valid else None
+
+
+def _multicore_score(rows) -> Optional[float]:
+    """
+    按内存访问、系统服务、核间通信三个子类分层计算多核得分。
+
+    子类内部对有效指标项取算术平均，再对有效子类等权平均。整个子类
+    缺失时仅使用剩余子类，保持“缺失项不按零分计入”的现有口径。
+    """
+    grouped_scores = {group: [] for group in MULTICORE_SCORE_GROUPS}
+
+    for row in rows:
+        score = row["item_score"]
+        if score is None:
+            continue
+
+        item_key = row["item_key"]
+        for group, prefixes in MULTICORE_SCORE_GROUPS.items():
+            if item_key.startswith(prefixes):
+                grouped_scores[group].append(score)
+                break
+
+    group_scores = [
+        _mean(scores) for scores in grouped_scores.values()
+    ]
+    return _mean(group_scores)
 
 
 def now_iso() -> str:
@@ -880,7 +927,11 @@ def recalc_scores_for_target(board_model: str, os_name: str, arch: str,
     # ── 实时性能 ──────────────────────────────
     rt_sub = {}
     for key in BASE_RT_WEIGHTS:
-        rows   = q("realtime", key)
+        rows = q("realtime", key)
+        if key == "multicore_overhead":
+            rt_sub[key] = _multicore_score(rows)
+            continue
+
         scores = [
             r["item_score"] for r in rows
             if r["item_score"] is not None
