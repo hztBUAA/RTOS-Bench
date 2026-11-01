@@ -275,7 +275,7 @@ python utils/flatten_rtbench_result.py results/rtbench_result.json -o results/fl
 | T_Score (负载) | 40% | typical-workload | 4 个负载分类等权平均 |
 | P_Score (功耗) | 10% | 外部功耗仪 | 当前无数据，需外部导入 |
 
-> **重要**: 评分使用跨 OS min-max 归一化。数据库中只有 1 个 OS 时所有 item_score 为 null。需至少 2 个不同 OS 在同一板子上的结果才能产生有效分数。
+> **重要**: 子项得分使用绝对饱和曲线 `S = 100·R/(a+R)`，`a = 0.25`。每个 OS 独立计分，单个 OS 的数据库也能产生有效分数。
 
 评分脚本也可独立使用：
 ```bash
