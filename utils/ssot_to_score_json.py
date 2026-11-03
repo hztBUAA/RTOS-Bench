@@ -26,7 +26,8 @@ BOARD = {
 }
 OS = {
     "翼辉": "SylixOS", "东土": "intewell", "锐华": "rede",
-    "中移物联": "OneOS", "欧拉": "openEuler/Linux", "RTT": "RT-Thread",
+    "中移物联": "OneOS", "OneOS": "OneOS", "欧拉": "openEuler/Linux",
+    "openEuler": "openEuler/Linux", "RTT": "RT-Thread",
 }
 POWER_NAMES = {"static": "standby", "cpu": "cpu", "memory": "memory", "file": "file"}
 
@@ -39,7 +40,7 @@ def canonical_board(name):
 
 
 def vendor_of(name):
-    for key in OS:
+    for key in sorted(OS, key=len, reverse=True):
         if name.startswith(key):
             return key
     return name
