@@ -312,20 +312,18 @@
     ]
   },
   "scores": {
-    "base_rt": 68.71081676844764,
-    "schedulability": 100,
-    "average_miss_rate": 0.0,
+    "base_rt": 86.24493060744335,
     "sched": 100.0,
-    "RT": 84.35540838422382,
-    "T": 65.0,
-    "P": 82.56478564529688,
+    "RT": 93.12246530372167,
+    "T": 68.7613148858892,
+    "P": 68.53403742301563,
     "F": 60.0,
-    "total": 71.56310107979684,
+    "total": 74.29466928777374,
     "categories": {
-      "realtime_control": 60.0,
-      "perception": 60.0,
-      "communication": 80.0,
-      "monitoring": 60.0
+      "realtime_control": 76.46548057002498,
+      "perception": 59.69304433479149,
+      "communication": 64.2430374334404,
+      "monitoring": 74.64369720529996
     }
   }
 }

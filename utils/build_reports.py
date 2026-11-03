@@ -171,8 +171,8 @@ def build_narrative(data, score):
         f"最终按 0.2×{score['F']:.2f} + 0.3×{_fmt(score['RT'], 2)} + "
         f"0.4×{_fmt(score['T'], 2)} + 0.1×{_fmt(score['P'], 2)} 计算，"
         f"{board}的综合评分为 {_fmt(score['total'], 2)} 分。"))
-    blocks.append(("p", "说明：本次评分对经过 min-max 归一化的分项采用 60 + 0.4×原分 的保底映射，"
-                        "调度得分为 100×(1−平均截止时间错失率)，不参与该映射。"))
+    blocks.append(("p", "说明：子项得分采用绝对饱和曲线 S = 100×R/(a+R)，a=0.25，基准固定为 SylixOS @ LS2K1000LA；"
+                        "调度得分为 100×(1−平均截止时间错失率)，不参与该曲线。"))
     return blocks
 
 

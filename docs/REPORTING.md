@@ -2,7 +2,7 @@
 
 本文说明 RTOS-Bench 的出分口径、SSOT JSON 逆生成、自然语言报告导出与元信息补全。
 
-更新时间：2026-10-29
+更新时间：2026-11-03
 
 ## 1. 评分口径
 
@@ -21,24 +21,19 @@
 
 因为 F=60，总分上限为 92。
 
-### min-max 归一化
+### 绝对饱和曲线
 
-- 子项得分 = (R − Rmin) / (Rmax − Rmin) × 100，裁剪到 [0,100]。
+子项得分：
+
+```
+S = 100 × R / (a + R)，a = 0.25
+```
+
 - R：延迟类 = 基准/实测，带宽类 = 实测/基准。
-- Rmin/Rmax 取同一板卡族、所有已测系统的极值。
-- 板卡族：工控机、香橙派、哪吒、龙芯、飞腾。
+- 基准固定为 SylixOS @ LS2K1000LA，不随同板卡其他系统变化。
+- 同一 R 始终得到同一分数，R 越大得分越高，不会出现 0 分。
 
-### 60 分保底
-
-只对经过 min-max 的分项做映射：
-
-```
-新分 = 60 + 0.4 × 原分
-```
-
-- 作用对象：基础实时、T 的四类、P。
-- 不作用：F（占位 60）、调度分（不参与 min-max）。
-- 效果：min-max 分项落在 60–100。
+**2026-11 起不再使用 min-max，也不再使用 60 分保底。** 旧的归一化与保底说明仅作历史记录。
 
 ### 平均错失率
 
@@ -73,8 +68,8 @@ OS 与 BSP 版本在 `utils/board_meta.json` 维护。ReWorks 已填 V6.1.1 与�
   → 逆生成 SSOT JSON        utils/excel_to_result_json.py
   → 生成描述                utils/build_reports.py
   → 转算分脚本 schema       utils/ssot_to_score_json.py
-  → score_caculate.py 出分  utils/score_caculate.py
-  → 60 保底与汇总           utils/score_seven_workload.py
+  → score_caculate.py 出分（饱和曲线）  utils/score_caculate.py
+  → 汇总与导出                            utils/score_seven_workload.py
 ```
 
 说明：

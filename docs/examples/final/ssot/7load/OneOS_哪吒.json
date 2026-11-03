@@ -166,12 +166,6 @@
           "avg_time_ms": null
         },
         {
-          "name": "ekf",
-          "category": "realtime_control",
-          "exec_time_ms": 430.0,
-          "avg_time_ms": null
-        },
-        {
           "name": "fast",
           "category": "perception",
           "exec_time_ms": 41.0,
@@ -181,12 +175,6 @@
           "name": "icp",
           "category": "perception",
           "exec_time_ms": 1198.0,
-          "avg_time_ms": null
-        },
-        {
-          "name": "epnp",
-          "category": "perception",
-          "exec_time_ms": 35.0,
           "avg_time_ms": null
         },
         {
@@ -247,18 +235,18 @@
     ]
   },
   "scores": {
-    "base_rt": 89.33333333333333,
+    "base_rt": 97.97246762490569,
     "sched": 97.02380952380952,
-    "RT": 93.17857142857142,
-    "T": 65,
-    "P": 60.0,
-    "F": 60,
-    "total": 71.95357142857142,
+    "RT": 97.4981385743576,
+    "T": 90.30191378320329,
+    "P": 88.93150344169383,
+    "F": 60.0,
+    "total": 86.26335742975797,
     "categories": {
-      "realtime_control": 60,
-      "perception": 60,
-      "communication": 80,
-      "monitoring": 60
+      "realtime_control": 92.63300820342872,
+      "perception": 92.135393233581,
+      "communication": 81.40756830974485,
+      "monitoring": 95.0316853860586
     }
   }
 }

@@ -44,7 +44,7 @@ shasum -a 256 source/9load_raw.xlsx source/7load_raw.xlsx
 | 梯度错失率 | I 列，调度行后 0–6 行内 | 文本以「30%」开头，共 8 行 |
 | 典型负载实测 | 起始行+9 .. +12，F 列 | 单位 ms，4 类各一行 |
 | 典型负载基准 | 起始行+9 .. +12，G 列 | 单位 ms |
-| 基础实时得分 | 起始行+13，E 列 | 已是 min-max 后的加权分 |
+| 基础实时得分 | 起始行+13，E 列 | Excel 内的加权分；重算时由明细重新计算，不直接采用 |
 | 功耗得分 | 起始行+15 .. +18，E 列 | 4 项 |
 | 功耗实测 | 起始行+15 .. +18，F 列 | 单位 J |
 | 调度 20 项 | K 列指标名，L–O 四场景 | 8 个操作 × 最多 4 场景 |
@@ -63,7 +63,7 @@ shasum -a 256 source/9load_raw.xlsx source/7load_raw.xlsx
   → SSOT JSON（excel_to_result_json.py）
   → 算分输入（ssot_to_score_json.py）
   → score_caculate.py（博函 Base_RT 修复版）
-  → 60 保底（score_seven_workload.py）
+  → 汇总与导出（score_seven_workload.py）
   → 7/9 负载总分
 ```
 
@@ -77,8 +77,9 @@ P    = 四项功耗均值
 F    = 60（占位）
 ```
 
-- 只对 min-max 分项做 `60 + 0.4×原分`：基础实时、T 的四类、P。
-- 调度分 = 100×(1−平均错失率)，不做保底。
+- 子项使用绝对饱和曲线：`S = 100×R/(a+R)`，`a = 0.25`，基准固定为 SylixOS @ LS2K1000LA。
+- 不再使用 min-max，也不再使用 60 分保底。
+- 调度分 = 100×(1−平均失率)，不参与饱和曲线。
 - 平均错失率 = 总错失 job / 总 job：7 负载 168，9 负载 216。
 - 基础实时：上下文 10%、中断 10%、系统服务 40%、多核 40%。哪吒为单核，排除多核并重归一化。
 
@@ -103,7 +104,6 @@ python3 utils/build_reports.py source/7load_raw.xlsx --workloads 7 -o /tmp/check
 
 ## 5. 已知的数据缺口
 
-- 欧拉两块板没有原始明细，基础实时与 T 沿用云端汇总值。
-- 欧拉的 P 由云端汇总值经 60 保底换算。
+- 欧拉两块板没有原始明细，新算法下暂未计算。
 - RTT 新多核数据含极端值：`ipc c8=0.002`、`task_latency c2=541.9`、`inter_core=0`。
-- F 全部为占位 60。
+- F 全部为占位 60，总分上限 92。
