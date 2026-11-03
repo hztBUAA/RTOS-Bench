@@ -169,9 +169,14 @@ def build_ssot(raw_data, baseline_path, board, os_name, workload_count):
     if isinstance(target_realtime, dict):
         _convert_multicore_to_ssot(target_realtime)
 
-    for entry in (
-        (modules.get("typical-workload") or {}).get("workloads") or []
-    ):
+    workload_module = modules.get("typical-workload") or {}
+    workload_module["workloads"] = [
+        entry
+        for entry in (workload_module.get("workloads") or [])
+        if isinstance(entry, dict)
+        and entry.get("name") in scorer.WORKLOAD_CATEGORY_MAP
+    ]
+    for entry in workload_module["workloads"]:
         if isinstance(entry, dict) and entry.get("avg_time_ms") is None:
             entry["avg_time_ms"] = entry.get("exec_time_ms")
 

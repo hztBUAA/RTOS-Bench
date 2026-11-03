@@ -839,22 +839,6 @@
       "duration_sec": 0.0,
       "workloads": [
         {
-          "name": "stub",
-          "category": "utility",
-          "success": true,
-          "rounds": 10,
-          "exec_time_ms": 0.001,
-          "avg_time_ms": 0.0
-        },
-        {
-          "name": "busywait",
-          "category": "utility",
-          "success": true,
-          "rounds": 10,
-          "exec_time_ms": 41.67,
-          "avg_time_ms": 4.167
-        },
-        {
           "name": "fast",
           "category": "vision",
           "success": true,
