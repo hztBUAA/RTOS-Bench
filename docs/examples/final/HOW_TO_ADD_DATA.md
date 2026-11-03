@@ -4,7 +4,7 @@
 
 ## 1. 需要准备什么
 
-一份 `result.json`，必须包含以下字段。
+一份 `result.json`，必须包含以下字段。可直接复制同目录的 `template_result.json` 修改。
 
 ### env
 
