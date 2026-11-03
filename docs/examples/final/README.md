@@ -11,6 +11,7 @@
 | `ssot/7load/*.json` | 7 负载 SSOT JSON，含最终分数 |
 | `ssot/9load/*.json` | 9 负载 SSOT JSON，含最终分数 |
 | `SOURCE_DATA.md` | 第一手 Excel、单元格映射、更新注意事项 |
+| `HOW_TO_ADD_DATA.md` | 补数据的 JSON 字段说明与算分命令 |
 | `source/*.xlsx` | 第一手 Excel 源文件 |
 
 ## 口径

@@ -1,0 +1,79 @@
+{
+  "meta": { "framework_version": "1.0.0", "test_timestamp": null, "workload_count": 7 },
+  "env": {
+    "os_name": "OneOS",
+    "os_version": "<填写 Release 版本>",
+    "board": "Phytium-Pi",
+    "cpu_type": "aarch64",
+    "cpu_core_num": 4,
+    "cpu_freq_mhz": 0
+  },
+  "modules": {
+    "test-realtime": {
+      "status": "passed",
+      "single_core": {
+        "context_switch": { "avg_us": 0.967 },
+        "interrupt": { "min_us": 0.120, "max_us": 0.260, "avg_us": 0.163 },
+        "syscall": { "min_us": 0.020, "max_us": 0.040, "avg_us": 0.021 },
+        "service_cost": [
+          { "operation": "sem_take", "immediate_us": 0.300, "suspend_us": 1.800, "low_prio_us": 0.0, "high_prio_us": 0.0 },
+          { "operation": "sem_release", "immediate_us": 0.300, "suspend_us": 0.0, "low_prio_us": 1.220, "high_prio_us": 1.800 },
+          { "operation": "mq_send", "immediate_us": 2.080, "suspend_us": 0.0, "low_prio_us": 3.160, "high_prio_us": 3.720 },
+          { "operation": "mq_recv", "immediate_us": 2.060, "suspend_us": 3.820, "low_prio_us": 0.0, "high_prio_us": 0.0 },
+          { "operation": "mutex_take", "immediate_us": 0.800, "suspend_us": 3.440, "low_prio_us": 0.0, "high_prio_us": 0.0 },
+          { "operation": "mutex_release", "immediate_us": 0.860, "suspend_us": 0.0, "low_prio_us": 1.700, "high_prio_us": 2.380 },
+          { "operation": "mempool_alloc", "immediate_us": 0.380, "suspend_us": 0.0, "low_prio_us": 0.0, "high_prio_us": 0.0 },
+          { "operation": "mempool_free", "immediate_us": 0.360, "suspend_us": 0.0, "low_prio_us": 0.0, "high_prio_us": 0.0 }
+        ]
+      },
+      "multi_core": {
+        "memory_bandwidth": [
+          { "type": "rd", "c1": 0.270, "c2": 0.536, "c4": 0.553, "c8": 0.562 },
+          { "type": "wr", "c1": 0.272, "c2": 0.343, "c4": 0.355, "c8": 0.359 },
+          { "type": "cp", "c1": 0.225, "c2": 0.357, "c4": 0.358, "c8": 0.356 },
+          { "type": "frd", "c1": 0.776, "c2": 1.504, "c4": 1.539, "c8": 1.546 },
+          { "type": "fwr", "c1": 0.943, "c2": 1.832, "c4": 1.853, "c8": 1.867 },
+          { "type": "fcp", "c1": 1.542, "c2": 2.948, "c4": 2.978, "c8": 3.033 },
+          { "type": "memset", "c1": 10.805, "c2": 10.467, "c4": 11.106, "c8": 11.665 },
+          { "type": "memcpy", "c1": 4.008, "c2": 4.604, "c4": 6.181, "c8": 6.375 }
+        ],
+        "ipc_bandwidth": { "c1": 0.246, "c2": 0.347, "c4": 0.412, "c8": 0.002 },
+        "task_latency": { "c1": 15.953, "c2": 541.906, "c4": 266.750, "c8": 137.549 },
+        "core_comm": { "intra_core": 0.246, "inter_core": 0.0 }
+      }
+    },
+    "test-schedule": {
+      "status": "passed",
+      "gradients": [
+        { "utilization_percent": 30, "total_jobs": 21, "deadline_misses": 0, "miss_rate": 0.0 },
+        { "utilization_percent": 40, "total_jobs": 21, "deadline_misses": 0, "miss_rate": 0.0 },
+        { "utilization_percent": 50, "total_jobs": 21, "deadline_misses": 0, "miss_rate": 0.0 },
+        { "utilization_percent": 60, "total_jobs": 21, "deadline_misses": 0, "miss_rate": 0.0 },
+        { "utilization_percent": 70, "total_jobs": 21, "deadline_misses": 0, "miss_rate": 0.0 },
+        { "utilization_percent": 80, "total_jobs": 21, "deadline_misses": 0, "miss_rate": 0.0 },
+        { "utilization_percent": 90, "total_jobs": 21, "deadline_misses": 0, "miss_rate": 0.0 },
+        { "utilization_percent": 100, "total_jobs": 21, "deadline_misses": 0, "miss_rate": 0.0 }
+      ]
+    },
+    "typical-workload": {
+      "status": "passed",
+      "workloads": [
+        { "name": "pid", "avg_time_ms": 93.4 },
+        { "name": "fast", "avg_time_ms": 45.8 },
+        { "name": "icp", "avg_time_ms": 374.9 },
+        { "name": "modbus", "avg_time_ms": 9043.1 },
+        { "name": "mqtt", "avg_time_ms": 6546.7 },
+        { "name": "ewma", "avg_time_ms": 66.2 },
+        { "name": "cusum", "avg_time_ms": 44.3 }
+      ]
+    },
+    "test-stress": {
+      "power": [
+        { "name": "standby", "power_data": 15176.102 },
+        { "name": "cpu", "power_data": 7059.196 },
+        { "name": "memory", "power_data": 8639.869 },
+        { "name": "file", "power_data": 3925.092 }
+      ]
+    }
+  }
+}
