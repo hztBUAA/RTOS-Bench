@@ -1,4 +1,4 @@
-# 最终结果与 SSOT（2026-10-30）
+# 最终结果与 SSOT（2026-11-03）
 
 本目录存放 7 负载与 9 负载的最终得分，以及对应 SSOT JSON。
 
@@ -6,10 +6,8 @@
 
 | 文件 | 说明 |
 |---|---|
-| `7load_scores.csv` | 7 负载最终得分（15 块板 + RTT + 欧拉） |
-| `9load_scores.csv` | 9 负载最终得分（15 块板） |
-| `ssot/7load/*.json` | 7 负载 SSOT JSON，含最终分数 |
-| `ssot/9load/*.json` | 9 负载 SSOT JSON，含最终分数 |
+| `ssot/7load/*.json` | 7 负载 SSOT JSON，含最终分数（含 openEuler 飞腾、香橙派） |
+| `ssot/9load/*.json` | 9 负载 SSOT JSON，含最终分数（含 openEuler 飞腾、香橙派） |
 | `SOURCE_DATA.md` | 第一手 Excel、单元格映射、更新注意事项 |
 | `HOW_TO_ADD_DATA.md` | 补数据的 JSON 字段说明与算分命令 |
 | `source/*.xlsx` | 第一手 Excel 源文件 |
@@ -37,12 +35,11 @@ F    = 60（占位）
 
 ## 已知缺口
 
-- 欧拉两块板无原始明细，基础实时与 T 沿用云端汇总值，仅作参考。
-- 欧拉两块板无原始明细，新算法下暂未计算。
+- 欧拉两块板已补原始 JSON，并按新算法生成 7/9 负载 SSOT。
 - RTT 的新多核数据含极端值（`ipc c8=0.002`、`task_latency c2=541.9`、`inter_core=0`），
   会改变 RTT 自身的得分；如需剔除，请先确认测量有效性。
 - F 全部为占位 60，总分上限 92。
-- 欧拉两块板无原始明细，新算法下暂未计算。
+- 欧拉两块板缺 `test-stress.power` 数据，P 与完整总分暂缺。
 
 ## 复现
 

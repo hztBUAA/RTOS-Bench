@@ -87,10 +87,22 @@
 python3 utils/score_caculate.py --db results.db import-json "<json目录>/*.json"
 python3 utils/score_caculate.py --db results.db recompute
 python3 utils/score_caculate.py --db results.db export \
-    --board Phytium-Pi --os openEuler --arch aarch64 -o out.json
+    --board Phytium-Pi --os openEuler --arch aarch64 --output out.json
 ```
 
 `out.json` 里的 `scores` 就是基础实时、RT、T、P、总分。
+
+7 负载和 9 负载必须分别使用独立数据库；两者共用板卡、OS 和架构，
+混用会覆盖共同负载记录。
+
+如果要从原始 JSON 直接生成 `final/ssot` 格式，可使用：
+
+```bash
+python3 utils/raw_to_ssot.py "<原始 result.json>" \
+    --baseline "docs/examples/final/ssot/9load/翼辉_龙芯.json" \
+    --board Phytium-Pi --os openEuler --workloads 9 \
+    --output "docs/examples/final/ssot/9load/openEuler_飞腾.json"
+```
 
 ## 3. 填表
 
@@ -112,7 +124,7 @@ python3 utils/score_caculate.py --db results.db export \
 ## 4. 注意
 
 - 缺功耗时，总分按 partial 权重算，会偏高，需在备注里写明。
-- 欧拉两块板目前缺原始数据，补 `result.json` 后按上面流程算，再把行填入表。
+- 欧拉飞腾和香橙派的 7/9 负载原始结果已放在 `platforms/openeuler/测试结果/`。
 - 改了 Excel 的 sheet 结构（插行、改列），解析会错位；先按 `SOURCE_DATA.md` 核对块布局。
 - 所有改动通过 PR 提交，便于追溯。
 

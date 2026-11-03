@@ -1,0 +1,951 @@
+{
+  "meta": {
+    "framework_version": "1.0.0",
+    "test_timestamp": "1970-01-01T00:33:37Z",
+    "total_duration_sec": 670.0,
+    "source": "rtbench_raw",
+    "workload_count": 9,
+    "source_file": "feiteng_20261023.json"
+  },
+  "env": {
+    "os_name": "openEuler",
+    "os_version": "unknown",
+    "board": "Phytium-Pi",
+    "cpu_type": "aarch64",
+    "cpu_freq_mhz": 0,
+    "cpu_core_num": 0
+  },
+  "modules": {
+    "test-realtime": {
+      "status": "passed",
+      "duration_sec": 0.0,
+      "single_core": {
+        "context_switch": {
+          "avg_us": 1.854
+        },
+        "interrupt": {
+          "min_us": 0.16,
+          "max_us": 0.64,
+          "avg_us": 0.179
+        },
+        "syscall": {
+          "min_us": 8.96,
+          "max_us": 29.48,
+          "avg_us": 9.739
+        },
+        "service_cost": [
+          {
+            "operation": "sem_take",
+            "immediate_us": 0.02,
+            "suspend_us": 4.48,
+            "low_prio_us": 0.0,
+            "high_prio_us": 0.0
+          },
+          {
+            "operation": "sem_release",
+            "immediate_us": 0.04,
+            "suspend_us": 0.0,
+            "low_prio_us": 1.46,
+            "high_prio_us": 4.94
+          },
+          {
+            "operation": "mq_send",
+            "immediate_us": 1.62,
+            "suspend_us": 6.46,
+            "low_prio_us": 2.48,
+            "high_prio_us": 6.04
+          },
+          {
+            "operation": "mq_recv",
+            "immediate_us": 1.66,
+            "suspend_us": 4.98,
+            "low_prio_us": 2.72,
+            "high_prio_us": 5.58
+          },
+          {
+            "operation": "mutex_take",
+            "immediate_us": 0.04,
+            "suspend_us": 4.1,
+            "low_prio_us": 0.0,
+            "high_prio_us": 0.0
+          },
+          {
+            "operation": "mutex_release",
+            "immediate_us": 0.04,
+            "suspend_us": 0.0,
+            "low_prio_us": 1.56,
+            "high_prio_us": 4.68
+          },
+          {
+            "operation": "mempool_alloc",
+            "immediate_us": 0.04,
+            "suspend_us": 0.0,
+            "low_prio_us": 0.0,
+            "high_prio_us": 0.0
+          },
+          {
+            "operation": "mempool_free",
+            "immediate_us": 0.06,
+            "suspend_us": 0.0,
+            "low_prio_us": 0.0,
+            "high_prio_us": 0.0
+          }
+        ]
+      },
+      "multicore": {
+        "access": {
+          "rd": [
+            1.164,
+            2.324,
+            2.341,
+            2.335
+          ],
+          "wr": [
+            0.271,
+            0.335,
+            0.332,
+            0.336
+          ],
+          "cp": [
+            0.275,
+            0.436,
+            0.431,
+            0.414
+          ],
+          "frd": [
+            8.91,
+            17.814,
+            17.84,
+            16.241
+          ],
+          "fwr": [
+            12.557,
+            11.323,
+            11.29,
+            11.542
+          ],
+          "fcp": [
+            3.814,
+            6.513,
+            6.32,
+            6.316
+          ],
+          "memset": [
+            11.483,
+            10.895,
+            11.543,
+            11.12
+          ],
+          "memcpy": [
+            4.033,
+            6.516,
+            6.756,
+            6.716
+          ]
+        },
+        "service": {
+          "任务间通信": [
+            0.356,
+            0.584,
+            0.404,
+            0.351
+          ],
+          "创建与删除": [
+            147.598,
+            113.069,
+            112.814,
+            108.118
+          ]
+        },
+        "cross_core": {
+          "同核通信": 0.343,
+          "异核通信": 0.287
+        }
+      }
+    },
+    "test-schedule": {
+      "status": "passed",
+      "duration_sec": 0.0,
+      "config": {
+        "cycles": 3,
+        "util_start": 30,
+        "util_end": 100,
+        "util_step": 10
+      },
+      "wcet_measurements": [],
+      "gradients": [
+        {
+          "utilization_percent": 30,
+          "actual_utilization": 0.3,
+          "total_jobs": 27,
+          "deadline_misses": 0,
+          "miss_rate": 0.0,
+          "task_stats": [
+            {
+              "name": "icp",
+              "utilization": 0.0652,
+              "period_ms": 2402.744,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 355.415
+            },
+            {
+              "name": "ewma",
+              "utilization": 0.0571,
+              "period_ms": 1648.163,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 97.219
+            },
+            {
+              "name": "pid",
+              "utilization": 0.0414,
+              "period_ms": 1834.923,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 75.995
+            },
+            {
+              "name": "mqtt",
+              "utilization": 0.0387,
+              "period_ms": 1031.178,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 39.794
+            },
+            {
+              "name": "cusum",
+              "utilization": 0.0317,
+              "period_ms": 812.345,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 26.429
+            },
+            {
+              "name": "fast",
+              "utilization": 0.0254,
+              "period_ms": 804.833,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 20.365
+            },
+            {
+              "name": "ekf",
+              "utilization": 0.0236,
+              "period_ms": 130.793,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 2.905
+            },
+            {
+              "name": "modbus",
+              "utilization": 0.0122,
+              "period_ms": 112.445,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.26
+            },
+            {
+              "name": "epnp",
+              "utilization": 0.0047,
+              "period_ms": 249.72,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.226
+            }
+          ]
+        },
+        {
+          "utilization_percent": 40,
+          "actual_utilization": 0.4,
+          "total_jobs": 27,
+          "deadline_misses": 0,
+          "miss_rate": 0.0,
+          "task_stats": [
+            {
+              "name": "icp",
+              "utilization": 0.1186,
+              "period_ms": 1321.58,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 351.147
+            },
+            {
+              "name": "ewma",
+              "utilization": 0.0982,
+              "period_ms": 958.851,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 94.211
+            },
+            {
+              "name": "pid",
+              "utilization": 0.0725,
+              "period_ms": 1048.271,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 75.941
+            },
+            {
+              "name": "mqtt",
+              "utilization": 0.0427,
+              "period_ms": 932.697,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 40.438
+            },
+            {
+              "name": "cusum",
+              "utilization": 0.0307,
+              "period_ms": 838.446,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 25.732
+            },
+            {
+              "name": "fast",
+              "utilization": 0.0253,
+              "period_ms": 805.507,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 19.724
+            },
+            {
+              "name": "ekf",
+              "utilization": 0.0048,
+              "period_ms": 643.606,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 2.92
+            },
+            {
+              "name": "modbus",
+              "utilization": 0.004,
+              "period_ms": 344.007,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.256
+            },
+            {
+              "name": "epnp",
+              "utilization": 0.0032,
+              "period_ms": 366.808,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.287
+            }
+          ]
+        },
+        {
+          "utilization_percent": 50,
+          "actual_utilization": 0.5,
+          "total_jobs": 27,
+          "deadline_misses": 0,
+          "miss_rate": 0.0,
+          "task_stats": [
+            {
+              "name": "icp",
+              "utilization": 0.206,
+              "period_ms": 760.615,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 351.174
+            },
+            {
+              "name": "ewma",
+              "utilization": 0.1097,
+              "period_ms": 857.864,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 76.614
+            },
+            {
+              "name": "pid",
+              "utilization": 0.0557,
+              "period_ms": 1363.4,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 75.885
+            },
+            {
+              "name": "mqtt",
+              "utilization": 0.0458,
+              "period_ms": 871.228,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 76.902
+            },
+            {
+              "name": "cusum",
+              "utilization": 0.0287,
+              "period_ms": 896.356,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 45.798
+            },
+            {
+              "name": "fast",
+              "utilization": 0.027,
+              "period_ms": 756.163,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 19.664
+            },
+            {
+              "name": "ekf",
+              "utilization": 0.017,
+              "period_ms": 182.282,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 2.917
+            },
+            {
+              "name": "modbus",
+              "utilization": 0.0057,
+              "period_ms": 241.489,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.267
+            },
+            {
+              "name": "epnp",
+              "utilization": 0.0044,
+              "period_ms": 264.274,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.277
+            }
+          ]
+        },
+        {
+          "utilization_percent": 60,
+          "actual_utilization": 0.6,
+          "total_jobs": 27,
+          "deadline_misses": 0,
+          "miss_rate": 0.0,
+          "task_stats": [
+            {
+              "name": "icp",
+              "utilization": 0.3386,
+              "period_ms": 462.715,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 156.262
+            },
+            {
+              "name": "ewma",
+              "utilization": 0.0672,
+              "period_ms": 1401.349,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 34.519
+            },
+            {
+              "name": "pid",
+              "utilization": 0.0596,
+              "period_ms": 1275.032,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 24.043
+            },
+            {
+              "name": "mqtt",
+              "utilization": 0.0527,
+              "period_ms": 756.314,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 22.834
+            },
+            {
+              "name": "cusum",
+              "utilization": 0.0427,
+              "period_ms": 603.017,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 7.64
+            },
+            {
+              "name": "fast",
+              "utilization": 0.0183,
+              "period_ms": 1115.438,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 12.864
+            },
+            {
+              "name": "ekf",
+              "utilization": 0.0104,
+              "period_ms": 298.662,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.031
+            },
+            {
+              "name": "modbus",
+              "utilization": 0.0093,
+              "period_ms": 147.632,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.291
+            },
+            {
+              "name": "epnp",
+              "utilization": 0.0012,
+              "period_ms": 947.484,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.413
+            }
+          ]
+        },
+        {
+          "utilization_percent": 70,
+          "actual_utilization": 0.7,
+          "total_jobs": 27,
+          "deadline_misses": 0,
+          "miss_rate": 0.0,
+          "task_stats": [
+            {
+              "name": "icp",
+              "utilization": 0.1726,
+              "period_ms": 907.719,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 350.197
+            },
+            {
+              "name": "ewma",
+              "utilization": 0.1617,
+              "period_ms": 581.913,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 94.155
+            },
+            {
+              "name": "pid",
+              "utilization": 0.1565,
+              "period_ms": 485.553,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 76.221
+            },
+            {
+              "name": "mqtt",
+              "utilization": 0.0638,
+              "period_ms": 625.286,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 40.199
+            },
+            {
+              "name": "cusum",
+              "utilization": 0.0457,
+              "period_ms": 564.009,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 26.812
+            },
+            {
+              "name": "fast",
+              "utilization": 0.0392,
+              "period_ms": 520.598,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 19.985
+            },
+            {
+              "name": "ekf",
+              "utilization": 0.0317,
+              "period_ms": 97.47,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 2.945
+            },
+            {
+              "name": "modbus",
+              "utilization": 0.0217,
+              "period_ms": 63.354,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.256
+            },
+            {
+              "name": "epnp",
+              "utilization": 0.0071,
+              "period_ms": 164.789,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 2.392
+            }
+          ]
+        },
+        {
+          "utilization_percent": 80,
+          "actual_utilization": 0.8,
+          "total_jobs": 27,
+          "deadline_misses": 0,
+          "miss_rate": 0.0,
+          "task_stats": [
+            {
+              "name": "icp",
+              "utilization": 0.3859,
+              "period_ms": 406.031,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 355.156
+            },
+            {
+              "name": "ewma",
+              "utilization": 0.1107,
+              "period_ms": 850.087,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 34.516
+            },
+            {
+              "name": "pid",
+              "utilization": 0.0691,
+              "period_ms": 1099.983,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 24.021
+            },
+            {
+              "name": "mqtt",
+              "utilization": 0.063,
+              "period_ms": 632.827,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 22.817
+            },
+            {
+              "name": "cusum",
+              "utilization": 0.0576,
+              "period_ms": 447.337,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 7.548
+            },
+            {
+              "name": "fast",
+              "utilization": 0.0506,
+              "period_ms": 403.674,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 12.638
+            },
+            {
+              "name": "ekf",
+              "utilization": 0.0459,
+              "period_ms": 67.366,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.004
+            },
+            {
+              "name": "modbus",
+              "utilization": 0.0125,
+              "period_ms": 110.414,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.269
+            },
+            {
+              "name": "epnp",
+              "utilization": 0.0048,
+              "period_ms": 241.913,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 2.305
+            }
+          ]
+        },
+        {
+          "utilization_percent": 90,
+          "actual_utilization": 0.9,
+          "total_jobs": 27,
+          "deadline_misses": 0,
+          "miss_rate": 0.0,
+          "task_stats": [
+            {
+              "name": "icp",
+              "utilization": 0.3476,
+              "period_ms": 450.786,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 366.312
+            },
+            {
+              "name": "ewma",
+              "utilization": 0.1539,
+              "period_ms": 611.671,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 34.507
+            },
+            {
+              "name": "pid",
+              "utilization": 0.1481,
+              "period_ms": 512.99,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 24.075
+            },
+            {
+              "name": "mqtt",
+              "utilization": 0.1019,
+              "period_ms": 391.387,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 43.508
+            },
+            {
+              "name": "cusum",
+              "utilization": 0.0531,
+              "period_ms": 485.339,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 7.545
+            },
+            {
+              "name": "fast",
+              "utilization": 0.0509,
+              "period_ms": 401.059,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 12.914
+            },
+            {
+              "name": "ekf",
+              "utilization": 0.0317,
+              "period_ms": 97.483,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.027
+            },
+            {
+              "name": "modbus",
+              "utilization": 0.0124,
+              "period_ms": 110.921,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 0.765
+            },
+            {
+              "name": "epnp",
+              "utilization": 0.0005,
+              "period_ms": 10000.0,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.095
+            }
+          ]
+        },
+        {
+          "utilization_percent": 100,
+          "actual_utilization": 1.0,
+          "total_jobs": 27,
+          "deadline_misses": 0,
+          "miss_rate": 0.0,
+          "task_stats": [
+            {
+              "name": "icp",
+              "utilization": 0.3394,
+              "period_ms": 461.615,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 171.031
+            },
+            {
+              "name": "ewma",
+              "utilization": 0.229,
+              "period_ms": 410.931,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 105.905
+            },
+            {
+              "name": "pid",
+              "utilization": 0.1685,
+              "period_ms": 450.936,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 97.32
+            },
+            {
+              "name": "mqtt",
+              "utilization": 0.116,
+              "period_ms": 343.768,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 39.75
+            },
+            {
+              "name": "cusum",
+              "utilization": 0.0586,
+              "period_ms": 439.888,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 49.277
+            },
+            {
+              "name": "fast",
+              "utilization": 0.0445,
+              "period_ms": 459.12,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 24.651
+            },
+            {
+              "name": "ekf",
+              "utilization": 0.0249,
+              "period_ms": 123.909,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 2.888
+            },
+            {
+              "name": "modbus",
+              "utilization": 0.0108,
+              "period_ms": 127.356,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 1.306
+            },
+            {
+              "name": "epnp",
+              "utilization": 0.0083,
+              "period_ms": 140.763,
+              "jobs": 3,
+              "misses": 0,
+              "max_response_ms": 2.416
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "average_miss_rate": 0.0,
+        "final_score": 100.0
+      }
+    },
+    "test-stress": {
+      "status": "passed"
+    },
+    "test-cmd": {
+      "status": "passed"
+    },
+    "typical-workload": {
+      "status": "passed",
+      "duration_sec": 0.0,
+      "workloads": [
+        {
+          "name": "stub",
+          "category": "utility",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 0.001,
+          "avg_time_ms": 0.0
+        },
+        {
+          "name": "busywait",
+          "category": "utility",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 20.001,
+          "avg_time_ms": 2.0
+        },
+        {
+          "name": "fast",
+          "category": "vision",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 162.524,
+          "avg_time_ms": 16.252
+        },
+        {
+          "name": "epnp",
+          "category": "vision",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 5.407,
+          "avg_time_ms": 0.541
+        },
+        {
+          "name": "ekf",
+          "category": "estimation",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 352.22,
+          "avg_time_ms": 35.222
+        },
+        {
+          "name": "icp",
+          "category": "vision",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 2533.287,
+          "avg_time_ms": 253.329
+        },
+        {
+          "name": "modbus",
+          "category": "network",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 90553.487,
+          "avg_time_ms": 9055.349
+        },
+        {
+          "name": "mqtt",
+          "category": "network",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 2.299,
+          "avg_time_ms": 0.23
+        },
+        {
+          "name": "pid",
+          "category": "control",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 655.935,
+          "avg_time_ms": 65.593
+        },
+        {
+          "name": "cusum",
+          "category": "detection",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 258.444,
+          "avg_time_ms": 25.844
+        },
+        {
+          "name": "ewma",
+          "category": "detection",
+          "success": true,
+          "rounds": 10,
+          "exec_time_ms": 881.847,
+          "avg_time_ms": 88.185
+        }
+      ]
+    }
+  },
+  "power": {
+    "items": []
+  },
+  "scores": {
+    "base_rt": 83.91007369424815,
+    "sched": 100.0,
+    "RT": 91.95503684712408,
+    "T": 95.88178478123467,
+    "P": null,
+    "F": 60.0,
+    "total": 86.59913885181231,
+    "categories": {
+      "realtime_control": 98.02280978882806,
+      "perception": 98.18202095807322,
+      "communication": 89.95130090967419,
+      "monitoring": 97.37100746836319
+    },
+    "average_miss_rate": 0.0
+  }
+}

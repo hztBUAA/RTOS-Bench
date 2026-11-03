@@ -58,8 +58,17 @@ def convert(data):
         for name, v in (multi.get("access") or {}).items()
     ]
     service = multi.get("service") or {}
-    ipc = {f"c{i + 1}": v for i, v in enumerate(service.get("任务间通信") or [])}
-    latency = {f"c{i + 1}": v for i, v in enumerate(service.get("创建与删除") or [])}
+    concurrency_keys = ("c1", "c2", "c4", "c8")
+    ipc = {
+        key: value for key, value in zip(
+            concurrency_keys, service.get("任务间通信") or []
+        )
+    }
+    latency = {
+        key: value for key, value in zip(
+            concurrency_keys, service.get("创建与删除") or []
+        )
+    }
     cross = multi.get("cross_core") or {}
     realtime["multi_core"] = {
         "memory_bandwidth": memory,

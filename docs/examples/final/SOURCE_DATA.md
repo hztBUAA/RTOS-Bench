@@ -1,6 +1,6 @@
 # 第一手数据与算法映射
 
-更新时间：2026-10-30
+更新时间：2026-11-03
 
 本文说明最终结果的输入 Excel、每个板卡块的单元格位置、算法链路，以及对方更新 Excel 后需要留意的地方。
 
@@ -104,6 +104,7 @@ python3 utils/build_reports.py source/7load_raw.xlsx --workloads 7 -o /tmp/check
 
 ## 5. 已知的数据缺口
 
-- 欧拉两块板没有原始明细，新算法下暂未计算。
+- 欧拉飞腾和香橙派已从 `platforms/openeuler/测试结果/` 的原始 JSON
+  生成 7/9 负载 SSOT；两份结果都缺 `test-stress.power`，P 暂为 null。
 - RTT 新多核数据含极端值：`ipc c8=0.002`、`task_latency c2=541.9`、`inter_core=0`。
 - F 全部为占位 60，总分上限 92。
