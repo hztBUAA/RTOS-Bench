@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "name": "RTOS-Bench 7-load baseline",
+    "baseline_os": "SylixOS",
+    "baseline_board": "LS2K1000LA",
+    "workload_count": 7,
+    "source": "结果展示表（基准/参考值列）与 SylixOS@LS2K1000LA 结果 JSON",
+    "note": "基准固定，不随同板卡其他系统变化。多核开销当前无基准数据，基础实时按单核三项复算。"
+  },
+
+  "workloads_ms": {
+    "pid": 408.657,
+    "fast": 110.661,
+    "icp": 3830.45,
+    "modbus": 9001.566,
+    "mqtt": 3003.036,
+    "ewma": 898.195,
+    "cusum": 219.268
+  },
+
+  "realtime_us": {
+    "context_switch": 2.078,
+    "interrupt": 1.058,
+    "service_cost": {
+      "sem_take": {
+        "immediate_us": 0.75,
+        "suspend_us": 2.07
+      },
+      "sem_release": {
+        "immediate_us": 1.25,
+        "low_prio_us": 1.18,
+        "high_prio_us": 1.8
+      },
+      "mq_send": {
+        "immediate_us": 4.33,
+        "suspend_us": 1.06,
+        "low_prio_us": 4.61,
+        "high_prio_us": 1.12
+      },
+      "mq_recv": {
+        "immediate_us": 4.23,
+        "suspend_us": 6.47,
+        "low_prio_us": 4.62,
+        "high_prio_us": 6.67
+      },
+      "mutex_take": {
+        "immediate_us": 1.12,
+        "suspend_us": 2.16
+      },
+      "mutex_release": {
+        "immediate_us": 1.18,
+        "low_prio_us": 1.59,
+        "high_prio_us": 1.86
+      },
+      "mempool_alloc": {
+        "immediate_us": 2.61
+      },
+      "mempool_free": {
+        "immediate_us": 2.4
+      }
+    }
+  },
+
+  "power_j": {
+    "static": 4553.735,
+    "cpu": 3484.295,
+    "memory": 8955.36,
+    "file": 804.966
+  }
+}
