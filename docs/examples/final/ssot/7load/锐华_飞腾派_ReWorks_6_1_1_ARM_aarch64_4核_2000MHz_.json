@@ -200,25 +200,25 @@
         {
           "utilization_percent": 80,
           "total_jobs": 21,
-          "deadline_misses": 1,
-          "miss_rate": 0.0476
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         },
         {
           "utilization_percent": 90,
           "total_jobs": 21,
-          "deadline_misses": 1,
-          "miss_rate": 0.0476
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         },
         {
           "utilization_percent": 100,
           "total_jobs": 21,
-          "deadline_misses": 3,
-          "miss_rate": 0.1429
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         }
       ],
       "summary": {
-        "average_miss_rate": 0.02976190476190476,
-        "final_score": 97.02380952380952
+        "average_miss_rate": 0.0,
+        "final_score": 100.0
       }
     },
     "typical-workload": {
@@ -301,12 +301,12 @@
   },
   "scores": {
     "base_rt": 90.15904676472027,
-    "sched": 97.02380952380952,
-    "RT": 93.5914281442649,
+    "sched": 100.0,
+    "RT": 95.07952338236014,
     "T": 91.79691573371835,
     "P": 57.51331970732787,
     "F": 60.0,
-    "total": 82.5475267074996,
+    "total": 82.99395527892818,
     "categories": {
       "realtime_control": 91.29817004649168,
       "perception": 91.72617384940368,
