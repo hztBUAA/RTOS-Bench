@@ -61,7 +61,22 @@
 #define GETTIMEVAL_ERROR -1
 
 /* 声明全局变量 */
-#if defined(DONGTU_PLATFORM)
+#if defined(LES_KERNEL_DEBUGFS)
+
+/*
+ * 内核插桩（openEuler）：插桩数据在内核侧，用户态既不定义 LES_* 变量，
+ * 也没有可 extern 的符号，只能通过 debugfs 节点读取。下面这几个访问函数
+ * 在 les.c 中实现，读取节点时对外仍以"变量"形式暴露，调用点无需改动。
+ */
+uint64_t LES_kernel_interrupt_start_val(void);
+uint64_t LES_kernel_interrupt_end_val(void);
+uint64_t LES_kernel_syscall_val(void);
+
+#define LES_interrupt_start_val LES_kernel_interrupt_start_val()
+#define LES_interrupt_end_val   LES_kernel_interrupt_end_val()
+#define LES_syscall_val         LES_kernel_syscall_val()
+
+#elif defined(DONGTU_PLATFORM)
 
 extern volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
 extern volatile uint32_t LES_offset;
@@ -144,7 +159,17 @@ static inline uint64_t timeGet(void) {
     uint64_t val = 0;
 
 #if defined(__aarch64__)
+#if defined(LES_KERNEL_DEBUGFS)
+    /*
+     * openEuler 内核不允许 EL0 读物理计数器 CNTPCT_EL0
+     * （CNTKCTL_EL1.EL0PCTEN=0，读到就 UNDEFINED -> SIGILL），
+     * 只能用虚拟计数器 CNTVCT_EL0。两者同频（本板 CNTFRQ_EL0=50MHz），
+     * 且内核插桩记录的时间戳同样取自 arch timer，可直接相减。
+     */
+    __asm__ volatile("mrs %0, cntvct_el0" : "=r"(val));
+#else
     __asm__ volatile("mrs %0, cntpct_el0" : "=r"(val));
+#endif
 
 #elif defined(_M_X64) || defined(__x86_64__) || defined(_X86_)
     #if defined(_M_X64)
@@ -182,6 +207,14 @@ static inline uint64_t timeGet(void) {
 /* 系统服务插桩函数 */
 #if defined(DONGTU_PLATFORM)
 void LES_stub(void);
+#elif defined(LES_KERNEL_DEBUGFS)
+/*
+ * 内核插桩：系统服务入口的时间戳由内核记录，用户态不再需要插桩桩函数，
+ * 这里给出空实现，保证调用点（若被调用）仍可编译链接。
+ */
+static inline void LES_stub(void)
+{
+}
 #else
 static inline void LES_stub(void) {
     if (LES_flag == 0 || bench_get_cpu() != 0) {
@@ -197,9 +230,16 @@ static inline void LES_stub(void) {
 
 /* 系统调用插桩函数 */
 static inline void LES_syscall_stub(void) {
+#if defined(LES_KERNEL_DEBUGFS)
+    /*
+     * 内核插桩：系统调用出口的时间戳由内核记录（syscall_val 节点），
+     * 用户态这里不再重复记录，也不再需要 LES_syscall_flag。
+     */
+#else
     if (LES_syscall_flag == 1) {
         LES_syscall_val = timeGet();
     }
+#endif
 }
 
 /* 中断插桩函数 */
