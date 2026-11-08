@@ -175,3 +175,31 @@ rtos_bench test-all
 | `pthread.h` / socket 接口缺失 | `.config` 是否被改动；重跑 `scons --useconfig=.config` |
 | 构建成功但无 `rtbench` 注册符号 | `aarch64/rtos-bench` 链接是否指向仓库根；`RT_THREAD_PLATFORM` 是否生效 |
 | C++ 编译进程被 OOM 杀死 | 降低并行度（`-j2`），检查宿主内存 |
+
+## 8. RT-Thread 仓库插桩与 pthread 上限配置
+
+当前飞腾派 RTT 工程已为 RTOS-Bench 实时性能测试增加内核插桩。构建时默认启用：
+
+```bash
+export RTBENCH_KERNEL_INSTRUMENTATION=1
+```
+
+设置为 `0` 可生成未插桩镜像。开关变化后应执行 `scons -c` 清理，再重新编译。
+
+对 RT-Thread 仓库的改动如下：
+
+| 文件 | 修改 |
+|---|---|
+| `bsp/phytium/aarch64/SConstruct` | 接入 RTOS-Bench 最小探针头文件，定义 `RTBENCH_KERNEL_INSTRUMENTATION` |
+| `src/scheduler_mp.c` | 在 `rt_schedule()` 的 `rt_hw_context_switch()` 前记录调度探针 |
+| `libcpu/aarch64/common/vector_gcc.S` | 在 IRQ 入口记录 CPU0 的 `CNTPCT_EL0` 中断起点 |
+| `libcpu/aarch64/common/trap.c` | 在 `rt_hw_trap_irq()` 开始处记录中断终点 |
+| `components/libc/compilers/newlib/syscalls.c` | 在 `_getpid_r()` 返回前记录系统调用终点 |
+| `bsp/phytium/aarch64/.config` | `PTHREAD_NUM_MAX` 从 32 调整为 320 |
+| `bsp/phytium/aarch64/rtconfig.h` | 使用 `scons --useconfig=.config` 同步生成 |
+
+相关 RTOS-Bench 文件：
+
+- `generator/platform/rt-thread/rtbench_kernel_probe.h`
+- `generator/platform/rt-thread/rtbench_kernel_probe.c`
+- `generator/realtime_orig/multicore/task_lt.c`，任务创建/删除重复次数为 30
