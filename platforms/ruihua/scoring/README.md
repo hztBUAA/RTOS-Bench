@@ -108,7 +108,33 @@ P = 静态、CPU、内存、文件四项功耗得分的平均
 
 ## 6. 功耗怎么传
 
-功耗不在 rtbench 结果 JSON 里，用命令行传入四项实测焦耳值：
+优先从 JSON 的 `modules.test-stress.power` 读取，格式与 stress-auto-test 的 `excel_exporter` 合并结果一致：
+
+```json
+{
+  "modules": {
+    "test-stress": {
+      "power": [
+        {"name": "standby", "power_data": 6579.6,    "power_unit": "J"},
+        {"name": "cpu",     "power_data": 5131.69,   "power_unit": "J"},
+        {"name": "memory",  "power_data": 21282.312, "power_unit": "J"},
+        {"name": "file",    "power_data": 12282.114, "power_unit": "J"}
+      ]
+    }
+  }
+}
+```
+
+约定：
+
+- `standby` 对应算分口径的 `static`（静态功耗），工具自动映射；也接受直接写 `static`。
+- 同名项重复出现时取最后一条。stress-auto-test 是追加写入，最后一条最新。
+- `placeholder=true` 或 `power_data <= 0` 的项视为缺失。
+- `power_unit` 支持 `J`、`kJ`、`Wh`、`kWh`，统一换算成焦耳。
+
+四项齐全，P 和总分才会计算。
+
+命令行也可以直接传，并按项覆盖 JSON 里的值：
 
 ```bash
 python score_rtbench.py result.json \
@@ -117,8 +143,6 @@ python score_rtbench.py result.json \
   --power-memory 21282.312 \
   --power-file 12282.114
 ```
-
-四项必须齐全，P 和总分才会计算。
 
 ## 7. 基础实时怎么处理
 

@@ -57,6 +57,23 @@ BASE_RT_WEIGHTS = {
 
 POWER_KEYS = ["static", "cpu", "memory", "file"]
 
+# stress-auto-test 合并 JSON 里的任务名 -> 算分口径键名
+# 断电任务在 JSON 里叫 standby，算分口径叫 static
+POWER_NAME_ALIASES = {
+    "standby": "static",
+    "static": "static",
+    "cpu": "cpu",
+    "memory": "memory",
+    "file": "file",
+}
+
+POWER_UNIT_TO_J = {
+    "j": 1.0,
+    "kj": 1000.0,
+    "wh": 3600.0,
+    "kwh": 3600000.0,
+}
+
 
 def sat(r):
     """绝对饱和曲线：S = 100 * R / (a + R)，a = 0.25。"""
@@ -242,23 +259,69 @@ def parse_realtime(doc, baseline, warnings):
     return base_score, detail
 
 
+def power_from_json(doc, warnings):
+    """读 stress-auto-test 合并进 JSON 的功耗数组。
+
+    格式：modules.test-stress.power = [
+        {"name": "standby", "power_data": <J>, "power_unit": "J"},
+        {"name": "cpu", "power_data": <J>, "power_unit": "J"},
+        {"name": "memory", "power_data": <J>, "power_unit": "J"},
+        {"name": "file", "power_data": <J>, "power_unit": "J"},
+    ]
+    断电任务名 standby 映射到算分口径 static。
+    同名项重复出现时以最后一条为准（stress-auto-test 是追加写入，最后一条最新）。
+    """
+    entries = doc.get("modules", {}).get("test-stress", {}).get("power", [])
+    if not isinstance(entries, list):
+        return {}
+
+    values = {}
+    for entry in entries:
+        raw_name = str(entry.get("name", "")).strip().lower()
+        key = POWER_NAME_ALIASES.get(raw_name)
+        if key is None:
+            warnings.append("功耗项名称无法识别: %s" % raw_name)
+            continue
+        if entry.get("placeholder"):
+            warnings.append("功耗项 %s 为占位数据，已忽略" % raw_name)
+            continue
+
+        try:
+            value = float(entry.get("power_data"))
+        except (TypeError, ValueError):
+            warnings.append("功耗项 %s 的 power_data 不是数字，已忽略" % raw_name)
+            continue
+        if value <= 0:
+            warnings.append("功耗项 %s 的 power_data 非正数，已忽略" % raw_name)
+            continue
+
+        unit = str(entry.get("power_unit") or "J").strip().lower()
+        factor = POWER_UNIT_TO_J.get(unit)
+        if factor is None:
+            warnings.append("功耗项 %s 的单位 %s 未识别，按 J 处理" % (raw_name, unit))
+            factor = 1.0
+        values[key] = value * factor
+
+    return values
+
+
 def parse_power(args, doc, baseline, warnings):
-    provided = {}
+    provided = power_from_json(doc, warnings)
+
+    # 命令行优先，按项覆盖 JSON 里的值
     for key in POWER_KEYS:
         value = getattr(args, "power_" + key)
-        if value is not None:
-            provided[key] = float(value)
+        if value is None:
+            continue
+        if value <= 0:
+            warnings.append("命令行 --power-%s 必须为正数，已忽略" % key)
+            continue
+        provided[key] = float(value)
 
-    if not provided:
-        mod = doc.get("modules", {})
-        for key in POWER_KEYS:
-            value = mod.get("power", {}).get(key)
-            if value is not None:
-                provided[key] = float(value)
-
-    if len(provided) != 4:
+    missing = [k for k in POWER_KEYS if k not in provided]
+    if missing:
         if provided:
-            warnings.append("功耗四项不完整，P 不计算")
+            warnings.append("功耗缺少: %s，P 不计算" % ", ".join(missing))
         return None, {}
 
     Rs = {}
