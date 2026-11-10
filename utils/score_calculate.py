@@ -1,5 +1,5 @@
 """
-rtos_scorer.py
+score_calculate.py
 工业 RTOS 评测结果汇总与评分程序（饱和曲线版本）
 
 T_Score / RT_Score 子项得分公式：
@@ -29,6 +29,8 @@ import math
 from datetime import datetime, timezone
 from typing import Optional
 import warnings
+from copy import deepcopy
+from pathlib import Path
 
 import pandas as pd
 
@@ -1435,6 +1437,109 @@ def score_single_json(json_path: str, db_path: Optional[str] = None) -> dict:
         conn.close()
 
 
+def _load_score_dependency(filename):
+    """Load format adapters only when the Excel scoring entry is used."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(Path(filename).stem, Path(__file__).with_name(filename))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def require_seven(workload_count):
+    if workload_count != 7:
+        raise ValueError("Only the seven-workload scoring policy is supported")
+
+
+def _parse_excel_records(path):
+    excel2json = _load_score_dependency("excel_to_result_json.py")
+    schema = _load_score_dependency("ssot_to_score_json.py")
+    records = []
+    for board in excel2json.parse_excel(path, 7):
+        raw = schema.convert(excel2json.to_result_json(deepcopy(board), str(path), 7))
+        records.append({"vendor": board["vendor"], "name": board["board"],
+                        "family": raw["env"]["board"], "score_input": raw})
+    return records
+
+
+def _score_excel_records(records, workload_count=7, baseline_path=None):
+    """Use the shared saturation functions; never reuse Excel score cells."""
+    require_seven(workload_count)
+    schema = _load_score_dependency("ssot_to_score_json.py")
+    conn = init_db(":memory:")
+    try:
+        if baseline_path:
+            data = json.loads(Path(baseline_path).read_text(encoding="utf-8-sig"))
+            rt = data.get("modules", {}).get("test-realtime", {})
+            if "multicore" in rt or not data.get("env", {}).get("cpu_type"):
+                data = schema.convert(data)
+            if (data["env"].get("board"), data["env"].get("os_name")) != (
+                    CONFIG["baseline_board"], CONFIG["baseline_os"]):
+                raise ValueError("Baseline must be SylixOS + LS2K1000LA")
+            error = validate_json_data(data)
+            if error:
+                raise ValueError(error)
+            _parse_json_data(data, conn, str(baseline_path))
+        ordered = sorted(records, key=lambda rec: (
+            rec["score_input"]["env"]["board"] != CONFIG["baseline_board"]
+            or rec["score_input"]["env"]["os_name"] != CONFIG["baseline_os"]))
+        for rec in ordered:
+            error = validate_json_data(rec["score_input"])
+            if error:
+                raise ValueError(error)
+            _parse_json_data(rec["score_input"], conn, rec["name"])
+        conn.commit()
+        recompute_all_scores(conn)
+        rows = []
+        for rec in records:
+            env = rec["score_input"]["env"]
+            result = export_results(env["board"], env["os_name"], env["cpu_type"], conn)
+            scores = result["scores"]
+            rt = scores["realtime"]
+            rows.append({**rec, "base_rt_f": rt["details"]["base_realtime"]["score"],
+                         "sched": rt["details"]["schedulability"]["score"],
+                         "RT": rt["score"], "T": scores["workload"]["score"],
+                         "P": scores["power"]["score"], "F": scores["function"]["score"],
+                         "total": result["total_score"],
+                         "categories": {cat: detail["score"] for cat, detail in scores["workload"]["details"].items()},
+                         "scoring_rule": result["scoring_rule"], "score_export": result})
+        return rows
+    finally:
+        conn.close()
+
+
+def write_score_xlsx(rows, path, workload_count=7):
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"{workload_count}负载总分"
+    headers = ["厂商", "板卡", "板卡族", "基础实时", "调度", "RT得分",
+               "实时控制", "感知", "通信", "运维", "T得分", "P得分", "F得分", "总分"]
+    for col, header in enumerate(headers, 1):
+        ws.cell(1, col, header)
+    for r, rec in enumerate(rows, 2):
+        cats = rec["categories"]
+        values = [rec["vendor"], rec["name"], rec["family"], rec.get("base_rt_f"), rec["sched"], rec["RT"],
+                  cats["realtime_control"], cats["perception"], cats["communication"], cats["monitoring"],
+                  rec["T"], rec["P"], rec["F"], rec["total"]]
+        for c, value in enumerate(values, 1):
+            cell = ws.cell(r, c, value)
+            if isinstance(value, float):
+                cell.number_format = "0.00"
+    for i in range(1, len(headers) + 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = 12 if i > 2 else 18
+    wb.save(path)
+
+
+def score_excel(path, baseline_path=None):
+    """Score workbook measurements with the same algorithm as JSON inputs."""
+    records = _parse_excel_records(path)
+    if not records:
+        raise ValueError("未找到调度性能数据块，请检查 Excel 格式")
+    return _score_excel_records(records, baseline_path=baseline_path)
+
+
 # ─────────────────────────────────────────────
 # 11. CLI
 # ─────────────────────────────────────────────
@@ -1449,6 +1554,12 @@ def main():
     p_json = sub.add_parser("import-json")
     p_json.add_argument("pattern")
 
+    p_workbook = sub.add_parser("score-excel", help="用统一七负载算法计算结果展示表")
+    p_workbook.add_argument("excel")
+    p_workbook.add_argument("--baseline", default=None)
+    p_workbook.add_argument("--workloads", type=int, choices=[7], default=7)
+    p_workbook.add_argument("-o", "--output", default=None)
+
     p_excel = sub.add_parser("import-excel")
     p_excel.add_argument("pattern")
 
@@ -1462,6 +1573,14 @@ def main():
     sub.add_parser("recompute", help="按当前算法重算全库所有子项与汇总得分")
 
     args = parser.parse_args()
+    if args.cmd == "score-excel":
+        rows = score_excel(args.excel, args.baseline)
+        for rec in rows:
+            values = ["-" if rec[k] is None else f"{rec[k]:.2f}" for k in ("RT", "T", "P", "total")]
+            print(rec["name"] + "  " + "  ".join(values))
+        if args.output:
+            write_score_xlsx(rows, args.output)
+        return
     db_path = args.db or CONFIG["storage_path"]
     os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     conn = init_db(db_path)

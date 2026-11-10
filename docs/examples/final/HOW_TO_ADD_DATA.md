@@ -84,9 +84,9 @@
 必须先有基准记录：SylixOS @ LS2K1000LA。
 
 ```bash
-python3 utils/score_caculate.py --db results.db import-json "<json目录>/*.json"
-python3 utils/score_caculate.py --db results.db recompute
-python3 utils/score_caculate.py --db results.db export \
+python3 utils/score_calculate.py --db results.db import-json "<json目录>/*.json"
+python3 utils/score_calculate.py --db results.db recompute
+python3 utils/score_calculate.py --db results.db export \
     --board Phytium-Pi --os openEuler --arch aarch64 --output out.json
 ```
 

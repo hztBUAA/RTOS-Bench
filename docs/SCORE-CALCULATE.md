@@ -559,14 +559,14 @@ python rtos_scorer.py list
 
 ## 13. 七负载统一规则与历史分数迁移
 
-当前 JSON、Excel 和报告入口统一调用 `score_caculate.py` 的绝对饱和曲线，不再采用 min-max 或 `60 + 0.4×score` 保底变换。只有 F 仍为占位 60。
+当前 JSON、Excel 和报告入口统一调用 `score_calculate.py` 的绝对饱和曲线，不再采用 min-max 或 `60 + 0.4×score` 保底变换。只有 F 仍为占位 60。
 
 只要有固定基准与有效测量值，仅有一个参评系统也能得到有效分数；基准系统自身 R=1，单项分为 80。缺少基准时返回 null，不推测分数。
 
 SQLite 使用 `scoring_metadata.rule_version` 标识当前规则。打开无版本或旧版本数据库时，保留所有 raw_records 原始测量记录，清空 score_cache 和派生 item_score，并用当前七项规则重算；历史 EKF/EPnP 原始记录保留，但 item_score 清空且不参与汇总或评分导出。每次 JSON 导入及 recompute 也重新构建分数，避免旧九项记录污染结果。
 
 ```bash
-python3 utils/score_caculate.py --db results.db recompute
+python3 utils/score_calculate.py --db results.db recompute
 ```
 
 历史 SSOT/CSV 不会被自动改写，不应将其中旧分数直接作为新报告分数。报告管线直接从原始指标重算；不再接受 `--scores-json` 注入旧分数。

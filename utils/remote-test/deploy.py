@@ -180,7 +180,7 @@ def run(cfg_path: str,
     score_path = None
     if result_cfg.get("run_score") and result_json_path and os.path.isfile(result_json_path):
         try:
-            from score_caculate import score_single_json
+            from score_calculate import score_single_json
 
             score_result = score_single_json(result_json_path)
             score_path = os.path.join(out_dir, "score_report.json")

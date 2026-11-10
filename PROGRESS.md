@@ -48,7 +48,7 @@
 | **文件传输 (SFTP)** | `utils/remote-test/file_transfer.py` | **完成** | upload/download 正常 |
 | **终端 JSON 提取** | `utils/remote-test/file_transfer.py` | **有缺陷** | 正则只支持 2 层嵌套，实际 JSON 3+ 层，会返回 None |
 | **展平脚本** | `utils/flatten_rtbench_result.py` | **基本完成** | 4/5 模块有显式映射，test-cmd 走 fallback 也能工作 |
-| **评分脚本** | `utils/score_caculate.py` | **完成** | `score_single_json()` API + CLI `import-json` 均可用 |
+| **评分脚本** | `utils/score_calculate.py` | **完成** | `score_single_json()` API + CLI `import-json` 均可用 |
 | **示例配置** | `utils/remote-test/board_config_example.yaml` | **有问题** | `end_regex` 不匹配实际 C 输出 |
 
 ### 三、rtbench_result.json 结构化输出完整性
@@ -70,7 +70,7 @@
 
 ### 四、评分集成状态
 
-`score_caculate.py` 的 `score_single_json()` 可直接消费 `rtbench_result.json`，路径硬编码提取各指标：
+`score_calculate.py` 的 `score_single_json()` 可直接消费 `rtbench_result.json`，路径硬编码提取各指标：
 
 | 评分维度 | 权重 | 数据来源 | 是否有数据 |
 |----------|------|----------|-----------|

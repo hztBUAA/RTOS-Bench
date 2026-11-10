@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convert a raw rtbench result into the final SSOT JSON schema.
 
-The target result is scored with score_caculate.py before conversion. Unlike
+The target result is scored with score_calculate.py before conversion. Unlike
 ssot_to_score_json.py, this tool intentionally reads the modern multi_core
 layout produced by current rtbench builds.
 """
@@ -23,7 +23,7 @@ def _load_module(name, filename):
     return module
 
 
-scorer = _load_module("score_caculate", "score_caculate.py")
+scorer = _load_module("score_calculate", "score_calculate.py")
 ssot_schema = _load_module("ssot_to_score_json", "ssot_to_score_json.py")
 
 POWER_NAMES = {

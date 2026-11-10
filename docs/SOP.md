@@ -248,7 +248,7 @@ python utils/flatten_rtbench_result.py results/rtbench_result.json -o results/fl
 
 #### score_report.json — 评分报告
 
-`score_caculate.py` 基于《工业操作系统通用基准检测指标体系指导书 v1.6》计算综合得分：
+`score_calculate.py` 基于《工业操作系统通用基准检测指标体系指导书 v1.6》计算综合得分：
 
 ```json
 {
@@ -280,13 +280,13 @@ python utils/flatten_rtbench_result.py results/rtbench_result.json -o results/fl
 评分脚本也可独立使用：
 ```bash
 # 导入 JSON 并评分
-python utils/score_caculate.py import-json "results/*.json"
+python utils/score_calculate.py import-json "results/*.json"
 
 # 查看数据库中已有结果
-python utils/score_caculate.py list
+python utils/score_calculate.py list
 
 # 重新计算分数
-python utils/score_caculate.py recalc "LS2K1000LA" "SylixOS" "mips64"
+python utils/score_calculate.py recompute
 ```
 
 ## deploy.py 12 步流水线
@@ -315,7 +315,7 @@ python utils/score_caculate.py recalc "LS2K1000LA" "SylixOS" "mips64"
                                  │
                     ┌────────────┼────────────┐
                     ↓            │            ↓
-          flatten_rtbench_result.py       score_caculate.py
+          flatten_rtbench_result.py       score_calculate.py
                     ↓            │            ↓
           standard_results.json  │    score_report.json
                     ↓            │         (需 ≥2 OS)
@@ -340,7 +340,7 @@ python utils/score_caculate.py recalc "LS2K1000LA" "SylixOS" "mips64"
 | `utils/remote-test/log_utils.py` | 北京时间戳生成 |
 | `utils/remote-test/board_config_example.yaml` | 配置示例 |
 | `utils/flatten_rtbench_result.py` | JSON → 标准格式展平 |
-| `utils/score_caculate.py` | 评分引擎 |
+| `utils/score_calculate.py` | 评分引擎 |
 | `generator/result_export.c/.h` | 设备端 JSON 序列化 |
 | `generator/rtthread_entry.c` | RT-Thread test-all 入口 |
 | `docs/reference/rtbench_result_schema.json` | JSON Schema |

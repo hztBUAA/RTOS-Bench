@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把 SSOT JSON 转成 utils/score_caculate.py（博函版）要求的 schema。
+"""把 SSOT JSON 转成 utils/score_calculate.py（博函版）要求的 schema。
 
 主要转换：
 - env.board 改为官方板卡名（docs/STRESS_AUTO_TEST.md 对照表）
@@ -105,7 +105,7 @@ def convert(data):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SSOT -> score_caculate JSON")
+    parser = argparse.ArgumentParser(description="SSOT -> score_calculate JSON")
     parser.add_argument("ssot_dir")
     parser.add_argument("-o", "--out-dir", required=True)
     args = parser.parse_args()

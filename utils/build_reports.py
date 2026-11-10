@@ -26,7 +26,7 @@ def _load(name, path):
     return module
 
 
-scoring = _load("scoring", os.path.join(HERE, "score_seven_workload.py"))
+scoring = _load("scoring", os.path.join(HERE, "score_calculate.py"))
 excel2json = _load("excel2json", os.path.join(HERE, "excel_to_result_json.py"))
 
 WORKLOAD_LABEL = {
@@ -227,8 +227,7 @@ def main():
     parser.add_argument("--baseline", help="SylixOS + LS2K1000LA reference JSON")
     args = parser.parse_args()
 
-    records = scoring.parse_blocks(args.excel)
-    rows = scoring.compute(records, args.workloads, args.baseline)
+    rows = scoring.score_excel(args.excel, args.baseline)
     scores = {}
     for r in rows:
         scores[r["name"]] = {

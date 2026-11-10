@@ -62,8 +62,8 @@ shasum -a 256 source/9load_raw.xlsx source/7load_raw.xlsx
 第一手 Excel
   → SSOT JSON（excel_to_result_json.py）
   → 算分输入（ssot_to_score_json.py）
-  → score_caculate.py（博函 Base_RT 修复版）
-  → 汇总与导出（score_seven_workload.py）
+  → score_calculate.py（博函 Base_RT 修复版）
+  → 汇总与导出（score_calculate.py score-excel）
   → 7/9 负载总分
 ```
 
