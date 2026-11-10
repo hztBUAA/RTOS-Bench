@@ -48,7 +48,6 @@ python3 utils/build_reports.py <结果展示表.xlsx> --workloads 7 -o reports/7
 python3 utils/ssot_to_score_json.py reports/7load/ssot -o reports/7load/score_json
 python3 utils/score_calculate.py --db results.db import-json "reports/7load/score_json/*.json"
 python3 utils/score_calculate.py --db results.db export --board Phytium-Pi --os RT-Thread --arch aarch64
-python3 utils/score_calculate.py score-excel <结果展示表.xlsx> --workloads 7 -o 7load_score.xlsx
 ```
 
 ## 更新流程（给同学与 AI）
@@ -57,7 +56,7 @@ python3 utils/score_calculate.py score-excel <结果展示表.xlsx> --workloads 
 2. **生成 SSOT**：`python3 utils/build_reports.py <excel> --workloads 7 -o reports/<ver>`
 3. **转算分 JSON**：`python3 utils/ssot_to_score_json.py reports/<ver>/ssot -o reports/<ver>/score_json`
 4. **算分**：`python3 utils/score_calculate.py --db results.db import-json "reports/<ver>/score_json/*.json"`，再 `export`。
-5. **饱和曲线汇总**：`python3 utils/score_calculate.py score-excel <excel> --workloads 7 -o <out>.xlsx`
+5. **导出结果**：使用原有 `export --board <board> --os <os> --arch <arch> --output <out>.json` 命令导出评分；Excel 输入由上游转换脚本处理。
 6. **更新本目录**：更新七负载结果；九负载文件仅作历史归档。
 7. **提交 PR**：写明数据来源、板卡名、OS/BSP 版本、改动原因。
 

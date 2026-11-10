@@ -71,7 +71,7 @@ OS 与 BSP 版本在 `utils/board_meta.json` 维护。ReWorks 已填 V6.1.1 与�
   → score_calculate.py 统一重算后生成描述 utils/build_reports.py
   → 转算分脚本 schema       utils/ssot_to_score_json.py
   → score_calculate.py 出分（饱和曲线）  utils/score_calculate.py
-  → 汇总与导出                            utils/score_calculate.py score-excel
+  → 汇总与导出                            utils/score_calculate.py export
 ```
 
 说明：
@@ -99,8 +99,9 @@ python3 utils/score_calculate.py --db results.db list
 python3 utils/score_calculate.py --db results.db export \
     --board Phytium-Pi --os OneOS --arch aarch64
 
-# 5. 七负载饱和曲线汇总（调用 score_calculate.py，不读取 Excel 旧分数）
-python3 utils/score_calculate.py score-excel <结果展示表.xlsx> --workloads 7 -o 7load_score.xlsx
+# 5. 将当前数据库的评分结果导出为 JSON
+python3 utils/score_calculate.py --db results.db export \
+    --board Phytium-Pi --os OneOS --arch aarch64 --output score.json
 
 # 6. 元信息补全（网页端无法注入时）
 python3 utils/patch_result_meta.py result.json \

@@ -1508,30 +1508,6 @@ def _score_excel_records(records, workload_count=7, baseline_path=None):
         conn.close()
 
 
-def write_score_xlsx(rows, path, workload_count=7):
-    import openpyxl
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = f"{workload_count}负载总分"
-    headers = ["厂商", "板卡", "板卡族", "基础实时", "调度", "RT得分",
-               "实时控制", "感知", "通信", "运维", "T得分", "P得分", "F得分", "总分"]
-    for col, header in enumerate(headers, 1):
-        ws.cell(1, col, header)
-    for r, rec in enumerate(rows, 2):
-        cats = rec["categories"]
-        values = [rec["vendor"], rec["name"], rec["family"], rec.get("base_rt_f"), rec["sched"], rec["RT"],
-                  cats["realtime_control"], cats["perception"], cats["communication"], cats["monitoring"],
-                  rec["T"], rec["P"], rec["F"], rec["total"]]
-        for c, value in enumerate(values, 1):
-            cell = ws.cell(r, c, value)
-            if isinstance(value, float):
-                cell.number_format = "0.00"
-    for i in range(1, len(headers) + 1):
-        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = 12 if i > 2 else 18
-    wb.save(path)
-
-
 def score_excel(path, baseline_path=None):
     """Score workbook measurements with the same algorithm as JSON inputs."""
     records = _parse_excel_records(path)
@@ -1554,12 +1530,6 @@ def main():
     p_json = sub.add_parser("import-json")
     p_json.add_argument("pattern")
 
-    p_workbook = sub.add_parser("score-excel", help="用统一七负载算法计算结果展示表")
-    p_workbook.add_argument("excel")
-    p_workbook.add_argument("--baseline", default=None)
-    p_workbook.add_argument("--workloads", type=int, choices=[7], default=7)
-    p_workbook.add_argument("-o", "--output", default=None)
-
     p_excel = sub.add_parser("import-excel")
     p_excel.add_argument("pattern")
 
@@ -1573,14 +1543,6 @@ def main():
     sub.add_parser("recompute", help="按当前算法重算全库所有子项与汇总得分")
 
     args = parser.parse_args()
-    if args.cmd == "score-excel":
-        rows = score_excel(args.excel, args.baseline)
-        for rec in rows:
-            values = ["-" if rec[k] is None else f"{rec[k]:.2f}" for k in ("RT", "T", "P", "total")]
-            print(rec["name"] + "  " + "  ".join(values))
-        if args.output:
-            write_score_xlsx(rows, args.output)
-        return
     db_path = args.db or CONFIG["storage_path"]
     os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     conn = init_db(db_path)
