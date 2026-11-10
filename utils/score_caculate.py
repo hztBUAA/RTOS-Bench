@@ -25,6 +25,7 @@ import sqlite3
 import logging
 import os
 import glob
+import math
 from datetime import datetime, timezone
 from typing import Optional
 import warnings
@@ -49,15 +50,17 @@ CONFIG = {
 
 WORKLOAD_CATEGORY_MAP = {
     "pid":    "realtime_control",
-    "ekf":    "realtime_control",
     "icp":    "perception",
     "fast":   "perception",
-    "epnp":   "perception",
     "modbus": "communication",
     "mqtt":   "communication",
     "cusum":  "monitoring",
     "ewma":   "monitoring",
 }
+
+# Historical measurements remain importable, but never enter seven-workload scores.
+RAW_WORKLOAD_CATEGORY_MAP = {**WORKLOAD_CATEGORY_MAP, "ekf": "realtime_control", "epnp": "perception"}
+SCORING_RULE_VERSION = "saturation-a0.25-seven-workloads-v1"
 
 WORKLOAD_CATEGORY_WEIGHTS = {
     "realtime_control": 0.25,
@@ -177,7 +180,19 @@ def init_db(db_path: str) -> sqlite3.Connection:
     )
     """)
 
+    cur.execute("CREATE TABLE IF NOT EXISTS scoring_metadata (key TEXT PRIMARY KEY, value TEXT)")
     conn.commit()
+    version = conn.execute("SELECT value FROM scoring_metadata WHERE key='rule_version'").fetchone()
+    if version is None or version["value"] != SCORING_RULE_VERSION:
+        cached = conn.execute("SELECT COUNT(*) FROM score_cache").fetchone()[0]
+        derived = conn.execute("SELECT COUNT(*) FROM raw_records WHERE item_score IS NOT NULL").fetchone()[0]
+        logger.info("规则迁移至 %s：清除 %s 条缓存、%s 项旧分数，原始测量记录保留",
+                    SCORING_RULE_VERSION, cached, derived)
+        # No rule tag means scores cannot be trusted; retain measured rows and rebuild.
+        recompute_all_scores(conn)
+        conn.execute("INSERT OR REPLACE INTO scoring_metadata VALUES ('rule_version', ?)",
+                     (SCORING_RULE_VERSION,))
+        conn.commit()
     return conn
 
 
@@ -187,7 +202,7 @@ def init_db(db_path: str) -> sqlite3.Connection:
 def safe_float(val) -> Optional[float]:
     try:
         f = float(val)
-        return f if f == f else None
+        return f if math.isfinite(f) else None
     except (TypeError, ValueError):
         return None
 
@@ -217,7 +232,7 @@ def calc_R(measured: float, baseline: float, metric_type: str) -> Optional[float
     """
     if measured is None or baseline is None:
         return None
-    if measured == 0 or baseline == 0:
+    if not math.isfinite(measured) or not math.isfinite(baseline) or measured <= 0 or baseline <= 0:
         return None
     if metric_type == "latency":
         return baseline / measured
@@ -372,15 +387,17 @@ def normalize_items_for_board(board_model: str, arch: str,
     (board_model, arch, *categories)).fetchall()
 
     for row in rows:
+        if row["category"] == "workload" and row["item_key"] not in WORKLOAD_CATEGORY_MAP:
+            continue
         score = saturation_score(row["R_value"])
         conn.execute("""
         UPDATE raw_records
-        SET item_score=?, norm_pending=0, last_updated=?
+        SET item_score=?, norm_pending=0
         WHERE board_model=? AND os_name=? AND arch=?
           AND category=? AND sub_category=? AND item_key=?
           AND R_value IS NOT NULL
           AND status NOT IN ('null_value','error','missing_default_rmin')
-        """, (score, now_iso(),
+        """, (score,
               board_model, row["os_name"], arch,
               row["category"], row["sub_category"], row["item_key"]))
         affected_os.add((board_model, row["os_name"], arch))
@@ -478,7 +495,7 @@ def _fill_R_only(rec: dict, conn: sqlite3.Connection) -> dict:
     只计算并存储 R_value，不计算 item_score。
     item_score 由 normalize_items_for_board() 统一算分后写入。
     """
-    if rec["raw_value"] is None:
+    if rec["raw_value"] is None or not math.isfinite(rec["raw_value"]) or rec["raw_value"] <= 0:
         rec["status"] = "null_value"
         return rec
 
@@ -679,11 +696,13 @@ def _parse_workload_module(conn, modules, board_model, os_name, arch, source, ts
 
     for wl in mod.get("workloads", []):
         name = wl.get("name", "")
-        cat  = WORKLOAD_CATEGORY_MAP.get(name)
+        cat  = RAW_WORKLOAD_CATEGORY_MAP.get(name)
         if cat is None:
             continue
 
         avg_ms = safe_float(wl.get("avg_time_ms"))
+        if avg_ms is None:
+            avg_ms = safe_float(wl.get("exec_time_ms"))
         rec = _make_rec_base(board_model, os_name, arch,
                              "workload", cat, name, source, ts)
         rec["raw_value"]   = avg_ms
@@ -883,10 +902,10 @@ def normalize_power_for_board(board_model: str, arch: str,
             score = saturation_score(r["R_value"])
             conn.execute("""
             UPDATE raw_records
-            SET item_score=?, norm_pending=0, last_updated=?
+            SET item_score=?, norm_pending=0
             WHERE board_model=? AND os_name=? AND arch=?
               AND category='power' AND sub_category=? AND item_key='power_data'
-            """, (score, now_iso(), board_model, os_name, arch, pf))
+            """, (score, board_model, os_name, arch, pf))
 
             field_ratios.append(r["R_value"])
             item_scores.append(score)
@@ -981,12 +1000,17 @@ def recalc_scores_for_target(board_model: str, os_name: str, arch: str,
     # ── 典型负载 ──────────────────────────────
     cat_scores  = {}
     missing_cats = []
+    missing_items = []
     for cat in WORKLOAD_CATEGORY_WEIGHTS:
         rows   = q("workload", cat)
+        rows = [r for r in rows if r["item_key"] in WORKLOAD_CATEGORY_MAP]
         scores = [r["item_score"] for r in rows if r["item_score"] is not None]
         items  = {r["item_key"]: {"raw_ms": r["raw_value"],
                                    "R": r["R_value"],
                                    "score": r["item_score"]} for r in rows}
+        valid_names = {r["item_key"] for r in rows if r["item_score"] is not None}
+        missing_items.extend(name for name, category in WORKLOAD_CATEGORY_MAP.items()
+                             if category == cat and name not in valid_names)
         cat_scores[cat] = sum(scores) / len(scores) if scores else None
         if cat_scores[cat] is None:
             missing_cats.append(cat)
@@ -1007,8 +1031,8 @@ def recalc_scores_for_target(board_model: str, os_name: str, arch: str,
 
     upsert_score(conn, board_model, os_name, arch,
                  "total", "t_score", t_score,
-                 is_partial=bool(missing_cats),
-                 extra={"missing_categories": missing_cats})
+                 is_partial=bool(missing_items),
+                 extra={"missing_categories": missing_cats, "missing_items": missing_items})
 
     # ── 功耗 ──────────────────────────────────
     p_info = (power_scores or {}).get(os_name, {})
@@ -1050,7 +1074,7 @@ def recalc_scores_for_target(board_model: str, os_name: str, arch: str,
     scores_4d = {"f": (f_score, 0.2), "rt": (rt_score, 0.3),
                  "t": (t_score, 0.4), "p": (p_score, 0.1)}
     total_score = _partial_weighted(scores_4d)
-    is_partial  = any(v is None for v, _ in scores_4d.values())
+    is_partial  = any(v is None for v, _ in scores_4d.values()) or bool(missing_items)
 
     upsert_score(conn, board_model, os_name, arch,
                  "total", "total_score",
@@ -1115,6 +1139,8 @@ def export_results(board_model: str, os_name: str, arch: str,
           AND category=? AND sub_category=?
         ORDER BY item_key
         """, (board_model, os_name, arch, category, sub_category)).fetchall()
+        if category == "workload":
+            rows = [r for r in rows if r["item_key"] in WORKLOAD_CATEGORY_MAP]
         return {r["item_key"]: {
             "raw": r["raw_value"], "unit": r["raw_unit"],
             "R": r["R_value"],
@@ -1162,6 +1188,8 @@ def export_results(board_model: str, os_name: str, arch: str,
     """, (board_model, os_name, arch)).fetchone()
 
     return {
+        "scoring_rule": SCORING_RULE_VERSION,
+        "workload_count": 7,
         "board_model": board_model,
         "arch":        arch,
         "os_name":     os_name,
@@ -1203,6 +1231,7 @@ def export_results(board_model: str, os_name: str, arch: str,
                 "score":    t_total["score"],
                 "incomplete": t_total["is_partial"],
                 "missing_categories": t_total["extra"].get("missing_categories", []),
+                "missing_items": t_total["extra"].get("missing_items", []),
                 "details": {
                     cat: {
                         "score": get_score("workload", cat)["score"],
@@ -1256,6 +1285,23 @@ def recompute_all_scores(conn: sqlite3.Connection) -> int:
 
     适用于算法口径变更后刷新历史数据。返回重算的系统数量。
     """
+    # Scores are derived data. Clear both caches, retaining every measurement row.
+    conn.execute("DELETE FROM score_cache")
+    conn.execute("UPDATE raw_records SET item_score=NULL, norm_pending=1")
+    rows = conn.execute("SELECT * FROM raw_records").fetchall()
+    for row in rows:
+        rec = dict(row)
+        if rec["metric_type"] == "miss_rate":
+            value = rec["raw_value"]
+            rec["item_score"] = 100.0 * (1.0 - value) if value is not None and 0 <= value <= 1 else None
+            rec["norm_pending"] = 0
+        elif rec["category"] != "workload" or rec["item_key"] in WORKLOAD_CATEGORY_MAP:
+            rec["R_value"] = None
+            rec["baseline_value"] = None
+            rec["baseline_source"] = None
+            rec = _fill_R_only(rec, conn)
+        upsert_record(conn, rec)
+    conn.commit()
     boards = _collect_boards(conn)
     os_count = 0
 
@@ -1333,16 +1379,8 @@ def ingest_json_files(pattern: str, conn: sqlite3.Connection):
         logger.error(f"写库失败，已回滚: {e}")
         raise
 
-    # 4) 饱和曲线算分 + 汇总
-    affected_boards = {(bm, arch) for bm, _, arch in affected}
-    for bm, arch in affected_boards:
-        normalize_items_for_board(bm, arch, conn)
-
-    for bm, arch in affected_boards:
-        power_scores = normalize_power_for_board(bm, arch, conn)
-        os_set = {os_ for b, os_, a in affected if b == bm and a == arch}
-        for os_ in os_set:
-            recalc_scores_for_target(bm, os_, arch, conn, power_scores)
+    # Rebuild from raw values so old task sets and changed baselines cannot leak.
+    recompute_all_scores(conn)
 
 
 def ingest_excel_files(pattern: str, conn: sqlite3.Connection):
@@ -1390,9 +1428,7 @@ def score_single_json(json_path: str, db_path: Optional[str] = None) -> dict:
 
         bm, os_name, arch = info["board_model"], info["os_name"], info["arch"]
 
-        normalize_items_for_board(bm, arch, conn)
-        power_scores = normalize_power_for_board(bm, arch, conn)
-        recalc_scores_for_target(bm, os_name, arch, conn, power_scores)
+        recompute_all_scores(conn)
 
         return export_results(bm, os_name, arch, conn)
     finally:

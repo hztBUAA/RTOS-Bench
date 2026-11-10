@@ -1,6 +1,6 @@
 # 最终结果与 SSOT（2026-11-03）
 
-本目录存放 7 负载与 9 负载的最终得分，以及对应 SSOT JSON。
+本目录保留历史 7/9 负载结果与 SSOT JSON。当前 deploy 分支仅支持七负载评分，历史文件不自动更新，旧分数不得直接作为当前报告分数。
 
 ## 文件
 
@@ -54,18 +54,19 @@ python3 utils/score_seven_workload.py <结果展示表.xlsx> --workloads 7 -o 7l
 ## 更新流程（给同学与 AI）
 
 1. **放原始数据**：新板卡的 `result.json` 放到 `reports/raw/<板卡>/`；历史数据的结果展示表放到 `reports/excel/`。
-2. **生成 SSOT**：`python3 utils/build_reports.py <excel> --workloads 7|9 -o reports/<ver>`
+2. **生成 SSOT**：`python3 utils/build_reports.py <excel> --workloads 7 -o reports/<ver>`
 3. **转算分 JSON**：`python3 utils/ssot_to_score_json.py reports/<ver>/ssot -o reports/<ver>/score_json`
 4. **算分**：`python3 utils/score_caculate.py --db results.db import-json "reports/<ver>/score_json/*.json"`，再 `export`。
-5. **保底与汇总**：`python3 utils/score_seven_workload.py <excel> --workloads 7|9 -o <out>.xlsx`
-6. **更新本目录**：替换 `7load_scores.csv` / `9load_scores.csv` 与 `ssot/` 下的 JSON。
+5. **饱和曲线汇总**：`python3 utils/score_seven_workload.py <excel> --workloads 7 -o <out>.xlsx`
+6. **更新本目录**：更新七负载结果；九负载文件仅作历史归档。
 7. **提交 PR**：写明数据来源、板卡名、OS/BSP 版本、改动原因。
 
 ### 约定
 
 - 板卡名用 `MIC-7700`、`Orange-Pi5`、`DH-1`、`LS2K1000LA`、`Phytium-Pi`。
 - 子项使用饱和曲线 `S=100R/(a+R)`，a=0.25，基准固定。
-- 7 负载与 9 负载分开计算，不能共用调度分。
+- 当前只评分七项任务；PID 属于实时控制，FAST/ICP 属于感知，MODBUS/MQTT 属于通信，CUSUM/EWMA 属于运维。EKF 历史归实时控制，EPnP 归感知，当前均不评分。
+- 保留原始数据，SQLite 自动清除旧版本缓存并重算。单系统有基准即可评分；无基准写 null。
 - 数据缺失写 `null`，不要填 0。
 - 不再使用 min-max 与 60 保底。
 

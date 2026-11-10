@@ -2,7 +2,7 @@
 """从结果展示表生成 SSOT JSON 与自然语言描述（markdown + docx）。
 
 用法：
-  python3 utils/build_reports.py <结果展示表.xlsx> --workloads 9 -o reports/9load
+  python3 utils/build_reports.py <结果展示表.xlsx> --workloads 7 -o reports/7load
 """
 
 import argparse
@@ -167,12 +167,17 @@ def build_narrative(data, score):
         f"可调度性能 {_fmt(score['sched'], 2)} 分，两部分各占50%，"
         f"实时性能总得分 {_fmt(score['RT'], 2)} 分。"))
     blocks.append(("li", f"4) 功耗（权重10%，P = 四项工况均值）：综合得分 {_fmt(score['P'], 2)} 分。"))
-    blocks.append(("p",
-        f"最终按 0.2×{score['F']:.2f} + 0.3×{_fmt(score['RT'], 2)} + "
-        f"0.4×{_fmt(score['T'], 2)} + 0.1×{_fmt(score['P'], 2)} 计算，"
-        f"{board}的综合评分为 {_fmt(score['total'], 2)} 分。"))
+    if score.get("incomplete"):
+        blocks.append(("p", f"按有效维度及其归一化权重估算，{board}的综合评分为 {_fmt(score['total'], 2)} 分。"))
+    else:
+        blocks.append(("p",
+            f"最终按 0.2×{score['F']:.2f} + 0.3×{_fmt(score['RT'], 2)} + "
+            f"0.4×{_fmt(score['T'], 2)} + 0.1×{_fmt(score['P'], 2)} 计算，"
+            f"{board}的综合评分为 {_fmt(score['total'], 2)} 分。"))
     blocks.append(("p", "说明：子项得分采用绝对饱和曲线 S = 100×R/(a+R)，a=0.25，基准固定为 SylixOS @ LS2K1000LA；"
                         "调度得分为 100×(1−平均截止时间错失率)，不参与该曲线。"))
+    if score.get("incomplete"):
+        blocks.append(("p", "本次数据不完整；总分按有效维度重新分配权重估算，缺失项未按零分处理。"))
     return blocks
 
 
@@ -217,26 +222,26 @@ def safe_name(name):
 def main():
     parser = argparse.ArgumentParser(description="生成 SSOT JSON 与自然语言描述")
     parser.add_argument("excel")
-    parser.add_argument("--workloads", type=int, choices=[7, 9], default=9)
+    parser.add_argument("--workloads", type=int, choices=[7], default=7)
     parser.add_argument("-o", "--out-dir", default="reports")
-    parser.add_argument("--scores-json", default=None)
+    parser.add_argument("--baseline", help="SylixOS + LS2K1000LA reference JSON")
     args = parser.parse_args()
 
     records = scoring.parse_blocks(args.excel)
-    rows = scoring.compute(records, args.workloads)
+    rows = scoring.compute(records, args.workloads, args.baseline)
     scores = {}
     for r in rows:
         scores[r["name"]] = {
-            "base_rt": None if r["base_rt"] is None else scoring._floor(r["base_rt"]),
+            "base_rt": r["base_rt_f"],
+            "scoring_rule": r["scoring_rule"], "workload_count": 7,
+            "incomplete": r["score_export"]["is_partial"],
+            "missing_items": r["score_export"]["scores"]["workload"]["missing_items"],
             "sched": r["sched"],
             "RT": r["RT"], "T": r["T"], "P": r["P"], "F": r["F"],
             "total": r["total"], "categories": r["categories"],
         }
 
     meta = json.load(open(META_PATH, encoding="utf-8")) if os.path.exists(META_PATH) else {}
-    override = {}
-    if args.scores_json:
-        override = json.load(open(args.scores_json, encoding="utf-8"))
     boards = excel2json.parse_excel(args.excel, args.workloads)
     ssot_dir = os.path.join(args.out_dir, "ssot")
     text_dir = os.path.join(args.out_dir, "narrative")
@@ -251,10 +256,15 @@ def main():
         families = entry.get("bsp_version") or {}
         family = next((k for k in families if k in data["env"]["board"]), None)
         data["env"]["bsp_version"] = families.get(family, "") if family else ""
-        score = override.get(board["board"]) or scores.get(board["board"])
+        score = scores.get(board["board"])
         if score is None:
             continue
-        data["scores"] = {**data.get("scores", {}), **score}
+        data["scores"] = score
+        exported = next(r["score_export"] for r in rows if r["name"] == board["board"])
+        power_map = {"static": "static_power", "cpu": "cpu_power", "memory": "memory_power", "file": "file_power"}
+        for item in data["power"]["items"]:
+            detail = exported["scores"]["power"]["details"].get(power_map[item["item"]], {})
+            item["score"] = detail.get("power_data", {}).get("score")
         name = safe_name(board["board"])
         with open(os.path.join(ssot_dir, name + ".json"), "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)

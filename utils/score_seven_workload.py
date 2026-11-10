@@ -1,19 +1,8 @@
 #!/usr/bin/env python3
-"""七负载版本总分计算（与 docs/SCORE-CALCULATE.md 口径一致）。
+"""Seven-workload Excel adapter for score_caculate.py.
 
-输入：结果展示表 Excel（每 20 行一个板卡块）。
-输出：每个板卡的总分明细（CSV / XLSX）。
-
-口径：
-  RT = 0.5 * 基础实时 + 0.5 * 调度得分
-  T  = 0.25 * 实时控制 + 0.25 * 感知 + 0.25 * 通信 + 0.25 * 运维
-      子项 R = 基准延迟 / 实测延迟，同板卡族跨系统 min-max 归一化
-  P  = 4 项功耗得分的均值
-  F  = 60（占位）
-  Total = 0.2*F + 0.3*RT + 0.4*T + 0.1*P
-
-用法：
-  python3 utils/score_seven_workload.py <结果展示表.xlsx> [-o out.xlsx]
+All scores use the fixed-baseline saturation policy; Excel score cells are ignored.
+A workbook containing SylixOS + LS2K1000LA or --baseline JSON supplies the reference.
 """
 
 import argparse
@@ -22,143 +11,86 @@ import sys
 
 import openpyxl
 
-GENERIC = {"分类", "基", "性能", "功", "耗", "评", "典型", "负载", "实时"}
-BOARD_FAMILIES = ["工控机", "香橙派", "哪吒", "龙芯", "飞腾"]
-WORKLOAD_SETS = {
-    7: ["pid", "fast", "icp", "modbus", "mqtt", "ewma", "cusum"],
-    9: ["pid", "ekf", "fast", "icp", "epnp", "modbus", "mqtt", "ewma", "cusum"],
-}
-CATEGORY_SETS = {
-    7: {
-        "realtime_control": ["pid"],
-        "perception": ["fast", "icp"],
-        "communication": ["modbus", "mqtt"],
-        "monitoring": ["ewma", "cusum"],
-    },
-    9: {
-        "realtime_control": ["pid", "ekf"],
-        "perception": ["fast", "icp", "epnp"],
-        "communication": ["modbus", "mqtt"],
-        "monitoring": ["ewma", "cusum"],
-    },
-}
-F_SCORE = 60.0
-FLOOR_BASE = 60.0
-FLOOR_RATIO = 0.4
+from copy import deepcopy
+from pathlib import Path
+import importlib.util
+import json
 
 
-def _floor(score):
-    """仅用于 min-max 分项：保底 60，压缩到 60-100。"""
-    return None if score is None else FLOOR_BASE + FLOOR_RATIO * score
+def _load(name, filename):
+    spec = importlib.util.spec_from_file_location(name, Path(__file__).with_name(filename))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-def _board_name(ws, start_row):
-    for col in (7, 8, 1):
-        value = ws.cell(start_row, col).value
-        if not value:
-            continue
-        text = str(value).strip()
-        if not text or text.startswith("表") or text in GENERIC:
-            continue
-        return text
-    return ""
+scorer = _load("seven_scorer", "score_caculate.py")
+excel2json = _load("seven_excel", "excel_to_result_json.py")
+schema = _load("seven_schema", "ssot_to_score_json.py")
+WORKLOAD_SETS = {7: list(scorer.WORKLOAD_CATEGORY_MAP)}
+CATEGORY_SETS = {7: {
+    cat: [name for name, category in scorer.WORKLOAD_CATEGORY_MAP.items() if category == cat]
+    for cat in scorer.WORKLOAD_CATEGORY_WEIGHTS
+}}
 
 
-def _board_family(name):
-    for family in BOARD_FAMILIES:
-        if family in name:
-            return family
-    return name
-
-
-def _parse_ms(text):
-    out = {}
-    if not text:
-        return out
-    for m in re.finditer(r"([A-Za-z][A-Za-z0-9]*)\s+([0-9.]+)\s*ms", str(text)):
-        out[m.group(1).lower()] = float(m.group(2))
-    return out
-
-
-def _mean(values):
-    values = [v for v in values if v is not None]
-    return sum(values) / len(values) if values else None
+def require_seven(workload_count):
+    if workload_count != 7:
+        raise ValueError("Only the seven-workload scoring policy is supported")
 
 
 def parse_blocks(path):
-    wb = openpyxl.load_workbook(path, data_only=True)
     records = []
-    for sheet in wb.sheetnames:
-        ws = wb[sheet]
-        for row in range(1, ws.max_row + 1):
-            if str(ws.cell(row, 2).value or "").strip() != "调度性能":
-                continue
-            start = row - 14
-            name = _board_name(ws, start)
-            measured, baseline = {}, {}
-            for r in range(start + 9, start + 13):
-                measured.update(_parse_ms(ws.cell(r, 6).value))
-                baseline.update(_parse_ms(ws.cell(r, 7).value))
-            records.append({
-                "sheet": sheet,
-                "vendor": sheet.split("-")[0].strip(),
-                "name": name,
-                "family": _board_family(name),
-                "measured": measured,
-                "baseline": baseline,
-                "sched": ws.cell(row, 5).value,
-                "base_rt": ws.cell(start + 13, 5).value,
-                "power": [ws.cell(start + 15 + i, 5).value for i in range(4)],
-            })
+    for board in excel2json.parse_excel(path, 7):
+        raw = schema.convert(excel2json.to_result_json(deepcopy(board), str(path), 7))
+        records.append({"vendor": board["vendor"], "name": board["board"],
+                        "family": raw["env"]["board"], "score_input": raw})
     return records
 
 
-def compute(records, workload_count=7):
-    workloads = WORKLOAD_SETS[workload_count]
-    categories = CATEGORY_SETS[workload_count]
-    baseline = {}
-    for rec in records:
-        for key, value in rec["baseline"].items():
-            baseline.setdefault(key, value)
-
-    for rec in records:
-        rec["R"] = {
-            w: (baseline[w] / rec["measured"][w]
-                if w in rec["measured"] and rec["measured"][w] else None)
-            for w in workloads
-        }
-
-    item_score = {}
-    for family in {rec["family"] for rec in records}:
-        group = [rec for rec in records if rec["family"] == family]
-        for workload in workloads:
-            values = [rec["R"][workload] for rec in group if rec["R"][workload] is not None]
-            if len(values) < 2 or max(values) == min(values):
-                continue
-            lo, hi = min(values), max(values)
-            for rec in group:
-                r = rec["R"][workload]
-                if r is not None:
-                    item_score[(id(rec), workload)] = max(0.0, min(100.0, (r - lo) / (hi - lo) * 100.0))
-
-    rows = []
-    for rec in records:
-        cats = {
-            cat: _mean([item_score.get((id(rec), w)) for w in members])
-            for cat, members in categories.items()
-        }
-        # 只对 min-max 分项做保底变换。调度分=100*(1-MR)，不参与。
-        cats_f = {k: _floor(v) for k, v in cats.items()}
-        t_score = _mean(list(cats_f.values()))
-        base_rt_f = _floor(rec["base_rt"])
-        rt_score = _mean([base_rt_f, rec["sched"]]) if base_rt_f is not None and rec["sched"] is not None else None
-        p_score = _floor(_mean([float(v) for v in rec["power"] if v is not None]))
-        total = None
-        if None not in (rt_score, t_score, p_score):
-            total = 0.2 * F_SCORE + 0.3 * rt_score + 0.4 * t_score + 0.1 * p_score
-        rows.append({**rec, "categories": cats_f, "base_rt_f": base_rt_f, "T": t_score, "RT": rt_score,
-                     "P": p_score, "F": F_SCORE, "total": total})
-    return rows
+def compute(records, workload_count=7, baseline_path=None):
+    """Use score_caculate for every score; never reuse Excel score cells."""
+    require_seven(workload_count)
+    conn = scorer.init_db(":memory:")
+    try:
+        if baseline_path:
+            data = json.loads(Path(baseline_path).read_text(encoding="utf-8-sig"))
+            rt = data.get("modules", {}).get("test-realtime", {})
+            if "multicore" in rt or not data.get("env", {}).get("cpu_type"):
+                data = schema.convert(data)
+            if (data["env"].get("board"), data["env"].get("os_name")) != (
+                    scorer.CONFIG["baseline_board"], scorer.CONFIG["baseline_os"]):
+                raise ValueError("Baseline must be SylixOS + LS2K1000LA")
+            error = scorer.validate_json_data(data)
+            if error:
+                raise ValueError(error)
+            scorer._parse_json_data(data, conn, str(baseline_path))
+        ordered = sorted(records, key=lambda rec: (
+            rec["score_input"]["env"]["board"] != scorer.CONFIG["baseline_board"]
+            or rec["score_input"]["env"]["os_name"] != scorer.CONFIG["baseline_os"]))
+        for rec in ordered:
+            error = scorer.validate_json_data(rec["score_input"])
+            if error:
+                raise ValueError(error)
+            scorer._parse_json_data(rec["score_input"], conn, rec["name"])
+        conn.commit()
+        scorer.recompute_all_scores(conn)
+        rows = []
+        for rec in records:
+            env = rec["score_input"]["env"]
+            result = scorer.export_results(env["board"], env["os_name"], env["cpu_type"], conn)
+            scores = result["scores"]
+            rt = scores["realtime"]
+            rows.append({**rec, "base_rt_f": rt["details"]["base_realtime"]["score"],
+                         "sched": rt["details"]["schedulability"]["score"],
+                         "RT": rt["score"], "T": scores["workload"]["score"],
+                         "P": scores["power"]["score"], "F": scores["function"]["score"],
+                         "total": result["total_score"],
+                         "categories": {cat: detail["score"] for cat, detail in scores["workload"]["details"].items()},
+                         "scoring_rule": result["scoring_rule"], "score_export": result})
+        return rows
+    finally:
+        conn.close()
 
 
 def write_xlsx(rows, path, workload_count=7):
@@ -187,18 +119,20 @@ def main():
     parser = argparse.ArgumentParser(description="七负载版本总分计算")
     parser.add_argument("excel")
     parser.add_argument("-o", "--output", default=None)
-    parser.add_argument("--workloads", type=int, choices=[7, 9], default=7)
+    parser.add_argument("--workloads", type=int, choices=[7], default=7)
+    parser.add_argument("--baseline", help="SylixOS + LS2K1000LA reference JSON")
     args = parser.parse_args()
 
     records = parse_blocks(args.excel)
     if not records:
         sys.exit("未找到调度性能数据块，请检查 Excel 格式")
-    rows = compute(records, args.workloads)
+    rows = compute(records, args.workloads, args.baseline)
 
     print(f"{'厂商':<8}{'板卡':<24}{'RT':>8}{'T':>8}{'P':>8}{'总分':>8}")
     for rec in rows:
         total = f"{rec['total']:.2f}" if rec["total"] is not None else "-"
-        print(f"{rec['vendor']:<8}{rec['name'][:22]:<24}{rec['RT']:>8.2f}{rec['T']:>8.2f}{rec['P']:>8.2f}{total:>8}")
+        values = ["-" if rec[k] is None else f"{rec[k]:.2f}" for k in ("RT", "T", "P")]
+        print(f"{rec['vendor']:<8}{rec['name'][:22]:<24}" + "".join(f"{v:>8}" for v in values) + f"{total:>8}")
 
     if args.output:
         write_xlsx(rows, args.output, args.workloads)

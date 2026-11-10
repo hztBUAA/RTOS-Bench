@@ -29,6 +29,8 @@ OS = {
     "中移物联": "OneOS", "OneOS": "OneOS", "欧拉": "openEuler/Linux",
     "openEuler": "openEuler/Linux", "RTT": "RT-Thread",
 }
+SCORED_WORKLOADS = {"pid", "fast", "icp", "modbus", "mqtt", "cusum", "ewma"}
+
 POWER_NAMES = {"static": "standby", "cpu": "cpu", "memory": "memory", "file": "file"}
 
 
@@ -49,6 +51,10 @@ def vendor_of(name):
 def convert(data):
     board, arch = canonical_board(data["env"]["board"])
     vendor = vendor_of(data["env"]["board"])
+    existing_os = data["env"].get("os_name", "")
+    if vendor == data["env"]["board"]:
+        vendor = existing_os
+        arch = data["env"].get("cpu_type") or arch
     data["env"].update({"board": board, "os_name": OS.get(vendor, vendor), "cpu_type": arch})
 
     realtime = data["modules"]["test-realtime"]
@@ -70,15 +76,20 @@ def convert(data):
         )
     }
     cross = multi.get("cross_core") or {}
-    realtime["multi_core"] = {
-        "memory_bandwidth": memory,
-        "ipc_bandwidth": ipc,
-        "task_latency": latency,
-        "core_comm": {"intra_core": cross.get("同核通信"), "inter_core": cross.get("异核通信")},
-    }
+    if "multi_core" not in realtime:
+        realtime["multi_core"] = {
+            "memory_bandwidth": memory,
+            "ipc_bandwidth": ipc,
+            "task_latency": latency,
+            "core_comm": {"intra_core": cross.get("同核通信"), "inter_core": cross.get("异核通信")},
+        }
     realtime.pop("multicore", None)
 
-    for wl in data["modules"]["typical-workload"]["workloads"]:
+    workload = data["modules"].get("typical-workload", {})
+    workload["workloads"] = [w for w in workload.get("workloads", []) if w.get("name") in SCORED_WORKLOADS]
+    data.setdefault("meta", {})["workload_count"] = 7
+    data.pop("scores", None)  # Source files may contain min-max/9-workload scores.
+    for wl in workload["workloads"]:
         if wl.get("avg_time_ms") is None:
             wl["avg_time_ms"] = wl.get("exec_time_ms")
 

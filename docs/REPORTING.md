@@ -2,7 +2,7 @@
 
 本文说明 RTOS-Bench 的出分口径、SSOT JSON 逆生成、自然语言报告导出与元信息补全。
 
-更新时间：2026-11-03
+更新时间：2026-11-10
 
 ## 1. 评分口径
 
@@ -33,7 +33,9 @@ S = 100 × R / (a + R)，a = 0.25
 - 基准固定为 SylixOS @ LS2K1000LA，不随同板卡其他系统变化。
 - 同一 R 始终得到同一分数，R 越大得分越高，不会出现 0 分。
 
-**2026-11 起不再使用 min-max，也不再使用 60 分保底。** 旧的归一化与保底说明仅作历史记录。
+**当前全部评分入口统一使用 score_caculate.py，仅评分 PID、FAST、ICP、MODBUS、MQTT、CUSUM、EWMA。** 不再使用 min-max 或 60 分保底；四类各占 25%。EKF 历史分类为实时控制，EPnP 为感知计算，两项当前不评分。
+
+固定基准可来自同一工作簿中的 SylixOS 龙芯，或 `--baseline` 指定的 SylixOS + LS2K1000LA JSON。缺少基准则相关得分为 null。原始测量记录保留；SQLite 无规则版本或旧规则版本的缓存分数自动清除重算。缺少类内任务也会标记 incomplete。
 
 ### 平均错失率
 
@@ -41,7 +43,7 @@ S = 100 × R / (a + R)，a = 0.25
 平均错失率 = 总错失 job / 总 job
 ```
 
-- 9 负载：8 个梯度 × 27 job = 216。
+- 当前只评分七项负载；历史九负载结果仅作归档。
 - 7 负载：8 个梯度 × 21 job = 168。
 - 不是各梯度错失率的平均值。
 
@@ -66,7 +68,7 @@ OS 与 BSP 版本在 `utils/board_meta.json` 维护。ReWorks 已填 V6.1.1 与�
 ```
 结果展示表 Excel
   → 逆生成 SSOT JSON        utils/excel_to_result_json.py
-  → 生成描述                utils/build_reports.py
+  → score_caculate.py 统一重算后生成描述 utils/build_reports.py
   → 转算分脚本 schema       utils/ssot_to_score_json.py
   → score_caculate.py 出分（饱和曲线）  utils/score_caculate.py
   → 汇总与导出                            utils/score_seven_workload.py
@@ -82,23 +84,23 @@ OS 与 BSP 版本在 `utils/board_meta.json` 维护。ReWorks 已填 V6.1.1 与�
 
 ```bash
 # 1. SSOT JSON + 自然语言描述（markdown + docx）
-python3 utils/build_reports.py <结果展示表.xlsx> --workloads 9 -o reports/9load
+python3 utils/build_reports.py <结果展示表.xlsx> --workloads 7 -o reports/7load
 
-# 2. 可选：用外部算分结果覆盖描述中的分数
-python3 utils/build_reports.py <结果展示表.xlsx> --workloads 9 \
-    -o reports/9load --scores-json scores.json
+# 2. 若 Excel 不含 SylixOS 龙芯基准，可提供基准 JSON（单系统同样可算分）
+python3 utils/build_reports.py <结果展示表.xlsx> --workloads 7 \
+    -o reports/7load --baseline baseline.json
 
 # 3. SSOT 转算分脚本 schema
-python3 utils/ssot_to_score_json.py reports/9load/ssot -o reports/9load/score_json
+python3 utils/ssot_to_score_json.py reports/7load/ssot -o reports/7load/score_json
 
 # 4. 算分
-python3 utils/score_caculate.py --db results.db import-json "reports/9load/score_json/*.json"
+python3 utils/score_caculate.py --db results.db import-json "reports/7load/score_json/*.json"
 python3 utils/score_caculate.py --db results.db list
 python3 utils/score_caculate.py --db results.db export \
     --board Phytium-Pi --os OneOS --arch aarch64
 
-# 5. 7/9 负载总分与 60 保底
-python3 utils/score_seven_workload.py <结果展示表.xlsx> --workloads 9 -o 9load_score.xlsx
+# 5. 七负载饱和曲线汇总（调用 score_caculate.py，不读取 Excel 旧分数）
+python3 utils/score_seven_workload.py <结果展示表.xlsx> --workloads 7 -o 7load_score.xlsx
 
 # 6. 元信息补全（网页端无法注入时）
 python3 utils/patch_result_meta.py result.json \
@@ -109,13 +111,13 @@ python3 utils/patch_result_meta.py result.json \
 ## 5. 已知缺口
 
 - F 全部为占位 60，总分上限 92。
-- 欧拉两块板缺功耗，RTT 缺功耗，暂不出总分。
+- 缺失功耗等维度时，按 score_caculate.py 的 partial 规则对已有维度重分配权重估算总分；不代表完整验收结果。
 - 板卡名与 OS 版本需要与北理工、翼辉最终对齐。
 - SSOT JSON 由 Excel 逆生成，不含逐任务统计与 stress/cmd 明细。
 
 ## 6. 示例输出
 
-以翼辉工控机为例（9 负载，60 保底）：
+以下文件属于历史九负载示例，仅用于查看原始数据和报告结构；当前七负载分数须按上文命令重算：
 
 - [docs/examples/翼辉工控机_result.json](examples/翼辉工控机_result.json)：SSOT JSON
 - [docs/examples/翼辉工控机_测试结果描述.md](examples/翼辉工控机_测试结果描述.md)：markdown
@@ -124,4 +126,4 @@ python3 utils/patch_result_meta.py result.json \
 
 Word 结构：一级标题（测试结果描述 / 测试评分描述）、二级标题（四个分项）、三级标题（可调度性能），条目用 1) 2) 3) 4) 编号。
 
-示例中的分数为 60 保底后的结果，输入 JSON 由结果展示表逆生成。
+历史示例分数不作为当前算分输入。生成报告时忽略 Excel 的旧分数单元格，使用原始测量值与固定基准重新计算。

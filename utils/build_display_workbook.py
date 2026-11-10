@@ -7,7 +7,7 @@
 用法：
   python3 utils/build_display_workbook.py \
       --template docs/examples/display/template_1103.xlsx \
-      --ssot docs/examples/final/ssot/9load \
+      --ssot docs/examples/final/ssot/7load \
       -o docs/examples/display/基准测试数据-展示统计.xlsx
 """
 
@@ -72,7 +72,8 @@ def workload_ms(doc):
         value = item.get("avg_time_ms")
         if value is None:
             value = item.get("exec_time_ms")
-        out[item.get("name")] = value
+        if item.get("name") not in ("ekf", "epnp"):
+            out[item.get("name")] = value
     return out
 
 

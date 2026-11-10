@@ -110,6 +110,8 @@ def _build_power_items(raw_modules, export):
 
 
 def build_ssot(raw_data, baseline_path, board, os_name, workload_count):
+    if workload_count != 7:
+        raise ValueError("Only seven workloads are scored")
     baseline = _read_json(baseline_path)
     baseline_rt = (
         ((baseline.get("modules") or {}).get("test-realtime") or {})
@@ -195,6 +197,10 @@ def build_ssot(raw_data, baseline_path, board, os_name, workload_count):
         modules["test-cmd"] = {"status": test_cmd.get("status", "from_raw")}
 
     target["scores"] = {
+        "scoring_rule": scorer.SCORING_RULE_VERSION,
+        "workload_count": 7,
+        "incomplete": export["is_partial"],
+        "missing_items": workload["missing_items"],
         "base_rt": realtime["details"]["base_realtime"]["score"],
         "sched": realtime["details"]["schedulability"]["score"],
         "RT": realtime["score"],
@@ -221,7 +227,7 @@ def main():
     parser.add_argument("--baseline", required=True)
     parser.add_argument("--board", required=True)
     parser.add_argument("--os", dest="os_name", default="openEuler")
-    parser.add_argument("--workloads", type=int, choices=(7, 9), required=True)
+    parser.add_argument("--workloads", type=int, choices=(7,), default=7)
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 

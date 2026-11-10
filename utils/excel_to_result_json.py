@@ -4,7 +4,7 @@
 一个板卡块生成一份 JSON。缺失的字段写 null，并标注 source=excel_reverse。
 
 用法：
-  python3 utils/excel_to_result_json.py <结果展示表.xlsx> --workloads 9 -o out_dir
+  python3 utils/excel_to_result_json.py <结果展示表.xlsx> --workloads 7 -o out_dir
 """
 
 import argparse
@@ -33,6 +33,8 @@ OP_NAMES = {
     "内存块申请": "mempool_alloc",
     "内存块释放": "mempool_free",
 }
+SCORED_WORKLOADS = {"pid", "fast", "icp", "modbus", "mqtt", "cusum", "ewma"}
+
 CATEGORY_NAMES = {
     "实时控制": "realtime_control",
     "感知计算": "perception",
@@ -69,6 +71,8 @@ def _parse_workloads(ws, start):
         if not text:
             continue
         for m in re.finditer(r"([A-Za-z][A-Za-z0-9]*)\s+([0-9.]+)\s*ms", str(text)):
+            if m.group(1).lower() not in SCORED_WORKLOADS:
+                continue
             out.append({
                 "name": m.group(1).lower(),
                 "category": category,
@@ -105,7 +109,8 @@ def _parse_schedule(ws, sched_row, workload_count, cycles=3):
             "deadline_misses": misses,
             "miss_rate": rate,
         })
-    average = misses_total / (jobs * len(entries)) if entries else None
+    average = (misses_total / (jobs * len(entries))
+               if entries and all(entry["miss_rate"] is not None for entry in entries) else None)
     return {
         "status": "from_excel",
         "config": {"cycles": cycles, "util_start": 30, "util_end": 100, "util_step": 10},
@@ -172,7 +177,9 @@ def _parse_power(ws, start):
     return items
 
 
-def parse_excel(path, workload_count):
+def parse_excel(path, workload_count=7):
+    if workload_count != 7:
+        raise ValueError("Only seven workloads are scored")
     wb = openpyxl.load_workbook(path, data_only=True)
     boards = []
     for sheet in wb.sheetnames:
@@ -197,7 +204,9 @@ def parse_excel(path, workload_count):
     return boards
 
 
-def to_result_json(board, source_file, workload_count):
+def to_result_json(board, source_file, workload_count=7):
+    if workload_count != 7:
+        raise ValueError("Only seven workloads are scored")
     avg = board["schedule"]["summary"]["average_miss_rate"]
     return {
         "meta": {
@@ -218,7 +227,7 @@ def to_result_json(board, source_file, workload_count):
         "modules": {
             "test-realtime": board["realtime"],
             "test-schedule": board["schedule"],
-            "typical-workload": {"status": "from_excel", "workloads": board["workloads"]},
+            "typical-workload": {"status": "from_excel", "workloads": [w for w in board["workloads"] if w["name"] in SCORED_WORKLOADS]},
             "test-stress": {"status": "not_in_source"},
             "test-cmd": {"status": "not_in_source"},
         },
@@ -234,7 +243,7 @@ def to_result_json(board, source_file, workload_count):
 def main():
     parser = argparse.ArgumentParser(description="Excel 逆生成 result.json")
     parser.add_argument("excel")
-    parser.add_argument("--workloads", type=int, choices=[7, 9], default=9)
+    parser.add_argument("--workloads", type=int, choices=[7], default=7)
     parser.add_argument("-o", "--out-dir", default="reports/ssot")
     args = parser.parse_args()
 

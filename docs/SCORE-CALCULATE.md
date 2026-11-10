@@ -151,21 +151,23 @@ $$
 
 每类得分 = 该类所有任务 item_score 的算术平均（饱和曲线算分后）。
 
-**任务分类映射：**
+**当前七项任务分类映射：**
 
 | 任务名 | 大类 | metric_type |
 |--------|------|-------------|
 | `pid` | `realtime_control` | latency |
-| `ekf` | `perception` | latency |
 | `icp` | `perception` | latency |
 | `fast` | `perception` | latency |
-| `epnp` | `perception` | latency |
 | `modbus` | `communication` | latency |
 | `mqtt` | `communication` | latency |
 | `cusum` | `monitoring` | latency |
 | `ewma` | `monitoring` | latency |
 
-**缺失处理（partial 模式）：** 若某类缺失，按已有类的权重重新归一化，并标记 `incomplete=true`。
+EKF 历史上属于实时控制，EPnP 属于感知计算；两项当前均不评分，但保留源码（执行入口注释）及数据库历史测量记录。
+
+七项权重：PID 占 T 的 25%；FAST、ICP、MODBUS、MQTT、CUSUM、EWMA 各占 T 的 12.5%。
+
+**缺失处理（partial 模式）：** 缺少任一应评任务即标记 `incomplete=true` 并输出 `missing_items`；类内按有效项平均。整类缺失时，再按已有类重分配权重。
 
 ---
 
@@ -463,7 +465,7 @@ $$
     }
   },
   "completeness": {
-    "missing_baselines": ["workload.perception.ekf"],
+    "missing_baselines": ["workload.perception.fast"],
     "missing_scores":    ["power"]
   },
   "last_updated": "2025-01-01T00:00:00+00:00"
@@ -555,18 +557,16 @@ python rtos_scorer.py list
 
 ---
 
-## 13. 60 分保底（2026-10 起）
+## 13. 七负载统一规则与历史分数迁移
 
-> 本节描述 `score_seven_workload.py` 报表管线的保底策略，与 `score_caculate.py` 的饱和曲线无关。
+当前 JSON、Excel 和报告入口统一调用 `score_caculate.py` 的绝对饱和曲线，不再采用 min-max 或 `60 + 0.4×score` 保底变换。只有 F 仍为占位 60。
 
-为减少过多的 0 分，对该管线中经过 min-max 的分项做映射：
+只要有固定基准与有效测量值，仅有一个参评系统也能得到有效分数；基准系统自身 R=1，单项分为 80。缺少基准时返回 null，不推测分数。
 
+SQLite 使用 `scoring_metadata.rule_version` 标识当前规则。打开无版本或旧版本数据库时，保留所有 raw_records 原始测量记录，清空 score_cache 和派生 item_score，并用当前七项规则重算；历史 EKF/EPnP 原始记录保留，但 item_score 清空且不参与汇总或评分导出。每次 JSON 导入及 recompute 也重新构建分数，避免旧九项记录污染结果。
+
+```bash
+python3 utils/score_caculate.py --db results.db recompute
 ```
-新分 = 60 + 0.4 × 原 min-max 分
-```
 
-- 作用对象：Base_RT、T 的四个类别、P。
-- 不作用：F（占位 60）、Sched_Score（=100×(1−MR)，不参与 min-max）。
-- 结果落在 60–100。F=60 时总分上限仍为 92。
-
-实现与完整流程见 [REPORTING.md](REPORTING.md)。
+历史 SSOT/CSV 不会被自动改写，不应将其中旧分数直接作为新报告分数。报告管线直接从原始指标重算；不再接受 `--scores-json` 注入旧分数。
