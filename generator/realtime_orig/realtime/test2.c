@@ -21,6 +21,11 @@ static volatile uint64_t min, max, avg;
 static int count_all = 0;
 static int count_valid = 0;
 
+static int interrupt_sample_valid(uint64_t t0, uint64_t t1)
+{
+	return t0 != 0 && t1 != 0 && t0 < t1;
+}
+
 static void *thread(void *parameter)
 {
 	BIND_THREAD_TO_CPU(0);
@@ -35,8 +40,8 @@ static void *thread(void *parameter)
 		t0s[count_all] = LES_interrupt_start_val;
 		t1s[count_all] = LES_interrupt_end_val;		//执行LES_interrupt_end_stub()时，会停止起始两点的记录
 
-        // 无效数据
-        if (t0s[count_all] >= t1s[count_all]) {
+        /* 丢弃没有同时记录起点和终点的完整中断窗口。 */
+        if (!interrupt_sample_valid(t0s[count_all], t1s[count_all])) {
 		    durs[count_all] = 0;
             count_all = count_all + 1;
 		    continue;
@@ -90,7 +95,7 @@ void test2(uint64_t *address1, uint64_t *address2, uint64_t *address3)
 	uint32_t valid_count = 0;
 	
 	for (int i = 0; i < count_all; i++) {
-		if (t0s[i] >= t1s[i]) {
+		if (!interrupt_sample_valid(t0s[i], t1s[i])) {
 		    durs[i] = 0;
 		    continue;
 		}
