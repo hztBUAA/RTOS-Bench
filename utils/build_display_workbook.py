@@ -21,11 +21,17 @@ import openpyxl
 BOARD_TYPES = ["工控机", "香橙派", "哪吒", "龙芯", "飞腾"]
 VENDOR_PREFIX = [("翼辉", "翼辉"), ("东土", "东土"), ("锐华", "锐华"),
                  ("OneOS", "中移"), ("欧拉", "欧拉"), ("RTT", "RTT")]
+CANON_BOARD = {"MIC-7700": "工控机", "Orange-Pi5": "香橙派", "DH-1": "哪吒",
+               "LS2K1000LA": "龙芯", "Phytium-Pi": "飞腾"}
+OS_VENDOR = {"SylixOS": "翼辉", "Intewell": "东土", "intewell": "东土",
+             "ReWorks": "锐华", "rede": "锐华", "OneOS": "中移",
+             "openEuler": "欧拉", "openEuler/Linux": "欧拉", "RT-Thread": "RTT"}
 
 # (板卡类型, 厂商) -> 汇总页行号
 ROW_MAP = {
     ("香橙派", "翼辉"): 7, ("香橙派", "东土"): 8, ("香橙派", "锐华"): 9, ("香橙派", "中移"): 10,
     ("飞腾", "翼辉"): 14, ("飞腾", "东土"): 15, ("飞腾", "锐华"): 16, ("飞腾", "中移"): 17,
+    ("香橙派", "欧拉"): 11, ("飞腾", "欧拉"): 18,
     ("工控机", "翼辉"): 22, ("工控机", "东土"): 23,
     ("哪吒", "翼辉"): 26, ("哪吒", "中移"): 27,
     ("龙芯", "翼辉"): 29, ("龙芯", "锐华"): 30,
@@ -42,14 +48,14 @@ def board_type(name):
     for key in BOARD_TYPES:
         if key in name:
             return key
-    return None
+    return CANON_BOARD.get(name)
 
 
-def vendor(name):
+def vendor(name, os_name=None):
     for prefix, label in VENDOR_PREFIX:
         if name.startswith(prefix):
             return label
-    return None
+    return OS_VENDOR.get(os_name)
 
 
 def load_ssot(directory):
@@ -60,7 +66,7 @@ def load_ssot(directory):
         with open(os.path.join(directory, path), encoding="utf-8") as f:
             doc = json.load(f)
         name = doc.get("env", {}).get("board", "")
-        key = (board_type(name), vendor(name))
+        key = (board_type(name), vendor(name, doc.get("env", {}).get("os_name")))
         if key[0] and key[1]:
             data[key] = doc
     return data

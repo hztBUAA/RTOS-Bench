@@ -48,8 +48,14 @@ def vendor_of(name):
 
 def convert(data):
     board, arch = canonical_board(data["env"]["board"])
-    vendor = vendor_of(data["env"]["board"])
-    data["env"].update({"board": board, "os_name": OS.get(vendor, vendor), "cpu_type": arch})
+    current_os = data["env"].get("os_name")
+    known_os = set(OS.values()) | set(OS.keys())
+    if current_os in known_os:
+        os_name = OS.get(current_os, current_os)
+    else:
+        vendor = vendor_of(data["env"]["board"])
+        os_name = OS.get(vendor, vendor)
+    data["env"].update({"board": board, "os_name": os_name, "cpu_type": arch})
 
     realtime = data["modules"]["test-realtime"]
     multi = realtime.get("multicore") or {}
