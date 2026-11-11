@@ -125,6 +125,10 @@ def main():
         xlsx_path = os.path.join(args.out, f"display_{args.version}.xlsx")
         wb.save(xlsx_path)
 
+        reverse = [n for n, (doc, _) in sources.items()
+                   if doc.get("meta", {}).get("source") == "excel_reverse"]
+        if reverse:
+            print(f"warning: {len(reverse)} boards are excel_reverse: " + ", ".join(reverse))
         print(f"scored {len(rows)} boards -> {args.scored}")
         print(f"reports -> {os.path.join(args.out, 'reports')}")
         print(f"csv -> {csv_path}")
