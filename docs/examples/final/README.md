@@ -68,6 +68,14 @@ python3 tools/pipeline.py \
 
 7 负载把 `9load` 换成 `7load`。
 
+## 更新流程（给同学）
+
+1. 改 `ssot/<version>/<板卡>.json` 中 `modules` 与 `power` 的测量值。
+2. 在分支上运行 `tools/pipeline.py`，把 `scored/` 与 `outputs/` 的更新一并提交。
+3. 提 PR 到 main，标题写「data: 更新 <板卡> 结果」。
+4. 全量重跑会更新所有板的报告与 Excel，属于正常；并行 PR 的冲突在合并时解决。
+5. CI 会重算并比对 `scored/` 与 `scores.csv`，不一致则失败。
+
 ## 口径
 
 ```

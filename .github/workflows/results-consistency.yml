@@ -1,0 +1,27 @@
+name: results-consistency
+
+on:
+  pull_request:
+    paths:
+      - 'docs/examples/final/**'
+      - 'tools/**'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas openpyxl python-docx
+      - name: 重算并校验分数与汇总表
+        run: |
+          for v in 7load 9load; do
+            python3 tools/pipeline.py --version "$v" \
+              --ssot "docs/examples/final/ssot/$v" \
+              --scored "/tmp/scored-$v" \
+              --out "/tmp/out-$v"
+            diff -r "/tmp/scored-$v" "docs/examples/final/scored/$v"
+            diff "/tmp/out-$v/scores.csv" "docs/examples/final/outputs/$v/scores.csv"
+          done
