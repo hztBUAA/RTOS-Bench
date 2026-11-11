@@ -1,0 +1,5 @@
+{
+  "ok": true,
+  "status": 200,
+  "body": "{\"took\":4,\"timed_out\":false,\"_shards\":{\"failed\":0.0,\"successful\":1.0,\"total\":1.0,\"skipped\":0.0},\"hits\":{\"total\":{\"relation\":\"eq\",\"value\":0},\"hits\":[],\"max_score\":null}}"
+}

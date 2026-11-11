@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "dataset_key": "performance_safety",
+  "biz_id": "rtbench-joint-debug-20260610_152320-gongkong-testall",
+  "podName": "cursor-local-joint-debug-20260610_152320-gongkong",
+  "run_label": "gongkong_testall_20260427_233446",
+  "board_label": "gongkong",
+  "comparison_group": "rtbench-sylixos-entry-validation-20260427-final",
+  "source_file": "utils/remote-test/logs/sylixos-entry-validation-20260427-final/gongkong_testall_20260427_233446.json",
+  "sent_document": "utils/remote-test/logs/data-process-upload-20260610_152320-gongkong/sent_document.json",
+  "index_status": 200,
+  "search_status": 200,
+  "search_hit_count": 1,
+  "resolved_index": "rtos_perf_v1",
+  "index_request_meta": "utils/remote-test/logs/data-process-upload-20260610_152320-gongkong/index_request_meta.json",
+  "index_response": "utils/remote-test/logs/data-process-upload-20260610_152320-gongkong/index_response.json",
+  "search_request_meta": "utils/remote-test/logs/data-process-upload-20260610_152320-gongkong/search_request_meta.json",
+  "search_response": "utils/remote-test/logs/data-process-upload-20260610_152320-gongkong/search_response.json"
+}

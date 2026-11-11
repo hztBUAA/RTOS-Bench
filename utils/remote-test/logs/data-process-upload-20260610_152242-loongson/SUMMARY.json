@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "dataset_key": "performance_safety",
+  "biz_id": "rtbench-joint-debug-20260610_152242-loongson-testall",
+  "podName": "cursor-local-joint-debug-20260610_152242-loongson",
+  "run_label": "loongson_testall_20260427_233446",
+  "board_label": "loongson",
+  "comparison_group": "rtbench-sylixos-entry-validation-20260427-final",
+  "source_file": "utils/remote-test/logs/sylixos-entry-validation-20260427-final/loongson_testall_20260427_233446.json",
+  "sent_document": "utils/remote-test/logs/data-process-upload-20260610_152242-loongson/sent_document.json",
+  "index_status": 403,
+  "search_status": 200,
+  "search_hit_count": 0,
+  "resolved_index": null,
+  "index_request_meta": "utils/remote-test/logs/data-process-upload-20260610_152242-loongson/index_request_meta.json",
+  "index_response": "utils/remote-test/logs/data-process-upload-20260610_152242-loongson/index_response.json",
+  "search_request_meta": "utils/remote-test/logs/data-process-upload-20260610_152242-loongson/search_request_meta.json",
+  "search_response": "utils/remote-test/logs/data-process-upload-20260610_152242-loongson/search_response.json"
+}
