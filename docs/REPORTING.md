@@ -63,20 +63,26 @@ OS 与 BSP 版本在 `utils/board_meta.json` 维护。ReWorks 已填 V6.1.1 与�
 
 ## 3. 流程
 
+三层，单向依赖：
+
 ```
-结果展示表 Excel
-  → 逆生成 SSOT JSON        utils/excel_to_result_json.py
-  → 生成描述                utils/build_reports.py
-  → 转算分脚本 schema       utils/ssot_to_score_json.py
-  → score_caculate.py 出分（饱和曲线）  utils/score_caculate.py
-  → 汇总与导出                            utils/score_seven_workload.py
+raw/<板卡>/result.json         原始数据
+  → ssot/<version>/            测量值，无分数
+  → scored/<version>/          分数 sidecar
+  → outputs/<version>/         CSV、md/docx、Excel
 ```
 
-说明：
+一条命令：
 
-- `score_caculate.py` 只用 `test-stress.power` 作为功耗来源。
-- 多核指标由 `multi_core` 结构提供，带宽用实测/基准，任务延迟用基准/实测。
-- 哪吒按单核处理，排除多核并重新归一化权重。
+```bash
+python3 tools/pipeline.py --version 9load \
+  --ssot   docs/examples/final/ssot/9load \
+  --scored docs/examples/final/scored/9load \
+  --out    docs/examples/final/outputs/9load
+```
+
+- 算分脚本不写 SSOT。
+- 报告和 Excel 同时读 SSOT 与 scored。
 
 ## 4. 命令
 

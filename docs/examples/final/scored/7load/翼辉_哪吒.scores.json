@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "DH-1",
+  "os_name": "SylixOS",
+  "arch": "riscv64",
+  "source": "ssot/7load/翼辉_哪吒.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 96.1545182481392,
+    "sched": 100.0,
+    "RT": 98.0772591240696,
+    "T": 93.42156327218572,
+    "P": 97.4026425353272,
+    "F": 60.0,
+    "total": 88.5320672996279,
+    "categories": {
+      "realtime_control": 98.56615414672032,
+      "perception": 97.85444427295013,
+      "communication": 80.0006104640833,
+      "monitoring": 97.26504420498912
+    }
+  }
+}

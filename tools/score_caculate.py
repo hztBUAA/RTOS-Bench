@@ -1,0 +1,1468 @@
+"""
+rtos_scorer.py
+工业 RTOS 评测结果汇总与评分程序（饱和曲线版本）
+
+T_Score / RT_Score 子项得分公式：
+  Score = 100 * R / (a + R)
+  其中 a = CONFIG["saturation_a"]（默认 0.25），R 越大得分越高。
+  每个子项独立计分，不受同板卡其他 OS 的测量值影响。
+
+功耗 P_Score = 4 项功耗子项饱和得分的算术平均。
+
+多核带宽指标使用 R = measured / baseline；多核任务延迟使用
+R = baseline / measured。多核值缺失时不生成该子项；多核大指标没有有效
+子项时从 Base_RT 中剔除，并重新归一化剩余权重。
+
+多核得分按内存访问、系统服务、核间通信三个子类分别取有效指标项的
+算术平均，再对有效子类等权平均。
+
+依赖: pandas, openpyxl
+安装: pip install pandas openpyxl
+"""
+
+import json
+import sqlite3
+import logging
+import os
+import glob
+from datetime import datetime, timezone
+from typing import Optional
+import warnings
+
+import pandas as pd
+
+warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+
+# ─────────────────────────────────────────────
+# 0. 全局配置
+# ─────────────────────────────────────────────
+CONFIG = {
+    "default_function_score": 60.0,
+    "workload_partial_mode":  True,
+    "power_partial_mode":     True,
+    "storage_path":           "./data/results_db.sqlite",
+    "baseline_os":            "SylixOS",
+    "baseline_board":         "LS2K1000LA",
+    # 饱和曲线 S = 100*R/(a+R) 中的 a，必须大于 0
+    "saturation_a":           0.25,
+}
+
+WORKLOAD_CATEGORY_MAP = {
+    "pid":    "realtime_control",
+    "ekf":    "realtime_control",
+    "icp":    "perception",
+    "fast":   "perception",
+    "epnp":   "perception",
+    "modbus": "communication",
+    "mqtt":   "communication",
+    "cusum":  "monitoring",
+    "ewma":   "monitoring",
+}
+
+WORKLOAD_CATEGORY_WEIGHTS = {
+    "realtime_control": 0.25,
+    "perception":       0.25,
+    "communication":    0.25,
+    "monitoring":       0.25,
+}
+
+BASE_RT_WEIGHTS = {
+    "context_switch_latency": 0.10,
+    "interrupt_latency":      0.10,
+    "scheduling_latency":     0.40,
+    "multicore_overhead":     0.40,
+}
+
+MULTICORE_CONCURRENCIES = ("c1", "c2", "c4", "c8")
+MULTICORE_MEMORY_TYPES = (
+    "rd", "wr", "cp", "frd", "fwr", "fcp", "memset", "memcpy",
+)
+
+MULTICORE_SCORE_GROUPS = {
+    "memory_access": (
+        "multi_core_memory_bandwidth_",
+    ),
+    "system_service": (
+        "multi_core_ipc_bandwidth_",
+        "multi_core_task_latency_",
+    ),
+    "core_comm": (
+        "multi_core_core_comm_",
+    ),
+}
+
+
+def _build_multicore_metric_definitions() -> dict:
+    """返回多核指标定义：item_key -> (unit, metric_type)。"""
+    definitions = {}
+    for memory_type in MULTICORE_MEMORY_TYPES:
+        for concurrency in MULTICORE_CONCURRENCIES:
+            key = f"multi_core_memory_bandwidth_{memory_type}_{concurrency}"
+            definitions[key] = ("GB/s", "bandwidth")
+
+    for concurrency in MULTICORE_CONCURRENCIES:
+        key = f"multi_core_ipc_bandwidth_{concurrency}"
+        definitions[key] = ("GB/s", "bandwidth")
+
+    for concurrency in MULTICORE_CONCURRENCIES:
+        key = f"multi_core_task_latency_{concurrency}"
+        definitions[key] = ("us", "latency")
+
+    definitions["multi_core_core_comm_intra_core"] = ("GB/s", "bandwidth")
+    definitions["multi_core_core_comm_inter_core"] = ("GB/s", "bandwidth")
+    return definitions
+
+
+MULTICORE_METRIC_DEFINITIONS = _build_multicore_metric_definitions()
+
+POWER_TASK_MAP = {
+    "standby": "static_power",
+    "cpu":     "cpu_power",
+    "memory":  "memory_power",
+    "file":    "file_power",
+}
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger("rtos_scorer")
+
+
+# ─────────────────────────────────────────────
+# 1. 数据库初始化
+# ─────────────────────────────────────────────
+def init_db(db_path: str) -> sqlite3.Connection:
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # 原始子项表（存储 R_value，item_score 由饱和曲线算分后写入）
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS raw_records (
+        board_model      TEXT NOT NULL,
+        os_name          TEXT NOT NULL,
+        arch             TEXT NOT NULL,
+        category         TEXT NOT NULL,
+        sub_category     TEXT,
+        item_key         TEXT NOT NULL,
+        raw_value        REAL,
+        raw_unit         TEXT,
+        metric_type      TEXT,
+        baseline_value   REAL,
+        baseline_source  TEXT,
+        R_value          REAL,
+        item_score       REAL,           -- 饱和曲线算分后写入
+        norm_pending     INTEGER DEFAULT 1,  -- 1=待算分
+        status           TEXT,
+        source_file      TEXT,
+        last_updated     TEXT,
+        PRIMARY KEY (board_model, os_name, arch, category, sub_category, item_key)
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS score_cache (
+        board_model  TEXT NOT NULL,
+        os_name      TEXT NOT NULL,
+        arch         TEXT NOT NULL,
+        score_level  TEXT NOT NULL,
+        score_key    TEXT NOT NULL,
+        score_value  REAL,
+        is_partial   INTEGER DEFAULT 0,
+        extra_json   TEXT,
+        last_updated TEXT,
+        PRIMARY KEY (board_model, os_name, arch, score_level, score_key)
+    )
+    """)
+
+    conn.commit()
+    return conn
+
+
+# ─────────────────────────────────────────────
+# 2. 工具函数
+# ─────────────────────────────────────────────
+def safe_float(val) -> Optional[float]:
+    try:
+        f = float(val)
+        return f if f == f else None
+    except (TypeError, ValueError):
+        return None
+
+
+def is_single_core_board(board_model: str, arch: str, source: str = "") -> bool:
+    """判断是否为当前唯一的单核评测板卡：RISC-V 哪吒。
+
+    不能使用 cpu_core_num <= 1 判断，因为部分多核 x86 结果会缺省或误报为 0/1。
+    部分历史哪吒结果没有 cpu_type，甚至将板名写成通用 OneOS-Board；因此板名或
+    结果文件名中的哪吒标识优先于错误/缺失的架构元数据。
+    """
+    board_value = str(board_model or "").casefold()
+    source_value = str(source or "").casefold()
+    is_nezha = (
+        "nezha" in board_value
+        or "哪吒" in board_value
+        or "nezha" in source_value
+        or "哪吒" in source_value
+    )
+    return is_nezha
+
+
+def calc_R(measured: float, baseline: float, metric_type: str) -> Optional[float]:
+    """
+    latency  → R = baseline / measured  (延迟越低越好，R 越大越好)
+    bandwidth/ops → R = measured / baseline  (吞吐越大越好，R 越大越好)
+    """
+    if measured is None or baseline is None:
+        return None
+    if measured == 0 or baseline == 0:
+        return None
+    if metric_type == "latency":
+        return baseline / measured
+    else:
+        return measured / baseline
+
+
+def saturation_score(R: Optional[float],
+                     a: Optional[float] = None) -> Optional[float]:
+    """
+    Score = 100 * R / (a + R)
+
+    饱和曲线：R -> 0 时得分 -> 0，R -> +inf 时得分 -> 100。
+    同一 R 始终得到同一分数，不依赖同板卡其他 OS 的测量值。
+    """
+    if R is None:
+        return None
+    if R <= 0:
+        return 0.0
+    a = CONFIG["saturation_a"] if a is None else a
+    if a <= 0:
+        raise ValueError(f"saturation_a 必须大于 0，当前为 {a!r}")
+    return 100.0 * R / (a + R)
+
+
+def _mean(values) -> Optional[float]:
+    valid = [value for value in values if value is not None]
+    return sum(valid) / len(valid) if valid else None
+
+
+def _multicore_score(rows) -> Optional[float]:
+    """
+    按内存访问、系统服务、核间通信三个子类分层计算多核得分。
+
+    子类内部对有效指标项取算术平均，再对有效子类等权平均。整个子类
+    缺失时仅使用剩余子类，保持“缺失项不按零分计入”的现有口径。
+    """
+    grouped_scores = {group: [] for group in MULTICORE_SCORE_GROUPS}
+
+    for row in rows:
+        score = row["item_score"]
+        if score is None:
+            continue
+
+        item_key = row["item_key"]
+        for group, prefixes in MULTICORE_SCORE_GROUPS.items():
+            if item_key.startswith(prefixes):
+                grouped_scores[group].append(score)
+                break
+
+    group_scores = [
+        _mean(scores) for scores in grouped_scores.values()
+    ]
+    return _mean(group_scores)
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def upsert_record(conn: sqlite3.Connection, rec: dict):
+    conn.execute("""
+    INSERT INTO raw_records
+        (board_model, os_name, arch, category, sub_category, item_key,
+         raw_value, raw_unit, metric_type,
+         baseline_value, baseline_source, R_value, item_score,
+         norm_pending, status, source_file, last_updated)
+    VALUES
+        (:board_model, :os_name, :arch, :category, :sub_category, :item_key,
+         :raw_value, :raw_unit, :metric_type,
+         :baseline_value, :baseline_source, :R_value, :item_score,
+         :norm_pending, :status, :source_file, :last_updated)
+    ON CONFLICT(board_model, os_name, arch, category, sub_category, item_key)
+    DO UPDATE SET
+        raw_value       = excluded.raw_value,
+        raw_unit        = excluded.raw_unit,
+        metric_type     = excluded.metric_type,
+        baseline_value  = excluded.baseline_value,
+        baseline_source = excluded.baseline_source,
+        R_value         = excluded.R_value,
+        item_score      = excluded.item_score,
+        norm_pending    = excluded.norm_pending,
+        status          = excluded.status,
+        source_file     = excluded.source_file,
+        last_updated    = excluded.last_updated
+    """, rec)
+
+
+def upsert_score(conn, board_model, os_name, arch,
+                 score_level, score_key,
+                 score_value: Optional[float],
+                 is_partial: bool = False,
+                 extra: dict = None):
+    conn.execute("""
+    INSERT INTO score_cache
+        (board_model, os_name, arch, score_level, score_key,
+         score_value, is_partial, extra_json, last_updated)
+    VALUES (?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(board_model, os_name, arch, score_level, score_key)
+    DO UPDATE SET
+        score_value  = excluded.score_value,
+        is_partial   = excluded.is_partial,
+        extra_json   = excluded.extra_json,
+        last_updated = excluded.last_updated
+    """, (board_model, os_name, arch, score_level, score_key,
+          score_value, int(is_partial),
+          json.dumps(extra or {}),
+          now_iso()))
+
+
+def get_baseline_value(conn, category, sub_category, item_key) -> Optional[float]:
+    """绝对基准原始值：SylixOS + LS2K1000LA（对所有板卡统一）。"""
+    row = conn.execute("""
+    SELECT raw_value FROM raw_records
+    WHERE board_model=? AND os_name=?
+      AND category=? AND sub_category=? AND item_key=?
+    ORDER BY rowid LIMIT 1
+    """, (CONFIG["baseline_board"], CONFIG["baseline_os"],
+          category, sub_category, item_key)).fetchone()
+    return row["raw_value"] if row else None
+
+
+# ─────────────────────────────────────────────
+# 3. 子项得分（绝对饱和曲线，不依赖数据集）
+# ─────────────────────────────────────────────
+def normalize_items_for_board(board_model: str, arch: str,
+                               conn: sqlite3.Connection,
+                               categories: tuple = ("realtime", "workload")):
+    """
+    对指定板卡+架构的所有子项按饱和曲线计算 item_score，写回 raw_records。
+    每个子项只依赖自身的 R_value，与同板卡其他 OS 无关。
+
+    同时返回受影响的 (board_model, os_name, arch) 三元组集合，
+    供后续重算汇总分数使用。
+
+    注意：
+    - schedulability 子项（metric_type='miss_rate'）直接用 Sched_Score=100*(1-MR)，
+      不走饱和曲线，这里跳过。
+    - power 子项另有权重口径，不在此处理。
+    """
+    affected_os = set()
+
+    rows = conn.execute("""
+    SELECT os_name, category, sub_category, item_key, R_value
+    FROM raw_records
+    WHERE board_model=? AND arch=?
+      AND category IN ({})
+      AND metric_type != 'miss_rate'
+      AND R_value IS NOT NULL
+      AND status NOT IN ('null_value','error','missing_default_rmin')
+    """.format(",".join("?" * len(categories))),
+    (board_model, arch, *categories)).fetchall()
+
+    for row in rows:
+        score = saturation_score(row["R_value"])
+        conn.execute("""
+        UPDATE raw_records
+        SET item_score=?, norm_pending=0, last_updated=?
+        WHERE board_model=? AND os_name=? AND arch=?
+          AND category=? AND sub_category=? AND item_key=?
+          AND R_value IS NOT NULL
+          AND status NOT IN ('null_value','error','missing_default_rmin')
+        """, (score, now_iso(),
+              board_model, row["os_name"], arch,
+              row["category"], row["sub_category"], row["item_key"]))
+        affected_os.add((board_model, row["os_name"], arch))
+
+    conn.commit()
+    logger.info(
+        f"算分完成 [{board_model}|{arch}]: "
+        f"{len(rows)} 个子项，影响 {len(affected_os)} 个系统"
+    )
+    return affected_os
+
+
+# ─────────────────────────────────────────────
+# 4. JSON 解析（只存 R_value，不算 item_score）
+# ─────────────────────────────────────────────
+def validate_json_data(data: dict) -> Optional[str]:
+    """完整格式校验：返回错误描述；None 表示通过。"""
+    if not isinstance(data, dict):
+        return "根节点不是对象"
+    env = data.get("env")
+    if not isinstance(env, dict):
+        return "缺少 env 对象"
+    for k in ("os_name", "board", "cpu_type"):
+        if not env.get(k):
+            return f"env.{k} 缺失或为空"
+    modules = data.get("modules")
+    if not isinstance(modules, dict):
+        return "缺少 modules 对象"
+    if not any(m in modules for m in
+               ("test-realtime", "test-schedule", "typical-workload", "test-stress")):
+        return "modules 缺少已知测试模块"
+    stress = modules.get("test-stress")
+    if isinstance(stress, dict) and stress.get("power") is not None:
+        power = stress["power"]
+        if not isinstance(power, list):
+            return "test-stress.power 不是数组"
+        for i, e in enumerate(power):
+            if not isinstance(e, dict):
+                return f"test-stress.power[{i}] 不是对象"
+            if str(e.get("name", "")).strip().lower() not in POWER_TASK_MAP:
+                return f"test-stress.power[{i}].name 非法: {e.get('name')!r}"
+    return None
+
+
+def _parse_json_data(data: dict, conn: sqlite3.Connection, source: str) -> dict:
+    env         = data.get("env", {})
+    board_model = env.get("board", "unknown")
+    os_name     = env.get("os_name", "unknown")
+    arch        = env.get("cpu_type", "unknown")
+    ts          = now_iso()
+
+    logger.info(f"解析 JSON: board={board_model}, os={os_name}, arch={arch}")
+
+    modules = data.get("modules", {})
+    _parse_realtime_module(conn, modules, board_model, os_name, arch, source, ts)
+    _parse_schedule_module(conn, modules, board_model, os_name, arch, source, ts)
+    _parse_workload_module(conn, modules, board_model, os_name, arch, source, ts)
+    _parse_power_from_json(conn, modules, board_model, os_name, arch, source, ts)
+
+    return {"board_model": board_model, "os_name": os_name, "arch": arch}
+
+
+def parse_json_results(filepath: str, conn: sqlite3.Connection) -> dict:
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        logger.error(f"JSON 解析失败 [{filepath}]: {e}")
+        return {}
+
+    err = validate_json_data(data)
+    if err:
+        logger.error(f"格式校验失败 [{filepath}]: {err}")
+        return {}
+
+    return _parse_json_data(data, conn, os.path.basename(filepath))
+
+
+def _make_rec_base(board_model, os_name, arch, category,
+                   sub_category, item_key, source, ts) -> dict:
+    return {
+        "board_model": board_model, "os_name": os_name, "arch": arch,
+        "category": category, "sub_category": sub_category, "item_key": item_key,
+        "raw_value": None, "raw_unit": "us", "metric_type": "latency",
+        "baseline_value": None, "baseline_source": None,
+        "R_value": None,
+        "item_score": None,    # 等待 normalize_items_for_board() 填入
+        "norm_pending": 1,
+        "status": "ok", "source_file": source, "last_updated": ts,
+    }
+
+
+def _fill_R_only(rec: dict, conn: sqlite3.Connection) -> dict:
+    """
+    只计算并存储 R_value，不计算 item_score。
+    item_score 由 normalize_items_for_board() 统一算分后写入。
+    """
+    if rec["raw_value"] is None:
+        rec["status"] = "null_value"
+        return rec
+
+    if (rec["board_model"] == CONFIG["baseline_board"]
+            and rec["os_name"] == CONFIG["baseline_os"]):
+        rec["baseline_value"]  = rec["raw_value"]
+        rec["baseline_source"] = "self"
+        rec["R_value"]         = 1.0
+        rec["status"]          = "ok"
+        return rec
+
+    if rec["baseline_value"] is None:
+        bv = get_baseline_value(
+            conn,
+            rec["category"], rec["sub_category"], rec["item_key"]
+        )
+        if bv is not None:
+            rec["baseline_value"] = bv
+            rec["baseline_source"] = "db"
+        else:
+            rec["status"] = "baseline_missing"
+            return rec
+
+    R = calc_R(rec["raw_value"], rec["baseline_value"], rec["metric_type"])
+    rec["R_value"] = R
+    rec["status"]  = "ok" if R is not None else "null_value"
+    return rec
+
+
+def _collect_multicore_values(multi_core: dict) -> dict:
+    """把 JSON 多核结构展开为 v2_schema 定义的 42 个 item_key。"""
+    values = {}
+
+    memory_bandwidth = multi_core.get("memory_bandwidth", [])
+    if isinstance(memory_bandwidth, list):
+        for entry in memory_bandwidth:
+            if not isinstance(entry, dict):
+                continue
+            memory_type = str(entry.get("type", "")).strip().lower()
+            if memory_type not in MULTICORE_MEMORY_TYPES:
+                continue
+            for concurrency in MULTICORE_CONCURRENCIES:
+                key = f"multi_core_memory_bandwidth_{memory_type}_{concurrency}"
+                values[key] = safe_float(entry.get(concurrency))
+
+    for field, prefix in (
+        ("ipc_bandwidth", "multi_core_ipc_bandwidth"),
+        ("task_latency", "multi_core_task_latency"),
+    ):
+        metric = multi_core.get(field, {})
+        if not isinstance(metric, dict):
+            continue
+        for concurrency in MULTICORE_CONCURRENCIES:
+            values[f"{prefix}_{concurrency}"] = safe_float(metric.get(concurrency))
+
+    core_comm = multi_core.get("core_comm", {})
+    if isinstance(core_comm, dict):
+        for direction in ("intra_core", "inter_core"):
+            key = f"multi_core_core_comm_{direction}"
+            values[key] = safe_float(core_comm.get(direction))
+
+    return values
+
+
+def _parse_multicore_metrics(conn, multi_core, board_model, os_name, arch,
+                             source, ts):
+    """解析多核带宽/延迟；缺失值不生成记录，单核哪吒忽略多核数据。"""
+    if is_single_core_board(board_model, arch, source):
+        return
+
+    observed = _collect_multicore_values(multi_core or {})
+    for item_key, (unit, metric_type) in MULTICORE_METRIC_DEFINITIONS.items():
+        rec = _make_rec_base(board_model, os_name, arch,
+                             "realtime", "multicore_overhead",
+                             item_key, source, ts)
+        rec["raw_unit"]    = unit
+        rec["metric_type"] = metric_type
+        value = observed.get(item_key)
+
+        if value is None or value <= 0:
+            continue
+
+        rec["raw_value"] = value
+        rec = _fill_R_only(rec, conn)
+        upsert_record(conn, rec)
+
+
+def _parse_realtime_module(conn, modules, board_model, os_name, arch, source, ts):
+    mod = modules.get("test-realtime", {})
+    if not mod:
+        logger.warning("test-realtime 模块缺失")
+        return
+
+    sc = mod.get("single_core", {})
+
+    # context_switch_latency
+    ctx = sc.get("context_switch", {})
+    if ctx:
+        rec = _make_rec_base(board_model, os_name, arch,
+                             "realtime", "context_switch_latency",
+                             "avg_us", source, ts)
+        rec["raw_value"] = safe_float(ctx.get("avg_us"))
+        rec = _fill_R_only(rec, conn)
+        upsert_record(conn, rec)
+
+    # interrupt_latency
+    intr = sc.get("interrupt", {})
+    if intr:
+        rec = _make_rec_base(board_model, os_name, arch,
+                             "realtime", "interrupt_latency",
+                             "avg_us", source, ts)
+        rec["raw_value"] = safe_float(intr.get("avg_us"))
+        if rec["raw_value"] == 0.0:
+            rec["status"] = "null_value"
+        else:
+            rec = _fill_R_only(rec, conn)
+        upsert_record(conn, rec)
+
+    # scheduling_latency（service_cost 各场景）
+    for entry in sc.get("service_cost", []):
+        op = entry.get("operation", "unknown")
+        for scenario in ["immediate_us", "suspend_us", "low_prio_us", "high_prio_us"]:
+            val = safe_float(entry.get(scenario))
+            if val is None or val == 0.0:
+                continue
+            item_key = f"{op}_{scenario}"
+            rec = _make_rec_base(board_model, os_name, arch,
+                                 "realtime", "scheduling_latency",
+                                 item_key, source, ts)
+            rec["raw_value"] = val
+            rec = _fill_R_only(rec, conn)
+            upsert_record(conn, rec)
+
+    # syscall 仅保留为诊断指标，不进入 Base_RT。
+    syscall = sc.get("syscall", {})
+    if syscall:
+        for field_name in ("min_us", "max_us", "avg_us"):
+            rec = _make_rec_base(board_model, os_name, arch,
+                                 "realtime", "syscall_latency",
+                                 field_name, source, ts)
+            rec["raw_value"] = safe_float(syscall.get(field_name))
+            rec = _fill_R_only(rec, conn)
+            upsert_record(conn, rec)
+
+    _parse_multicore_metrics(
+        conn, mod.get("multi_core", {}), board_model, os_name, arch, source, ts
+    )
+
+
+def _parse_schedule_module(conn, modules, board_model, os_name, arch, source, ts):
+    """
+    schedulability 直接用 Sched_Score = 100*(1-avg_mr)，
+    不走饱和曲线，在这里直接写入 item_score，norm_pending=0。
+    """
+    mod = modules.get("test-schedule", {})
+    if not mod:
+        logger.warning("test-schedule 模块缺失")
+        return
+
+    summary = mod.get("summary", {})
+    avg_mr  = safe_float(summary.get("average_miss_rate"))
+
+    rec = _make_rec_base(board_model, os_name, arch,
+                         "realtime", "schedulability",
+                         "average_mr", source, ts)
+    rec["raw_value"]   = avg_mr
+    rec["raw_unit"]    = "ratio"
+    rec["metric_type"] = "miss_rate"
+    rec["norm_pending"] = 0   # 不需要饱和曲线
+    if avg_mr is not None:
+        rec["item_score"] = 100.0 * (1.0 - avg_mr)
+        rec["status"] = "ok"
+    else:
+        rec["status"] = "null_value"
+    upsert_record(conn, rec)
+
+    # 各梯度详情
+    for grad in mod.get("gradients", []):
+        util = grad.get("utilization_percent", "?")
+        mr   = safe_float(grad.get("miss_rate"))
+        rec2 = _make_rec_base(board_model, os_name, arch,
+                              "realtime", "schedulability",
+                              f"grad_{util}pct_mr", source, ts)
+        rec2["raw_value"]    = mr
+        rec2["raw_unit"]     = "ratio"
+        rec2["metric_type"]  = "miss_rate"
+        rec2["norm_pending"] = 0
+        rec2["item_score"]   = 100.0 * (1.0 - mr) if mr is not None else None
+        rec2["status"]       = "ok" if mr is not None else "null_value"
+        upsert_record(conn, rec2)
+
+
+def _parse_workload_module(conn, modules, board_model, os_name, arch, source, ts):
+    mod = modules.get("typical-workload", {})
+    if not mod:
+        logger.warning("typical-workload 模块缺失")
+        return
+
+    for wl in mod.get("workloads", []):
+        name = wl.get("name", "")
+        cat  = WORKLOAD_CATEGORY_MAP.get(name)
+        if cat is None:
+            continue
+
+        avg_ms = safe_float(wl.get("avg_time_ms"))
+        rec = _make_rec_base(board_model, os_name, arch,
+                             "workload", cat, name, source, ts)
+        rec["raw_value"]   = avg_ms
+        rec["raw_unit"]    = "ms"
+        rec["metric_type"] = "latency"
+        rec = _fill_R_only(rec, conn)
+        upsert_record(conn, rec)
+
+
+def _parse_power_from_json(conn, modules, board_model, os_name, arch, source, ts):
+    """从 JSON 的 modules.test-stress.power 读取功耗（JSON 为唯一功耗来源）。"""
+    stress = modules.get("test-stress")
+    if not isinstance(stress, dict):
+        return
+    power_list = stress.get("power")
+    if not isinstance(power_list, list):
+        return
+
+    for entry in power_list:
+        if not isinstance(entry, dict):
+            continue
+        name = str(entry.get("name", "")).strip().lower()
+        power_field = POWER_TASK_MAP.get(name)
+        if power_field is None:
+            continue
+
+        placeholder = bool(entry.get("placeholder", False))
+        total_j     = safe_float(entry.get("power_data"))
+
+        rec = _make_rec_base(board_model, os_name, arch,
+                             "power", power_field, "power_data", source, ts)
+        rec["raw_value"]   = total_j
+        rec["raw_unit"]    = "J"
+        rec["metric_type"] = "power"
+
+        if placeholder or total_j is None or total_j <= 0:
+            rec["status"] = "null_value"
+        elif (board_model == CONFIG["baseline_board"]
+              and os_name == CONFIG["baseline_os"]):
+            rec["baseline_value"]  = total_j
+            rec["baseline_source"] = "self"
+            rec["R_value"]         = 1.0
+            rec["status"]          = "ok"
+        else:
+            bv = get_baseline_value(conn, "power", power_field, "power_data")
+            if bv is not None and bv > 0:
+                rec["baseline_value"]  = bv
+                rec["baseline_source"] = "db"
+                rec["R_value"]         = bv / total_j
+                rec["status"]          = "ok"
+            else:
+                rec["status"] = "baseline_missing"
+
+        upsert_record(conn, rec)
+
+
+# ─────────────────────────────────────────────
+# 5. Excel 解析（功耗）
+# ─────────────────────────────────────────────
+def parse_power_excel(filepath: str, conn: sqlite3.Connection) -> list:
+    affected = []
+    try:
+        xl = pd.ExcelFile(filepath, engine="openpyxl")
+    except Exception as e:
+        logger.error(f"打开 Excel 失败 [{filepath}]: {e}")
+        return affected
+
+    sheet_name = None
+    for candidate in ["测试汇总", "Sheet1", "汇总"]:
+        if candidate in xl.sheet_names:
+            sheet_name = candidate
+            break
+    if sheet_name is None:
+        logger.warning(f"找不到 '测试汇总' sheet: {filepath}")
+        return affected
+
+    try:
+        df = xl.parse(sheet_name)
+    except Exception as e:
+        logger.error(f"解析 sheet 失败 [{filepath}]: {e}")
+        return affected
+
+    col_map = _fuzzy_col_map(df.columns, {
+        "board_model": ["板卡型号", "板卡", "board"],
+        "os_name":     ["操作系统", "os", "系统"],
+        "task":        ["测试任务", "任务", "task"],
+        "avg_power_w": ["平均功率", "平均功率(W)", "avg_power"],
+        "total_j":     ["总功耗(J)", "总功耗j", "energy_j"],
+        "duration_s":  ["测试总耗时", "测试总耗时(s)", "duration"],
+    })
+
+    source = os.path.basename(filepath)
+    ts     = now_iso()
+
+    for _, row in df.iterrows():
+        try:
+            board_model = str(row.get(col_map.get("board_model", ""), "")).strip()
+            os_name     = str(row.get(col_map.get("os_name", ""), "")).strip()
+            task        = str(row.get(col_map.get("task", ""), "")).strip().lower()
+
+            if not board_model or not os_name or not task:
+                continue
+
+            arch         = "unknown"
+            power_field  = POWER_TASK_MAP.get(task)
+            if power_field is None:
+                continue
+
+            total_j = safe_float(row.get(col_map.get("total_j", ""), None))
+            if total_j is None:
+                avg_power = safe_float(row.get(col_map.get("avg_power_w", ""), None))
+                duration  = safe_float(row.get(col_map.get("duration_s", ""), None))
+                if avg_power and duration and duration > 0:
+                    total_j = avg_power * duration
+
+            rec = _make_rec_base(board_model, os_name, arch,
+                                 "power", power_field,
+                                 "power_data", source, ts)
+            rec["raw_value"]   = total_j
+            rec["raw_unit"]    = "J"
+            rec["metric_type"] = "power"
+
+            if rec["raw_value"] is None:
+                rec["status"] = "null_value"
+            else:
+                bv = get_baseline_value(conn,
+                                        "power", power_field, "power_data")
+                if bv is not None and bv > 0 and rec["raw_value"] > 0:
+                    rec["baseline_value"]  = bv
+                    rec["baseline_source"] = "db"
+                    rec["R_value"] = bv / rec["raw_value"]  # 越低功耗 R 越大
+                    rec["status"]  = "ok"
+                else:
+                    rec["status"] = "baseline_missing"
+
+            upsert_record(conn, rec)
+            key = (board_model, os_name, arch)
+            if key not in affected:
+                affected.append(key)
+
+        except Exception as e:
+            logger.warning(f"处理行异常 [{filepath}]: {e}")
+            continue
+
+    conn.commit()
+    return affected
+
+
+def _fuzzy_col_map(columns, desired: dict) -> dict:
+    result   = {}
+    col_strs = [str(c) for c in columns]
+    for key, candidates in desired.items():
+        for cand in candidates:
+            for actual in col_strs:
+                if cand.lower() in actual.lower():
+                    result[key] = actual
+                    break
+            if key in result:
+                break
+    return result
+
+
+# ─────────────────────────────────────────────
+# 6. 功耗 P_Score（4 项分别饱和后平均）
+# ─────────────────────────────────────────────
+def normalize_power_for_board(board_model: str, arch: str,
+                               conn: sqlite3.Connection):
+    """
+    每项功耗子项单独按饱和曲线计分并写回 item_score；
+    P_Score = 4 项功耗子项得分的算术平均。
+    R 仍为 基准功耗 / 实测功耗。
+    """
+    power_fields = ["static_power", "cpu_power", "memory_power", "file_power"]
+
+    # 获取同板卡所有 OS
+    all_os = conn.execute("""
+    SELECT DISTINCT os_name FROM raw_records
+    WHERE board_model=? AND arch=? AND category='power'
+    """, (board_model, arch)).fetchall()
+
+    p_scores = {}
+    for row in all_os:
+        os_name = row["os_name"]
+        field_ratios = []
+        item_scores  = []
+        for pf in power_fields:
+            r = conn.execute("""
+            SELECT R_value FROM raw_records
+            WHERE board_model=? AND os_name=? AND arch=?
+              AND category='power' AND sub_category=? AND item_key='power_data'
+              AND R_value IS NOT NULL
+              AND status NOT IN ('null_value','error')
+            """, (board_model, os_name, arch, pf)).fetchone()
+            if not r:
+                continue
+
+            score = saturation_score(r["R_value"])
+            conn.execute("""
+            UPDATE raw_records
+            SET item_score=?, norm_pending=0, last_updated=?
+            WHERE board_model=? AND os_name=? AND arch=?
+              AND category='power' AND sub_category=? AND item_key='power_data'
+            """, (score, now_iso(), board_model, os_name, arch, pf))
+
+            field_ratios.append(r["R_value"])
+            item_scores.append(score)
+
+        if item_scores:
+            p_scores[os_name] = {
+                "score":   sum(item_scores) / len(item_scores),
+                "pending": False,
+                "ratio":   sum(field_ratios) / len(field_ratios),
+            }
+
+    conn.commit()
+    logger.info(
+        f"功耗算分完成 [{board_model}|{arch}]: {len(p_scores)} 个系统"
+    )
+    return p_scores
+
+
+# ─────────────────────────────────────────────
+# 7. 增量得分计算
+# ─────────────────────────────────────────────
+def recalc_scores_for_target(board_model: str, os_name: str, arch: str,
+                              conn: sqlite3.Connection,
+                              power_scores: dict = None):
+    """
+    重算某个 (board_model, os_name, arch) 的所有层级得分。
+    power_scores: {os_name: {score, pending, ratio}} 由外部传入（已按饱和曲线算分）
+    """
+    def q(category, sub_category):
+        return conn.execute("""
+        SELECT item_key, item_score, R_value, raw_value, metric_type, status
+        FROM raw_records
+        WHERE board_model=? AND os_name=? AND arch=?
+          AND category=? AND sub_category=?
+          AND status NOT IN ('null_value','error','missing_default_rmin')
+        """, (board_model, os_name, arch, category, sub_category)).fetchall()
+
+    # ── 实时性能 ──────────────────────────────
+    rt_sub = {}
+    for key in BASE_RT_WEIGHTS:
+        rows = q("realtime", key)
+        if key == "multicore_overhead":
+            rt_sub[key] = _multicore_score(rows)
+            continue
+
+        scores = [
+            r["item_score"] for r in rows
+            if r["item_score"] is not None
+            # 兼容旧数据库：历史版本曾将 syscall 放在 scheduling_latency 下。
+            and not (key == "scheduling_latency"
+                     and r["item_key"] == "syscall_avg_us")
+        ]
+        if scores:
+            rt_sub[key] = sum(scores) / len(scores)
+        else:
+            rt_sub[key] = None
+
+    base_rt_score = _weighted_avg(rt_sub, BASE_RT_WEIGHTS)
+    base_rt_partial = any(
+        value is None
+        for key, value in rt_sub.items()
+        if key != "multicore_overhead"
+    )
+    upsert_score(conn, board_model, os_name, arch,
+                 "realtime", "base_realtime",
+                 base_rt_score,
+                 is_partial=base_rt_partial,
+                 extra=rt_sub)
+
+    sched_row = conn.execute("""
+    SELECT item_score, raw_value FROM raw_records
+    WHERE board_model=? AND os_name=? AND arch=?
+      AND category='realtime' AND sub_category='schedulability'
+      AND item_key='average_mr'
+    """, (board_model, os_name, arch)).fetchone()
+    sched_score = sched_row["item_score"] if sched_row else None
+    avg_mr_val  = sched_row["raw_value"]  if sched_row else None
+
+    upsert_score(conn, board_model, os_name, arch,
+                 "realtime", "schedulability",
+                 sched_score,
+                 extra={"average_mr": avg_mr_val})
+
+    rt_score = _partial_weighted({
+        "base": (base_rt_score, 0.5),
+        "sched": (sched_score, 0.5),
+    })
+    upsert_score(conn, board_model, os_name, arch,
+                 "total", "rt_score", rt_score,
+                 is_partial=(base_rt_partial or sched_score is None))
+
+    # ── 典型负载 ──────────────────────────────
+    cat_scores  = {}
+    missing_cats = []
+    for cat in WORKLOAD_CATEGORY_WEIGHTS:
+        rows   = q("workload", cat)
+        scores = [r["item_score"] for r in rows if r["item_score"] is not None]
+        items  = {r["item_key"]: {"raw_ms": r["raw_value"],
+                                   "R": r["R_value"],
+                                   "score": r["item_score"]} for r in rows}
+        cat_scores[cat] = sum(scores) / len(scores) if scores else None
+        if cat_scores[cat] is None:
+            missing_cats.append(cat)
+        upsert_score(conn, board_model, os_name, arch,
+                     "workload", cat, cat_scores[cat],
+                     extra={"items": items})
+
+    if CONFIG["workload_partial_mode"] and missing_cats:
+        avail = {k: v for k, v in cat_scores.items() if v is not None}
+        total_w = sum(WORKLOAD_CATEGORY_WEIGHTS[k] for k in avail)
+        t_score = (
+            sum(WORKLOAD_CATEGORY_WEIGHTS[k] * v / total_w
+                for k, v in avail.items())
+            if avail else None
+        )
+    else:
+        t_score = _weighted_avg(cat_scores, WORKLOAD_CATEGORY_WEIGHTS)
+
+    upsert_score(conn, board_model, os_name, arch,
+                 "total", "t_score", t_score,
+                 is_partial=bool(missing_cats),
+                 extra={"missing_categories": missing_cats})
+
+    # ── 功耗 ──────────────────────────────────
+    p_info = (power_scores or {}).get(os_name, {})
+    p_score       = p_info.get("score")
+    norm_pending  = p_info.get("pending", True)
+    power_ratio   = p_info.get("ratio")
+
+    power_fields = ["static_power", "cpu_power", "memory_power", "file_power"]
+    missing_power = []
+    power_r_vals  = {}
+    for pf in power_fields:
+        row = conn.execute("""
+        SELECT R_value FROM raw_records
+        WHERE board_model=? AND os_name=? AND arch=?
+          AND category='power' AND sub_category=? AND item_key='power_data'
+        """, (board_model, os_name, arch, pf)).fetchone()
+        if row and row["R_value"] is not None:
+            power_r_vals[pf] = row["R_value"]
+        else:
+            missing_power.append(pf)
+
+    upsert_score(conn, board_model, os_name, arch,
+                 "total", "p_score", p_score,
+                 is_partial=bool(missing_power),
+                 extra={
+                     "power_ratio": power_ratio,
+                     "power_r_vals": power_r_vals,
+                     "normalization_pending": norm_pending,
+                     "missing_tasks": missing_power,
+                 })
+
+    # ── 基础功能占位 ───────────────────────────
+    f_score = CONFIG["default_function_score"]
+    upsert_score(conn, board_model, os_name, arch,
+                 "total", "f_score", f_score,
+                 extra={"source": "placeholder"})
+
+    # ── 总分 ──────────────────────────────────
+    scores_4d = {"f": (f_score, 0.2), "rt": (rt_score, 0.3),
+                 "t": (t_score, 0.4), "p": (p_score, 0.1)}
+    total_score = _partial_weighted(scores_4d)
+    is_partial  = any(v is None for v, _ in scores_4d.values())
+
+    upsert_score(conn, board_model, os_name, arch,
+                 "total", "total_score",
+                 total_score, is_partial=is_partial)
+
+    conn.commit()
+    logger.info(
+        f"重算完成 [{board_model} | {os_name} | {arch}] "
+        f"total={round(total_score, 2) if total_score else None} "
+        f"rt={round(rt_score, 2) if rt_score else None} "
+        f"t={round(t_score, 2) if t_score else None}"
+    )
+
+
+def _weighted_avg(scores: dict, weights: dict) -> Optional[float]:
+    avail   = {k: v for k, v in scores.items() if v is not None}
+    if not avail:
+        return None
+    total_w = sum(weights[k] for k in avail)
+    if total_w == 0:
+        return None
+    return sum(weights[k] * v / total_w for k, v in avail.items())
+
+
+def _partial_weighted(items: dict) -> Optional[float]:
+    """
+    items = { key: (score_value, weight) }
+    对有值的项重新归一化后加权求和。
+    """
+    avail = {k: (v, w) for k, (v, w) in items.items() if v is not None}
+    if not avail:
+        return None
+    total_w = sum(w for _, w in avail.values())
+    if total_w == 0:
+        return None
+    return sum(v * w / total_w for v, w in avail.values())
+
+
+# ─────────────────────────────────────────────
+# 8. 导出结果
+# ─────────────────────────────────────────────
+def export_results(board_model: str, os_name: str, arch: str,
+                   conn: sqlite3.Connection) -> dict:
+
+    def get_score(level, key):
+        row = conn.execute("""
+        SELECT score_value, is_partial, extra_json FROM score_cache
+        WHERE board_model=? AND os_name=? AND arch=?
+          AND score_level=? AND score_key=?
+        """, (board_model, os_name, arch, level, key)).fetchone()
+        if row:
+            return {"score": row["score_value"],
+                    "is_partial": bool(row["is_partial"]),
+                    "extra": json.loads(row["extra_json"] or "{}")}
+        return {"score": None, "is_partial": True, "extra": {}}
+
+    def get_raw_items(category, sub_category):
+        rows = conn.execute("""
+        SELECT item_key, raw_value, raw_unit, R_value, item_score, norm_pending, status
+        FROM raw_records
+        WHERE board_model=? AND os_name=? AND arch=?
+          AND category=? AND sub_category=?
+        ORDER BY item_key
+        """, (board_model, os_name, arch, category, sub_category)).fetchall()
+        return {r["item_key"]: {
+            "raw": r["raw_value"], "unit": r["raw_unit"],
+            "R": r["R_value"],
+            "score": r["item_score"],
+            "norm_pending": bool(r["norm_pending"]),
+            "status": r["status"],
+        } for r in rows}
+
+    def get_syscall_diagnostics():
+        items = get_raw_items("realtime", "syscall_latency")
+        # 兼容旧数据库：旧版 syscall 记录位于 scheduling_latency。
+        legacy_items = get_raw_items("realtime", "scheduling_latency")
+        if "syscall_avg_us" in legacy_items:
+            items["legacy_syscall_avg_us"] = legacy_items["syscall_avg_us"]
+        return {
+            "included_in_base_rt": False,
+            "items": items,
+        }
+
+    def get_base_rt_items(sub_category):
+        items = get_raw_items("realtime", sub_category)
+        if sub_category == "scheduling_latency":
+            items.pop("syscall_avg_us", None)
+        return items
+
+    f_info      = get_score("total", "f_score")
+    base_rt     = get_score("realtime", "base_realtime")
+    sched       = get_score("realtime", "schedulability")
+    rt_total    = get_score("total", "rt_score")
+    t_total     = get_score("total", "t_score")
+    p_total     = get_score("total", "p_score")
+    total_info  = get_score("total", "total_score")
+
+    missing_baselines = [
+        f"{r['category']}.{r['sub_category']}.{r['item_key']}"
+        for r in conn.execute("""
+        SELECT category, sub_category, item_key FROM raw_records
+        WHERE board_model=? AND os_name=? AND arch=? AND status='baseline_missing'
+        """, (board_model, os_name, arch)).fetchall()
+    ]
+
+    last_row = conn.execute("""
+    SELECT MAX(last_updated) AS t FROM raw_records
+    WHERE board_model=? AND os_name=? AND arch=?
+    """, (board_model, os_name, arch)).fetchone()
+
+    return {
+        "board_model": board_model,
+        "arch":        arch,
+        "os_name":     os_name,
+        "total_score": total_info["score"],
+        "is_partial":  total_info["is_partial"],
+        "scores": {
+            "function": {
+                "score":  f_info["score"],
+                "source": "placeholder",
+                "details": {k: None for k in [
+                    "memory_bandwidth", "memory_latency", "small_file_iops",
+                    "large_file_iops", "network_bandwidth", "network_latency",
+                    "posix_compatibility"
+                ]}
+            },
+            "realtime": {
+                "score":    rt_total["score"],
+                "incomplete": rt_total["is_partial"],
+                "details": {
+                    "base_realtime": {
+                        "score":     base_rt["score"],
+                        "sub_scores": base_rt["extra"],
+                        "items": {
+                            k: get_base_rt_items(k)
+                            for k in BASE_RT_WEIGHTS
+                        },
+                    },
+                    "schedulability": {
+                        "score":      sched["score"],
+                        "average_mr": sched["extra"].get("average_mr"),
+                        "items":      get_raw_items("realtime", "schedulability"),
+                    },
+                    "diagnostics": {
+                        "syscall_latency": get_syscall_diagnostics(),
+                    },
+                }
+            },
+            "workload": {
+                "score":    t_total["score"],
+                "incomplete": t_total["is_partial"],
+                "missing_categories": t_total["extra"].get("missing_categories", []),
+                "details": {
+                    cat: {
+                        "score": get_score("workload", cat)["score"],
+                        "items": get_raw_items("workload", cat),
+                    }
+                    for cat in WORKLOAD_CATEGORY_WEIGHTS
+                }
+            },
+            "power": {
+                "score":    p_total["score"],
+                "normalization_pending": p_total["extra"].get("normalization_pending", True),
+                "power_ratio": p_total["extra"].get("power_ratio"),
+                "incomplete": p_total["is_partial"],
+                "missing_tasks": p_total["extra"].get("missing_tasks", []),
+                "details": {
+                    pf: get_raw_items("power", pf)
+                    for pf in ["static_power", "cpu_power",
+                               "memory_power", "file_power"]
+                }
+            }
+        },
+        "completeness": {
+            "missing_baselines": missing_baselines,
+            "missing_scores": [
+                name for name, info in [
+                    ("realtime.base_realtime", base_rt),
+                    ("realtime.schedulability", sched),
+                    ("workload", t_total),
+                    ("power", p_total),
+                ] if info["score"] is None
+            ]
+        },
+        "last_updated": last_row["t"] if last_row else now_iso(),
+    }
+
+
+# ─────────────────────────────────────────────
+# 9. 批量入口（算分顺序）
+# ─────────────────────────────────────────────
+def _collect_boards(conn) -> list:
+    """获取数据库中所有 (board_model, arch) 组合。"""
+    return conn.execute("""
+    SELECT DISTINCT board_model, arch FROM raw_records
+    """).fetchall()
+
+
+def recompute_all_scores(conn: sqlite3.Connection) -> int:
+    """
+    对数据库内所有 (board_model, arch) 重算：
+    子项 item_score -> 功耗 P_Score -> 各级汇总得分与总分。
+
+    适用于算法口径变更后刷新历史数据。返回重算的系统数量。
+    """
+    boards = _collect_boards(conn)
+    os_count = 0
+
+    for grp in boards:
+        bm, arch = grp["board_model"], grp["arch"]
+        normalize_items_for_board(bm, arch, conn)
+        power_scores = normalize_power_for_board(bm, arch, conn)
+
+        os_rows = conn.execute("""
+        SELECT DISTINCT os_name FROM raw_records
+        WHERE board_model=? AND arch=?
+        """, (bm, arch)).fetchall()
+        for r in os_rows:
+            recalc_scores_for_target(bm, r["os_name"], arch, conn, power_scores)
+            os_count += 1
+
+    logger.info(
+        f"全库重算完成: {len(boards)} 个板卡/架构，{os_count} 个系统"
+    )
+    return os_count
+
+
+def ingest_json_files(pattern: str, conn: sqlite3.Connection):
+    """
+    批量导入 JSON 文件：
+    1. 完整格式校验（先校验，后写库）
+    2. 基准板卡（SylixOS + LS2K1000LA）优先入库
+    3. 单事务写入所有 raw_records
+    4. 饱和曲线算分 + 功耗算分 + 重算汇总分数
+    """
+    files = sorted(glob.glob(pattern, recursive=True))
+    if not files:
+        logger.warning(f"没有找到 JSON 文件: {pattern}")
+        return
+
+    # 1) 加载 + 完整格式校验
+    valid = []   # (filepath, data, info)
+    for fp in files:
+        try:
+            with open(fp, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            logger.error(f"JSON 解析失败，跳过 [{fp}]: {e}")
+            continue
+        err = validate_json_data(data)
+        if err:
+            logger.error(f"格式校验失败，跳过 [{fp}]: {err}")
+            continue
+        env = data.get("env", {})
+        info = {"board_model": env.get("board", "unknown"),
+                "os_name":     env.get("os_name", "unknown"),
+                "arch":        env.get("cpu_type", "unknown")}
+        valid.append((fp, data, info))
+
+    if not valid:
+        logger.error("没有通过格式校验的 JSON 文件，中止写库")
+        return
+
+    # 2) 基准板卡优先，保证基线原始值先入库
+    valid.sort(key=lambda t: (
+        t[2]["board_model"] != CONFIG["baseline_board"]
+        or t[2]["os_name"] != CONFIG["baseline_os"],
+        t[0],
+    ))
+
+    # 3) 单事务写入
+    affected = set()
+    try:
+        for fp, data, info in valid:
+            _parse_json_data(data, conn, os.path.basename(fp))
+            affected.add((info["board_model"], info["os_name"], info["arch"]))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"写库失败，已回滚: {e}")
+        raise
+
+    # 4) 饱和曲线算分 + 汇总
+    affected_boards = {(bm, arch) for bm, _, arch in affected}
+    for bm, arch in affected_boards:
+        normalize_items_for_board(bm, arch, conn)
+
+    for bm, arch in affected_boards:
+        power_scores = normalize_power_for_board(bm, arch, conn)
+        os_set = {os_ for b, os_, a in affected if b == bm and a == arch}
+        for os_ in os_set:
+            recalc_scores_for_target(bm, os_, arch, conn, power_scores)
+
+
+def ingest_excel_files(pattern: str, conn: sqlite3.Connection):
+    """批量导入功耗 Excel。"""
+    files    = glob.glob(pattern, recursive=True)
+    if not files:
+        logger.warning(f"没有找到 Excel 文件: {pattern}")
+    affected = set()
+    for fp in sorted(files):
+        for triple in parse_power_excel(fp, conn):
+            affected.add(triple)
+
+    affected_boards = {(bm, arch) for bm, _, arch in affected}
+    for bm, arch in affected_boards:
+        power_scores = normalize_power_for_board(bm, arch, conn)
+        os_set = {os_ for b, os_, a in affected if b == bm and a == arch}
+        for os_ in os_set:
+            recalc_scores_for_target(bm, os_, arch, conn, power_scores)
+
+
+# ─────────────────────────────────────────────
+# 10. 便利 API（供外部 import 调用）
+# ─────────────────────────────────────────────
+def score_single_json(json_path: str, db_path: Optional[str] = None) -> dict:
+    """
+    一步完成单个 JSON 结果文件的评分流程：
+    import -> 饱和曲线算分 -> recalc -> export
+
+    Args:
+        json_path: rtbench_result.json 文件路径
+        db_path: SQLite 数据库路径（可选，默认 CONFIG["storage_path"]）
+
+    Returns:
+        包含 total_score 等完整评分信息的 dict
+    """
+    db = db_path or CONFIG["storage_path"]
+    os.makedirs(os.path.dirname(db) or ".", exist_ok=True)
+    conn = init_db(db)
+
+    try:
+        info = parse_json_results(json_path, conn)
+        if not info:
+            return {"error": f"无法解析 JSON: {json_path}"}
+        conn.commit()
+
+        bm, os_name, arch = info["board_model"], info["os_name"], info["arch"]
+
+        normalize_items_for_board(bm, arch, conn)
+        power_scores = normalize_power_for_board(bm, arch, conn)
+        recalc_scores_for_target(bm, os_name, arch, conn, power_scores)
+
+        return export_results(bm, os_name, arch, conn)
+    finally:
+        conn.close()
+
+
+# ─────────────────────────────────────────────
+# 11. CLI
+# ─────────────────────────────────────────────
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="工业 RTOS 评测评分工具（饱和曲线版）")
+    parser.add_argument("--db", default=None,
+                        help="SQLite 数据库路径（覆盖默认路径）")
+    sub    = parser.add_subparsers(dest="cmd")
+
+    p_json = sub.add_parser("import-json")
+    p_json.add_argument("pattern")
+
+    p_excel = sub.add_parser("import-excel")
+    p_excel.add_argument("pattern")
+
+    p_exp = sub.add_parser("export")
+    p_exp.add_argument("--board",  required=True)
+    p_exp.add_argument("--os",     required=True)
+    p_exp.add_argument("--arch",   required=True)
+    p_exp.add_argument("--output", default=None)
+
+    sub.add_parser("list")
+    sub.add_parser("recompute", help="按当前算法重算全库所有子项与汇总得分")
+
+    args = parser.parse_args()
+    db_path = args.db or CONFIG["storage_path"]
+    os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
+    conn = init_db(db_path)
+    logger.info(f"数据库: {db_path}")
+
+    if args.cmd == "import-json":
+        ingest_json_files(args.pattern, conn)
+
+    elif args.cmd == "import-excel":
+        ingest_excel_files(args.pattern, conn)
+
+    elif args.cmd == "export":
+        result = export_results(args.board, args.os, args.arch, conn)
+        out    = json.dumps(result, ensure_ascii=False, indent=2)
+        if args.output:
+            with open(args.output, "w", encoding="utf-8") as f:
+                f.write(out)
+            logger.info(f"结果写入: {args.output}")
+        else:
+            print(out)
+
+    elif args.cmd == "list":
+        rows = conn.execute("""
+        SELECT DISTINCT board_model, os_name, arch FROM raw_records
+        ORDER BY board_model, os_name
+        """).fetchall()
+        for r in rows:
+            print(f"  {r['board_model']} | {r['os_name']} | {r['arch']}")
+
+    elif args.cmd == "recompute":
+        recompute_all_scores(conn)
+
+    else:
+        parser.print_help()
+
+    conn.close()
+
+
+if __name__ == "__main__":
+    main()

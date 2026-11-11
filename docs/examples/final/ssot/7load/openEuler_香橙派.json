@@ -771,21 +771,5 @@
   },
   "power": {
     "items": []
-  },
-  "scores": {
-    "base_rt": 86.62518717315399,
-    "sched": 100.0,
-    "RT": 93.312593586577,
-    "T": 94.2053159833832,
-    "P": null,
-    "F": 60.0,
-    "total": 86.30656052147374,
-    "categories": {
-      "realtime_control": 97.55775569678953,
-      "perception": 97.49407569089269,
-      "communication": 83.5894762122097,
-      "monitoring": 98.17995633364092
-    },
-    "average_miss_rate": 0.0
   }
 }
