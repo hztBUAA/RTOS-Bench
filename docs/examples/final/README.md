@@ -8,21 +8,18 @@
 final/
 ├── raw/                    # 同学上传的原始 result.json
 ├── ssot/                   # 数据层：只有测量值，无分数
-│   ├── 7load/
-│   └── 9load/
+│   └── 7load/
 ├── baseline/               # 算分基准
 │   └── LS2K1000LA_SylixOS.json
 ├── scored/                 # 算分层：分数 sidecar
-│   ├── 7load/
-│   └── 9load/
+│   └── 7load/
 ├── template/               # Excel 样式模板
 │   └── display_1103.xlsx
 ├── outputs/                # 产物层
-│   ├── 7load/
-│   │   ├── scores.csv
-│   │   ├── display_7load.xlsx
-│   │   └── reports/
-│   └── 9load/
+│   └── 7load/
+│       ├── scores.csv
+│       ├── display_7load.xlsx
+│       └── reports/
 ├── source/                 # 第一手 Excel 归档
 ├── SOURCE_DATA.md          # Excel 单元格映射
 └── HOW_TO_ADD_DATA.md      # 补数据字段说明
@@ -53,20 +50,20 @@ SSOT（测量值） ──读──▶ 算分脚本 ──写──▶ scored（
 
 ```bash
 python3 tools/pipeline.py \
-  --version 9load \
-  --ssot   docs/examples/final/ssot/9load \
-  --scored docs/examples/final/scored/9load \
-  --out    docs/examples/final/outputs/9load
+  --version 7load \
+  --ssot   docs/examples/final/ssot/7load \
+  --scored docs/examples/final/scored/7load \
+  --out    docs/examples/final/outputs/7load
 ```
 
 输出：
 
-- `scored/9load/*.scores.json`
-- `outputs/9load/scores.csv`
-- `outputs/9load/reports/*.md`、`*.docx`
-- `outputs/9load/display_9load.xlsx`
+- `scored/7load/*.scores.json`
+- `outputs/7load/scores.csv`
+- `outputs/7load/reports/*.md`、`*.docx`
+- `outputs/7load/display_7load.xlsx`
 
-7 负载把 `9load` 换成 `7load`。
+7 负载把 `7load` 换成 `7load`。
 
 ## 更新流程（给同学）
 
@@ -89,13 +86,7 @@ F    = 60（占位）
 - 子项用绝对饱和曲线：`S = 100×R/(a+R)`，`a = 0.25`，基准固定 SylixOS @ LS2K1000LA。
 - 不再使用 min-max，也不再使用 60 分保底。
 - 调度分 = 100×(1−平均错失率)，不参与曲线。
-- 平均错失率 = 总错失 job / 总 job：7 负载 168，9 负载 216。
-
-## 7 负载与 9 负载
-
-- 调度分：每梯度 21 job 对 27 job。
-- 典型负载：7 负载只用 fast、icp、pid、cusum、ewma、modbus、mqtt。
-- 当前 SSOT 含 15 块厂商板与 2 块 openEuler 板，不含 RTT。
+- 平均错失率 = 总错失 job / 总 job：7 负载 168。
 
 ## 已知缺口
 

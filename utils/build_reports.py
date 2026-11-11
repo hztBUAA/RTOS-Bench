@@ -196,11 +196,25 @@ def blocks_to_markdown(blocks):
     return "\n".join(out)
 
 
+from docx.oxml.ns import qn
+
+
+def _set_font(style, name, size, bold=False):
+    style.font.name = name
+    style.font.size = Pt(size)
+    style.font.bold = bold
+    rpr = style.element.get_or_add_rPr()
+    rfonts = rpr.get_or_add_rFonts()
+    rfonts.set(qn("w:ascii"), name)
+    rfonts.set(qn("w:hAnsi"), name)
+    rfonts.set(qn("w:eastAsia"), name)
+
+
 def write_docx(blocks, path):
     doc = Document()
-    style = doc.styles["Normal"]
-    style.font.name = "宋体"
-    style.font.size = Pt(10.5)
+    _set_font(doc.styles["Normal"], "宋体", 10.5)
+    for level, size in ((1, 16), (2, 14), (3, 12)):
+        _set_font(doc.styles["Heading %d" % level], "黑体", size, True)
     for kind, text in blocks:
         if kind == "h1":
             doc.add_heading(text, level=1)

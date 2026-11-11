@@ -41,7 +41,6 @@ S = 100 × R / (a + R)，a = 0.25
 平均错失率 = 总错失 job / 总 job
 ```
 
-- 9 负载：8 个梯度 × 27 job = 216。
 - 7 负载：8 个梯度 × 21 job = 168。
 - 不是各梯度错失率的平均值。
 
@@ -75,10 +74,10 @@ raw/<板卡>/result.json         原始数据
 一条命令：
 
 ```bash
-python3 tools/pipeline.py --version 9load \
-  --ssot   docs/examples/final/ssot/9load \
-  --scored docs/examples/final/scored/9load \
-  --out    docs/examples/final/outputs/9load
+python3 tools/pipeline.py --version 7load \
+  --ssot   docs/examples/final/ssot/7load \
+  --scored docs/examples/final/scored/7load \
+  --out    docs/examples/final/outputs/7load
 ```
 
 - 算分脚本不写 SSOT。
@@ -88,23 +87,23 @@ python3 tools/pipeline.py --version 9load \
 
 ```bash
 # 1. SSOT JSON + 自然语言描述（markdown + docx）
-python3 utils/build_reports.py <结果展示表.xlsx> --workloads 9 -o reports/9load
+python3 utils/build_reports.py <结果展示表.xlsx> --workloads 7 -o reports/7load
 
 # 2. 可选：用外部算分结果覆盖描述中的分数
-python3 utils/build_reports.py <结果展示表.xlsx> --workloads 9 \
-    -o reports/9load --scores-json scores.json
+python3 utils/build_reports.py <结果展示表.xlsx> --workloads 7 \
+    -o reports/7load --scores-json scores.json
 
 # 3. SSOT 转算分脚本 schema
-python3 utils/ssot_to_score_json.py reports/9load/ssot -o reports/9load/score_json
+python3 utils/ssot_to_score_json.py reports/7load/ssot -o reports/7load/score_json
 
 # 4. 算分
-python3 utils/score_caculate.py --db results.db import-json "reports/9load/score_json/*.json"
+python3 utils/score_caculate.py --db results.db import-json "reports/7load/score_json/*.json"
 python3 utils/score_caculate.py --db results.db list
 python3 utils/score_caculate.py --db results.db export \
     --board Phytium-Pi --os OneOS --arch aarch64
 
-# 5. 7/9 负载总分与 60 保底
-python3 utils/score_seven_workload.py <结果展示表.xlsx> --workloads 9 -o 9load_score.xlsx
+# 5. 7 负载总分
+python3 utils/score_seven_workload.py <结果展示表.xlsx> --workloads 7 -o 7load_score.xlsx
 
 # 6. 元信息补全（网页端无法注入时）
 python3 utils/patch_result_meta.py result.json \
@@ -115,18 +114,18 @@ python3 utils/patch_result_meta.py result.json \
 ## 5. 已知缺口
 
 - F 全部为占位 60，总分上限 92。
-- 欧拉两块板缺功耗，RTT 缺功耗，暂不出总分。
+- openEuler 两块板缺功耗，总分按 partial 权重。
 - 板卡名与 OS 版本需要与北理工、翼辉最终对齐。
 - SSOT JSON 由 Excel 逆生成，不含逐任务统计与 stress/cmd 明细。
 
 ## 6. 示例输出
 
-以翼辉工控机为例（9 负载，60 保底）：
+以翼辉工控机为例（7 负载）：
 
 - [docs/examples/翼辉工控机_result.json](examples/翼辉工控机_result.json)：SSOT JSON
 - [docs/examples/翼辉工控机_测试结果描述.md](examples/翼辉工控机_测试结果描述.md)：markdown
 - [docs/examples/翼辉工控机_测试结果描述.docx](examples/翼辉工控机_测试结果描述.docx)：Word
-- [docs/examples/final/](examples/final/)：7/9 负载最终得分 CSV 与 SSOT JSON
+- [docs/examples/final/](examples/final/)：7 负载最终得分 CSV 与 SSOT JSON
 
 Word 结构：一级标题（测试结果描述 / 测试评分描述）、二级标题（四个分项）、三级标题（可调度性能），条目用 1) 2) 3) 4) 编号。
 

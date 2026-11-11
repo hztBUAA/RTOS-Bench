@@ -90,13 +90,12 @@ docs/examples/final/raw/<板卡>/result.json
 ## 3. 跑管线
 
 ```bash
-python3 tools/pipeline.py --version 9load \
-  --ssot   docs/examples/final/ssot/9load \
-  --scored docs/examples/final/scored/9load \
-  --out    docs/examples/final/outputs/9load
+python3 tools/pipeline.py --version 7load \
+  --ssot   docs/examples/final/ssot/7load \
+  --scored docs/examples/final/scored/7load \
+  --out    docs/examples/final/outputs/7load
 ```
 
-7 负载把 `9load` 换成 `7load`。
 
 ## 4. 产物
 
