@@ -8,10 +8,9 @@
 
 | 版本 | 文件 | 大小 | SHA-256 |
 |---|---|---|---|
-| 9 负载 | `source/9load_raw.xlsx` | 48,154 B | `a521e9972876755577464a137e8d9eb7643f66df0bf92382826668bf676964c1` |
 | 7 负载 | `source/7load_raw.xlsx` | 46,164 B | `5780500f933d750075e5fcc46782520f2491d5c88731632b2af391799d2019ee` |
 
-两份文件的页签相同：
+文件页签：
 
 | 页签 | 行数 | 列数 |
 |---|---|---|
@@ -23,7 +22,7 @@
 校验哈希：
 
 ```bash
-shasum -a 256 source/9load_raw.xlsx source/7load_raw.xlsx
+shasum -a 256 source/7load_raw.xlsx source/7load_raw.xlsx
 ```
 
 哈希变化说明 Excel 被改过，需要重新生成 SSOT 与分数。
@@ -64,7 +63,7 @@ shasum -a 256 source/9load_raw.xlsx source/7load_raw.xlsx
   → 算分输入（ssot_to_score_json.py）
   → score_caculate.py（博函 Base_RT 修复版）
   → 汇总与导出（score_seven_workload.py）
-  → 7/9 负载总分
+  → 7 负载总分
 ```
 
 ### 公式
@@ -80,7 +79,7 @@ F    = 60（占位）
 - 子项使用绝对饱和曲线：`S = 100×R/(a+R)`，`a = 0.25`，基准固定为 SylixOS @ LS2K1000LA。
 - 不再使用 min-max，也不再使用 60 分保底。
 - 调度分 = 100×(1−平均失率)，不参与饱和曲线。
-- 平均错失率 = 总错失 job / 总 job：7 负载 168，9 负载 216。
+- 平均错失率 = 总错失 job / 总 job：7 负载 168。
 - 基础实时：上下文 10%、中断 10%、系统服务 40%、多核 40%。哪吒为单核，排除多核并重归一化。
 
 ## 4. 对方更新 Excel 后注意
@@ -96,7 +95,7 @@ F    = 60（占位）
 改完后运行一次，检查块数：
 
 ```bash
-python3 utils/build_reports.py source/9load_raw.xlsx --workloads 9 -o /tmp/check9
+python3 utils/build_reports.py source/7load_raw.xlsx --workloads 7 -o /tmp/check9
 python3 utils/build_reports.py source/7load_raw.xlsx --workloads 7 -o /tmp/check7
 ```
 
@@ -105,6 +104,6 @@ python3 utils/build_reports.py source/7load_raw.xlsx --workloads 7 -o /tmp/check
 ## 5. 已知的数据缺口
 
 - 欧拉飞腾和香橙派已从 `platforms/openeuler/测试结果/` 的原始 JSON
-  生成 7/9 负载 SSOT；两份结果都缺 `test-stress.power`，P 暂为 null。
+  生成 7 负载 SSOT；该结果缺 `test-stress.power`，P 暂为 null。
 - RTT 新多核数据含极端值：`ipc c8=0.002`、`task_latency c2=541.9`、`inter_core=0`。
 - F 全部为占位 60，总分上限 92。

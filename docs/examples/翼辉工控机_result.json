@@ -3,8 +3,8 @@
     "framework_version": "1.0.0",
     "test_timestamp": null,
     "source": "excel_reverse",
-    "source_file": "1021-未裁剪的结果展示表.xlsx",
-    "workload_count": 9
+    "source_file": "20260930-1151结果展示表-裁剪后.xlsx",
+    "workload_count": 7
   },
   "env": {
     "os_name": "SylixOS",
@@ -169,49 +169,49 @@
       "gradients": [
         {
           "utilization_percent": 30,
-          "total_jobs": 27,
+          "total_jobs": 21,
           "deadline_misses": 0,
           "miss_rate": 0.0
         },
         {
           "utilization_percent": 40,
-          "total_jobs": 27,
+          "total_jobs": 21,
           "deadline_misses": 0,
           "miss_rate": 0.0
         },
         {
           "utilization_percent": 50,
-          "total_jobs": 27,
+          "total_jobs": 21,
           "deadline_misses": 0,
           "miss_rate": 0.0
         },
         {
           "utilization_percent": 60,
-          "total_jobs": 27,
+          "total_jobs": 21,
           "deadline_misses": 0,
           "miss_rate": 0.0
         },
         {
           "utilization_percent": 70,
-          "total_jobs": 27,
+          "total_jobs": 21,
           "deadline_misses": 0,
           "miss_rate": 0.0
         },
         {
           "utilization_percent": 80,
-          "total_jobs": 27,
+          "total_jobs": 21,
           "deadline_misses": 0,
           "miss_rate": 0.0
         },
         {
           "utilization_percent": 90,
-          "total_jobs": 27,
+          "total_jobs": 21,
           "deadline_misses": 0,
           "miss_rate": 0.0
         },
         {
           "utilization_percent": 100,
-          "total_jobs": 27,
+          "total_jobs": 21,
           "deadline_misses": 0,
           "miss_rate": 0.0
         }
@@ -231,12 +231,6 @@
           "avg_time_ms": null
         },
         {
-          "name": "ekf",
-          "category": "realtime_control",
-          "exec_time_ms": 256.327,
-          "avg_time_ms": null
-        },
-        {
           "name": "fast",
           "category": "perception",
           "exec_time_ms": 9.297,
@@ -246,12 +240,6 @@
           "name": "icp",
           "category": "perception",
           "exec_time_ms": 350.108,
-          "avg_time_ms": null
-        },
-        {
-          "name": "epnp",
-          "category": "perception",
-          "exec_time_ms": 5.5,
           "avg_time_ms": null
         },
         {
@@ -310,22 +298,5 @@
         "score": 100
       }
     ]
-  },
-  "scores": {
-    "base_rt": 96.47784286976015,
-    "schedulability": 100,
-    "average_miss_rate": 0.0,
-    "sched": 100.0,
-    "RT": 98.23892143488007,
-    "T": 93.45633565014786,
-    "P": 61.64047014386776,
-    "F": 60.0,
-    "total": 85.01825770490994,
-    "categories": {
-      "realtime_control": 98.93416069511018,
-      "perception": 97.62552723640884,
-      "communication": 80.0006104640833,
-      "monitoring": 97.26504420498912
-    }
   }
 }
