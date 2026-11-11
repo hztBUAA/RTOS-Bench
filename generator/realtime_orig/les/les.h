@@ -78,6 +78,16 @@ uint64_t LES_kernel_syscall_val(void);
 
 #elif defined(DONGTU_PLATFORM)
 
+#include <commonTypes.h>
+
+/*
+ * LES_SHARED_MEM_VA must be provided by the Dongtu/Intewell SDK headers
+ * included by platform_macro.h.  Do not redefine it here.
+ */
+#ifndef LES_SHARED_MEM_VA
+#error "Dongtu SDK header defining LES_SHARED_MEM_VA is not included"
+#endif
+
 extern volatile uint64_t LES_buffer[LES_BUFFER_SIZE];
 extern volatile uint32_t LES_offset;
 extern volatile uint64_t *__LES_syscall_val;
@@ -92,6 +102,8 @@ extern volatile uint32_t *__LES_interrupt_flag;
 #define LES_interrupt_end_val (*__LES_interrupt_end_val)
 #define LES_syscall_flag (*__LES_syscall_flag)
 #define LES_interrupt_flag (*__LES_interrupt_flag)
+
+int rtbench_dongtu_bind_les(void);
 
 #else
 
