@@ -13,6 +13,50 @@
 #include <unistd.h>
 #endif
 
+#if defined(DONGTU_PLATFORM) && defined(__aarch64__)
+
+/*
+ * Bind the LES API pointers to the debug-event header exported by Intewell.
+ *
+ * The header lives in the VM's benchSharedRamSpace mapping.  Keeping the
+ * binding here makes the platform source in this repository authoritative;
+ * projects must no longer rely on a global stDEHeaderPtr from the vendor
+ * template's excluded src/les/les.c.
+ */
+int rtbench_dongtu_bind_les(void)
+{
+	debugEventHeader_t *header =
+		(debugEventHeader_t *)(uintptr_t)LES_SHARED_MEM_VA;
+
+	/*
+	 * LES_syscall_val and LES_syscall_flag are both API macros and shared
+	 * structure member names.  Suspend the macros while taking the member
+	 * addresses, otherwise the preprocessor would expand the member tokens.
+	 */
+#pragma push_macro("LES_syscall_val")
+#pragma push_macro("LES_syscall_flag")
+#undef LES_syscall_val
+#undef LES_syscall_flag
+
+	__LES_interrupt_start_val =
+		(volatile uint64_t *)&header->allirq_val;
+	__LES_interrupt_end_val =
+		(volatile uint64_t *)&header->systimeirq_val;
+	__LES_interrupt_flag =
+		(volatile uint32_t *)&header->interrupt_flag;
+	__LES_syscall_val =
+		(volatile uint64_t *)&header->LES_syscall_val;
+	__LES_syscall_flag =
+		(volatile uint32_t *)&header->LES_syscall_flag;
+
+#pragma pop_macro("LES_syscall_flag")
+#pragma pop_macro("LES_syscall_val")
+
+	return 0;
+}
+
+#endif
+
 #if defined(LES_KERNEL_DEBUGFS)
 
 /*

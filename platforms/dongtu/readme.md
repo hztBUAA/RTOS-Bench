@@ -167,7 +167,7 @@ src/userAppInit.c
 源文件路径：
 
 ```text
-RTOS-Bench/platforms/userAppInit.c
+RTOS-Bench/platforms/dongtu/userAppInit.c
 ```
 
 ---
@@ -176,17 +176,28 @@ RTOS-Bench/platforms/userAppInit.c
 
 香橙派 / vm_3588 工程同样需要检查 `src/userAppInit.*` 文件。
 
-如果工程中已有旧的 `userAppInit.c` 或 `userAppInit.cpp`，建议统一替换为 RTOS-Bench 提供的：
+如果工程中已有旧的 `userAppInit.c` 或 `userAppInit.cpp`，应替换为
+RTOS-Bench 针对 vm_3588 提供的 ARM64 入口：
 
 ```text
-RTOS-Bench/platforms/userAppInit.c
+RTOS-Bench/platforms/dongtu/userAppInit_3588.c
 ```
 
-替换后，确认工程入口文件为：
+复制到工程时请重命名为 Intewell 要求的入口文件名：
 
 ```text
 src/userAppInit.c
 ```
+
+vm_3588/ARM64 入口会调用
+`generator/realtime_orig/les/les.c` 中的 `rtbench_dongtu_bind_les()`。
+`generator/realtime_orig/les/les.h` 只负责声明 LES 接口和绑定函数；
+`debugEventHeader_t` 与 `LES_SHARED_MEM_VA` 等共享 ABI 定义来自当前
+Dongtu/Intewell SDK 头文件。因此：
+
+- 不要复制模板工程 `src/les/les.c` 中的旧 `stDEHeaderPtr`、`debugEventHeader_t`。
+- 不要把模板工程的旧 `src/les` 目录重新加入构建。
+- `userAppInit.c` 只负责获取日志地址并触发 LES 指针绑定。
 
 ### 4.3 飞腾派 工程
 
