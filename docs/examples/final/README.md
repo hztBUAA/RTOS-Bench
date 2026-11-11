@@ -28,6 +28,15 @@ final/
 └── HOW_TO_ADD_DATA.md      # 补数据字段说明
 ```
 
+## 数据来源
+
+| 来源 | meta.source | 说明 |
+|---|---|---|
+| 板卡原生输出 | `rtbench_raw` | 字段完整，含 task_stats、test-stress、test-cmd |
+| Excel 逆推 | `excel_reverse` | 只有汇总字段，缺 task_stats 等 |
+
+当前 15 块厂商板为 `excel_reverse`，openEuler 两块为 `rtbench_raw`。算分够用，但不是忠实的原始记录。厂商补原生 `result.json` 后可替换。
+
 ## 三层关系
 
 ```
