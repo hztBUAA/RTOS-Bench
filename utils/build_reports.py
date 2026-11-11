@@ -68,7 +68,12 @@ def build_narrative(data, score):
     rt = data["modules"]["test-realtime"]
     sc = data["modules"]["test-schedule"]
     wl = data["modules"]["typical-workload"]["workloads"]
-    power = data["power"]["items"]
+    power = (data.get("power") or {}).get("items") or []
+    if not power:
+        native = ((data.get("modules", {}).get("test-stress") or {}).get("power")) or []
+        mapping = {"standby": "static", "cpu": "cpu", "memory": "memory", "file": "file"}
+        power = [{"item": mapping.get(str(e.get("name", "")).lower(), e.get("name")),
+                  "energy_j": e.get("power_data")} for e in native]
 
     blocks = []
     blocks.append(("h1", f"一、测试结果描述（{board}）"))

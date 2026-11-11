@@ -59,36 +59,47 @@ def convert(data):
 
     realtime = data["modules"]["test-realtime"]
     multi = realtime.get("multicore") or {}
-    memory = [
-        {"type": name, "c1": v[0], "c2": v[1], "c4": v[2], "c8": v[3]}
-        for name, v in (multi.get("access") or {}).items()
-    ]
-    service = multi.get("service") or {}
-    concurrency_keys = ("c1", "c2", "c4", "c8")
-    ipc = {
-        key: value for key, value in zip(
-            concurrency_keys, service.get("任务间通信") or []
-        )
-    }
-    latency = {
-        key: value for key, value in zip(
-            concurrency_keys, service.get("创建与删除") or []
-        )
-    }
-    cross = multi.get("cross_core") or {}
-    realtime["multi_core"] = {
-        "memory_bandwidth": memory,
-        "ipc_bandwidth": ipc,
-        "task_latency": latency,
-        "core_comm": {"intra_core": cross.get("同核通信"), "inter_core": cross.get("异核通信")},
-    }
-    realtime.pop("multicore", None)
+    if realtime.get("multi_core"):
+        # 原生 JSON 已是 multi_core，直接保留
+        realtime.pop("multicore", None)
+    else:
+        memory = [
+            {"type": name, "c1": v[0], "c2": v[1], "c4": v[2], "c8": v[3]}
+            for name, v in (multi.get("access") or {}).items()
+        ]
+        service = multi.get("service") or {}
+        concurrency_keys = ("c1", "c2", "c4", "c8")
+        ipc = {
+            key: value for key, value in zip(
+                concurrency_keys, service.get("任务间通信") or []
+            )
+        }
+        latency = {
+            key: value for key, value in zip(
+                concurrency_keys, service.get("创建与删除") or []
+            )
+        }
+        cross = multi.get("cross_core") or {}
+        realtime["multi_core"] = {
+            "memory_bandwidth": memory,
+            "ipc_bandwidth": ipc,
+            "task_latency": latency,
+            "core_comm": {"intra_core": cross.get("同核通信"), "inter_core": cross.get("异核通信")},
+        }
+        realtime.pop("multicore", None)
 
     for wl in data["modules"]["typical-workload"]["workloads"]:
         if wl.get("avg_time_ms") is None:
             wl["avg_time_ms"] = wl.get("exec_time_ms")
 
     items = (data.get("power") or {}).get("items") or []
+    if not items:
+        native = ((data.get("modules", {}).get("test-stress") or {}).get("power")) or []
+        mapping = {"standby": "static", "cpu": "cpu", "memory": "memory", "file": "file"}
+        if native:
+            items = [{"item": mapping.get(str(e.get("name", "")).lower(), e.get("name")),
+                      "energy_j": e.get("power_data")} for e in native]
+            data["power"] = {"items": items}
     if items:
         data["modules"]["test-stress"] = {
             "power": [

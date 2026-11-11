@@ -1,0 +1,5 @@
+{
+  "ok": false,
+  "status": 403,
+  "body": "{\"success\":false,\"code\":\"403\",\"message\":\"Invalid signature\",\"result\":null}"
+}

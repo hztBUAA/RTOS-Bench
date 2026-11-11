@@ -22,7 +22,8 @@ BOARD_TYPES = ["工控机", "香橙派", "哪吒", "龙芯", "飞腾"]
 VENDOR_PREFIX = [("翼辉", "翼辉"), ("东土", "东土"), ("锐华", "锐华"),
                  ("OneOS", "中移"), ("欧拉", "欧拉"), ("RTT", "RTT")]
 CANON_BOARD = {"MIC-7700": "工控机", "Orange-Pi5": "香橙派", "DH-1": "哪吒",
-               "LS2K1000LA": "龙芯", "Phytium-Pi": "飞腾"}
+               "LS2K1000LA": "龙芯", "Phytium-Pi": "飞腾",
+               "Phytium Pi / E2000Q": "飞腾", "Orange Pi / RK3588": "香橙派"}
 OS_VENDOR = {"SylixOS": "翼辉", "Intewell": "东土", "intewell": "东土",
              "ReWorks": "锐华", "rede": "锐华", "OneOS": "中移",
              "openEuler": "欧拉", "openEuler/Linux": "欧拉", "RT-Thread": "RTT"}
