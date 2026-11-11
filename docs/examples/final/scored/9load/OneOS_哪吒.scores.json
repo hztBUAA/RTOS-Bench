@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "DH-1",
+  "os_name": "OneOS",
+  "arch": "riscv64",
+  "source": "ssot/9load/OneOS_哪吒.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 97.97246762490569,
+    "sched": 95.83333333333334,
+    "RT": 96.90290047911952,
+    "T": 90.42863008534873,
+    "P": 88.93150344169383,
+    "F": 60.0,
+    "total": 86.13547252204474,
+    "categories": {
+      "realtime_control": 95.73393573934925,
+      "perception": 89.54133090624224,
+      "communication": 81.40756830974485,
+      "monitoring": 95.0316853860586
+    }
+  }
+}

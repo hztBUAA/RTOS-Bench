@@ -79,48 +79,37 @@
 
 `name` 只能是 `standby`、`cpu`、`memory`、`file`，`power_data` 单位是 J。
 
-## 2. 算分
+## 2. 放到 raw 目录
 
-必须先有基准记录：SylixOS @ LS2K1000LA。
-
-```bash
-python3 utils/score_caculate.py --db results.db import-json "<json目录>/*.json"
-python3 utils/score_caculate.py --db results.db recompute
-python3 utils/score_caculate.py --db results.db export \
-    --board Phytium-Pi --os openEuler --arch aarch64 -o out.json
+```
+docs/examples/final/raw/<板卡>/result.json
 ```
 
-`out.json` 里的 `scores` 就是基础实时、RT、T、P、总分。
+一块板一个子目录，文件名固定 `result.json`。
 
-## 3. 填表
+## 3. 跑管线
 
-把 `out.json` 的 `scores` 填到对应行：
+```bash
+python3 tools/pipeline.py --version 9load \
+  --ssot   docs/examples/final/ssot/9load \
+  --scored docs/examples/final/scored/9load \
+  --out    docs/examples/final/outputs/9load
+```
 
-| 列 | 字段 |
+7 负载把 `9load` 换成 `7load`。
+
+## 4. 产物
+
+| 位置 | 内容 |
 |---|---|
-| 基础实时 | `scores.realtime.details.base_realtime.score` |
-| 调度 | `scores.realtime.details.schedulability.score` |
-| RT 得分 | `scores.realtime.score` |
-| 四类负载 | `scores.workload.details.<category>.score` |
-| T 得分 | `scores.workload.score` |
-| P 得分 | `scores.power.score` |
-| F 得分 | `scores.function.score`（当前固定 60） |
-| 总分 | `total_score` |
+| `scored/<version>/*.scores.json` | 分数 |
+| `outputs/<version>/scores.csv` | 汇总表 |
+| `outputs/<version>/reports/*.md/*.docx` | 自然语言报告 |
+| `outputs/<version>/display_<version>.xlsx` | 1103 样式 Excel |
 
-或者直接更新 `docs/examples/final/` 下的 CSV 与 SSOT，再提交 PR。
+## 5. 注意
 
-## 4. 注意
-
-- 缺功耗时，总分按 partial 权重算，会偏高，需在备注里写明。
-- 欧拉两块板目前缺原始数据，补 `result.json` 后按上面流程算，再把行填入表。
+- 缺功耗时，总分按 partial 权重算，需在备注里写明。
+- 欧拉两块板目前缺原始数据，补 `result.json` 后按上面流程算。
 - 改了 Excel 的 sheet 结构（插行、改列），解析会错位；先按 `SOURCE_DATA.md` 核对块布局。
 - 所有改动通过 PR 提交，便于追溯。
-
-## 5. 只想更新 Excel
-
-如果对方只维护 Excel，不想跑脚本：
-
-1. 按上面的 JSON 字段准备数据。
-2. 把 JSON 交给能跑脚本的人，或直接在本机跑一次。
-3. 用输出的 `scores` 填 Excel。
-4. 不要只改 Excel 的最终表而不改原始数据，否则下次重算会变回去。

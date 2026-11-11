@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "Orange-Pi5",
+  "os_name": "intewell",
+  "arch": "aarch64",
+  "source": "ssot/7load/东土_香橙派.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 71.7881026157464,
+    "sched": 100.0,
+    "RT": 85.8940513078732,
+    "T": 89.89186577116152,
+    "P": 85.32473327680019,
+    "F": 60.0,
+    "total": 82.25743502850659,
+    "categories": {
+      "realtime_control": 95.73992173896237,
+      "perception": 88.48726780456283,
+      "communication": 79.94568106101273,
+      "monitoring": 95.39459248010816
+    }
+  }
+}

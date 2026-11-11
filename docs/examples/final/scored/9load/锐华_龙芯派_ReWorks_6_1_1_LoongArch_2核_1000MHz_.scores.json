@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "LS2K1000LA",
+  "os_name": "rede",
+  "arch": "loongarch64",
+  "source": "ssot/9load/锐华_龙芯派_ReWorks_6_1_1_LoongArch_2核_1000MHz_.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 82.1100384672947,
+    "sched": 92.12962962962963,
+    "RT": 87.11983404846217,
+    "T": 85.90893274029766,
+    "P": 79.53803278266847,
+    "F": 60.0,
+    "total": 80.45332658892455,
+    "categories": {
+      "realtime_control": 86.82913471448677,
+      "perception": 85.7379857824922,
+      "communication": 92.46638999414114,
+      "monitoring": 78.6022204700705
+    }
+  }
+}

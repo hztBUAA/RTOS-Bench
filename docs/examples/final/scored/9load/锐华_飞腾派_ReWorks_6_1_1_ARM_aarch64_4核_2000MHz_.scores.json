@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "Phytium-Pi",
+  "os_name": "rede",
+  "arch": "aarch64",
+  "source": "ssot/9load/锐华_飞腾派_ReWorks_6_1_1_ARM_aarch64_4核_2000MHz_.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 90.15904676472027,
+    "sched": 96.75925925925925,
+    "RT": 93.45915301198977,
+    "T": 92.11241921539239,
+    "P": 57.51331970732787,
+    "F": 60.0,
+    "total": 82.63404556048667,
+    "categories": {
+      "realtime_control": 92.52746188717191,
+      "perception": 91.75889593541963,
+      "communication": 95.88803039656344,
+      "monitoring": 88.27528864241458
+    }
+  }
+}

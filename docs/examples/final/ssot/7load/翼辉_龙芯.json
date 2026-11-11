@@ -298,20 +298,5 @@
         "score": 0
       }
     ]
-  },
-  "scores": {
-    "base_rt": 80.0,
-    "sched": 100.0,
-    "RT": 90.0,
-    "T": 80.0,
-    "P": 80.0,
-    "F": 60.0,
-    "total": 79.0,
-    "categories": {
-      "realtime_control": 80.0,
-      "perception": 80.0,
-      "communication": 80.0,
-      "monitoring": 80.0
-    }
   }
 }
