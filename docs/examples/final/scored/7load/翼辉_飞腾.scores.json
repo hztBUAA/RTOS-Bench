@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "Phytium-Pi",
+  "os_name": "SylixOS",
+  "arch": "aarch64",
+  "source": "ssot/7load/翼辉_飞腾.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 86.54474141952342,
+    "sched": 100.0,
+    "RT": 93.2723707097617,
+    "T": 90.93301144310186,
+    "P": 69.50853868337342,
+    "F": 60.0,
+    "total": 83.3057696585066,
+    "categories": {
+      "realtime_control": 95.3441628510601,
+      "perception": 92.02095792409753,
+      "communication": 80.0007188240645,
+      "monitoring": 96.36620617318533
+    }
+  }
+}

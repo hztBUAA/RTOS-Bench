@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "Phytium-Pi",
+  "os_name": "intewell",
+  "arch": "aarch64",
+  "source": "ssot/9load/东土_飞腾.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 86.24493060744335,
+    "sched": 100.0,
+    "RT": 93.12246530372167,
+    "T": 68.7613148858892,
+    "P": 68.53403742301563,
+    "F": 60.0,
+    "total": 74.29466928777374,
+    "categories": {
+      "realtime_control": 76.46548057002498,
+      "perception": 59.69304433479149,
+      "communication": 64.2430374334404,
+      "monitoring": 74.64369720529996
+    }
+  }
+}

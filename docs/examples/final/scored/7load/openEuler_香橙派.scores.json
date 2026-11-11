@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "Orange-Pi5",
+  "os_name": "openEuler/Linux",
+  "arch": "aarch64",
+  "source": "ssot/7load/openEuler_香橙派.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 86.65553098062114,
+    "sched": 100.0,
+    "RT": 93.32776549031057,
+    "T": 94.2053159833832,
+    "P": null,
+    "F": 60.0,
+    "total": 86.31161782271826,
+    "categories": {
+      "realtime_control": 97.55775569678953,
+      "perception": 97.49407569089269,
+      "communication": 83.5894762122097,
+      "monitoring": 98.17995633364092
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "LS2K1000LA",
+  "os_name": "OneOS",
+  "arch": "loongarch64",
+  "source": "ssot/7load/OneOS_龙芯.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 67.48522203304978,
+    "sched": 95.83333333333334,
+    "RT": 81.65927768319156,
+    "T": 75.16767133723417,
+    "P": 82.39066088651028,
+    "F": 60.0,
+    "total": 74.80391792850216,
+    "categories": {
+      "realtime_control": 80.5780064161591,
+      "perception": 77.99966010914508,
+      "communication": 57.889428021188294,
+      "monitoring": 84.20359080244418
+    }
+  }
+}

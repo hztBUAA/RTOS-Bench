@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "MIC-7700",
+  "os_name": "SylixOS",
+  "arch": "x86_64",
+  "source": "ssot/7load/翼辉工控机.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 96.47784286976015,
+    "sched": 100.0,
+    "RT": 98.23892143488007,
+    "T": 93.42156327218572,
+    "P": 61.64047014386776,
+    "F": 60.0,
+    "total": 85.00434875372508,
+    "categories": {
+      "realtime_control": 98.56615414672032,
+      "perception": 97.85444427295013,
+      "communication": 80.0006104640833,
+      "monitoring": 97.26504420498912
+    }
+  }
+}

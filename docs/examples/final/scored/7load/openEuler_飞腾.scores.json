@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "Phytium-Pi",
+  "os_name": "openEuler/Linux",
+  "arch": "aarch64",
+  "source": "ssot/7load/openEuler_飞腾.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 84.01457404137996,
+    "sched": 100.0,
+    "RT": 92.00728702068997,
+    "T": 94.94220126996402,
+    "P": null,
+    "F": 60.0,
+    "total": 86.19896290465843,
+    "categories": {
+      "realtime_control": 95.55271852355867,
+      "perception": 97.13314735829857,
+      "communication": 89.94910105069584,
+      "monitoring": 97.133838147303
+    }
+  }
+}
