@@ -17,9 +17,20 @@ jobs:
       - run: pip install pandas openpyxl python-docx
       - name: 重算并校验分数与汇总表
         run: |
-          python3 tools/pipeline.py --version 7load \
+          if ! python3 tools/pipeline.py --version 7load \
             --ssot docs/examples/final/ssot/7load \
             --scored /tmp/scored-7load \
-            --out /tmp/out-7load
-          diff -r /tmp/scored-7load docs/examples/final/scored/7load
-          diff /tmp/out-7load/scores.csv docs/examples/final/outputs/7load/scores.csv
+            --out /tmp/out-7load; then
+            echo "::error title=pipeline-failed::tools/pipeline.py exited non-zero"
+            exit 1
+          fi
+          if ! diff -r /tmp/scored-7load docs/examples/final/scored/7load > /tmp/diff-scored.txt; then
+            msg=$(head -c 800 /tmp/diff-scored.txt | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=scored-diff::${msg}"
+            exit 1
+          fi
+          if ! diff /tmp/out-7load/scores.csv docs/examples/final/outputs/7load/scores.csv > /tmp/diff-csv.txt; then
+            msg=$(head -c 800 /tmp/diff-csv.txt | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=csv-diff::${msg}"
+            exit 1
+          fi
