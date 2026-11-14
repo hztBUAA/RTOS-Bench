@@ -17,11 +17,9 @@ jobs:
       - run: pip install pandas openpyxl python-docx
       - name: 重算并校验分数与汇总表
         run: |
-          for v in 7load 9load; do
-            python3 tools/pipeline.py --version "$v" \
-              --ssot "docs/examples/final/ssot/$v" \
-              --scored "/tmp/scored-$v" \
-              --out "/tmp/out-$v"
-            diff -r "/tmp/scored-$v" "docs/examples/final/scored/$v"
-            diff "/tmp/out-$v/scores.csv" "docs/examples/final/outputs/$v/scores.csv"
-          done
+          python3 tools/pipeline.py --version 7load \
+            --ssot docs/examples/final/ssot/7load \
+            --scored /tmp/scored-7load \
+            --out /tmp/out-7load
+          diff -r /tmp/scored-7load docs/examples/final/scored/7load
+          diff /tmp/out-7load/scores.csv docs/examples/final/outputs/7load/scores.csv

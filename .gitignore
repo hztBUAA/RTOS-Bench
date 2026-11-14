@@ -15,6 +15,7 @@ docs/conf/doxygen-awesome
 .ctags
 *.o
 *.csv
+!docs/examples/final/outputs/*/scores.csv
 *.log
 
 # RT-Thread QEMU
