@@ -46,7 +46,17 @@ void rtbench_platform_get_env(struct rtbench_platform_env *env)
 	env->os_name = "SylixOS";
 	env->os_version = "3.9.0";
 	env->board = "SylixOS-Board";
+#if defined(__aarch64__)
+	env->cpu_type = "aarch64";
+#elif defined(__x86_64__)
+	env->cpu_type = "x86_64";
+#elif defined(__riscv)
+	env->cpu_type = "riscv";
+#elif defined(__loongarch__) || defined(__loongarch64__) || defined(__loongarch_lp64)
+	env->cpu_type = "loongarch";
+#else
 	env->cpu_type = "Unknown";
+#endif
 	env->cpu_freq_mhz = 0;
 	env->cpu_core_num = 1;
 }
