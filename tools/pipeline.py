@@ -114,7 +114,7 @@ def main():
 
         csv_path = os.path.join(args.out, "scores.csv")
         with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
-            w = csv.writer(f)
+            w = csv.writer(f, lineterminator="\n")
             w.writerow(["板卡", "OS", "架构", "基础实时", "调度", "RT", "实时控制", "感知",
                         "通信", "运维", "T", "P", "F", "总分"])
             w.writerows(rows)
