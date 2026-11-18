@@ -2,6 +2,7 @@
 # 用法：复制为 board.yaml，按实际环境填写，然后执行
 #   python utils/remote-test/deploy.py -c board.yaml
 # 字段说明见 docs/SOP.md 的「配置文件」一节。
+# 各板卡现成配置见 utils/remote-test/boards/。
 
 board:
   name: "LS2K1000LA"          # 板卡名，用于输出目录名
@@ -12,7 +13,7 @@ connection:
   # ssh / telnet：填 ip、port、username、password
   # serial：填 device、baudrate，不要填 ip
   type: "ssh"
-  ip: "192.168.1.100"
+  ip: "192.168.137.200"       # 赛迪内网示例地址
   port: 22                    # FRP 或端口映射场景填实际端口
   username: "root"
   password: "root"
@@ -21,6 +22,11 @@ deploy:
   # 不填 local_binary，或执行时加 --skip-deploy，可跳过上传
   local_binary: "./rtbench"          # 本机编译产物
   remote_dir: "/apps/rtosbench/"     # 板上目标目录
+
+# 只开放 telnet 的板卡用 FTP 上传。SSH 连接不需要本节。
+# ftp:
+#   enabled: true
+#   port: 21
 
 test:
   # 默认 7 个工业负载。test-schedule 默认 cycles=3。

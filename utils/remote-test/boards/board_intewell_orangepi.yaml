@@ -1,0 +1,34 @@
+# 板卡：东土-香橙派
+# 系统：Intewell    架构：aarch64
+# 网络：192.168.137.216（原内网 192.168.31.207）
+# 说明：deploy.local_binary 留空则跳过上传，直接运行板上已有程序。
+#       需要上传时取消注释，并改成该板卡的实际构建产物。
+
+board:
+  name: "东土-香橙派"
+  os: "Intewell"
+  arch: "aarch64"
+
+connection:
+  # 板卡只开 telnet 时改为 telnet（port 23），并把 result.retrieval_method 改为 terminal_capture
+  type: "ssh"
+  ip: "192.168.137.216"
+  port: 22
+  username: "root"
+  password: "root"
+
+deploy:
+  # local_binary: "./build/intewell_orangepi/rtbench"
+  remote_dir: "/apps/rtosbench/"
+
+test:
+  command: "cd /apps/rtosbench && ./rtbench test-all -o /apps/rtosbench/rtbench_result.json"
+  end_regex: "\\[RTOS-Bench\\] Results saved to:"
+  timeout_sec: 3600
+
+result:
+  remote_path: "/apps/rtosbench/rtbench_result.json"
+  local_output_dir: "./results/intewell_orangepi/"
+  retrieval_method: "sftp"
+  run_flatten: true
+  run_score: false
