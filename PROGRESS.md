@@ -86,9 +86,9 @@
 
 | # | 严重度 | 模块 | 问题 | 状态 |
 |---|--------|------|------|------|
-| 1 | HIGH | `file_transfer.py` | `extract_json_from_buffer` 正则只支持 2 层 JSON 嵌套，实际 3+ 层 → terminal_capture 模式失效 | 待修 |
-| 2 | MEDIUM | `board_config_example.yaml` | `end_regex` 写 `\[result-export\] JSON result saved`，C 代码实际输出 `[RTOS-Bench] Results saved to:` | 待修 |
-| 3 | MEDIUM | `deploy.py` | SFTP upload/download 硬编码 SSH 字段，Serial 连接会 KeyError | 待修 |
+| 1 | HIGH | `file_transfer.py` | `extract_json_from_buffer` 正则只支持 2 层 JSON 嵌套，实际 3+ 层 → terminal_capture 模式失效 | 已修（2026-11-18，改为括号配对） |
+| 2 | MEDIUM | `board_config_example.yaml` | `end_regex` 写 `\[result-export\] JSON result saved`，C 代码实际输出 `[RTOS-Bench] Results saved to:` | 已修（2026-11-18，PR #77） |
+| 3 | MEDIUM | `deploy.py` | SFTP upload/download 硬编码 SSH 字段，Serial 连接会 KeyError | 已修（2026-11-18，按连接类型分流） |
 | 4 | MEDIUM | `config_schema.py` | 无字段级校验，缺少必填字段检查 | 待改善 |
 | 5 | MEDIUM | `flatten_rtbench_result.py` | `bogo_ops` 被无条件跳过，stress 主指标丢失 | 待修 |
 | 6 | LOW | `collect_schedule_result()` | wcet、task utilization/period_ms 未填充 | 待修 |

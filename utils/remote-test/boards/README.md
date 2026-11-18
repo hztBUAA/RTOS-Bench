@@ -32,16 +32,44 @@ python utils/remote-test/deploy.py -c utils/remote-test/boards/board_sylixos_loo
 
 默认连接方式为 SSH（22 端口），结果用 SFTP 取回。
 
-板卡只开放 telnet 时，改两处：
+### 连接类型与传输
+
+| 连接类型 | 上传 | 取回 |
+|---|---|---|
+| `ssh` | SFTP | SFTP |
+| `telnet` 且 `ftp.enabled: true` | FTP（21） | `terminal_capture` 或 FTP |
+| `telnet` 且未启用 FTP | 跳过，提示手工上传 | `terminal_capture` |
+| `serial` | 跳过 | `terminal_capture` |
+
+telnet 板卡示例：
 
 ```yaml
 connection:
   type: "telnet"
   port: 23
 
+ftp:
+  enabled: true
+  port: 21
+
 result:
   retrieval_method: "terminal_capture"
 ```
+
+不写 `port` 时，`ssh` 默认 22，`telnet` 默认 23。
+
+`retrieval_method: sftp` 遇到非 SSH 连接时，会自动回退到 `terminal_capture`。
+
+### terminal_capture 的前提
+
+结果 JSON 必须出现在终端输出里。`test.command` 要在测试结束后打印它：
+
+```yaml
+test:
+  command: "cd /user && ./rtbench test-all -o /user/r.json && cat /user/r.json"
+```
+
+否则缓冲区里没有 JSON，无法提取。
 
 ## 上传与执行
 
@@ -50,6 +78,16 @@ result:
 上传后板上二进制名取 `local_binary` 的文件名。若文件名不是 `rtbench`，同步修改 `test.command` 与 `result.remote_path` 不变。
 
 `test.command` 默认执行 7 负载全量 `test-all`。快速冒烟在命令末尾加 `--quick`。
+
+## 常见故障
+
+| 现象 | 原因 | 修法 |
+|---|---|---|
+| 一直停在「等待结束信号」，Ctrl-C 后没有 JSON | `end_regex` 用了旧值 | 改为 `end_regex: "Results saved to:"` |
+| `SSHException: Unable to connect`，配置却是 telnet | 旧版 `deploy.py` 上传写死 SSH | 升级 `deploy.py`。旧版可加 `--skip-deploy` |
+| telnet 连接被拒 | 端口写成 22 | 改为 23，或不写 `port` |
+| 提示「无法从终端缓冲区提取 JSON」 | `test.command` 没有打印 JSON | 命令末尾加 `cat 结果文件` |
+| 展平结果为空 | 上一步没取到 JSON | 先解决取回问题 |
 
 ## 自检
 

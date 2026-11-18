@@ -99,14 +99,17 @@ connection:
   baudrate: 115200
 ```
 
-### 两种结果取回方式
+### 三种结果取回方式
 
 | 方式 | 适用场景 | 原理 |
 |------|----------|------|
 | `sftp` | SSH 连接的板子 | 通过 SFTP 下载 JSON 文件 |
-| `terminal_capture` | 串口/Telnet 无文件传输能力 | 从终端输出缓冲区中提取 JSON |
+| `ftp` | 仅开放 telnet、但有 FTP 的板子 | 通过 FTP 下载 JSON 文件 |
+| `terminal_capture` | 串口/Telnet 无文件传输能力 | 从终端输出缓冲区中提取 JSON，支持任意嵌套 |
 
-> 注意: `terminal_capture` 当前对深层嵌套 JSON 有兼容性问题，优先使用 `sftp`。
+`sftp` 遇到非 SSH 连接时自动回退到 `terminal_capture`。
+
+`terminal_capture` 要求结果 JSON 出现在终端输出里。`test.command` 末尾需打印结果文件，例如 `cat /user/rtbench_result.json`。
 
 ## 执行测试
 

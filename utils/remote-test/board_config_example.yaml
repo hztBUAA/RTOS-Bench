@@ -23,6 +23,11 @@ deploy:
   local_binary: "./rtbench"          # 本机编译产物
   remote_dir: "/apps/rtosbench/"     # 板上目标目录
 
+# 只开放 telnet 的板卡用 FTP 上传。SSH 连接不需要本节。
+# ftp:
+#   enabled: true
+#   port: 21
+
 test:
   # 默认 7 个工业负载。test-schedule 默认 cycles=3。
   # 快速冒烟可改用：./rtbench test-all --quick

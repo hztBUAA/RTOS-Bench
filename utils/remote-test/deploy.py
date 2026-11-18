@@ -30,6 +30,93 @@ from dut_connection import SSHConnection, TelnetConnection, SerialConnection
 import file_transfer
 
 
+def _conn_type(cfg: dict) -> str:
+    return str(cfg["connection"].get("type", "ssh")).lower()
+
+
+def _upload_artifact(cfg: dict, local_path: str, remote_path: str) -> bool:
+    """按连接类型选择上传通道。返回是否执行了上传。"""
+    conn_cfg = cfg["connection"]
+    ftp_cfg = cfg.get("ftp") or {}
+    conn_type = _conn_type(cfg)
+
+    if conn_type == "ssh":
+        file_transfer.upload(
+            local_path, remote_path,
+            ip=conn_cfg["ip"],
+            username=conn_cfg["username"],
+            password=conn_cfg["password"],
+            port=conn_cfg.get("port", 22),
+        )
+        return True
+
+    if ftp_cfg.get("enabled"):
+        file_transfer.upload_ftp(
+            local_path, remote_path,
+            ip=conn_cfg["ip"],
+            username=ftp_cfg.get("username", conn_cfg["username"]),
+            password=ftp_cfg.get("password", conn_cfg["password"]),
+            port=ftp_cfg.get("port", 21),
+        )
+        return True
+
+    print(f"[deploy] 连接类型为 {conn_type}，未启用 FTP，跳过上传")
+    print("[deploy] 请手工把文件放到板上，或在配置中加 ftp.enabled: true")
+    return False
+
+
+def _retrieve_result(cfg: dict, dut, result_json_path: str) -> str:
+    """按连接类型与 retrieval_method 取回结果。返回本地路径或 None。"""
+    conn_cfg = cfg["connection"]
+    result_cfg = cfg["result"]
+    conn_type = _conn_type(cfg)
+    method = result_cfg.get("retrieval_method", "sftp")
+
+    if method == "sftp" and conn_type != "ssh":
+        print(f"[deploy] 连接类型为 {conn_type}，SFTP 不可用，改用 terminal_capture")
+        method = "terminal_capture"
+
+    if method == "sftp":
+        remote_path = result_cfg["remote_path"]
+        print(f"[deploy] SFTP 下载结果: {remote_path}")
+        file_transfer.download(
+            remote_path, result_json_path,
+            ip=conn_cfg["ip"],
+            username=conn_cfg["username"],
+            password=conn_cfg["password"],
+            port=conn_cfg.get("port", 22),
+        )
+        return result_json_path
+
+    if method == "ftp":
+        remote_path = result_cfg["remote_path"]
+        ftp_cfg = cfg.get("ftp") or {}
+        print(f"[deploy] FTP 下载结果: {remote_path}")
+        file_transfer.download_ftp(
+            remote_path, result_json_path,
+            ip=conn_cfg["ip"],
+            username=ftp_cfg.get("username", conn_cfg["username"]),
+            password=ftp_cfg.get("password", conn_cfg["password"]),
+            port=ftp_cfg.get("port", 21),
+        )
+        return result_json_path
+
+    if method == "terminal_capture":
+        print("[deploy] 从终端缓冲区提取 JSON...")
+        parsed = file_transfer.extract_json_from_buffer(dut.buffer)
+        if parsed:
+            with open(result_json_path, "w", encoding="utf-8") as f:
+                json.dump(parsed, f, ensure_ascii=False, indent=2)
+            print(f"[deploy] 结果已保存: {result_json_path}")
+            return result_json_path
+        print("[deploy] 警告: 无法从终端缓冲区提取 JSON")
+        print("[deploy] 确认 test.command 在测试结束后打印了结果 JSON，例如 cat 结果文件")
+        return None
+
+    print(f"[deploy] 未知的 retrieval_method: {method}")
+    return None
+
+
 def _create_output_dir(cfg: dict, override_dir: str = None) -> str:
     board = cfg["board"]
     base = override_dir or cfg["result"].get("local_output_dir", "./results/")
@@ -99,15 +186,11 @@ def run(cfg_path: str,
         remote_dir = deploy_cfg.get("remote_dir", "/tmp/")
         remote_bin = remote_dir.rstrip("/") + "/" + os.path.basename(local_bin)
         print(f"[deploy] 上传固件: {local_bin} -> {remote_bin}")
-        file_transfer.upload(
-            local_bin, remote_bin,
-            ip=conn_cfg["ip"],
-            username=conn_cfg["username"],
-            password=conn_cfg["password"],
-            port=conn_cfg.get("port", 22),
-        )
+        _upload_artifact(cfg, local_bin, remote_bin)
 
     # 5. 建立 DUT 连接
+    if _conn_type(cfg) == "telnet" and conn_cfg.get("port") == 22:
+        print("[deploy] 警告: telnet 常用端口是 23，当前配置为 22")
     print(f"[deploy] 连接 DUT ({conn_cfg['type']}:{conn_cfg.get('ip', '')}:{conn_cfg.get('port', '')})...")
     dut = _make_connection(cfg, log_path)
 
@@ -133,31 +216,7 @@ def run(cfg_path: str,
     result_json_path = os.path.join(out_dir, "rtbench_result.json")
 
     if not skip_retrieve:
-        method = result_cfg.get("retrieval_method", "sftp")
-
-        if method == "sftp":
-            remote_path = result_cfg["remote_path"]
-            print(f"[deploy] SFTP 下载结果: {remote_path}")
-            file_transfer.download(
-                remote_path, result_json_path,
-                ip=conn_cfg["ip"],
-                username=conn_cfg["username"],
-                password=conn_cfg["password"],
-                port=conn_cfg.get("port", 22),
-            )
-        elif method == "terminal_capture":
-            print("[deploy] 从终端缓冲区提取 JSON...")
-            parsed = file_transfer.extract_json_from_buffer(dut.buffer)
-            if parsed:
-                with open(result_json_path, "w", encoding="utf-8") as f:
-                    json.dump(parsed, f, ensure_ascii=False, indent=2)
-                print(f"[deploy] 结果已保存: {result_json_path}")
-            else:
-                print("[deploy] 警告: 无法从终端缓冲区提取 JSON")
-                result_json_path = None
-        else:
-            print(f"[deploy] 未知的 retrieval_method: {method}")
-            result_json_path = None
+        result_json_path = _retrieve_result(cfg, dut, result_json_path)
 
     # 10. 展平（可选）
     flatten_path = None

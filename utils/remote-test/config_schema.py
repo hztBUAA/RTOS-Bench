@@ -12,7 +12,11 @@ REQUIRED_SECTIONS = ["board", "connection", "test", "result"]
 
 CONNECTION_DEFAULTS = {
     "type": "ssh",
-    "port": 22,
+}
+
+DEFAULT_PORTS = {
+    "ssh": 22,
+    "telnet": 23,
 }
 
 RESULT_DEFAULTS = {
@@ -41,6 +45,9 @@ def load_config(yaml_path: str) -> Dict[str, Any]:
     conn = cfg["connection"]
     for k, v in CONNECTION_DEFAULTS.items():
         conn.setdefault(k, v)
+    conn_type = str(conn["type"]).lower()
+    if "port" not in conn and conn_type in DEFAULT_PORTS:
+        conn["port"] = DEFAULT_PORTS[conn_type]
 
     result = cfg["result"]
     for k, v in RESULT_DEFAULTS.items():
