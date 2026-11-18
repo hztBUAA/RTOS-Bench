@@ -15,6 +15,10 @@
 
 __attribute__((weak)) int __fdlib_version = -1;
 
+#ifndef BOARD_NAME
+#define BOARD_NAME "SylixOS-Board"
+#endif
+
 #define RTBENCH_TEST_ALL_STACK_SIZE (4 * 1024 * 1024)
 
 struct sylixos_test_all_job {
@@ -45,7 +49,7 @@ void rtbench_platform_get_env(struct rtbench_platform_env *env)
 	}
 	env->os_name = "SylixOS";
 	env->os_version = "3.9.0";
-	env->board = "SylixOS-Board";
+	env->board = BOARD_NAME;
 #if defined(__aarch64__)
 	env->cpu_type = "aarch64";
 #elif defined(__x86_64__)
