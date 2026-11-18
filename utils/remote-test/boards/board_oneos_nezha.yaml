@@ -1,8 +1,11 @@
-# 板卡：OneOS-哪吒
+# 板卡：OneOS-哪吒（D1H）
 # 系统：OneOS    架构：riscv64
 # 网络：192.168.137.211（原内网 192.168.31.211）
-# 说明：deploy.local_binary 留空则跳过上传，直接运行板上已有程序。
-#       需要上传时取消注释，并改成该板卡的实际构建产物。
+# 状态：未验证，不可直接用于验收。
+# 已知：模块 printf 多走串口，telnet 可能看不到测试输出。
+# 已知：/user/schedrun.out 只跑 test-schedule，不产出 rtbench_result.json。
+#       自动取回与展平暂不可用。
+# 参考：platforms/oneos/0627-acceptance/RESULT.md
 
 board:
   name: "OneOS-哪吒"
@@ -10,25 +13,23 @@ board:
   arch: "riscv64"
 
 connection:
-  # 板卡只开 telnet 时改为 telnet（port 23），并把 result.retrieval_method 改为 terminal_capture
-  type: "ssh"
+  type: "telnet"
   ip: "192.168.137.211"
-  port: 22
+  port: 23
   username: "root"
   password: "root"
 
 deploy:
-  # local_binary: "./build/oneos_nezha/rtbench"
-  remote_dir: "/apps/rtosbench/"
+  remote_dir: "/user"
 
 test:
-  command: "cd /apps/rtosbench && ./rtbench test-all -o /apps/rtosbench/rtbench_result.json"
-  end_regex: "\\[RTOS-Bench\\] Results saved to:"
-  timeout_sec: 3600
+  command: "ld /user/schedrun.out"
+  end_regex: "(?i)final score"
+  timeout_sec: 1800
 
 result:
-  remote_path: "/apps/rtosbench/rtbench_result.json"
+  remote_path: "/user/rtbench_result.json"
   local_output_dir: "./results/oneos_nezha/"
-  retrieval_method: "sftp"
-  run_flatten: true
+  retrieval_method: "terminal_capture"
+  run_flatten: false
   run_score: false

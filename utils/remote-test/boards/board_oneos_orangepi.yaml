@@ -1,8 +1,12 @@
-# 板卡：OneOS-香橙派
+# 板卡：OneOS-香橙派（RK3588）
 # 系统：OneOS    架构：aarch64
 # 网络：192.168.137.217（原内网 192.168.31.208）
-# 说明：deploy.local_binary 留空则跳过上传，直接运行板上已有程序。
-#       需要上传时取消注释，并改成该板卡的实际构建产物。
+# 连接：telnet 23。OneOS 不提供 SSH。
+# 结果：terminal_capture。命令末尾打印 JSON 与结束标记。
+# 状态：已验证可用。
+# 前置：模块 /user/orange_pi_out1118.out 已在板上。
+#       若不在，用 OneOS 官方 tftp_client 上传。
+#       模块名按实际构建产物修改。
 
 board:
   name: "OneOS-香橙派"
@@ -10,25 +14,26 @@ board:
   arch: "aarch64"
 
 connection:
-  # 板卡只开 telnet 时改为 telnet（port 23），并把 result.retrieval_method 改为 terminal_capture
-  type: "ssh"
+  type: "telnet"
   ip: "192.168.137.217"
-  port: 22
+  port: 23
   username: "root"
   password: "root"
 
 deploy:
-  # local_binary: "./build/oneos_orangepi/rtbench"
-  remote_dir: "/apps/rtosbench/"
+  # 模块已在板上，不配置 local_binary，deploy.py 会跳过上传
+  remote_dir: "/user"
 
 test:
-  command: "cd /apps/rtosbench && ./rtbench test-all -o /apps/rtosbench/rtbench_result.json"
-  end_regex: "\\[RTOS-Bench\\] Results saved to:"
+  # 加载模块 -> 跑测试 -> 打印 JSON -> 打印结束标记
+  command: "ld /user/orange_pi_out1118.out ; rtbench test-all --quick -o /user/rtbench_result1118.json ; cat /user/rtbench_result1118.json ; echo RT-JSON-END"
+  # 结束标记在 cat 之后。命令行回显不会命中。
+  end_regex: "\\nRT-JSON-END\\r?\\n"
   timeout_sec: 3600
 
 result:
-  remote_path: "/apps/rtosbench/rtbench_result.json"
+  remote_path: "/user/rtbench_result1118.json"
   local_output_dir: "./results/oneos_orangepi/"
-  retrieval_method: "sftp"
+  retrieval_method: "terminal_capture"
   run_flatten: true
   run_score: false
