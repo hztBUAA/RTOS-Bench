@@ -1,8 +1,15 @@
 # 板卡：东土-飞腾
 # 系统：Intewell    架构：aarch64
 # 网络：192.168.137.219（备用地址 192.168.137.242）
-# 说明：deploy.local_binary 留空则跳过上传，直接运行板上已有程序。
-#       需要上传时取消注释，并改成该板卡的实际构建产物。
+# 连接：telnet 23。旧资料中东土板卡均为 telnet。
+# 结果：terminal_capture。命令末尾打印 JSON 与结束标记。
+# 状态：待确认。二进制名与 cat 支持需现场核对。
+# 前置：程序 /apps/rtosbench/rtbench 已在板上。
+#       需要自动上传时，取消下面 ftp 注释。
+#
+# ftp:
+#   enabled: true
+#   port: 21
 
 board:
   name: "东土-飞腾"
@@ -10,10 +17,9 @@ board:
   arch: "aarch64"
 
 connection:
-  # 板卡只开 telnet 时改为 telnet（port 23），并把 result.retrieval_method 改为 terminal_capture
-  type: "ssh"
+  type: "telnet"
   ip: "192.168.137.219"
-  port: 22
+  port: 23
   username: "root"
   password: "root"
 
@@ -22,13 +28,14 @@ deploy:
   remote_dir: "/apps/rtosbench/"
 
 test:
-  command: "cd /apps/rtosbench && ./rtbench test-all -o /apps/rtosbench/rtbench_result.json"
-  end_regex: "\\[RTOS-Bench\\] Results saved to:"
+  # 快速冒烟用 --quick。验收全量去掉 --quick。
+  command: "cd /apps/rtosbench ; ./rtbench test-all --quick -o /apps/rtosbench/rtbench_result.json ; cat /apps/rtosbench/rtbench_result.json ; echo RT-JSON-END"
+  end_regex: "\\nRT-JSON-END\\r?\\n"
   timeout_sec: 3600
 
 result:
   remote_path: "/apps/rtosbench/rtbench_result.json"
   local_output_dir: "./results/intewell_feiteng/"
-  retrieval_method: "sftp"
+  retrieval_method: "terminal_capture"
   run_flatten: true
   run_score: false
