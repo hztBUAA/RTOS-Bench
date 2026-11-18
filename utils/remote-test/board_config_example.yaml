@@ -2,6 +2,7 @@
 # 用法：复制为 board.yaml，按实际环境填写，然后执行
 #   python utils/remote-test/deploy.py -c board.yaml
 # 字段说明见 docs/SOP.md 的「配置文件」一节。
+# 各板卡现成配置见 utils/remote-test/boards/。
 
 board:
   name: "LS2K1000LA"          # 板卡名，用于输出目录名
@@ -12,7 +13,7 @@ connection:
   # ssh / telnet：填 ip、port、username、password
   # serial：填 device、baudrate，不要填 ip
   type: "ssh"
-  ip: "192.168.1.100"
+  ip: "192.168.137.200"       # 赛迪内网示例地址
   port: 22                    # FRP 或端口映射场景填实际端口
   username: "root"
   password: "root"

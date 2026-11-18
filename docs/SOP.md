@@ -58,7 +58,7 @@ board:
 # connection — 如何连接到被测板
 connection:
   type: "ssh"                 # ssh | telnet | serial
-  ip: "192.168.1.100"
+  ip: "192.168.137.200"       # 赛迪内网；各板卡现成配置见 utils/remote-test/boards/
   port: 22                    # FRP 场景可用非标端口
   username: "root"
   password: "root"
