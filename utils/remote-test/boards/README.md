@@ -71,6 +71,19 @@ test:
 
 否则缓冲区里没有 JSON，无法提取。
 
+### OneOS 状态
+
+OneOS 不提供 SSH，只能 telnet。四块 OneOS 板卡的可用程度不同。
+
+| 板卡 | 状态 | 说明 |
+|---|---|---|
+| OneOS-香橙派 | 可用 | telnet + terminal_capture，已按实机验证 |
+| OneOS-飞腾 | 待确认 | 模块名取自 OneOS 文档。需确认日志是否走 telnet |
+| OneOS-哪吒 | 未验证 | 模块日志多走串口。`schedrun.out` 不产出 JSON |
+| OneOS-龙芯 | 未验证 | 模块名与运行命令待确认 |
+
+未验证的配置不要用于验收。确认后更新对应文件头部的状态。
+
 ## 上传与执行
 
 `deploy.local_binary` 留空时跳过上传，直接运行板上已有程序。需要上传时取消注释，并指向该板卡的实际构建产物。

@@ -1,8 +1,8 @@
-# 板卡：OneOS-龙芯
+# 板卡：OneOS-龙芯（LS2K1000LA）
 # 系统：OneOS    架构：loongarch64
 # 网络：192.168.137.213（原内网 192.168.31.213）
-# 说明：deploy.local_binary 留空则跳过上传，直接运行板上已有程序。
-#       需要上传时取消注释，并改成该板卡的实际构建产物。
+# 状态：未验证。模块名、运行命令、日志通道均待现场确认。
+#       确认后替换 command 中的 CHANGE_ME，并补全结果打印与结束标记。
 
 board:
   name: "OneOS-龙芯"
@@ -10,25 +10,23 @@ board:
   arch: "loongarch64"
 
 connection:
-  # 板卡只开 telnet 时改为 telnet（port 23），并把 result.retrieval_method 改为 terminal_capture
-  type: "ssh"
+  type: "telnet"
   ip: "192.168.137.213"
-  port: 22
+  port: 23
   username: "root"
   password: "root"
 
 deploy:
-  # local_binary: "./build/oneos_loongson/rtbench"
-  remote_dir: "/apps/rtosbench/"
+  remote_dir: "/user"
 
 test:
-  command: "cd /apps/rtosbench && ./rtbench test-all -o /apps/rtosbench/rtbench_result.json"
-  end_regex: "\\[RTOS-Bench\\] Results saved to:"
+  command: "ld /user/CHANGE_ME.out"
+  end_regex: "\\nRT-JSON-END\\r?\\n"
   timeout_sec: 3600
 
 result:
-  remote_path: "/apps/rtosbench/rtbench_result.json"
+  remote_path: "/user/rtbench_result.json"
   local_output_dir: "./results/oneos_loongson/"
-  retrieval_method: "sftp"
-  run_flatten: true
+  retrieval_method: "terminal_capture"
+  run_flatten: false
   run_score: false
