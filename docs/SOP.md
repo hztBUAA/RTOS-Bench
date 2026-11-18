@@ -53,7 +53,7 @@ pip install pyserial
 board:
   name: "LS2K1000LA"          # 板卡型号
   os: "SylixOS"               # 被测 RTOS
-  arch: "mips64"              # 架构
+  arch: "loongarch64"         # 架构：loongarch64 | aarch64 | x86_64 | riscv64
 
 # connection — 如何连接到被测板
 connection:
@@ -70,9 +70,9 @@ deploy:
 
 # test — 测试执行
 test:
-  command: "cd /tmp && ./rtbench test-all -o /tmp/rtbench_result.json"
+  command: "cd /tmp && ./rtbench test-all -o /tmp/rtbench_result.json"   # 快速冒烟可加 --quick
   end_regex: "\\[RTOS-Bench\\] Results saved to:"   # 匹配 C 代码实际输出
-  timeout_sec: 600            # 超时秒数
+  timeout_sec: 3600           # 超时秒数，7 负载全量建议不小于 3600
 
 # result — 结果收集与后处理
 result:

@@ -1,30 +1,41 @@
 # RTOS-Bench 远程测试板卡配置示例
-# 复制为 board.yaml 并填入实际参数
+# 用法：复制为 board.yaml，按实际环境填写，然后执行
+#   python utils/remote-test/deploy.py -c board.yaml
+# 字段说明见 docs/SOP.md 的「配置文件」一节。
 
 board:
-  name: "LS2K1000LA"
-  os: "SylixOS"
-  arch: "mips64"
+  name: "LS2K1000LA"          # 板卡名，用于输出目录名
+  os: "SylixOS"               # 被测操作系统
+  arch: "loongarch64"         # loongarch64 | aarch64 | x86_64 | riscv64
 
 connection:
-  type: "ssh"          # ssh | telnet | serial
+  # ssh / telnet：填 ip、port、username、password
+  # serial：填 device、baudrate，不要填 ip
+  type: "ssh"
   ip: "192.168.1.100"
-  port: 22             # FRP 场景用非标端口如 6000
+  port: 22                    # FRP 或端口映射场景填实际端口
   username: "root"
   password: "root"
 
 deploy:
-  local_binary: "./rtbench"         # 本机编译产物路径
-  remote_dir: "/tmp/"               # 板上目标目录
+  # 不填 local_binary，或执行时加 --skip-deploy，可跳过上传
+  local_binary: "./rtbench"          # 本机编译产物
+  remote_dir: "/apps/rtosbench/"     # 板上目标目录
 
 test:
-  command: "cd /tmp && ./rtbench test-all -o /tmp/rtbench_result.json"
-  end_regex: "\\[result-export\\] JSON result saved"
-  timeout_sec: 600
+  # 默认 7 个工业负载。test-schedule 默认 cycles=3。
+  # 快速冒烟可改用：./rtbench test-all --quick
+  command: "cd /apps/rtosbench && ./rtbench test-all -o /apps/rtosbench/rtbench_result.json"
+  # 结束标志必须与代码输出一致。
+  # 旧值 "[result-export] JSON result saved" 已失效，会导致等待超时。
+  end_regex: "\\[RTOS-Bench\\] Results saved to:"
+  # 7 负载全量 test-all 在慢板卡上耗时较长，建议不小于 3600。
+  timeout_sec: 3600
 
 result:
-  remote_path: "/tmp/rtbench_result.json"
+  # remote_path 必须与 test.command 中 -o 的路径一致
+  remote_path: "/apps/rtosbench/rtbench_result.json"
   local_output_dir: "./results/"
-  retrieval_method: "sftp"          # sftp | terminal_capture
-  run_flatten: true
-  run_score: false
+  retrieval_method: "sftp"           # sftp | terminal_capture
+  run_flatten: true                  # 生成 standard_results.json
+  run_score: false                   # 生成 score_report.json
