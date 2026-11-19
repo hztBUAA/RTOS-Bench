@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project label="[Virtual Machine Project]">
+<osType>RTCore</osType>
+<projectType>kernelimage</projectType>
+<frame>TTOSFramework</frame>
+<nature>cnature</nature>
+<configurations>
+<configuration arch="x86" mtp="msl_debug" name="Debug" start="msl_debug" targetBoard="mfc1000" projectType="gpos" IntewellGCC="GCC 9.3.0" bit="32"/>
+<configuration arch="x86" mtp="msl_debug" name="Release" start="msl_debug" targetBoard="mfc1000" projectType="gpos" IntewellGCC="GCC 9.3.0" bit="32"/>
+</configurations>
+</project>

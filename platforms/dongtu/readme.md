@@ -255,9 +255,22 @@ A:/IntelWell-IDE/eclipse/workspace/rtosbench_x86/Debug/make/rtosbench_x86.bin
 
 ---
 
-### 6.1.2 连接东土 x86 运行环境
+### 6.1.2 连接东土 x86 运行环境（赛迪内网）
 
-在 Windows PowerShell 中执行：
+| 角色 | 赛迪内网地址 | 原内网地址 | 端口/协议 |
+|---|---|---|---|
+| 跳板机 | `10.134.151.45` | — | SSH `1026`（用户/密码 `rtbench`） |
+| Intewell 管理页（工控机宿主） | `192.168.31.240` | — | HTTP `5556` |
+| 本机转发入口 | `127.0.0.1` | — | HTTP `5556` |
+| **RTOS 测试面 vm1（东土工控机）** | **`192.168.137.215`** | `192.168.31.206` | telnet `23` |
+| 工控机宿主 SSH | `192.168.31.240` | — | SSH `22`（用户/密码 `kd` / `1`） |
+| 宿主镜像/日志目录 | — | — | `/download/` |
+
+> 注意：板卡配置表里的 `192.168.137.215` 是**测试面 vm1**（telnet/执行测试）；
+> `192.168.31.240:5556` 是**工控机宿主的 Intewell 管理页**（上传镜像）。
+> 两者不是同一个地址，不要 telnet 到管理页，也不要把镜像传到 vm1。
+
+在 Windows PowerShell 中执行（管理页需要经跳板机转发）：
 
 ```powershell
 ssh -L 5556:192.168.31.240:5556 rtbench@10.134.151.45 -p 1026
@@ -373,7 +386,34 @@ tail -f /download/log.txt
 
 ### 6.1.5 在终端中运行
 
-已经在shell.c中导入了rtbench符号，可以直接用命令行运行
+镜像“生效”并重启 vm1 后，从测试网段 telnet 到**测试面**（不是管理页）：
+
+```bash
+telnet 192.168.137.215 23
+```
+
+出现 `vm1`/Intewell shell 后直接执行（`rtbench` 是 `platforms/dongtu/shell.c`
+注册的 shell 命令，**不要**写成 `./rtbench`）：
+
+```bash
+# 全量验收
+rtbench test-all -o /apps/rtosbench/rtbench_result.json
+cat /apps/rtosbench/rtbench_result.json
+
+# 快速冒烟（只用于连通性检查，正式验收不要加 --quick）
+rtbench test-all --quick -o /apps/rtosbench/rtbench_result.json
+```
+
+若板上没有 `/apps/rtosbench/`，改用当前可写目录（例如 `/user/` 或 `/tmp/`），
+并同步修改 `utils/remote-test/boards/board_intewell_gongkong.yaml` 的
+`test.command` 与 `result.remote_path`。
+
+自动化运行（镜像已手工上传并生效后）：
+
+```bash
+python utils/remote-test/deploy.py \
+  -c utils/remote-test/boards/board_intewell_gongkong.yaml --skip-deploy
+```
 
 ## 6.2 香橙派 / vm_3588 平台运行方式
 
@@ -402,9 +442,9 @@ rt start
 
 ### 6.1.3 运行命令
 
-进入镜像终端：
+进入镜像终端（赛迪内网 `192.168.137.216`，原内网 `192.168.31.207`）：
 ```shell
-telnet 192.168.31.207
+telnet 192.168.137.216 23
 ```
 
 运行命令,该符号已经在shell.c里导出
@@ -568,4 +608,24 @@ x86 和香橙派 / vm_3588 的差异应该通过 `config_os.mk` 中的 `ARCH` �
 - 板端验收：[`loongarch64-linux/VALIDATION.md`](loongarch64-linux/VALIDATION.md)
 
 工具链：`loongarch64-unknown-linux-musl`（GCC 14.2.0），宿主 x86_64-Linux。
+
+---
+
+## 10. x86（i386 分区）命令行构建
+
+不想打开 Eclipse 时，可直接用 Intewell SDK 自带的 x86 工具链和运行库完成**完整链接**：
+
+```bash
+python platforms/dongtu/x86-cli/build_x86.py
+# 或
+python platforms/dongtu/x86-cli/build_x86.py --sdk <Intewell_Developer_2.3.1> \
+    --project-dir build/dongtu_x86/rtosbench_x86 --clean
+```
+
+产物为 `Debug/make/rtosbench_x86.elf` 与 `rtosbench_x86.bin`（上传 `.bin` 到 VM）。
+默认板级为东土 `kyland/newpre3101_i7`，目标为 **32 位 i386**（`ARCH := _X86_`）。
+
+注意：**2.2.0 的 ARM IDE 包不含 x86 运行库**，需要 2.3.1 或带
+`target/RTCore/lib/gcc-9.3.0/x86/i386/little` 的 SDK。完整说明与踩坑记录见
+[`x86-cli/README.md`](x86-cli/README.md)。
 

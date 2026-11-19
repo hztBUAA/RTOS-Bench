@@ -35,3 +35,6 @@ configs/bsp_files/
 
 # 文档示例中的 Word 产物需要入库
 !docs/examples/**/*.docx
+
+# Intewell x86 命令行构建生成目录
+build/dongtu_x86/

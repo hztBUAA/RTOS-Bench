@@ -1,11 +1,15 @@
 # 板卡：东土-工控机
-# 系统：Intewell    架构：x86_64
-# 网络：192.168.137.215（原内网 192.168.31.206）
-# 连接：telnet 23。旧资料中东土板卡均为 telnet。
+# 系统：Intewell    宿主架构：x86_64；RTOS 分区：i386/32 位（ARCH=_X86_）
+# 网络（赛迪内网）：测试面 vm1 = 192.168.137.215（原内网 192.168.31.206）
+# 管理页：http://127.0.0.1:5556
+#   ssh -L 5556:192.168.31.240:5556 rtbench@10.134.151.45 -p 1026  (密码 rtbench)
+# 镜像上传：管理页 -> 实时虚拟机 -> rtos_bench -> 镜像 -> 上传
+#   build/dongtu_x86/rtosbench_x86/Debug/make/rtosbench_x86.bin -> 生效
+# 连接：telnet 23（连的是测试面 vm1，不是管理页）。
 # 结果：terminal_capture。命令末尾打印 JSON 与结束标记。
-# 状态：待确认。二进制名与 cat 支持需现场核对。
-# 前置：程序 /apps/rtosbench/rtbench 已在板上。
-#       需要自动上传时，取消下面 ftp 注释。
+# 状态：构建/链接已验证；上板二进制名、/apps 可写性与 cat 支持待现场核对。
+# 前置：镜像已上传并生效；rtbench 是由 shell.c 注册的 shell 命令，不是文件。
+#       需要自动上传时，取消下面 ftp 注释（镜像仍建议走管理页）。
 #
 # ftp:
 #   enabled: true
@@ -14,7 +18,7 @@
 board:
   name: "东土-工控机"
   os: "Intewell"
-  arch: "x86_64"
+  arch: "x86"          # 宿主 x86_64；被测 RTOS 分区是 32 位 i386
 
 connection:
   type: "telnet"
@@ -28,8 +32,9 @@ deploy:
   remote_dir: "/apps/rtosbench/"
 
 test:
-  # 快速冒烟用 --quick。验收全量去掉 --quick。
-  command: "cd /apps/rtosbench ; ./rtbench test-all --quick -o /apps/rtosbench/rtbench_result.json ; cat /apps/rtosbench/rtbench_result.json ; echo RT-JSON-END"
+  # 这是 Intewell shell 命令，不是文件；验收全量不要加 --quick。
+  # 快速冒烟：rtbench test-all --quick -o /tmp/rtbench_result.json ; cat /tmp/rtbench_result.json
+  command: "rtbench test-all -o /apps/rtosbench/rtbench_result.json ; cat /apps/rtosbench/rtbench_result.json ; echo RT-JSON-END"
   end_regex: "\\nRT-JSON-END\\r?\\n"
   timeout_sec: 3600
 
