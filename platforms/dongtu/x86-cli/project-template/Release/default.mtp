@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configure
+   id="config"
+   name="config"
+   version="0.0.0">
+
+   <root
+         id="RTCore/config/public/link/memory.xsd"
+         name="memory">
+      <region            regionName="partition"      startVar="partition_start"      endVar="partition_end"      size="1000000"      startAddr="40000000">
+         <section               sectionName=".text"      startVar="_text_start"      endVar="_text_end"      sizeVar="_text_size"      align="00001000"      content="__start_start = .;
+     *(._start);
+      . = . + 0x120 - ( . - &quot;__start_start&quot; );
+      *(.image_info);
+         . = ALIGN(16);
+         CREATE_OBJECT_SYMBOLS;
+          *( .text ) ;
+          *(.text.*);
+          *(.text.lock );
+           *(.m_hdr) ;
+		. = ALIGN(4);
+		__EH_FRAME_BEGIN__ = .;
+		KEEP (*(.eh_frame .eh_frame.*));
+		LONG (0);
+		KEEP (*(.gcc_except_table .gcc_except_table.*));
+		*(.gnu.linkonce.t*) ;
+		. = ALIGN(4);
+           __CTOR_LIST__ = .;
+           LONG (-1);
+         KEEP (*(.ctors .ctor));
+           LONG (0);
+           __CTOR_END__ = .;
+           __DTOR_LIST__ = .;
+           LONG (-1);
+        KEEP (*(.dtors .dtor));
+           LONG (0);
+           __DTOR_END__ = .;
+           *(.gnu.linkonce.r*);
+           *(.rodata*);
+           *(.jcr);
+           *(.init_begin);
+           *(.init);
+           *(.init_end);
+           *(.fini);
+           __GOT_START__ = .;
+           *(.got);
+           __GOT_END__ = .;
+           __GOT2_START__ = .;
+           *(.got2);
+           __GOT2_END__ = .;
+           *(.gcc_except_table);
+           . = ALIGN(16);
+           *(.fixup);
+           *(.interface);
+           . = ALIGN(0x1000);
+           "      load="TRUE">
+         </section>
+         <section               sectionName=".sidata"            startVar="_sidata_start"      endVar="_sidata_end"      sizeVar="_sidata_size"      align="00001000"      content="load__data_start = .;"      load="TRUE">
+         </section>
+         <section               sectionName=".iplt"            startVar="_iplt_start"      endVar="_iplt_end"      sizeVar="_iplt_size"      align="00001000"      content="load__iplt_start = .;"      load="TRUE">
+         </section>
+      </region>
+      <region            regionName="shm"      startVar="shm_start"      endVar="shm_end"      size="6400000"      startAddr="79c00000">
+      </region>
+      <region            regionName="ram"      startVar=""      endVar=""      size="2000000"      startAddr="41000000">
+         <relocate               sectionName=".data"      lma_start_var="_sidata_start"      lma_end_var="_sidata_end"            sizeVar="_sidata_size"      InRegion="partition"      AfterSection=""      startVar="_data_start"      endVar="_data_end"      align="00001000"      content=" *(.data);  *(.data.*);   __shell_root_cmds_start = .;   KEEP(*(SORT(.shell_root_cmd_*)));   __shell_root_cmds_end = .;     *(.gnu.linkonce.d*);     *(.gcc_except_table);     *(.data.rel.local);     __SDATA_START__ = .;     *(.sdata);      *(.sdata.*);     __SDATA2_START__ = .;     *(.sdata2);     *(.flash*);     __FIXUP_START__ = .;     __FIXUP_END__ = .;     __EXCEPT_START__ = .;     __EXCEPT_END__ = .;     . = ALIGN(0x1000);   "      load="TRUE">
+         </relocate>
+         <section               sectionName=".bss"      startVar="_bss_start"      endVar="_bss_end"      sizeVar="_bss_size"      align="00001000"      content="    *(.bss);     *(.bss.*);     *(COMMON);     *(.gnu.linkonce.b*);     *(.sbss);     *(.sbss.*);     __SBSS_END__ = .;     *(.sbss2);     __SBSS2_END__ = .;     . = ALIGN(0x1000);     "      load="FALSE">
+         </section>
+         <reserve               sectionName="init_stack"      size="00002000"      startVar="init_stack_start"      endVar="init_stack_end"      sizeVar="init_stack_size"      align="00001000">
+         </reserve>
+      </region>
+   </root>
+
+</configure>

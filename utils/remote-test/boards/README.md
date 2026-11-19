@@ -90,7 +90,7 @@ OneOS 不提供 SSH，只能 telnet。四块 OneOS 板卡的可用程度不同�
 
 | 板卡 | 连接 | 状态 | 待确认 |
 |---|---|---|---|
-| 东土-工控机 | telnet 23 | 待确认 | 二进制名、`cat` 支持 |
+| 东土-工控机 | telnet 23 | 构建已验证，上板待确认 | `/apps/rtosbench` 可写性、`cat` 支持；镜像走管理页，见 `platforms/dongtu/x86-cli/README.md` |
 | 东土-香橙派 | telnet 23 | 待确认 | 同上 |
 | 东土-飞腾 | telnet 23 | 待确认 | 同上 |
 | 锐华-龙芯派 | telnet 23 | 待确认 | shell 分隔符、模块名、`cat` |
