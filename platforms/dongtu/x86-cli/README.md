@@ -157,6 +157,7 @@ python utils/remote-test/deploy.py \
 | `undefined reference to _sidata_start` | 工程 `default.mtp` 缺 `.sidata`；必须使用 `arch/x86/vm/default.mtp` |
 | `objcopy: cannot open: ImgInfoGen` | IDE 才生成的镜像元数据；脚本会生成 `Debug/make/ImgInfoGen` |
 | `ar: ./src/userAppInit.o: No such file` | 干净构建时 `Debug/make/src` 不存在；模板的 `subdir.mk` 已加 `mkdir -p` |
+| 启动后提示符是 `noMountPoint/`，`/`、`/tmp`、`/nfsd` 都不存在；`rtbench -o`/FTP 写文件失败 | 镜像编译时 `CONFIG_NFS=0`，NFS 客户端未编入。模板已改为 `CONFIG_NFS=1`（`config_components.mk/.h` 与 `components.cfg` 同步），重新构建后应出现 `nfsclient init success` |
 | 用 ARM IDE 打开/编译 x86 工程失败 | x86 与 ARM 的 IDE/BSP/宏不同，不要混用 |
 
 ## 6. 手动（IDE）流程

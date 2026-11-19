@@ -18,7 +18,7 @@
 #define        CONFIG_ROOTFS        (0)
 #define        CONFIG_FATFS        (0)
 #define        CONFIG_YAFFS        (0)
-#define        CONFIG_NFS        (0)
+#define        CONFIG_NFS        (1)
 #define        CONFIG_FS_PRIORITY        (55)
 #define        CONFIG_FS_STACK_SIZE        (3)
 #define        CONFIG_SHELL        (1)
