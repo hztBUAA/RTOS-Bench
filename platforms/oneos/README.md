@@ -2,6 +2,21 @@
 
 本文档提供在 OneOS 上运行 RTOS-Bench 的步骤。
 
+> **拿到源码压缩包的读者**：下文第 2 节用 `git clone`。没有 GitHub 访问时，把压缩包解压出的 `RTOS-Bench/` 目录直接复制到目标位置即可，后续步骤不变。
+
+---
+
+## 板卡文档
+
+| 板卡 | 文档 |
+|---|---|
+| 飞腾派 | 本文第 2、3 节（OneOS Studio 工程） |
+| 哪吒派 D1H | [ONEOS_NEZHA_BUILD_GUIDE.md](ONEOS_NEZHA_BUILD_GUIDE.md)（命令行工程，推荐先读） |
+| 哪吒派 D1H 接入与验收 | [NEZHA_D1H_SOP.md](NEZHA_D1H_SOP.md) |
+| 哪吒派 D1H 共享 TFTP | [NEZHA_D1H_SHARED_TFTP_SOP.md](NEZHA_D1H_SHARED_TFTP_SOP.md) |
+| 哪吒派 D1H 编译原理与排错 | [NEZHA_D1H_WIN_DIRECT_DEBUG_CLOSURE.md](NEZHA_D1H_WIN_DIRECT_DEBUG_CLOSURE.md) |
+| 哪吒派 D1H 验收记录 | [0627-acceptance/RESULT.md](0627-acceptance/RESULT.md) |
+
 ---
 
 ## 目录
