@@ -212,13 +212,13 @@
         {
           "utilization_percent": 100,
           "total_jobs": 21,
-          "deadline_misses": 1,
-          "miss_rate": 0.0476
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         }
       ],
       "summary": {
-        "average_miss_rate": 0.005952380952380952,
-        "final_score": 99.40476190476191
+        "average_miss_rate": 0.0,
+        "final_score": 100.0
       }
     },
     "typical-workload": {
@@ -301,12 +301,12 @@
   },
   "scores": {
     "base_rt": 89.70994665173252,
-    "sched": 99.40476190476191,
-    "RT": 94.55735427824722,
+    "sched": 100.0,
+    "RT": 94.85497332586627,
     "T": 87.1461041485418,
     "P": 83.50719735391215,
     "F": 60.0,
-    "total": 83.5763676782821,
+    "total": 83.6656533925678,
     "categories": {
       "realtime_control": 85.64413809291281,
       "perception": 85.7404627994374,
