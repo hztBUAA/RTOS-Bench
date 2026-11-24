@@ -1,0 +1,289 @@
+{
+  "meta": {
+    "framework_version": "1.0.0",
+    "test_timestamp": null,
+    "workload_count": 9,
+    "source": "rtbench_raw",
+    "source_file": "RTT 飞腾 result.json（黄思为提供）"
+  },
+  "env": {
+    "os_name": "RT-Thread",
+    "os_version": null,
+    "board": "Phytium-Pi",
+    "cpu_type": "aarch64",
+    "cpu_core_num": null,
+    "cpu_freq_mhz": null
+  },
+  "modules": {
+    "test-realtime": {
+      "status": null,
+      "single_core": {
+        "context_switch": {
+          "avg_us": 0.967
+        },
+        "interrupt": {
+          "min_us": null,
+          "max_us": null,
+          "avg_us": 0.163
+        },
+        "syscall": {
+          "min_us": null,
+          "max_us": null,
+          "avg_us": null
+        },
+        "service_cost": [
+          {
+            "operation": "sem_take",
+            "immediate_us": 0.3,
+            "suspend_us": 1.8,
+            "low_prio_us": null,
+            "high_prio_us": null
+          },
+          {
+            "operation": "sem_release",
+            "immediate_us": 0.3,
+            "suspend_us": null,
+            "low_prio_us": 1.22,
+            "high_prio_us": 1.8
+          },
+          {
+            "operation": "mq_send",
+            "immediate_us": 2.08,
+            "suspend_us": 0,
+            "low_prio_us": 3.16,
+            "high_prio_us": 3.72
+          },
+          {
+            "operation": "mq_recv",
+            "immediate_us": 2.06,
+            "suspend_us": 3.82,
+            "low_prio_us": 0,
+            "high_prio_us": 0
+          },
+          {
+            "operation": "mutex_take",
+            "immediate_us": 0.8,
+            "suspend_us": 3.44,
+            "low_prio_us": null,
+            "high_prio_us": null
+          },
+          {
+            "operation": "mutex_release",
+            "immediate_us": 0.86,
+            "suspend_us": null,
+            "low_prio_us": 1.7,
+            "high_prio_us": 2.38
+          },
+          {
+            "operation": "mempool_alloc",
+            "immediate_us": 0.36,
+            "suspend_us": null,
+            "low_prio_us": null,
+            "high_prio_us": null
+          },
+          {
+            "operation": "mempool_free",
+            "immediate_us": 0.36,
+            "suspend_us": null,
+            "low_prio_us": null,
+            "high_prio_us": null
+          }
+        ]
+      },
+      "multi_core": {
+        "memory_bandwidth": [
+          {
+            "type": "rd",
+            "c1": 0.27,
+            "c2": 0.536,
+            "c4": 0.553,
+            "c8": 0.562
+          },
+          {
+            "type": "wr",
+            "c1": 0.272,
+            "c2": 0.343,
+            "c4": 0.355,
+            "c8": 0.359
+          },
+          {
+            "type": "cp",
+            "c1": 0.225,
+            "c2": 0.357,
+            "c4": 0.358,
+            "c8": 0.356
+          },
+          {
+            "type": "frd",
+            "c1": 0.776,
+            "c2": 1.504,
+            "c4": 1.539,
+            "c8": 1.546
+          },
+          {
+            "type": "fwr",
+            "c1": 0.943,
+            "c2": 1.832,
+            "c4": 1.853,
+            "c8": 1.867
+          },
+          {
+            "type": "fcp",
+            "c1": 1.542,
+            "c2": 2.948,
+            "c4": 2.978,
+            "c8": 3.033
+          },
+          {
+            "type": "memset",
+            "c1": 10.805,
+            "c2": 10.467,
+            "c4": 11.106,
+            "c8": 11.665
+          },
+          {
+            "type": "memcpy",
+            "c1": 4.008,
+            "c2": 4.604,
+            "c4": 6.181,
+            "c8": 6.375
+          }
+        ],
+        "ipc_bandwidth": {
+          "c1": 0.246,
+          "c2": 0.347,
+          "c4": 0.412,
+          "c8": 0.002
+        },
+        "task_latency": {
+          "c1": 15.953,
+          "c2": 541.906,
+          "c4": 266.75,
+          "c8": 137.549
+        },
+        "core_comm": {
+          "intra_core": 0.246,
+          "inter_core": 0
+        }
+      }
+    },
+    "test-schedule": {
+      "status": null,
+      "gradients": [
+        {
+          "utilization_percent": 30,
+          "total_jobs": null,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 40,
+          "total_jobs": null,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 50,
+          "total_jobs": null,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 60,
+          "total_jobs": null,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 70,
+          "total_jobs": null,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 80,
+          "total_jobs": null,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 90,
+          "total_jobs": null,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        },
+        {
+          "utilization_percent": 100,
+          "total_jobs": null,
+          "deadline_misses": 0,
+          "miss_rate": 0.0
+        }
+      ],
+      "summary": {
+        "average_miss_rate": 0.0,
+        "final_score": 100.0
+      }
+    },
+    "typical-workload": {
+      "status": null,
+      "workloads": [
+        {
+          "name": "pid",
+          "avg_time_ms": 94.6,
+          "category": "control"
+        },
+        {
+          "name": "fast",
+          "avg_time_ms": 45.8,
+          "category": "vision"
+        },
+        {
+          "name": "icp",
+          "avg_time_ms": 371.9,
+          "category": "vision"
+        },
+        {
+          "name": "modbus",
+          "avg_time_ms": 9043.1,
+          "category": "network"
+        },
+        {
+          "name": "mqtt",
+          "avg_time_ms": 6592.1,
+          "category": "network"
+        },
+        {
+          "name": "ewma",
+          "avg_time_ms": 66.1,
+          "category": "detection"
+        },
+        {
+          "name": "cusum",
+          "avg_time_ms": 44.3,
+          "category": "detection"
+        }
+      ]
+    },
+    "test-stress": {}
+  },
+  "power": {
+    "items": [
+      {
+        "item": "static",
+        "energy_j": 4899.063
+      },
+      {
+        "item": "cpu",
+        "energy_j": 2001.626
+      },
+      {
+        "item": "memory",
+        "energy_j": 1940.024
+      },
+      {
+        "item": "file",
+        "energy_j": 4947.133
+      }
+    ]
+  }
+}
