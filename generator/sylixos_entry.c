@@ -45,8 +45,35 @@ void rtbench_platform_get_env(struct rtbench_platform_env *env)
 	}
 	env->os_name = "SylixOS";
 	env->os_version = "3.9.0";
+#if defined(RTBENCH_BOARD_NAME)
+	env->board = RTBENCH_BOARD_NAME;
+#elif defined(BOARD_NAME)
+	env->board = BOARD_NAME;
+#elif defined(__aarch64__)
+	env->board = "翼辉-香橙派";
+#elif defined(__x86_64__)
+	env->board = "翼辉-工控机";
+#elif defined(__riscv)
+	env->board = "翼辉-哪吒";
+#elif defined(__loongarch__) || defined(__loongarch64__) || defined(__loongarch_lp64)
+	env->board = "翼辉-龙芯";
+#else
 	env->board = "SylixOS-Board";
+#endif
+
+#if defined(RTBENCH_CPU_TYPE)
+	env->cpu_type = RTBENCH_CPU_TYPE;
+#elif defined(__aarch64__)
+	env->cpu_type = "aarch64";
+#elif defined(__x86_64__)
+	env->cpu_type = "x86_64";
+#elif defined(__riscv)
+	env->cpu_type = "riscv64";
+#elif defined(__loongarch__) || defined(__loongarch64__) || defined(__loongarch_lp64)
+	env->cpu_type = "loongarch64";
+#else
 	env->cpu_type = "Unknown";
+#endif
 	env->cpu_freq_mhz = 0;
 	env->cpu_core_num = 1;
 }

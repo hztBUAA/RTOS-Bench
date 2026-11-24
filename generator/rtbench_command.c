@@ -104,36 +104,86 @@ void RTBENCH_WEAK rtbench_platform_get_env(struct rtbench_platform_env *env)
 #if defined(SYLIXOS_PLATFORM)
 	env->os_name = "SylixOS";
 	env->os_version = "3.x";
+#if defined(__aarch64__)
+	env->board = "翼辉-香橙派";
+	env->cpu_type = "aarch64";
+#elif defined(__x86_64__)
+	env->board = "翼辉-工控机";
+	env->cpu_type = "x86_64";
+#elif defined(__riscv)
+	env->board = "翼辉-哪吒";
+	env->cpu_type = "riscv64";
+#elif defined(__loongarch__) || defined(__loongarch64__) || defined(__loongarch_lp64)
+	env->board = "翼辉-龙芯";
+	env->cpu_type = "loongarch64";
+#else
 	env->board = "SylixOS-Board";
 	env->cpu_type = "Unknown";
+#endif
 	env->cpu_freq_mhz = 0;
 	env->cpu_core_num = 1;
 #elif defined(ONEOS_PLATFORM)
 	env->os_name = "OneOS";
 	env->os_version = "3.x";
+#if defined(__riscv)
+	env->board = "OneOS-哪吒";
+	env->cpu_type = "riscv64";
+#elif defined(__aarch64__)
+	env->board = "OneOS-飞腾";
+	env->cpu_type = "aarch64";
+#else
 	env->board = "OneOS-Board";
-	env->cpu_type = "ARM";
+	env->cpu_type = "Unknown";
+#endif
 	env->cpu_freq_mhz = 0;
 	env->cpu_core_num = 1;
 #elif defined(DONGTU_PLATFORM)
 	env->os_name = "Dongtu";
 	env->os_version = "Intewell";
-	env->board = "Dongtu-Board";
+#if defined(__aarch64__)
+	env->board = "东土-飞腾";
+	env->cpu_type = "aarch64";
+#elif defined(__loongarch__) || defined(__loongarch64__) || defined(__loongarch_lp64)
+	env->board = "东土-龙芯";
+	env->cpu_type = "loongarch64";
+#elif defined(__x86_64__)
+	env->board = "东土-工控机";
 	env->cpu_type = "x86_64";
+#else
+	env->board = "Dongtu-Board";
+	env->cpu_type = "Unknown";
+#endif
 	env->cpu_freq_mhz = 0;
 	env->cpu_core_num = 1;
 #elif defined(RT_THREAD_PLATFORM)
 	env->os_name = "RT-Thread";
 	env->os_version = "unknown";
 	env->board = "RT-Thread-Board";
+#if defined(__aarch64__)
+	env->cpu_type = "aarch64";
+#elif defined(__riscv)
+	env->cpu_type = "riscv64";
+#else
 	env->cpu_type = "Unknown";
+#endif
 	env->cpu_freq_mhz = 0;
 	env->cpu_core_num = 1;
 #elif defined(RUIHUA_PLATFORM)
 	env->os_name = "Ruihua ReWorks";
 	env->os_version = "6.1.1";
+#if defined(__loongarch__) || defined(__loongarch64__) || defined(__loongarch_lp64)
+	env->board = "锐华-龙芯派";
+	env->cpu_type = "loongarch64";
+#elif defined(__aarch64__)
+	env->board = "锐华-飞腾派";
+	env->cpu_type = "aarch64";
+#elif defined(__arm__)
+	env->board = "锐华-ARMv7";
+	env->cpu_type = "arm";
+#else
 	env->board = "Ruihua-Board";
-	env->cpu_type = "ARM";
+	env->cpu_type = "Unknown";
+#endif
 	env->cpu_freq_mhz = 0;
 	env->cpu_core_num = 0;
 #else
@@ -143,6 +193,15 @@ void RTBENCH_WEAK rtbench_platform_get_env(struct rtbench_platform_env *env)
 	env->cpu_type = "Unknown";
 	env->cpu_freq_mhz = 0;
 	env->cpu_core_num = 0;
+#endif
+
+#ifdef RTBENCH_BOARD_NAME
+	env->board = RTBENCH_BOARD_NAME;
+#elif defined(BOARD_NAME)
+	env->board = BOARD_NAME;
+#endif
+#ifdef RTBENCH_CPU_TYPE
+	env->cpu_type = RTBENCH_CPU_TYPE;
 #endif
 }
 
