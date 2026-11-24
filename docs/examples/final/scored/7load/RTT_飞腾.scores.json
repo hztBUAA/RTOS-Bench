@@ -1,0 +1,27 @@
+{
+  "schema": "rtbench.scores.v1",
+  "board": "Phytium-Pi",
+  "os_name": "RT-Thread",
+  "arch": "aarch64",
+  "source": "ssot/7load/RTT_飞腾.json",
+  "algorithm": {
+    "curve": "saturation",
+    "a": 0.25,
+    "baseline": "LS2K1000LA/SylixOS"
+  },
+  "scores": {
+    "base_rt": 82.06828317805741,
+    "sched": 100.0,
+    "RT": 91.0341415890287,
+    "T": 89.39882060375052,
+    "P": 75.13358142499216,
+    "F": 60.0,
+    "total": 82.58312886070804,
+    "categories": {
+      "realtime_control": 94.52935066977865,
+      "perception": 94.12677232376075,
+      "communication": 72.246464864928,
+      "monitoring": 96.69269455653472
+    }
+  }
+}
