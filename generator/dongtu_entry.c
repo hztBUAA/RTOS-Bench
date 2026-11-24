@@ -45,22 +45,30 @@ void rtbench_platform_get_env(struct rtbench_platform_env *env)
 	env->os_name = "Dongtu";
 	env->os_version = "Intewell";
 
-#if defined(BOARD_NAME)
+#if defined(RTBENCH_BOARD_NAME)
+	env->board = RTBENCH_BOARD_NAME;
+#elif defined(BOARD_NAME)
 	env->board = BOARD_NAME;
-#elif defined(_X86_) || defined(_X86_32_) || defined(_I386_) || defined(__i386__) || defined(__x86_64__)
-	env->board = "Dongtu-x86";
+#elif defined(__x86_64__) || defined(_X86_) || defined(_X86_32_) || defined(_I386_) || defined(__i386__)
+	env->board = "东土-工控机";
 #elif defined(__aarch64__) || defined(__ARM64__) || defined(_AARCH64_)
-	env->board = "Dongtu-OrangePi";
+	env->board = "东土-飞腾";
+#elif defined(__loongarch__) || defined(__loongarch64__) || defined(__loongarch_lp64)
+	env->board = "东土-龙芯";
 #else
 	env->board = "Dongtu-Board";
 #endif
 
-#if defined(_X86_) || defined(_X86_32_) || defined(_I386_) || defined(__i386__)
-	env->cpu_type = "x86";
+#if defined(RTBENCH_CPU_TYPE)
+	env->cpu_type = RTBENCH_CPU_TYPE;
 #elif defined(__x86_64__)
 	env->cpu_type = "x86_64";
+#elif defined(_X86_) || defined(_X86_32_) || defined(_I386_) || defined(__i386__)
+	env->cpu_type = "x86";
 #elif defined(__aarch64__) || defined(__ARM64__) || defined(_AARCH64_)
 	env->cpu_type = "aarch64";
+#elif defined(__loongarch__) || defined(__loongarch64__) || defined(__loongarch_lp64)
+	env->cpu_type = "loongarch64";
 #else
 	env->cpu_type = "Unknown";
 #endif
