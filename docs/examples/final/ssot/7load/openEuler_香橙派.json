@@ -770,6 +770,23 @@
     }
   },
   "power": {
-    "items": []
+    "items": [
+      {
+        "item": "static",
+        "energy_j": 1515.085
+      },
+      {
+        "item": "cpu",
+        "energy_j": 451.413
+      },
+      {
+        "item": "memory",
+        "energy_j": 389.719
+      },
+      {
+        "item": "file",
+        "energy_j": 199.239
+      }
+    ]
   }
 }

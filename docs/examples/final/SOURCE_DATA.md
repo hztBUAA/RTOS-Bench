@@ -104,6 +104,6 @@ python3 utils/build_reports.py source/7load_raw.xlsx --workloads 7 -o /tmp/check
 ## 5. 已知的数据缺口
 
 - 欧拉飞腾和香橙派已从 `platforms/openeuler/测试结果/` 的原始 JSON
-  生成 7 负载 SSOT；该结果缺 `test-stress.power`，P 暂为 null。
+  生成 7 负载 SSOT，功耗数据后续已补齐。
 - RTT 新多核数据含极端值：`ipc c8=0.002`、`task_latency c2=541.9`、`inter_core=0`。
 - F 全部为占位 60，总分上限 92。

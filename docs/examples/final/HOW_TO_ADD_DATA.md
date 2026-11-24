@@ -109,6 +109,6 @@ python3 tools/pipeline.py --version 7load \
 ## 5. 注意
 
 - 缺功耗时，总分按 partial 权重算，需在备注里写明。
-- openEuler 两块板缺功耗，总分按 partial 权重计算。
+- openEuler 两块板已补齐功耗数据，按完整权重计算总分。
 - 改了 Excel 的 sheet 结构（插行、改列），解析会错位；先按 `SOURCE_DATA.md` 核对块布局。
 - 所有改动通过 PR 提交，便于追溯。
