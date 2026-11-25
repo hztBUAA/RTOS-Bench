@@ -10,7 +10,7 @@
     "os_name": "ReWorks",
     "os_version": "V6.1.1",
     "board": "锐华-香橙派（ReWorks 6.1.1 / RK3588 / 8核@2400MHz）",
-    "cpu_type": null,
+    "cpu_type": "aarch64",
     "cpu_freq_mhz": null,
     "cpu_core_num": null,
     "bsp_version": "PATCH20260414181405-HYCX-6.1.1-ARM-BASE-V1.9"
@@ -212,13 +212,13 @@
         {
           "utilization_percent": 100,
           "total_jobs": 21,
-          "deadline_misses": 1,
-          "miss_rate": 0.0476
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         }
       ],
       "summary": {
-        "average_miss_rate": 0.005952380952380952,
-        "final_score": 99.40476190476191
+        "average_miss_rate": 0.0,
+        "final_score": 100.0
       }
     },
     "typical-workload": {
