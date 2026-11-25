@@ -10,7 +10,7 @@
     "os_name": "ReWorks",
     "os_version": "V6.1.1",
     "board": "锐华-龙芯派（ReWorks 6.1.1 / LoongArch / 2核@1000MHz）",
-    "cpu_type": null,
+    "cpu_type": "loongarch64",
     "cpu_freq_mhz": null,
     "cpu_core_num": null,
     "bsp_version": "PATCH20260330191159-HYCX-6.1.1-LOONGARCH-BASE-V1.9"
@@ -194,31 +194,31 @@
         {
           "utilization_percent": 70,
           "total_jobs": 21,
-          "deadline_misses": 1,
-          "miss_rate": 0.0476
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         },
         {
           "utilization_percent": 80,
           "total_jobs": 21,
-          "deadline_misses": 2,
-          "miss_rate": 0.0952
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         },
         {
           "utilization_percent": 90,
           "total_jobs": 21,
-          "deadline_misses": 3,
-          "miss_rate": 0.1429
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         },
         {
           "utilization_percent": 100,
           "total_jobs": 21,
-          "deadline_misses": 5,
-          "miss_rate": 0.2381
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         }
       ],
       "summary": {
-        "average_miss_rate": 0.06547619047619048,
-        "final_score": 93.45238095238095
+        "average_miss_rate": 0.0,
+        "final_score": 100.0
       }
     },
     "typical-workload": {

@@ -10,7 +10,7 @@
     "os_name": "ReWorks",
     "os_version": "V6.1.1",
     "board": "锐华-飞腾派（ReWorks 6.1.1 / ARM aarch64 / 4核@2000MHz）",
-    "cpu_type": null,
+    "cpu_type": "aarch64",
     "cpu_freq_mhz": null,
     "cpu_core_num": null,
     "bsp_version": "PATCH20260414181405-HYCX-6.1.1-ARM-BASE-V1.9"
@@ -200,25 +200,25 @@
         {
           "utilization_percent": 80,
           "total_jobs": 21,
-          "deadline_misses": 1,
-          "miss_rate": 0.0476
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         },
         {
           "utilization_percent": 90,
           "total_jobs": 21,
-          "deadline_misses": 1,
-          "miss_rate": 0.0476
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         },
         {
           "utilization_percent": 100,
           "total_jobs": 21,
-          "deadline_misses": 3,
-          "miss_rate": 0.1429
+          "deadline_misses": 0,
+          "miss_rate": 0.0
         }
       ],
       "summary": {
-        "average_miss_rate": 0.02976190476190476,
-        "final_score": 97.02380952380952
+        "average_miss_rate": 0.0,
+        "final_score": 100.0
       }
     },
     "typical-workload": {
